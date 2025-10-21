@@ -73,7 +73,7 @@
            (click)="navigateToSection('messages')">
         <mat-icon class="nav-icon">message</mat-icon>
         <span>Communication</span>
-        <span class="notification-dot">3</span>
+        <span class="notification-dot" *ngIf="unreadMessagesCount > 0">{{ unreadMessagesCount }}</span>
       </div>
 
       <div class="nav-item" 
@@ -157,21 +157,19 @@
         <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
           <mat-icon>menu</mat-icon>
         </button>
-        <div class="header-title">
-          <h1>Welcome back, {{ userDisplayName }}!</h1>
-          <p>Manage your properties and track performance</p>
-        </div>
       </div>
 
       <div class="header-right">
+        <!-- Notification Bell Only -->
         <div class="header-actions">
-          <button class="notification-btn" (click)="viewNotifications()">
+          <button class="notification-btn" (click)="viewNotifications()" 
+                  [class.has-notifications]="unreadNotificationsCount > 0"
+                  matTooltip="{{ unreadNotificationsCount > 0 ? unreadNotificationsCount + ' unread notifications' : 'No new notifications' }}"
+                  matTooltipPosition="below">
             <mat-icon>notifications</mat-icon>
-            <span class="notification-badge">3</span>
-          </button>
-          <button class="btn-primary" (click)="addNewProperty()">
-            <mat-icon>add</mat-icon>
-            Add Property
+            <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
+              {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
+            </span>
           </button>
         </div>
 

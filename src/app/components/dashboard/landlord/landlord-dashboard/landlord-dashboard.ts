@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
@@ -14,6 +15,7 @@ import { User, UserRole } from '../../../../services/auth-interfaces';
     CommonModule,
     MatIconModule,
     MatDialogModule,
+    MatTooltipModule,
     RouterOutlet,
   ],
   templateUrl: './landlord-dashboard.html',
@@ -35,6 +37,12 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   userRole: string = 'Landlord';
   profileImage: string | null = null;
 
+  // Notification properties - ready for API consumption
+  unreadNotificationsCount: number = 0;
+  unreadMessagesCount: number = 0;
+  isLoadingNotifications: boolean = false;
+
+  // Dashboard stats
   totalProperties = 12;
   activeTenants = 45;
   monthlyRevenue = 'KSh 2.4M';
@@ -101,6 +109,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadUserData();
+    this.loadNotifications();
     
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -182,6 +191,51 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Notification methods - ready for API integration
+  private loadNotifications(): void {
+    this.isLoadingNotifications = true;
+    
+    // TODO: Replace with actual API call
+    // Example: this.notificationService.getUnreadCount().subscribe(...)
+    
+    // Simulate API call delay
+    setTimeout(() => {
+      // Mock data - replace with actual API response
+      this.unreadNotificationsCount = 0; // Set to 0 initially, will be updated by API
+      this.unreadMessagesCount = 0; // Set to 0 initially, will be updated by API
+      this.isLoadingNotifications = false;
+      
+      // Uncomment below to test with mock notifications
+      // this.unreadNotificationsCount = 3;
+      // this.unreadMessagesCount = 2;
+    }, 500);
+  }
+
+  viewNotifications(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    
+    // Navigate to notifications page or open notifications panel
+    this.router.navigate(['/landlord-dashboard/notifications']);
+    
+    // Alternative: You could open a notifications dropdown here
+    // this.openNotificationsPanel();
+  }
+
+  // Method to refresh notifications (call this when you want to update counts)
+  refreshNotifications(): void {
+    this.loadNotifications();
+  }
+
+  // Method to mark notifications as read (call this when user views notifications)
+  markNotificationsAsRead(): void {
+    // TODO: Implement API call to mark notifications as read
+    // Example: this.notificationService.markAllAsRead().subscribe(...)
+    
+    this.unreadNotificationsCount = 0;
+    this.unreadMessagesCount = 0;
+  }
+
   private loadProfileImage(): void {
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
@@ -239,18 +293,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.closeProfileMenu();
     this.closeMobileMenu();
     this.router.navigate(['/landlord-dashboard/profile/edit']);
-  }
-
-  addNewProperty(): void {
-    this.closeProfileMenu();
-    this.closeMobileMenu();
-    this.router.navigate(['/landlord-dashboard/property/create']);
-  }
-
-  viewNotifications(): void {
-    this.closeProfileMenu();
-    this.closeMobileMenu();
-    this.router.navigate(['/landlord-dashboard/notifications']);
   }
 
   // Menu Toggle Methods
@@ -349,6 +391,9 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       case 'security':
         this.router.navigate(['/landlord-dashboard/settings/security']);
         this.expandedMenus.settings = true;
+        break;
+      case 'notifications':
+        this.router.navigate(['/landlord-dashboard/notifications']);
         break;
       default:
         this.router.navigate(['/landlord-dashboard']);
@@ -480,40 +525,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
         this.router.navigate(['/login']);
       }
     });
-  }
-
-  // File Upload Handler (if needed elsewhere)
-  onFileSelected(event: any): void {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.profileImage = e.target.result;
-        localStorage.setItem('profileImage', e.target.result);
-        window.dispatchEvent(new Event('profileImageUpdated'));
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  // Delete Photo Handler (if needed elsewhere)
-  deletePhoto(): void {
-    const confirmed = confirm('Are you sure you want to delete your profile photo?');
-    if (confirmed) {
-      this.profileImage = this.generateInitialAvatar(this.userDisplayName);
-      localStorage.removeItem('profileImage');
-      this.isProfileMenuOpen = false;
-      window.dispatchEvent(new Event('profileImageUpdated'));
-    }
-  }
-
-  // Refresh Dashboard Data (if needed)
-  refreshDashboard(): void {
-    // You can add logic here to refresh dashboard data
-    console.log('Refreshing dashboard data...');
-    
-    // Example: Reload user data
-    this.loadUserData();
   }
 
   // Handle Window Resize (for responsive behavior)
