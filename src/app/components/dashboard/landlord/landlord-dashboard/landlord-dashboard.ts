@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -111,12 +111,44 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
     this.updateCurrentSectionFromRoute(this.router.url);
     this.setupProfileUpdateListener();
+    this.setupClickOutsideListener();
   }
 
   ngOnDestroy(): void {
     if (this.profileUpdateListener) {
       window.removeEventListener('profileImageUpdated', this.profileUpdateListener);
     }
+    document.removeEventListener('click', this.handleClickOutside.bind(this));
+  }
+
+  @HostListener('document:click', ['$event'])
+  handleClickOutside(event: Event): void {
+    // Close profile dropdown when clicking outside
+    if (this.isProfileMenuOpen) {
+      const target = event.target as HTMLElement;
+      const profileSection = document.querySelector('.profile-section');
+      
+      if (profileSection && !profileSection.contains(target)) {
+        this.closeProfileMenu();
+      }
+    }
+
+    // Close mobile menu when clicking outside
+    if (this.isMobileMenuOpen) {
+      const target = event.target as HTMLElement;
+      const sidebar = document.querySelector('.sidebar');
+      const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+      
+      if (sidebar && !sidebar.contains(target) && 
+          mobileMenuBtn && !mobileMenuBtn.contains(target) &&
+          target.classList.contains('mobile-menu-overlay')) {
+        this.closeMobileMenu();
+      }
+    }
+  }
+
+  private setupClickOutsideListener(): void {
+    document.addEventListener('click', this.handleClickOutside.bind(this));
   }
 
   private setupProfileUpdateListener(): void {
@@ -196,6 +228,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     return roleMap[role.toString()] || role.toString();
   }
 
+  // Navigation Methods
   viewProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
@@ -208,79 +241,24 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/landlord-dashboard/profile/edit']);
   }
 
-  private updateCurrentSectionFromRoute(url: string): void {
-    if (url === '/landlord-dashboard' || url === '/landlord-dashboard/') {
-      this.currentSection = 'dashboard';
-    } else if (url.includes('/property/create')) {
-      this.currentSection = 'properties';
-      this.expandedMenus.properties = true;
-    } else if (url.includes('/property/units')) {
-      this.currentSection = 'units';
-      this.expandedMenus.properties = true;
-    } else if (url.includes('/property')) {
-      this.currentSection = 'properties';
-      this.expandedMenus.properties = true;
-    } else if (url.includes('/financials/invoices')) {
-      this.currentSection = 'invoices';
-      this.expandedMenus.financials = true; 
-    } else if (url.includes('/financials/payments')) {
-      this.currentSection = 'payments';
-      this.expandedMenus.financials = true;
-    } else if (url.includes('/financials/expenses')) {
-      this.currentSection = 'expenses';
-      this.expandedMenus.financials = true;
-    } else if (url.includes('/financials')) {
-      this.currentSection = 'financials';
-      this.expandedMenus.financials = true;
-    } else if (url.includes('/settings/general')) {
-      this.currentSection = 'general';
-      this.expandedMenus.settings = true;
-    } else if (url.includes('/settings/account')) {
-      this.currentSection = 'account';
-      this.expandedMenus.settings = true;
-    } else if (url.includes('/settings/alerts')) {
-      this.currentSection = 'alerts';
-      this.expandedMenus.settings = true;
-    } else if (url.includes('/settings/security')) {
-      this.currentSection = 'security';
-      this.expandedMenus.settings = true;
-    } else if (url.includes('/profile/view')) {
-      this.currentSection = 'profile';
-    } else if (url.includes('/profile/edit')) {
-      this.currentSection = 'profile';
-    } else {
-      const urlParts = url.split('/');
-      this.currentSection = urlParts[urlParts.length - 1] || 'dashboard';
-    }
+  addNewProperty(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/landlord-dashboard/property/create']);
   }
 
-  isNavActive(section: string): boolean {
-    return this.currentSection === section;
+  viewNotifications(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/landlord-dashboard/notifications']);
   }
 
-  isSubItemActive(subSection: string): boolean {
-    return this.currentSection === subSection;
-  }
-
-  isParentActive(menuName: 'financials' | 'properties' | 'settings'): boolean {
-    const financialSections = ['financials', 'invoices', 'payments', 'expenses'];
-    const propertySections = ['properties', 'units', 'utilities', 'maintenance', 'property-grouping'];
-    const settingsSections = ['general', 'account', 'alerts', 'security'];
-    
-    switch(menuName) {
-      case 'financials':
-        return financialSections.includes(this.currentSection);
-      case 'properties':
-        return propertySections.includes(this.currentSection) || this.router.url.includes('/property');
-      case 'settings':
-        return settingsSections.includes(this.currentSection);
-      default:
-        return false;
-    }
-  }
-
+  // Menu Toggle Methods
   toggleProfileMenu(): void {
     this.isProfileMenuOpen = !this.isProfileMenuOpen;
+    if (this.isProfileMenuOpen) {
+      this.isMobileMenuOpen = false;
+    }
   }
 
   toggleMobileMenu(): void {
@@ -307,6 +285,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.expandedMenus[menuName] = !this.expandedMenus[menuName];
   }
 
+  // Navigation Methods
   navigateToSection(section: string): void {
     this.currentSection = section;
     this.isMobileMenuOpen = false;
@@ -371,6 +350,9 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
         this.router.navigate(['/landlord-dashboard/settings/security']);
         this.expandedMenus.settings = true;
         break;
+      default:
+        this.router.navigate(['/landlord-dashboard']);
+        break;
     }
   }
 
@@ -378,14 +360,94 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.navigateToSection('tenants');
   }
 
-  addNewProperty(): void {
-    this.router.navigate(['/landlord-dashboard/property/create']);
+  // Route Detection
+  private updateCurrentSectionFromRoute(url: string): void {
+    if (url === '/landlord-dashboard' || url === '/landlord-dashboard/') {
+      this.currentSection = 'dashboard';
+    } else if (url.includes('/property/create')) {
+      this.currentSection = 'properties';
+      this.expandedMenus.properties = true;
+    } else if (url.includes('/property/units')) {
+      this.currentSection = 'units';
+      this.expandedMenus.properties = true;
+    } else if (url.includes('/property')) {
+      this.currentSection = 'properties';
+      this.expandedMenus.properties = true;
+    } else if (url.includes('/financials/invoices')) {
+      this.currentSection = 'invoices';
+      this.expandedMenus.financials = true; 
+    } else if (url.includes('/financials/payments')) {
+      this.currentSection = 'payments';
+      this.expandedMenus.financials = true;
+    } else if (url.includes('/financials/expenses')) {
+      this.currentSection = 'expenses';
+      this.expandedMenus.financials = true;
+    } else if (url.includes('/financials')) {
+      this.currentSection = 'financials';
+      this.expandedMenus.financials = true;
+    } else if (url.includes('/settings/general')) {
+      this.currentSection = 'general';
+      this.expandedMenus.settings = true;
+    } else if (url.includes('/settings/account')) {
+      this.currentSection = 'account';
+      this.expandedMenus.settings = true;
+    } else if (url.includes('/settings/alerts')) {
+      this.currentSection = 'alerts';
+      this.expandedMenus.settings = true;
+    } else if (url.includes('/settings/security')) {
+      this.currentSection = 'security';
+      this.expandedMenus.settings = true;
+    } else if (url.includes('/profile/view')) {
+      this.currentSection = 'profile';
+    } else if (url.includes('/profile/edit')) {
+      this.currentSection = 'profile';
+    } else if (url.includes('/notifications')) {
+      this.currentSection = 'notifications';
+    } else if (url.includes('/tenants')) {
+      this.currentSection = 'tenants';
+    } else if (url.includes('/messages')) {
+      this.currentSection = 'messages';
+    } else if (url.includes('/documents')) {
+      this.currentSection = 'documents';
+    } else if (url.includes('/marketplace')) {
+      this.currentSection = 'marketplace';
+    } else if (url.includes('/reviews')) {
+      this.currentSection = 'reviews';
+    } else if (url.includes('/reports')) {
+      this.currentSection = 'reports';
+    } else {
+      const urlParts = url.split('/');
+      this.currentSection = urlParts[urlParts.length - 1] || 'dashboard';
+    }
   }
 
-  viewNotifications(): void {
-    this.navigateToSection('notifications');
+  // Active State Checkers
+  isNavActive(section: string): boolean {
+    return this.currentSection === section;
   }
 
+  isSubItemActive(subSection: string): boolean {
+    return this.currentSection === subSection;
+  }
+
+  isParentActive(menuName: 'financials' | 'properties' | 'settings'): boolean {
+    const financialSections = ['financials', 'invoices', 'payments', 'expenses'];
+    const propertySections = ['properties', 'units', 'utilities', 'maintenance', 'property-grouping'];
+    const settingsSections = ['general', 'account', 'alerts', 'security'];
+    
+    switch(menuName) {
+      case 'financials':
+        return financialSections.includes(this.currentSection);
+      case 'properties':
+        return propertySections.includes(this.currentSection) || this.router.url.includes('/property');
+      case 'settings':
+        return settingsSections.includes(this.currentSection);
+      default:
+        return false;
+    }
+  }
+
+  // Logout Method
   logout(): void {
     if (this.isLoggingOut) return;
 
@@ -394,18 +456,72 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
     this.isLoggingOut = true;
     this.closeProfileMenu();
+    this.closeMobileMenu();
 
     this.authService.logout().subscribe({
       next: (response) => {
         console.log('Logout successful:', response.message);
+        this.isLoggingOut = false;
+        
+        // Clear local storage
+        localStorage.removeItem('profileImage');
+        sessionStorage.clear();
+        
+        // Navigate to login page
+        this.router.navigate(['/login']);
       },
       error: (error) => {
         console.error('Logout error:', error);
         this.isLoggingOut = false;
-      },
-      complete: () => {
-        this.isLoggingOut = false;
+        
+        // Still try to navigate to login even if API call fails
+        localStorage.removeItem('profileImage');
+        sessionStorage.clear();
+        this.router.navigate(['/login']);
       }
     });
+  }
+
+  // File Upload Handler (if needed elsewhere)
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.profileImage = e.target.result;
+        localStorage.setItem('profileImage', e.target.result);
+        window.dispatchEvent(new Event('profileImageUpdated'));
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // Delete Photo Handler (if needed elsewhere)
+  deletePhoto(): void {
+    const confirmed = confirm('Are you sure you want to delete your profile photo?');
+    if (confirmed) {
+      this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+      localStorage.removeItem('profileImage');
+      this.isProfileMenuOpen = false;
+      window.dispatchEvent(new Event('profileImageUpdated'));
+    }
+  }
+
+  // Refresh Dashboard Data (if needed)
+  refreshDashboard(): void {
+    // You can add logic here to refresh dashboard data
+    console.log('Refreshing dashboard data...');
+    
+    // Example: Reload user data
+    this.loadUserData();
+  }
+
+  // Handle Window Resize (for responsive behavior)
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any): void {
+    // Close mobile menu on larger screens
+    if (window.innerWidth > 768 && this.isMobileMenuOpen) {
+      this.closeMobileMenu();
+    }
   }
 }

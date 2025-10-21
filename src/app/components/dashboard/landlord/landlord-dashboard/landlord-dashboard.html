@@ -153,64 +153,61 @@
 
   <main class="main-content">
     <div class="top-header">
-      <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
-        <mat-icon>menu</mat-icon>
-      </button>
+      <div class="header-left">
+        <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <div class="header-title">
+          <h1>Welcome back, {{ userDisplayName }}!</h1>
+          <p>Manage your properties and track performance</p>
+        </div>
+      </div>
 
-      <div class="header-spacer"></div>
+      <div class="header-right">
+        <div class="header-actions">
+          <button class="notification-btn" (click)="viewNotifications()">
+            <mat-icon>notifications</mat-icon>
+            <span class="notification-badge">3</span>
+          </button>
+          <button class="btn-primary" (click)="addNewProperty()">
+            <mat-icon>add</mat-icon>
+            Add Property
+          </button>
+        </div>
 
-      <div class="profile-section">
-        <div class="user-avatar-wrapper" (click)="viewProfile(); $event.stopPropagation()">
-          <div class="user-avatar">
-            <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image">
-            <div *ngIf="!profileImage" class="avatar-placeholder">
-              <mat-icon>account_circle</mat-icon>
+        <!-- Profile Section on Right Top -->
+        <div class="profile-section">
+          <div class="user-avatar-wrapper" (click)="viewProfile(); $event.stopPropagation()">
+            <div class="user-avatar">
+              <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image">
+              <div *ngIf="!profileImage" class="avatar-placeholder">
+                <mat-icon>account_circle</mat-icon>
+              </div>
             </div>
           </div>
-          <div class="user-info-inline">
-            <span class="user-name">{{ userDisplayName }}</span>
-            <span class="user-role">{{ userRole }}</span>
+
+          <div class="dropdown-trigger" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <mat-icon class="dropdown-chevron" [class.rotated]="isProfileMenuOpen">expand_more</mat-icon>
           </div>
-        </div>
 
-        <div class="dropdown-trigger" (click)="toggleProfileMenu(); $event.stopPropagation()">
-          <mat-icon class="dropdown-chevron" [class.rotated]="isProfileMenuOpen">expand_more</mat-icon>
-        </div>
-
-        <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
-          <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
-            <mat-icon>edit</mat-icon>
-            <span>Edit Profile</span>
-          </button>
-          <div class="dropdown-divider"></div>
-          <button class="dropdown-item logout-item" 
-                  (click)="logout(); $event.stopPropagation()"
-                  [disabled]="isLoggingOut">
-            <mat-icon>logout</mat-icon>
-            <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
-          </button>
+          <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
+            <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Profile</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item logout-item" 
+                    (click)="logout(); $event.stopPropagation()"
+                    [disabled]="isLoggingOut">
+              <mat-icon>logout</mat-icon>
+              <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
     <div *ngIf="currentSection === 'dashboard'" class="dashboard-home">
-      <div class="content-header">
-        <div class="header-left">
-          <h1>Welcome back, {{ userDisplayName }}!</h1>
-          <p>Manage your properties and track performance</p>
-        </div>
-        <div class="header-actions">
-          <button class="btn-primary" (click)="addNewProperty()">
-            <mat-icon>add</mat-icon>
-            Add Property
-          </button>
-          <button class="notification-btn" (click)="viewNotifications()">
-            <mat-icon>notifications</mat-icon>
-            <span class="notification-badge">3</span>
-          </button>
-        </div>
-      </div>
-
       <div class="dashboard-content">
         <div class="stats-grid">
           <div class="stat-card">
