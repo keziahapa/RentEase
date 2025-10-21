@@ -16,22 +16,11 @@
           <div *ngIf="!profileImage" class="avatar-placeholder-large">
             <mat-icon>account_circle</mat-icon>
           </div>
-          <!-- Upload badge visible in edit mode -->
-          <button class="upload-badge-large" (click)="changePhoto()" matTooltip="Change profile photo">
-            <mat-icon>add</mat-icon>
-          </button>
         </div>
         
-        <div class="avatar-actions">
-          <button class="btn-secondary" (click)="changePhoto()" [disabled]="isUploadingPhoto">
-            <mat-icon>photo_camera</mat-icon>
-            {{ isUploadingPhoto ? 'Uploading...' : 'Change Photo' }}
-          </button>
-          
-          <button class="btn-delete-photo" (click)="deletePhoto()" [disabled]="isDeletingPhoto || isDefaultAvatar()">
-            <mat-icon>delete</mat-icon>
-            {{ isDeletingPhoto ? 'Deleting...' : 'Delete Photo' }}
-          </button>
+        <!-- Avatar Menu Trigger -->
+        <div class="avatar-menu-trigger" (click)="openAvatarDialog()">
+          <mat-icon>more_vert</mat-icon>
         </div>
       </div>
     </div>
@@ -91,5 +80,47 @@
         </button>
       </div>
     </form>
+  </div>
+
+  <!-- Avatar Options Dialog -->
+  <div class="dialog-overlay" *ngIf="showAvatarDialog" (click)="closeAvatarDialog()">
+    <div class="avatar-dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>Profile Photo</h3>
+        <button class="dialog-close" (click)="closeAvatarDialog()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      
+      <div class="dialog-content">
+        <div class="avatar-preview">
+          <div class="preview-avatar">
+            <img *ngIf="profileImage" [src]="profileImage" alt="Profile Preview" class="preview-image">
+            <div *ngIf="!profileImage" class="preview-placeholder">
+              <mat-icon>account_circle</mat-icon>
+            </div>
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="dialog-btn upload-btn" (click)="changePhoto()">
+            <mat-icon>photo_camera</mat-icon>
+            <span>Upload Profile Photo</span>
+          </button>
+          
+          <button class="dialog-btn delete-btn" 
+                  (click)="deletePhoto()"
+                  [disabled]="isDefaultAvatar()">
+            <mat-icon>delete</mat-icon>
+            <span>Delete Photo</span>
+          </button>
+          
+          <button class="dialog-btn cancel-btn" (click)="closeAvatarDialog()">
+            <mat-icon>close</mat-icon>
+            <span>Cancel</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

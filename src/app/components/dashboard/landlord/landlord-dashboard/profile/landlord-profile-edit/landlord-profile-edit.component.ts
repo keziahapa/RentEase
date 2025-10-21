@@ -49,6 +49,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   isUploadingPhoto = false;
   isDeletingPhoto = false;
   isLoadingUserData = false;
+  showAvatarDialog = false;
   
   originalPhoneNumber: string = '';
   currentPhoneNumber: string = '';
@@ -62,7 +63,16 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Clean up if needed
+    // Clean up any event listeners if needed
+  }
+
+  // Avatar Dialog Methods
+  openAvatarDialog(): void {
+    this.showAvatarDialog = true;
+  }
+
+  closeAvatarDialog(): void {
+    this.showAvatarDialog = false;
   }
 
   private loadUserData(): void {
@@ -217,6 +227,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   }
 
   changePhoto(): void {
+    this.closeAvatarDialog();
+    
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/jpeg,image/jpg,image/png,image/webp';
@@ -350,6 +362,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   }
 
   deletePhoto(): void {
+    this.closeAvatarDialog();
+    
     if (this.isDeletingPhoto) return;
 
     if (!confirm('Are you sure you want to delete your profile picture?')) {
