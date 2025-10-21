@@ -1,96 +1,97 @@
 <div class="profile-view-container">
-  <div class="content-header">
-    <div class="header-left">
-      <h1>Profile Details</h1>
-      <p>View and manage your account information</p>
-    </div>
-    <div class="header-actions">
-      <button mat-raised-button color="primary" (click)="editProfile()">
-        <mat-icon>edit</mat-icon>
-        Edit Profile
-      </button>
-      <button mat-button (click)="goBack()">
-        <mat-icon>arrow_back</mat-icon>
-        Back to Dashboard
-      </button>
-    </div>
+  <div class="profile-header">
+    <button class="back-button" (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Dashboard
+    </button>
+    <h1>Profile Details</h1>
+    <p>View and manage your account information</p>
   </div>
 
   <div class="profile-content">
-    <mat-card class="profile-card">
-      <mat-card-header>
-        <div class="profile-header">
-          <div class="profile-image-section">
-            <img 
-              [src]="profileImage" 
-              alt="Profile" 
-              class="profile-image-large"
-              (error)="profileImage = generateInitialAvatar(getUserFullName())">
-            <div *ngIf="isLoadingProfilePicture" class="image-loading-overlay">
-              <mat-spinner diameter="40"></mat-spinner>
-            </div>
+    <div class="avatar-section">
+      <div class="avatar-container">
+        <div class="user-avatar-large">
+          <img 
+            [src]="profileImage" 
+            alt="Profile" 
+            class="avatar-image-large"
+            (error)="profileImage = generateInitialAvatar(getUserFullName())">
+          <div *ngIf="!profileImage" class="avatar-placeholder-large">
+            <mat-icon>account_circle</mat-icon>
           </div>
-          <div class="profile-basic-info">
-            <h2>{{ getUserFullName() }}</h2>
-            <p class="user-email">{{ getUserEmail() }}</p>
-            <p class="user-role">{{ formattedRole }}</p>
+          <div *ngIf="isLoadingProfilePicture" class="image-loading-overlay">
+            <mat-spinner diameter="40"></mat-spinner>
           </div>
         </div>
-      </mat-card-header>
+      </div>
+    </div>
 
-      <mat-divider></mat-divider>
-
-      <mat-card-content>
-        <div class="profile-details">
-          <div class="detail-section">
-            <h3>Personal Information</h3>
-            <div class="detail-grid">
-              <div class="detail-item">
-                <label>Full Name</label>
-                <p>{{ getUserFullName() }}</p>
-              </div>
-              <div class="detail-item">
-                <label>Email Address</label>
-                <p>{{ getUserEmail() }}</p>
-              </div>
-              <div class="detail-item">
-                <label>Phone Number</label>
-                <p>{{ getUserPhone() }}</p>
-              </div>
-              <div class="detail-item">
-                <label>Account Type</label>
-                <p>{{ formattedRole }}</p>
-              </div>
-            </div>
+    <div class="profile-info-card">
+      <div class="info-section">
+        <h3>Personal Information</h3>
+        
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Full Name</div>
+            <div class="info-value">{{ getUserFullName() || 'Not provided' }}</div>
           </div>
 
-          <div class="detail-section">
-            <h3>Account Status</h3>
-            <div class="detail-grid">
-              <div class="detail-item">
-                <label>Email Verification</label>
-                <p>
-                  <span class="status-badge" [class.verified]="user?.emailVerified" [class.unverified]="!user?.emailVerified">
-                    {{ getEmailVerificationStatus() }}
-                  </span>
-                </p>
-              </div>
-              <div class="detail-item">
-                <label>Account Status</label>
-                <p>
-                  <span class="status-badge" [class.verified]="user?.verified" [class.unverified]="!user?.verified">
-                    {{ getAccountStatus() }}
-                  </span>
-                </p>
-              </div>
-              <div class="detail-item">
-                <label>Member Since</label>
-                <p>{{ getMemberSince() }}</p>
-              </div>
-            </div>
+          <div class="info-item">
+            <div class="info-label">Email Address</div>
+            <div class="info-value">{{ getUserEmail() || 'Not provided' }}</div>
+          </div>
+
+          <div class="info-item">
+            <div class="info-label">Phone Number</div>
+            <div class="info-value">{{ getUserPhone() || 'Not provided' }}</div>
+          </div>
+
+          <div class="info-item">
+            <div class="info-label">Account Type</div>
+            <div class="info-value">{{ formattedRole || 'Not provided' }}</div>
           </div>
         </div>
-      </mat-card-content>
-    </mat-card>
+      </div>
+
+      <div class="info-section">
+        <h3>Account Status</h3>
+        
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Email Verification</div>
+            <div class="info-value">
+              <span class="status-badge" [class.verified]="user?.emailVerified" [class.unverified]="!user?.emailVerified">
+                {{ getEmailVerificationStatus() }}
+              </span>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <div class="info-label">Account Status</div>
+            <div class="info-value">
+              <span class="status-badge" [class.verified]="user?.verified" [class.unverified]="!user?.verified">
+                {{ getAccountStatus() }}
+              </span>
+            </div>
+          </div>
+
+          <div class="info-item">
+            <div class="info-label">Member Since</div>
+            <div class="info-value">{{ getMemberSince() || 'Not available' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-outline" (click)="goBack()">
+          Back to Dashboard
+        </button>
+        <button type="button" class="btn-primary" (click)="editProfile()">
+          <mat-icon>edit</mat-icon>
+          Edit Profile
+        </button>
+      </div>
+    </div>
   </div>
 </div>

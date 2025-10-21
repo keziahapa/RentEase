@@ -18,7 +18,7 @@
           </div>
         </div>
         
-        <!-- Avatar Menu Trigger - Changed to edit icon -->
+        <!-- Avatar Menu Trigger -->
         <div class="avatar-menu-trigger" (click)="openAvatarDialog()">
           <mat-icon>edit</mat-icon>
         </div>
@@ -65,7 +65,7 @@
         <div class="form-row">
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Bio</mat-label>
-            <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="3"></textarea>
+            <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="2"></textarea>
             <mat-hint>{{ bio?.value?.length || 0 }}/500 characters</mat-hint>
             <mat-error *ngIf="bio?.invalid && bio?.touched">
               Bio cannot exceed 500 characters
