@@ -93,13 +93,13 @@
       }
     }
     
-    /* Avatar Menu Trigger */
+    /* Avatar Menu Trigger - Changed to > button */
     .avatar-menu-trigger {
       position: absolute;
-      bottom: 20px;
+      bottom: 15px;
       right: calc(50% - 75px);
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
       border: 3px solid #ffffff;
       border-radius: 50%;
@@ -113,13 +113,19 @@
       &:hover {
         background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
         transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
+      }
+      
+      &:active {
+        transform: scale(0.95);
       }
       
       mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
         color: #ffffff;
+        transition: transform 0.3s ease;
       }
     }
   }
@@ -245,6 +251,7 @@
     justify-content: center;
     z-index: 1000;
     animation: fadeIn 0.3s ease;
+    backdrop-filter: blur(4px);
   }
 
   .avatar-dialog {
@@ -297,7 +304,8 @@
 
       .avatar-preview {
         display: flex;
-        justify-content: center;
+        flex-direction: column;
+        align-items: center;
         margin-bottom: 1.5rem;
 
         .preview-avatar {
@@ -310,6 +318,7 @@
           align-items: center;
           justify-content: center;
           overflow: hidden;
+          margin-bottom: 1rem;
 
           .preview-image {
             width: 100%;
@@ -327,6 +336,14 @@
               height: 50px;
             }
           }
+        }
+
+        .preview-text {
+          font-size: 0.875rem;
+          color: #64748b;
+          text-align: center;
+          margin: 0;
+          font-weight: 500;
         }
       }
 
@@ -379,6 +396,8 @@
             &:hover:not(:disabled) {
               background: #fef2f2;
               border-color: #fca5a5;
+              transform: translateY(-2px);
+              box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
             }
           }
 
@@ -390,6 +409,7 @@
             &:hover {
               background: #f1f5f9;
               border-color: #cbd5e1;
+              transform: translateY(-2px);
             }
           }
         }
@@ -435,15 +455,15 @@
       }
 
       .avatar-menu-trigger {
-        width: 36px;
-        height: 36px;
-        bottom: 15px;
+        width: 32px;
+        height: 32px;
+        bottom: 12px;
         right: calc(50% - 60px);
 
         mat-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
+          font-size: 16px;
+          width: 16px;
+          height: 16px;
         }
       }
     }
@@ -521,15 +541,15 @@
       }
 
       .avatar-menu-trigger {
-        width: 32px;
-        height: 32px;
-        bottom: 12px;
+        width: 30px;
+        height: 30px;
+        bottom: 10px;
         right: calc(50% - 50px);
 
         mat-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
+          font-size: 14px;
+          width: 14px;
+          height: 14px;
         }
       }
     }

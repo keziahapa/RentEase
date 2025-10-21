@@ -18,9 +18,9 @@
           </div>
         </div>
         
-        <!-- Avatar Menu Trigger -->
+        <!-- Avatar Menu Trigger - Changed to > button -->
         <div class="avatar-menu-trigger" (click)="openAvatarDialog()">
-          <mat-icon>more_vert</mat-icon>
+          <mat-icon>chevron_right</mat-icon>
         </div>
       </div>
     </div>
@@ -86,7 +86,7 @@
   <div class="dialog-overlay" *ngIf="showAvatarDialog" (click)="closeAvatarDialog()">
     <div class="avatar-dialog" (click)="$event.stopPropagation()">
       <div class="dialog-header">
-        <h3>Profile Photo</h3>
+        <h3>Profile Photo Options</h3>
         <button class="dialog-close" (click)="closeAvatarDialog()">
           <mat-icon>close</mat-icon>
         </button>
@@ -100,6 +100,7 @@
               <mat-icon>account_circle</mat-icon>
             </div>
           </div>
+          <p class="preview-text">Current Profile Photo</p>
         </div>
 
         <div class="dialog-actions">
