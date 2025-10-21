@@ -196,27 +196,16 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     return roleMap[role.toString()] || role.toString();
   }
 
-  onFileSelected(event: any): void {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.profileImage = e.target.result;
-        localStorage.setItem('profileImage', e.target.result);
-        window.dispatchEvent(new Event('profileImageUpdated'));
-      };
-      reader.readAsDataURL(file);
-    }
+  viewProfile(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/landlord-dashboard/profile/view']);
   }
 
-  deletePhoto(): void {
-    const confirmed = confirm('Are you sure you want to delete your profile photo?');
-    if (confirmed) {
-      this.profileImage = this.generateInitialAvatar(this.userDisplayName);
-      localStorage.removeItem('profileImage');
-      this.isProfileMenuOpen = false;
-      window.dispatchEvent(new Event('profileImageUpdated'));
-    }
+  editProfile(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/landlord-dashboard/profile/edit']);
   }
 
   private updateCurrentSectionFromRoute(url: string): void {

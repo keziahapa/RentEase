@@ -160,34 +160,27 @@
       <div class="header-spacer"></div>
 
       <div class="profile-section">
-        <div class="user-avatar-wrapper" (click)="toggleProfileMenu(); $event.stopPropagation()">
+        <div class="user-avatar-wrapper" (click)="viewProfile(); $event.stopPropagation()">
           <div class="user-avatar">
             <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image">
             <div *ngIf="!profileImage" class="avatar-placeholder">
               <mat-icon>account_circle</mat-icon>
             </div>
-            <input 
-              type="file" 
-              #fileInput 
-              (change)="onFileSelected($event)" 
-              accept="image/*" 
-              style="display: none;"
-            >
-            <button class="upload-badge" (click)="fileInput.click(); $event.stopPropagation()">
-              <mat-icon>add</mat-icon>
-            </button>
           </div>
           <div class="user-info-inline">
             <span class="user-name">{{ userDisplayName }}</span>
             <span class="user-role">{{ userRole }}</span>
           </div>
-          <mat-icon class="dropdown-icon" [class.rotated]="isProfileMenuOpen">expand_more</mat-icon>
+        </div>
+
+        <div class="dropdown-trigger" (click)="toggleProfileMenu(); $event.stopPropagation()">
+          <mat-icon class="dropdown-chevron" [class.rotated]="isProfileMenuOpen">expand_more</mat-icon>
         </div>
 
         <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
-          <button class="dropdown-item" (click)="deletePhoto(); $event.stopPropagation()">
-            <mat-icon>delete_outline</mat-icon>
-            <span>Delete Photo</span>
+          <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
+            <mat-icon>edit</mat-icon>
+            <span>Edit Profile</span>
           </button>
           <div class="dropdown-divider"></div>
           <button class="dropdown-item logout-item" 

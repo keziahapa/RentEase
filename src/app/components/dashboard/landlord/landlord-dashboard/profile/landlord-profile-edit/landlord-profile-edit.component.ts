@@ -48,11 +48,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   isSubmitting = false;
   isUploadingPhoto = false;
   isDeletingPhoto = false;
-  isCameraActive = false;
   isLoadingUserData = false;
-  stream: MediaStream | null = null;
-  videoElement: HTMLVideoElement | null = null;
-  canvasElement: HTMLCanvasElement | null = null;
   
   originalPhoneNumber: string = '';
   currentPhoneNumber: string = '';
@@ -66,7 +62,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.stopCamera();
+    // Clean up if needed
   }
 
   private loadUserData(): void {
@@ -79,13 +75,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       return;
     }
 
-    console.log('User from AuthService:', currentUser);
-    console.log('Phone number from AuthService:', currentUser.phoneNumber);
-
     this.originalPhoneNumber = currentUser.phoneNumber || '';
     this.currentPhoneNumber = currentUser.phoneNumber || '';
-    
-    console.log('Original phone number:', this.originalPhoneNumber);
     
     this.user = currentUser;
     this.populateForm();
@@ -102,31 +93,23 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
         this.isLoadingUserData = false;
         
         if (response.success && response.user) {
-          console.log('User data from API:', response.user);
-          console.log('Phone number from API:', response.user.phoneNumber);
-          
           this.user = response.user;
           
           const apiPhoneNumber = response.user.phoneNumber || '';
           if (apiPhoneNumber && apiPhoneNumber !== this.originalPhoneNumber) {
-            console.log('Updating phone number from API:', this.originalPhoneNumber, '→', apiPhoneNumber);
             this.originalPhoneNumber = apiPhoneNumber;
             this.currentPhoneNumber = apiPhoneNumber;
           }
-          
-          console.log('Final phone numbers - Original:', this.originalPhoneNumber, 'Current:', this.currentPhoneNumber);
           
           this.populateForm();
           this.updateLocalUserData(response.user);
           
         } else {
-          console.warn('No user data in API response:', response);
           this.snackBar.open('Failed to load latest profile data', 'Close', { duration: 3000 });
         }
       },
       error: (error: any) => {
         this.isLoadingUserData = false;
-        console.error('Error loading user data from API:', error);
         
         if (error.status === 401 || error.status === 403) {
           this.snackBar.open('Authentication failed', 'Login', { duration: 5000 }).onAction().subscribe(() => {
@@ -154,8 +137,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
         } else {
           sessionStorage.setItem('userData', JSON.stringify(userData));
         }
-        
-        console.log('User data updated in storage');
       }
     } catch (error) {
       console.error('Error updating local user data:', error);
@@ -224,9 +205,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
   private populateForm(): void {
     if (this.user) {
-      console.log('Populating form with user data:', this.user);
-      console.log('Setting phone number field to:', this.originalPhoneNumber);
-      
       this.profileForm.patchValue({
         fullName: this.user.fullName || '',
         email: this.user.email || '',
@@ -235,7 +213,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       });
 
       this.currentPhoneNumber = this.profileForm.value.phoneNumber;
-      console.log('Form populated. Current phone in form:', this.profileForm.value.phoneNumber);
     }
   }
 
@@ -372,121 +349,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     });
   }
 
-  async startCamera(): Promise<void> {
-    try {
-      this.isCameraActive = true;
-      
-      this.stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: 'user'
-        } 
-      });
-      
-      setTimeout(() => {
-        this.videoElement = document.getElementById('cameraVideo') as HTMLVideoElement;
-        this.canvasElement = document.getElementById('cameraCanvas') as HTMLCanvasElement;
-        
-        if (this.videoElement && this.stream) {
-          this.videoElement.srcObject = this.stream;
-        }
-      }, 100);
-      
-    } catch (error) {
-      this.snackBar.open('Unable to access camera', 'Close', { duration: 4000 });
-      this.stopCamera();
-    }
-  }
-
-  stopCamera(): void {
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
-      this.stream = null;
-    }
-    this.isCameraActive = false;
-    
-    if (this.videoElement) {
-      this.videoElement.srcObject = null;
-    }
-  }
-
-  capturePhoto(): void {
-    if (!this.videoElement || !this.canvasElement) {
-      return;
-    }
-
-    const context = this.canvasElement.getContext('2d');
-    if (!context) {
-      return;
-    }
-
-    const maxDimension = 800;
-    let width = this.videoElement.videoWidth;
-    let height = this.videoElement.videoHeight;
-
-    if (width > height && width > maxDimension) {
-      height = Math.round((height * maxDimension) / width);
-      width = maxDimension;
-    } else if (height > width && height > maxDimension) {
-      width = Math.round((width * maxDimension) / height);
-      height = maxDimension;
-    }
-
-    this.canvasElement.width = width;
-    this.canvasElement.height = height;
-    
-    context.drawImage(this.videoElement, 0, 0, width, height);
-    
-    this.canvasElement.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], `profile-capture-${Date.now()}.jpg`, { 
-          type: 'image/jpeg' 
-        });
-        this.uploadCapturedPhoto(file);
-      }
-    }, 'image/jpeg', 0.85);
-  }
-
-  private uploadCapturedPhoto(file: File): void {
-    this.isUploadingPhoto = true;
-
-    this.propertyService.updateProfilePicture(file).subscribe({
-      next: (response: any) => {
-        this.isUploadingPhoto = false;
-        
-        const imageUrl = response.data || response.pictureUrl;
-        
-        if (response.success && imageUrl) {
-          this.snackBar.open('Photo captured successfully', 'Close', { duration: 2000 });
-          
-          this.profileImage = imageUrl;
-          localStorage.setItem('profileImage', imageUrl);
-          
-          setTimeout(() => {
-            const timestamp = new Date().getTime();
-            const cacheBustedUrl = imageUrl.includes('?') 
-              ? `${imageUrl}&t=${timestamp}`
-              : `${imageUrl}?t=${timestamp}`;
-            
-            this.profileImage = cacheBustedUrl;
-          }, 100);
-          
-          window.dispatchEvent(new Event('profileImageUpdated'));
-          
-          this.stopCamera();
-        } else {
-          this.snackBar.open(response.message || 'Failed to update photo', 'Close', { duration: 3000 });
-        }
-      },
-      error: (error: any) => {
-        this.isUploadingPhoto = false;
-        this.snackBar.open(error.message || 'Failed to upload captured photo', 'Close', { duration: 3000 });
-        this.stopCamera();
-      }
-    });
-  }
-
   deletePhoto(): void {
     if (this.isDeletingPhoto) return;
 
@@ -529,11 +391,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     const newPhoneNumber = this.profileForm.value.phoneNumber?.trim();
     const phoneChanged = newPhoneNumber !== this.originalPhoneNumber;
 
-    console.log('Submitting form...');
-    console.log('New phone number:', newPhoneNumber);
-    console.log('Original registered phone number:', this.originalPhoneNumber);
-    console.log('Phone changed:', phoneChanged);
-
     if (phoneChanged && newPhoneNumber) {
       this.updatePhoneNumber(newPhoneNumber);
     } else {
@@ -542,11 +399,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   }
 
   private updatePhoneNumber(newPhoneNumber: string): void {
-    console.log('Updating phone number from', this.originalPhoneNumber, 'to:', newPhoneNumber);
-    
     this.authService.updatePhone(newPhoneNumber).subscribe({
       next: (response: any) => {
-        console.log('Phone update response:', response);
         if (response.success) {
           this.originalPhoneNumber = newPhoneNumber;
           this.snackBar.open('Phone number updated successfully', 'Close', { duration: 2000 });
@@ -558,7 +412,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         this.isSubmitting = false;
-        console.error('Phone update error:', error);
         this.snackBar.open(error.message || 'Failed to update phone number', 'Close', { duration: 3000 });
       }
     });
@@ -573,12 +426,9 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       bio: this.profileForm.value.bio
     };
 
-    console.log('Updating user profile with:', updatedUserData);
-
     this.propertyService.updateUserProfile(updatedUserData).subscribe({
       next: (response: any) => {
         this.isSubmitting = false;
-        console.log('Profile update response:', response);
         
         if (response.success && response.user) {
           this.snackBar.open('Profile updated successfully', 'Close', { duration: 2000 });
@@ -594,7 +444,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         this.isSubmitting = false;
-        console.error('Profile update error:', error);
         this.snackBar.open('Failed to update profile', 'Close', { duration: 3000 });
       }
     });
@@ -620,10 +469,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
   handleImageError(): void {
     this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
-  }
-
-  getCurrentDisplayedPhone(): string {
-    return this.profileForm.get('phoneNumber')?.value || '';
   }
 
   get fullName() { return this.profileForm.get('fullName'); }
