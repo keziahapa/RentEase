@@ -173,7 +173,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     const names = name.split(' ');
     const initials = names.map(name => name.charAt(0).toUpperCase()).join('').slice(0, 2);
     
-    const colors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+    const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
     const color = colors[initials.charCodeAt(0) % colors.length];
     
     return `data:image/svg+xml;base64,${btoa(`
@@ -194,6 +194,29 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     };
     
     return roleMap[role.toString()] || role.toString();
+  }
+
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.profileImage = e.target.result;
+        localStorage.setItem('profileImage', e.target.result);
+        window.dispatchEvent(new Event('profileImageUpdated'));
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  deletePhoto(): void {
+    const confirmed = confirm('Are you sure you want to delete your profile photo?');
+    if (confirmed) {
+      this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+      localStorage.removeItem('profileImage');
+      this.isProfileMenuOpen = false;
+      window.dispatchEvent(new Event('profileImageUpdated'));
+    }
   }
 
   private updateCurrentSectionFromRoute(url: string): void {
@@ -267,10 +290,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  viewProfile(): void {
-    this.router.navigate(['/landlord-dashboard/profile/view']);
-  }
-
   toggleProfileMenu(): void {
     this.isProfileMenuOpen = !this.isProfileMenuOpen;
   }
@@ -297,11 +316,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
   toggleMenu(menuName: keyof typeof this.expandedMenus): void {
     this.expandedMenus[menuName] = !this.expandedMenus[menuName];
-  }
-
-  editProfile(): void {
-    this.isProfileMenuOpen = false;
-    this.router.navigate(['/landlord-dashboard/profile/edit']);
   }
 
   navigateToSection(section: string): void {
@@ -352,9 +366,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       case 'reports':
         this.router.navigate(['/landlord-dashboard/reports']);
         break;
-      case 'profile':
-        this.router.navigate(['/landlord-dashboard/profile/view']);
-        break;
       case 'general':
         this.router.navigate(['/landlord-dashboard/settings/general']);
         this.expandedMenus.settings = true;
@@ -386,51 +397,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.navigateToSection('notifications');
   }
 
-  isPlaceholderSection(): boolean {
-    const routedSections = [
-      'dashboard', 
-      'financials', 
-      'invoices', 
-      'payments', 
-      'expenses', 
-      'properties', 
-      'profile',
-      'general',
-      'account',
-      'alerts',
-      'security'
-    ];
-    
-    return !routedSections.includes(this.currentSection) && 
-           !this.router.url.includes('/property') &&
-           !this.router.url.includes('/settings') &&
-           !this.router.url.includes('/profile');
-  }
-
-  getSectionTitle(section: string): string {
-    const titles: { [key: string]: string } = {
-      'dashboard': 'Dashboard',
-      'financials': 'Financials',
-      'invoices': 'Invoices',
-      'payments': 'Payments',
-      'expenses': 'Expenses',
-      'tenants': 'Tenants',
-      'properties': 'Properties',
-      'profile': 'Profile',
-      'messages': 'Communication',
-      'documents': 'Documents',
-      'marketplace': 'Marketplace',
-      'reviews': 'Reviews & Ratings',
-      'reports': 'Reports',
-      'general': 'General Settings',
-      'account': 'Account Information',
-      'alerts': 'Alert Settings',
-      'security': 'Security Settings'
-    };
-    
-    return titles[section] || section.charAt(0).toUpperCase() + section.slice(1);
-  }
-
   logout(): void {
     if (this.isLoggingOut) return;
 
@@ -452,13 +418,5 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
         this.isLoggingOut = false;
       }
     });
-  }
-
-  quickLogout(): void {
-    if (this.isLoggingOut) return;
-    
-    this.isLoggingOut = true;
-    this.closeProfileMenu();
-    this.authService.logoutSync();
   }
 }
