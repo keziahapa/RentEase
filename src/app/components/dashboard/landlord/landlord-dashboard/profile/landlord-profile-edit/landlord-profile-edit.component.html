@@ -18,9 +18,9 @@
           </div>
         </div>
         
-        <!-- Avatar Menu Trigger - Changed to > button -->
+        <!-- Avatar Menu Trigger - Changed to edit icon -->
         <div class="avatar-menu-trigger" (click)="openAvatarDialog()">
-          <mat-icon>chevron_right</mat-icon>
+          <mat-icon>edit</mat-icon>
         </div>
       </div>
     </div>
@@ -30,7 +30,7 @@
         <h3>Personal Information</h3>
         
         <div class="form-row">
-          <mat-form-field appearance="outline" class="form-field-full">
+          <mat-form-field appearance="outline" class="form-field">
             <mat-label>Full Name</mat-label>
             <input matInput formControlName="fullName" placeholder="Enter your full name">
             <mat-icon matSuffix>person</mat-icon>
@@ -41,7 +41,7 @@
         </div>
 
         <div class="form-row">
-          <mat-form-field appearance="outline" class="form-field-half">
+          <mat-form-field appearance="outline" class="form-field">
             <mat-label>Email Address</mat-label>
             <input matInput formControlName="email" placeholder="your@email.com" type="email">
             <mat-icon matSuffix>email</mat-icon>
@@ -49,8 +49,10 @@
               Please enter a valid email address
             </mat-error>
           </mat-form-field>
+        </div>
 
-          <mat-form-field appearance="outline" class="form-field-half">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field">
             <mat-label>Phone Number</mat-label>
             <input matInput formControlName="phoneNumber" placeholder="+254 XXX XXX XXX" type="tel">
             <mat-icon matSuffix>phone</mat-icon>
@@ -60,14 +62,16 @@
           </mat-form-field>
         </div>
 
-        <mat-form-field appearance="outline" class="form-field-full">
-          <mat-label>Bio</mat-label>
-          <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="4"></textarea>
-          <mat-hint>{{ bio?.value?.length || 0 }}/500 characters</mat-hint>
-          <mat-error *ngIf="bio?.invalid && bio?.touched">
-            Bio cannot exceed 500 characters
-          </mat-error>
-        </mat-form-field>
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Bio</mat-label>
+            <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="3"></textarea>
+            <mat-hint>{{ bio?.value?.length || 0 }}/500 characters</mat-hint>
+            <mat-error *ngIf="bio?.invalid && bio?.touched">
+              Bio cannot exceed 500 characters
+            </mat-error>
+          </mat-form-field>
+        </div>
       </div>
 
       <div class="form-actions">
@@ -104,12 +108,12 @@
         </div>
 
         <div class="dialog-actions">
-          <button class="dialog-btn upload-btn" (click)="changePhoto()">
+          <button class="dialog-btn primary-btn" (click)="changePhoto()">
             <mat-icon>photo_camera</mat-icon>
             <span>Upload Profile Photo</span>
           </button>
           
-          <button class="dialog-btn delete-btn" 
+          <button class="dialog-btn primary-btn" 
                   (click)="deletePhoto()"
                   [disabled]="isDefaultAvatar()">
             <mat-icon>delete</mat-icon>

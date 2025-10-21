@@ -1,10 +1,13 @@
 .profile-edit-container {
   min-height: 100vh;
   background: #f8fafc;
-  padding: 2rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
 
   .profile-header {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
     
     .back-button {
       display: flex;
@@ -14,10 +17,12 @@
       border: none;
       color: #64748b;
       cursor: pointer;
-      padding: 0.5rem 0;
+      padding: 0.5rem 1rem;
       margin-bottom: 1rem;
       transition: color 0.3s ease;
       border-radius: 8px;
+      margin-left: auto;
+      margin-right: auto;
       
       &:hover {
         color: #1e40af;
@@ -32,7 +37,7 @@
     }
     
     h1 {
-      font-size: 2rem;
+      font-size: 1.75rem;
       font-weight: 700;
       color: #1e293b;
       margin: 0 0 0.5rem 0;
@@ -46,15 +51,19 @@
   }
 
   .profile-content {
-    display: grid;
-    gap: 3rem;
-    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-width: 600px;
     margin: 0 auto;
+    width: 100%;
+    flex: 1;
   }
 
   .avatar-section {
     display: flex;
     justify-content: center;
+    padding: 1rem 0;
   }
 
   .avatar-container {
@@ -63,17 +72,17 @@
     
     .user-avatar-large {
       position: relative;
-      width: 150px;
-      height: 150px;
+      width: 120px;
+      height: 120px;
       border-radius: 50%;
-      margin: 0 auto 1.5rem;
+      margin: 0 auto;
       background: #f1f5f9;
       border: 3px solid #e2e8f0;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
       
       .avatar-image-large {
         width: 100%;
@@ -86,34 +95,34 @@
         color: #94a3b8;
         
         mat-icon {
-          font-size: 80px;
-          width: 80px;
-          height: 80px;
+          font-size: 60px;
+          width: 60px;
+          height: 60px;
         }
       }
     }
     
-    /* Avatar Menu Trigger - Changed to > button */
+    /* Avatar Menu Trigger - Changed to edit icon */
     .avatar-menu-trigger {
       position: absolute;
-      bottom: 15px;
-      right: calc(50% - 75px);
-      width: 36px;
-      height: 36px;
+      bottom: 8px;
+      right: calc(50% - 60px);
+      width: 32px;
+      height: 32px;
       background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-      border: 3px solid #ffffff;
+      border: 2px solid #ffffff;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+      box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
       
       &:hover {
         background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
         transform: scale(1.1);
-        box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
+        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.4);
       }
       
       &:active {
@@ -121,11 +130,10 @@
       }
       
       mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
         color: #ffffff;
-        transition: transform 0.3s ease;
       }
     }
   }
@@ -134,33 +142,35 @@
     background: #ffffff;
     padding: 2rem;
     border-radius: 16px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border: 1px solid #e2e8f0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 
     .form-section {
-      margin-bottom: 2rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
 
       h3 {
         font-size: 1.25rem;
         font-weight: 700;
         color: #1e293b;
-        margin-bottom: 1.5rem;
+        margin: 0;
         padding-bottom: 0.75rem;
         border-bottom: 2px solid #f1f5f9;
       }
 
       .form-row {
         display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
 
-        .form-field-full {
-          flex: 1;
-        }
-
-        .form-field-half {
-          flex: 1;
-        }
+      .form-field {
+        width: 100%;
       }
 
       mat-form-field {
@@ -188,6 +198,7 @@
       gap: 1rem;
       padding-top: 1.5rem;
       border-top: 1px solid #e2e8f0;
+      margin-top: auto;
 
       .btn-outline {
         background: #ffffff;
@@ -198,6 +209,7 @@
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s ease;
+        min-width: 100px;
 
         &:hover:not(:disabled) {
           background: #f8fafc;
@@ -222,12 +234,13 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+        box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
+        min-width: 120px;
 
         &:hover:not(:disabled) {
           background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(30, 64, 175, 0.4);
         }
 
         &:disabled {
@@ -256,10 +269,10 @@
 
   .avatar-dialog {
     background: #ffffff;
-    border-radius: 20px;
+    border-radius: 16px;
     width: 90%;
-    max-width: 400px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 380px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
     animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
 
@@ -267,11 +280,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1.5rem 1.5rem 1rem;
+      padding: 1.25rem 1.5rem 1rem;
       border-bottom: 1px solid #f1f5f9;
 
       h3 {
-        font-size: 1.25rem;
+        font-size: 1.1rem;
         font-weight: 700;
         color: #1e293b;
         margin: 0;
@@ -309,16 +322,16 @@
         margin-bottom: 1.5rem;
 
         .preview-avatar {
-          width: 100px;
-          height: 100px;
+          width: 80px;
+          height: 80px;
           border-radius: 50%;
           background: #f1f5f9;
-          border: 3px solid #e2e8f0;
+          border: 2px solid #e2e8f0;
           display: flex;
           align-items: center;
           justify-content: center;
           overflow: hidden;
-          margin-bottom: 1rem;
+          margin-bottom: 0.75rem;
 
           .preview-image {
             width: 100%;
@@ -331,15 +344,15 @@
             color: #94a3b8;
 
             mat-icon {
-              font-size: 50px;
-              width: 50px;
-              height: 50px;
+              font-size: 40px;
+              width: 40px;
+              height: 40px;
             }
           }
         }
 
         .preview-text {
-          font-size: 0.875rem;
+          font-size: 0.8rem;
           color: #64748b;
           text-align: center;
           margin: 0;
@@ -355,12 +368,12 @@
         .dialog-btn {
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.75rem;
           width: 100%;
-          padding: 1rem 1.5rem;
+          padding: 0.875rem 1.25rem;
           border: none;
-          border-radius: 12px;
-          font-size: 1rem;
+          border-radius: 10px;
+          font-size: 0.9rem;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
@@ -372,44 +385,30 @@
           }
 
           mat-icon {
-            font-size: 24px;
-            width: 24px;
-            height: 24px;
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
           }
 
-          &.upload-btn {
+          &.primary-btn {
             background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
             color: #ffffff;
 
             &:hover:not(:disabled) {
               background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
-              transform: translateY(-2px);
-              box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
-            }
-          }
-
-          &.delete-btn {
-            background: #ffffff;
-            color: #dc2626;
-            border: 2px solid #fecaca;
-
-            &:hover:not(:disabled) {
-              background: #fef2f2;
-              border-color: #fca5a5;
-              transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+              transform: translateY(-1px);
+              box-shadow: 0 4px 12px rgba(30, 64, 175, 0.4);
             }
           }
 
           &.cancel-btn {
             background: #f8fafc;
             color: #64748b;
-            border: 2px solid #e2e8f0;
+            border: 1px solid #e2e8f0;
 
             &:hover {
               background: #f1f5f9;
               border-color: #cbd5e1;
-              transform: translateY(-2px);
             }
           }
         }
@@ -437,95 +436,11 @@
 @media (max-width: 768px) {
   .profile-edit-container {
     padding: 1rem;
+    min-height: calc(100vh - 2rem);
 
     .profile-content {
-      gap: 2rem;
-    }
-
-    .avatar-container {
-      .user-avatar-large {
-        width: 120px;
-        height: 120px;
-
-        .avatar-placeholder-large mat-icon {
-          font-size: 60px;
-          width: 60px;
-          height: 60px;
-        }
-      }
-
-      .avatar-menu-trigger {
-        width: 32px;
-        height: 32px;
-        bottom: 12px;
-        right: calc(50% - 60px);
-
-        mat-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
-        }
-      }
-    }
-
-    .profile-form {
-      padding: 1.5rem;
-
-      .form-section {
-        .form-row {
-          flex-direction: column;
-          gap: 0;
-        }
-      }
-
-      .form-actions {
-        flex-direction: column-reverse;
-
-        .btn-outline,
-        .btn-primary {
-          width: 100%;
-          justify-content: center;
-        }
-      }
-    }
-
-    .avatar-dialog {
-      width: 95%;
-      margin: 1rem;
-
-      .dialog-content {
-        padding: 1rem;
-
-        .avatar-preview .preview-avatar {
-          width: 80px;
-          height: 80px;
-
-          .preview-placeholder mat-icon {
-            font-size: 40px;
-            width: 40px;
-            height: 40px;
-          }
-        }
-
-        .dialog-actions .dialog-btn {
-          padding: 0.875rem 1rem;
-          font-size: 0.9rem;
-        }
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .profile-edit-container {
-    .profile-header {
-      h1 {
-        font-size: 1.5rem;
-      }
-      
-      p {
-        font-size: 0.9rem;
-      }
+      gap: 1.5rem;
+      max-width: 100%;
     }
 
     .avatar-container {
@@ -541,9 +456,9 @@
       }
 
       .avatar-menu-trigger {
-        width: 30px;
-        height: 30px;
-        bottom: 10px;
+        width: 28px;
+        height: 28px;
+        bottom: 6px;
         right: calc(50% - 50px);
 
         mat-icon {
@@ -552,6 +467,74 @@
           height: 14px;
         }
       }
+    }
+
+    .profile-form {
+      padding: 1.5rem;
+
+      .form-section {
+        gap: 1.25rem;
+
+        h3 {
+          font-size: 1.1rem;
+        }
+      }
+
+      .form-actions {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+
+        .btn-outline,
+        .btn-primary {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+    }
+
+    .avatar-dialog {
+      width: 95%;
+      margin: 1rem;
+
+      .dialog-content {
+        padding: 1.25rem;
+
+        .avatar-preview .preview-avatar {
+          width: 70px;
+          height: 70px;
+
+          .preview-placeholder mat-icon {
+            font-size: 35px;
+            width: 35px;
+            height: 35px;
+          }
+        }
+
+        .dialog-actions .dialog-btn {
+          padding: 0.75rem 1rem;
+          font-size: 0.85rem;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-edit-container {
+    padding: 0.75rem;
+
+    .profile-header {
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      p {
+        font-size: 0.9rem;
+      }
+    }
+
+    .profile-form {
+      padding: 1.25rem;
     }
   }
 }
