@@ -1,204 +1,176 @@
 <div class="profile-edit-container">
-  <div class="profile-edit-header">
-    <button mat-icon-button (click)="goBack()" class="back-button">
-      <mat-icon>arrow_back</mat-icon>
-    </button>
-    <h1>Edit Profile</h1>
+  <div class="content-header">
+    <div class="header-left">
+      <h1>Edit Profile</h1>
+      <p>Update your personal information and preferences</p>
+    </div>
     <div class="header-actions">
-      <button mat-button (click)="cancel()" class="cancel-btn">Cancel</button>
-      <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isSubmitting" class="save-btn">
-        <mat-icon *ngIf="!isSubmitting">check</mat-icon>
-        <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
-        <span *ngIf="!isSubmitting">Save Changes</span>
-        <span *ngIf="isSubmitting">Saving...</span>
+      <button mat-button (click)="goBack()" class="back-btn">
+        <mat-icon>arrow_back</mat-icon>
+        Back
       </button>
     </div>
   </div>
 
-  <div class="profile-edit-content">
-    <mat-card class="profile-card">
-      <mat-card-content>
-        <!-- User Type Display Section -->
-        <div class="user-type-section">
-          <div class="user-type-badge">
-            <mat-icon class="badge-icon">badge</mat-icon>
-            <div class="badge-content">
-              <span class="badge-label">User Type</span>
-              <span class="badge-value">{{ getRoleDisplay(user?.role) }}</span>
+  <div class="profile-content">
+    <div class="profile-card">
+      <div class="profile-banner">
+        <div class="banner-gradient"></div>
+      </div>
+
+      <div class="profile-main">
+        <div class="profile-avatar-section">
+          <div class="avatar-wrapper">
+            <div class="image-loading" *ngIf="isUploadingPhoto || isDeletingPhoto">
+              <mat-spinner diameter="60"></mat-spinner>
+            </div>
+            <img 
+              [src]="profileImage" 
+              alt="Profile" 
+              class="profile-avatar"
+              [class.loading]="isUploadingPhoto || isDeletingPhoto"
+              (error)="handleImageError()">
+            <div class="avatar-badge">
+              <mat-icon>verified</mat-icon>
             </div>
           </div>
-          <p class="user-type-note">Your account type determines the features available to you</p>
-        </div>
 
-        <mat-divider></mat-divider>
+          <div class="avatar-actions">
+            <button 
+              class="action-btn upload-btn" 
+              (click)="changePhoto()" 
+              [disabled]="isUploadingPhoto || isDeletingPhoto">
+              <mat-icon>cloud_upload</mat-icon>
+              <span>Upload</span>
+            </button>
+            <button 
+              class="action-btn camera-btn" 
+              (click)="startCamera()" 
+              [disabled]="isUploadingPhoto || isDeletingPhoto">
+              <mat-icon>photo_camera</mat-icon>
+              <span>Camera</span>
+            </button>
+            <button 
+              class="action-btn delete-btn" 
+              (click)="deletePhoto()" 
+              [disabled]="isUploadingPhoto || isDeletingPhoto || !profileImage || isDefaultAvatar()">
+              <mat-icon>delete</mat-icon>
+              <span>Remove</span>
+            </button>
+          </div>
 
-        <div class="picture-section">
-          <h2>Profile Picture</h2>
-          
-          <div class="picture-upload-area">
-            <div class="avatar-container">
-              <div class="avatar-wrapper" [class.loading]="uploading || loading">
-                <div *ngIf="uploading || loading" class="loading-overlay">
-                  <mat-spinner diameter="40"></mat-spinner>
-                </div>
-                
-                <div *ngIf="!isDefaultAvatar() && imageUrl" class="avatar-image">
-                  <img [src]="imageUrl" (error)="onImageError()" alt="Profile picture">
-                </div>
-                
-                <div *ngIf="isDefaultAvatar()" class="avatar-initials">
-                  <span>{{ getInitials() }}</span>
-                </div>
-
-                <button mat-mini-fab class="camera-button" (click)="toggleImageOptions()" [disabled]="uploading">
-                  <mat-icon>camera_alt</mat-icon>
-                </button>
-              </div>
-
-              <div class="image-options" *ngIf="showImageOptions">
-                <input type="file" #fileInput accept="image/*" (change)="onFileSelected($event)" style="display: none">
-                
-                <button mat-stroked-button (click)="fileInput.click()" class="option-btn upload-btn">
-                  <mat-icon>upload</mat-icon>
-                  <span>Upload Photo</span>
-                </button>
-
-                <button mat-stroked-button (click)="fileInput.click(); fileInput.capture = 'camera'" class="option-btn camera-btn">
-                  <mat-icon>photo_camera</mat-icon>
-                  <span>Take Photo</span>
-                </button>
-
-                <button mat-stroked-button (click)="deletePicture()" *ngIf="!isDefaultAvatar()" class="option-btn delete-btn">
-                  <mat-icon>delete</mat-icon>
-                  <span>Remove Photo</span>
-                </button>
-
-                <button mat-button (click)="toggleImageOptions()" class="option-btn cancel-options-btn">
-                  <span>Cancel</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="upload-instructions">
-              <p class="main-text">Update your profile picture</p>
-              <p class="sub-text">JPG, PNG, GIF or WEBP. Max size 5MB</p>
-              
-              <!-- User Role Info -->
-              <div class="user-role-info">
-                <mat-icon>info</mat-icon>
-                <span>You are registered as a <strong>{{ getRoleDisplay(user?.role) }}</strong></span>
-              </div>
-            </div>
+          <div class="avatar-info">
+            <p *ngIf="isUploadingPhoto && !isDeletingPhoto" class="status-uploading">
+              <mat-icon>sync</mat-icon>
+              Processing image...
+            </p>
+            <p *ngIf="isDeletingPhoto" class="status-deleting">
+              <mat-icon>delete_sweep</mat-icon>
+              Removing photo...
+            </p>
+            <p *ngIf="!isUploadingPhoto && !isDeletingPhoto" class="status-ready">
+              <mat-icon>check_circle</mat-icon>
+              Profile photo ready
+            </p>
           </div>
         </div>
 
-        <mat-divider></mat-divider>
-
-        <div class="form-section">
-          <h2>Personal Information</h2>
-          
-          <form [formGroup]="profileForm" class="profile-form">
-            <div class="form-row">
+        <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
+          <div class="form-section">
+            <h3>
+              <mat-icon>person</mat-icon>
+              Personal Information
+            </h3>
+            <div class="form-grid">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Full Name</mat-label>
-                <mat-icon matPrefix>person</mat-icon>
                 <input matInput formControlName="fullName" placeholder="Enter your full name">
-                <mat-error *ngIf="fullName?.hasError('required')">Full name is required</mat-error>
-                <mat-error *ngIf="fullName?.hasError('minlength')">Name must be at least 2 characters</mat-error>
-                <mat-error *ngIf="fullName?.hasError('maxlength')">Name cannot exceed 100 characters</mat-error>
+                <mat-icon matPrefix>badge</mat-icon>
+                <mat-error *ngIf="profileForm.get('fullName')?.hasError('required')">
+                  Full name is required
+                </mat-error>
+                <mat-error *ngIf="profileForm.get('fullName')?.hasError('minlength')">
+                  Name must be at least 2 characters
+                </mat-error>
               </mat-form-field>
-            </div>
 
-            <div class="form-row">
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Email</mat-label>
+                <mat-label>Email Address</mat-label>
+                <input matInput formControlName="email" placeholder="your.email@example.com" type="email">
                 <mat-icon matPrefix>email</mat-icon>
-                <input matInput type="email" formControlName="email" placeholder="Enter your email">
-                <mat-error *ngIf="email?.hasError('required')">Email is required</mat-error>
-                <mat-error *ngIf="email?.hasError('email')">Please enter a valid email</mat-error>
+                <mat-error *ngIf="profileForm.get('email')?.hasError('required')">
+                  Email is required
+                </mat-error>
+                <mat-error *ngIf="profileForm.get('email')?.hasError('email')">
+                  Enter a valid email
+                </mat-error>
               </mat-form-field>
-            </div>
 
-            <div class="form-row">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Phone Number</mat-label>
+                <input matInput formControlName="phoneNumber" placeholder="+254 700 000 000">
                 <mat-icon matPrefix>phone</mat-icon>
-                <input matInput type="tel" formControlName="phoneNumber" placeholder="Enter your phone number">
-                <mat-error *ngIf="phoneNumber?.hasError('pattern')">Please enter a valid phone number</mat-error>
-                <mat-error *ngIf="phoneNumber?.hasError('minlength')">Phone number must be at least 10 digits</mat-error>
+                <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('pattern')">
+                  Invalid phone format
+                </mat-error>
               </mat-form-field>
-            </div>
-
-            <div class="form-row">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Bio</mat-label>
-                <mat-icon matPrefix>description</mat-icon>
-                <textarea matInput formControlName="bio" placeholder="Tell us about yourself" rows="4"></textarea>
-                <mat-hint align="end">{{ bio?.value?.length || 0 }}/500</mat-hint>
-                <mat-error *ngIf="bio?.hasError('maxlength')">Bio cannot exceed 500 characters</mat-error>
-              </mat-form-field>
-            </div>
-
-            <!-- Change Password Section -->
-            <div class="form-row">
-              <div class="password-section">
-                <h3>Password</h3>
-                <button mat-stroked-button type="button" (click)="openChangePasswordDialog()" class="change-password-btn">
-                  <mat-icon>lock</mat-icon>
-                  Change Password
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-
-        <mat-divider></mat-divider>
-
-        <!-- Account Type Summary -->
-        <div class="account-summary">
-          <h3>Account Summary</h3>
-          <div class="summary-grid">
-            <div class="summary-item">
-              <mat-icon class="summary-icon">person</mat-icon>
-              <div class="summary-content">
-                <span class="summary-label">User Type</span>
-                <span class="summary-value">{{ getRoleDisplay(user?.role) }}</span>
-              </div>
-            </div>
-            <div class="summary-item">
-              <mat-icon class="summary-icon">verified</mat-icon>
-              <div class="summary-content">
-                <span class="summary-label">Verification Status</span>
-                <span class="summary-value" [class.verified]="user?.verified" [class.unverified]="!user?.verified">
-                  {{ user?.verified ? 'Verified' : 'Not Verified' }}
-                </span>
-              </div>
-            </div>
-            <div class="summary-item">
-              <mat-icon class="summary-icon">email</mat-icon>
-              <div class="summary-content">
-                <span class="summary-label">Email Status</span>
-                <span class="summary-value" [class.verified]="user?.emailVerified" [class.unverified]="!user?.emailVerified">
-                  {{ user?.emailVerified ? 'Verified' : 'Not Verified' }}
-                </span>
-              </div>
             </div>
           </div>
-        </div>
 
-        <div class="form-actions">
-          <button mat-stroked-button (click)="cancel()" class="cancel-action-btn">
-            <mat-icon>close</mat-icon>
-            Cancel
-          </button>
-          <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="isSubmitting || profileForm.invalid" class="save-action-btn">
-            <mat-icon *ngIf="!isSubmitting">save</mat-icon>
-            <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
-            <span *ngIf="!isSubmitting">Save Changes</span>
-            <span *ngIf="isSubmitting">Saving...</span>
-          </button>
+          <div class="form-section">
+            <h3>
+              <mat-icon>description</mat-icon>
+              About You
+            </h3>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Bio</mat-label>
+              <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="4"></textarea>
+              <mat-hint align="end">{{profileForm.get('bio')?.value?.length || 0}}/500</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button mat-stroked-button type="button" (click)="cancel()" [disabled]="isSubmitting" class="cancel-btn">
+              <mat-icon>close</mat-icon>
+              Cancel
+            </button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="isSubmitting" class="save-btn">
+              <mat-icon *ngIf="!isSubmitting">save</mat-icon>
+              <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
+              {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isCameraActive" class="camera-overlay" (click)="stopCamera()">
+    <div class="camera-modal" (click)="$event.stopPropagation()">
+      <div class="camera-header">
+        <div class="camera-title">
+          <mat-icon>photo_camera</mat-icon>
+          <h3>Take a Photo</h3>
         </div>
-      </mat-card-content>
-    </mat-card>
+        <button mat-icon-button class="close-btn" (click)="stopCamera()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      
+      <div class="camera-viewport">
+        <video #cameraVideo id="cameraVideo" autoplay playsinline></video>
+        <div class="camera-guide">
+          <div class="guide-circle"></div>
+        </div>
+      </div>
+      <canvas #cameraCanvas id="cameraCanvas" style="display: none"></canvas>
+      
+      <div class="camera-controls">
+        <button mat-fab class="capture-btn" (click)="capturePhoto()" [disabled]="isUploadingPhoto">
+          <mat-icon>camera</mat-icon>
+        </button>
+        <p class="capture-hint">Click to capture</p>
+      </div>
+    </div>
   </div>
 </div>

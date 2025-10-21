@@ -70,7 +70,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   }
 
   private loadUserData(): void {
-   
     const currentUser = this.authService.getCurrentUser();
     const token = this.authService.getToken();
     
@@ -80,21 +79,18 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       return;
     }
 
-    console.log('User from AuthService getCurrentUser():', currentUser);
+    console.log('User from AuthService:', currentUser);
     console.log('Phone number from AuthService:', currentUser.phoneNumber);
 
-  
     this.originalPhoneNumber = currentUser.phoneNumber || '';
     this.currentPhoneNumber = currentUser.phoneNumber || '';
     
-    console.log('Original phone number (from registration):', this.originalPhoneNumber);
+    console.log('Original phone number:', this.originalPhoneNumber);
     
-   
     this.user = currentUser;
     this.populateForm();
     this.loadProfilePicture();
 
-  
     this.loadUserDataFromApi();
   }
 
@@ -111,27 +107,21 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           
           this.user = response.user;
           
-       
           const apiPhoneNumber = response.user.phoneNumber || '';
           if (apiPhoneNumber && apiPhoneNumber !== this.originalPhoneNumber) {
-            console.log('API has different phone number, updating from:', this.originalPhoneNumber, 'to:', apiPhoneNumber);
+            console.log('Updating phone number from API:', this.originalPhoneNumber, '→', apiPhoneNumber);
             this.originalPhoneNumber = apiPhoneNumber;
             this.currentPhoneNumber = apiPhoneNumber;
           }
           
-          console.log('Final original phone number:', this.originalPhoneNumber);
-          console.log('Final current phone number:', this.currentPhoneNumber);
+          console.log('Final phone numbers - Original:', this.originalPhoneNumber, 'Current:', this.currentPhoneNumber);
           
-         
           this.populateForm();
-          
-         
           this.updateLocalUserData(response.user);
           
         } else {
           console.warn('No user data in API response:', response);
           this.snackBar.open('Failed to load latest profile data', 'Close', { duration: 3000 });
-          
         }
       },
       error: (error: any) => {
@@ -145,7 +135,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           this.router.navigate(['/login']);
         } else {
           this.snackBar.open('Using local profile data', 'Close', { duration: 3000 });
-         
         }
       }
     });
@@ -153,10 +142,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
   private updateLocalUserData(userData: any): void {
     try {
-     
       const currentUser = this.authService.getCurrentUser();
       if (currentUser) {
-       
         const localStorageUser = localStorage.getItem('userData');
         const sessionStorageUser = sessionStorage.getItem('userData');
         
@@ -168,7 +155,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           sessionStorage.setItem('userData', JSON.stringify(userData));
         }
         
-        console.log('User data updated in', isPermanent ? 'localStorage' : 'sessionStorage');
+        console.log('User data updated in storage');
       }
     } catch (error) {
       console.error('Error updating local user data:', error);
@@ -238,12 +225,12 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   private populateForm(): void {
     if (this.user) {
       console.log('Populating form with user data:', this.user);
-      console.log('Setting phone number field to registered number:', this.originalPhoneNumber);
+      console.log('Setting phone number field to:', this.originalPhoneNumber);
       
       this.profileForm.patchValue({
         fullName: this.user.fullName || '',
         email: this.user.email || '',
-        phoneNumber: this.originalPhoneNumber || '', 
+        phoneNumber: this.originalPhoneNumber || '',
         bio: this.user.bio || ''
       });
 
@@ -251,8 +238,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       console.log('Form populated. Current phone in form:', this.profileForm.value.phoneNumber);
     }
   }
-
-
 
   changePhoto(): void {
     const fileInput = document.createElement('input');
@@ -559,7 +544,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   private updatePhoneNumber(newPhoneNumber: string): void {
     console.log('Updating phone number from', this.originalPhoneNumber, 'to:', newPhoneNumber);
     
-   
     this.authService.updatePhone(newPhoneNumber).subscribe({
       next: (response: any) => {
         console.log('Phone update response:', response);
@@ -637,7 +621,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   handleImageError(): void {
     this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
   }
-
 
   getCurrentDisplayedPhone(): string {
     return this.profileForm.get('phoneNumber')?.value || '';

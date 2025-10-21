@@ -9,15 +9,7 @@
       </button>
     </div>
 
-    <div class="sidebar-profile">
-      <app-profile-picture 
-        [size]="'medium'" 
-        [editable]="false"
-        [showName]="isSidebarOpen"
-        [showRole]="false"
-        [routerLink]="['/caretaker-dashboard/profile']">
-      </app-profile-picture>
-    </div>
+    
 
     <div class="sidebar-role" *ngIf="isSidebarOpen">
       <mat-chip class="user-role-chip" [style.background]="getRoleColor()">

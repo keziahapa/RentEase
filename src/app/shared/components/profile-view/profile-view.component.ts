@@ -1,13 +1,13 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { ProfilePictureService } from '../../../services/profile-picture.service';
 
@@ -20,103 +20,206 @@ import { ProfilePictureService } from '../../../services/profile-picture.service
     MatButtonModule,
     MatIconModule,
     MatDividerModule,
-    MatSnackBarModule,
     MatProgressSpinnerModule,
-    MatChipsModule
+    MatSnackBarModule
   ],
   templateUrl: './profile-view.component.html',
   styleUrls: ['./profile-view.component.scss']
 })
-export class ProfileViewComponent implements OnInit {
-  @Output() editProfileEvent = new EventEmitter<void>(); 
-  @Output() goBackEvent = new EventEmitter<void>(); 
-  
-  user: any = null;
-  userRole: 'caretaker' | 'tenant' | 'landlord' | 'admin' | 'business' | 'user' = 'caretaker';
-  imageUrl: string | null = null;
-  loading: boolean = true;
+export class ProfileViewComponent implements OnInit, OnDestroy {
+  private authService = inject(AuthService);
+  private profilePictureService = inject(ProfilePictureService);
+  private router = inject(Router);
+  private snackBar = inject(MatSnackBar);
 
-  constructor(
-    private authService: AuthService,
-    private profilePictureService: ProfilePictureService,
-    private router: Router,
-    private snackBar: MatSnackBar
-  ) {}
+  user: any = null;
+  profileImage: string | null = null;
+  isLoadingProfilePicture = false;
+  isLoadingUserData = false;
+  private subscriptions = new Subscription();
+
+  constructor() {
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras?.state?.['refreshProfile']) {
+      this.loadUserDataFromApi();
+    }
+  }
 
   ngOnInit(): void {
     this.loadUserData();
-    this.loadProfilePicture();
+    this.subscribeToUpdates();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  private subscribeToUpdates(): void {
+    this.subscriptions.add(
+      this.authService.currentUser$.subscribe(user => {
+        if (user) {
+          console.log('🔄 User updated from AuthService:', user);
+          console.log('📞 Phone number from AuthService subscription:', user.phoneNumber);
+          this.user = user;
+          this.loadProfilePictureFromApi();
+        }
+      })
+    );
+
+    this.subscriptions.add(
+      this.router.events
+        .pipe(filter(event => event instanceof NavigationEnd))
+        .subscribe(() => {
+          console.log('🔄 Navigation detected, reloading user data');
+          this.loadUserData();
+        })
+    );
+
+    this.subscriptions.add(
+      window.addEventListener('profileImageUpdated', () => {
+        console.log('🔄 Profile image update event received');
+        this.loadProfilePictureFromApi();
+      })
+    );
   }
 
   private loadUserData(): void {
     this.user = this.authService.getCurrentUser();
+    console.log('🔄 Loaded user data from AuthService getCurrentUser():', this.user);
+    console.log('📞 Phone number from getCurrentUser():', this.user?.phoneNumber);
     
-    if (!this.user) {
-      this.snackBar.open('Please log in to continue', 'Close', { duration: 3000 });
-      this.router.navigate(['/login']);
-      return;
-    }
-
-    this.determineActualUserRole();
-  }
-
-  private determineActualUserRole(): void {
-    if (this.user?.role && this.user.role !== 'user') {
-      const role = this.user.role as 'caretaker' | 'tenant' | 'landlord' | 'admin' | 'business' | 'user';
-      if (['caretaker', 'tenant', 'landlord', 'admin', 'business', 'user'].includes(role)) {
-        this.userRole = role;
-        return;
-      }
-    }
-
-    if (this.authService.isTenant()) {
-      this.userRole = 'tenant';
-    } else if (this.authService.isCaretaker()) {
-      this.userRole = 'caretaker';
-    } else if (this.authService.isLandlord()) {
-      this.userRole = 'landlord';
-    } else if (this.authService.isBusiness()) {
-      this.userRole = 'business';
-    } else if (this.authService.isAdmin()) {
-      this.userRole = 'admin';
-    } else {
-      this.userRole = 'caretaker';
-    }
-
     if (this.user) {
-      this.user.role = this.userRole;
+      this.loadCachedProfileImage();
+      this.logPhoneNumberDetails();
     }
+
+    this.loadUserDataFromApi();
   }
 
-  private loadProfilePicture(): void {
-    this.profilePictureService.getProfilePicture().subscribe({
-      next: (response) => {
-        this.loading = false;
-        const pictureUrl = response.data || response.pictureUrl;
-        
-        if (response.success && pictureUrl) {
-          const timestamp = new Date().getTime();
-          const cacheBustedUrl = pictureUrl.includes('?') 
-            ? `${pictureUrl}&t=${timestamp}`
-            : `${pictureUrl}?t=${timestamp}`;
+  private logPhoneNumberDetails(): void {
+    console.log('=== PHONE NUMBER DETAILS ===');
+    console.log('User object:', this.user);
+    console.log('Phone number property:', this.user?.phoneNumber);
+    console.log('Phone number type:', typeof this.user?.phoneNumber);
+    console.log('Phone number length:', this.user?.phoneNumber?.length);
+    console.log('All user properties:', Object.keys(this.user || {}));
+    console.log('=== END PHONE NUMBER DETAILS ===');
+  }
+
+  private loadUserDataFromApi(): void {
+    this.isLoadingUserData = true;
+    
+    this.profilePictureService.getCurrentUserProfile().subscribe({
+      next: (response: any) => {
+        this.isLoadingUserData = false;
+        if (response.success && response.user) {
+          console.log('🔄 User data loaded from API:', response.user);
+          console.log('📞 Phone number from API:', response.user.phoneNumber);
           
-          this.imageUrl = cacheBustedUrl;
+          this.user = response.user;
+          
+          this.updateLocalUserData(response.user);
+          
+          this.loadProfilePictureFromApi();
+          
+          this.logPhoneNumberDetails();
         } else {
-          this.imageUrl = this.profilePictureService.getDefaultAvatar(this.user?.fullName);
+          console.warn('⚠️ No user data received from API:', response.message);
+          this.snackBar.open('Failed to load profile data', 'Close', { duration: 3000 });
         }
       },
-      error: (error) => {
-        this.loading = false;
-        console.error('Failed to load profile picture:', error);
-        this.imageUrl = this.profilePictureService.getDefaultAvatar(this.user?.fullName);
+      error: (error: any) => {
+        this.isLoadingUserData = false;
+        console.error('❌ Error loading user data from API:', error);
+        this.snackBar.open('Error loading profile data', 'Close', { duration: 3000 });
+        
+        if (!this.user) {
+          this.user = this.authService.getCurrentUser();
+        }
       }
     });
   }
 
-  onImageError(): void {
-    this.imageUrl = this.profilePictureService.getDefaultAvatar(this.user?.fullName);
+  private updateLocalUserData(userData: any): void {
+    try {
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser) {
+        const localStorageUser = localStorage.getItem('userData');
+        const sessionStorageUser = sessionStorage.getItem('userData');
+        
+        const isPermanent = !!localStorageUser;
+        
+        if (isPermanent) {
+          localStorage.setItem('userData', JSON.stringify(userData));
+        } else {
+          sessionStorage.setItem('userData', JSON.stringify(userData));
+        }
+        
+        console.log('💾 User data updated in', isPermanent ? 'localStorage' : 'sessionStorage');
+      }
+    } catch (error) {
+      console.error('❌ Error updating local user data:', error);
+    }
   }
 
+  private loadProfilePictureFromApi(): void {
+    this.isLoadingProfilePicture = true;
+    
+    this.profilePictureService.getProfilePicture().subscribe({
+      next: (response: any) => {
+        this.isLoadingProfilePicture = false;
+        if (response.success && response.pictureUrl) {
+          const timestamp = new Date().getTime();
+          const cacheBustedUrl = response.pictureUrl.includes('?') 
+            ? `${response.pictureUrl}&t=${timestamp}`
+            : `${response.pictureUrl}?t=${timestamp}`;
+          
+          this.profileImage = cacheBustedUrl;
+          localStorage.setItem('profileImage', cacheBustedUrl);
+          console.log('🖼️ Profile picture loaded from API:', cacheBustedUrl);
+        } else {
+          this.loadCachedProfileImage();
+          console.log('🖼️ No profile picture from API, using fallback');
+        }
+      },
+      error: (error: any) => {
+        this.isLoadingProfilePicture = false;
+        console.error('❌ Error loading profile picture from API:', error);
+        this.loadCachedProfileImage();
+      }
+    });
+  }
+
+  private loadCachedProfileImage(): void {
+    const savedImage = localStorage.getItem('profileImage');
+    if (savedImage) {
+      this.profileImage = savedImage;
+      console.log('🖼️ Profile picture loaded from cache');
+    } else if (this.user?.avatar) {
+      this.profileImage = this.user.avatar;
+      console.log('🖼️ Profile picture loaded from user avatar');
+    } else {
+      this.profileImage = this.generateInitialAvatar(this.getUserFullName());
+      console.log('🖼️ Profile picture generated as initial avatar');
+    }
+  }
+
+  generateInitialAvatar(name: string): string {
+    const names = name.split(' ');
+    const initials = names.map(name => name.charAt(0).toUpperCase()).join('').slice(0, 2);
+    
+    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+    const color = colors[initials.charCodeAt(0) % colors.length];
+    
+    return `data:image/svg+xml;base64,${btoa(`
+      <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100" height="100" fill="${color}" rx="50"/>
+        <text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="40" font-weight="bold">${initials}</text>
+      </svg>
+    `)}`;
+  }
+
+  // Helper methods
   getInitials(): string {
     if (!this.user?.fullName) return '?';
     
@@ -127,34 +230,38 @@ export class ProfileViewComponent implements OnInit {
   }
 
   isDefaultAvatar(): boolean {
-    return !this.imageUrl || this.imageUrl.includes('svg+xml');
+    return !this.profileImage || this.profileImage.includes('svg+xml');
   }
 
-  editProfile(): void {
-    this.editProfileEvent.emit(); 
+  onImageError(): void {
+    this.profileImage = this.generateInitialAvatar(this.getUserFullName());
   }
 
-  goBack(): void {
-    this.goBackEvent.emit(); 
+  getUserFullName(): string {
+    return this.user?.fullName || 'User';
   }
 
-  getFormattedPhone(phone: string): string {
-    if (!phone) return 'Not provided';
-    return phone;
+  getUserEmail(): string {
+    return this.user?.email || 'No email provided';
   }
 
-  getFormattedBio(bio: string): string {
-    if (!bio) return 'No bio provided yet. Tell us about yourself!';
-    return bio;
-  }
-
-  getFormattedDate(dateString: string): string {
-    if (!dateString) return 'Not available';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  getUserPhone(): string {
+    console.log('📞 Getting phone number for display from user object:', this.user);
+    
+    // Check multiple possible phone number properties
+    const phoneNumber = this.user?.phoneNumber || 
+                       this.user?.phone || 
+                       this.user?.phone_number ||
+                       this.user?.mobile ||
+                       this.user?.contactNumber;
+    
+    console.log('📞 Final phone number to display:', phoneNumber);
+    
+    if (phoneNumber && phoneNumber.trim() !== '') {
+      return phoneNumber;
+    }
+    
+    return 'Not provided';
   }
 
   getRoleDisplay(): string {
@@ -166,7 +273,9 @@ export class ProfileViewComponent implements OnInit {
       'business': 'Business',
       'user': 'User'
     };
-    return roleMap[this.userRole] || 'Caretaker';
+    
+    const role = this.user?.role?.toLowerCase() || 'user';
+    return roleMap[role] || 'User';
   }
 
   getRoleColor(): string {
@@ -178,6 +287,56 @@ export class ProfileViewComponent implements OnInit {
       'business': '#FF9800',
       'user': '#666'
     };
-    return colorMap[this.userRole] || '#2196F3';
+    
+    const role = this.user?.role?.toLowerCase() || 'user';
+    return colorMap[role] || '#666';
+  }
+
+  getEmailVerificationStatus(): string {
+    return this.user?.emailVerified ? 'Verified' : 'Not Verified';
+  }
+
+  getAccountStatus(): string {
+    return this.user?.verified ? 'Active' : 'Inactive';
+  }
+
+  getMemberSince(): string {
+    if (this.user?.createdAt) {
+      return new Date(this.user.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+    return 'Unknown';
+  }
+
+  getFormattedBio(bio: string): string {
+    if (!bio) return 'No bio provided yet. Tell us about yourself!';
+    return bio;
+  }
+
+  editProfile(): void {
+    this.router.navigate(['/dashboard/profile/edit']);
+  }
+
+  goBack(): void {
+    this.router.navigate(['/dashboard/home']);
+  }
+
+  refreshProfile(): void {
+    console.log('🔄 Manually refreshing profile data');
+    this.loadUserDataFromApi();
+  }
+
+  debugUserData(): void {
+    console.log('=== DEBUG USER DATA ===');
+    console.log('Full user object:', this.user);
+    console.log('User keys:', Object.keys(this.user || {}));
+    console.log('Phone number:', this.user?.phoneNumber);
+    console.log('All storage data:');
+    console.log('localStorage userData:', localStorage.getItem('userData'));
+    console.log('sessionStorage userData:', sessionStorage.getItem('userData'));
+    console.log('=== END DEBUG ===');
   }
 }

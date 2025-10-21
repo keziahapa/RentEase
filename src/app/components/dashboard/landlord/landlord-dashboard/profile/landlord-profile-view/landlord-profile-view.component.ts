@@ -86,7 +86,6 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
   }
 
   private loadUserData(): void {
- 
     this.user = this.authService.getCurrentUser();
     console.log('Loaded user data from AuthService getCurrentUser():', this.user);
     console.log('Phone number from getCurrentUser():', this.user?.phoneNumber);
@@ -94,11 +93,9 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
     if (this.user) {
       this.formattedRole = this.formatUserRole(this.user.role);
       this.loadCachedProfileImage();
-     
       this.logPhoneNumberDetails();
     }
 
- 
     this.loadUserDataFromApi();
   }
 
@@ -125,12 +122,10 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
           this.user = response.user;
           this.formattedRole = this.formatUserRole(response.user.role);
           
-        
           this.updateLocalUserData(response.user);
           
           this.loadProfilePictureFromApi();
           
-       
           this.logPhoneNumberDetails();
         } else {
           console.warn('No user data received from API:', response.message);
@@ -142,7 +137,6 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
         console.error('Error loading user data from API:', error);
         this.snackBar.open('Error loading profile data', 'Close', { duration: 3000 });
         
-       
         if (!this.user) {
           this.user = this.authService.getCurrentUser();
           if (this.user) {
@@ -155,10 +149,8 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
 
   private updateLocalUserData(userData: any): void {
     try {
-     
       const currentUser = this.authService.getCurrentUser();
       if (currentUser) {
-      
         const localStorageUser = localStorage.getItem('userData');
         const sessionStorageUser = sessionStorage.getItem('userData');
         
@@ -257,7 +249,6 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
   getUserPhone(): string {
     console.log('Getting phone number for display:', this.user?.phoneNumber);
     
-  
     const phoneNumber = this.user?.phoneNumber || 
                        this.user?.phone || 
                        this.user?.phone_number ||
@@ -304,7 +295,6 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
     console.log('Manually refreshing profile data');
     this.loadUserDataFromApi();
   }
-
 
   debugUserData(): void {
     console.log('=== DEBUG USER DATA ===');

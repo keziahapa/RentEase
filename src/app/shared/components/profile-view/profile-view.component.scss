@@ -1,276 +1,274 @@
 .profile-view-container {
+  padding: 0;
+  background: #f8fafc;
   min-height: 100vh;
-  background: #f5f7fa;
-}
 
-.profile-view-header {
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-
-  h1 {
-    font-size: 20px;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin: 0;
-    flex: 1;
-    margin-left: 16px;
-  }
-
-  .back-button,
-  .edit-button {
-    color: #666;
-  }
-}
-
-.profile-view-content {
-  max-width: 800px;
-  margin: 24px auto;
-  padding: 0 16px;
-}
-
-.profile-card {
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-
-  mat-card-content {
-    padding: 32px;
-  }
-}
-
-/* User Type Section Styles */
-.user-type-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 24px;
-  color: white;
-
-  .user-type-badge {
+  .content-header {
+    background: #ffffff;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #e5e7eb;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 8px;
-    background: rgba(255, 255, 255, 0.2) !important;
-    border: 2px solid rgba(255, 255, 255, 0.3) !important;
-    border-radius: 12px;
-    padding: 16px;
 
-    .badge-icon {
-      font-size: 32px;
-      width: 32px;
-      height: 32px;
-    }
-
-    .badge-content {
-      display: flex;
-      flex-direction: column;
-      
-      .badge-label {
-        font-size: 14px;
-        opacity: 0.9;
-        margin-bottom: 4px;
+    .header-left {
+      h1 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
       }
 
-      .badge-value {
-        font-size: 20px;
-        font-weight: 600;
-        color: white !important;
-      }
-    }
-  }
-
-  .user-type-note {
-    font-size: 14px;
-    opacity: 0.9;
-    margin: 0;
-    font-style: italic;
-  }
-}
-
-.profile-header-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.avatar-wrapper {
-  position: relative;
-  width: 128px;
-  height: 128px;
-  border-radius: 50%;
-  margin-bottom: 20px;
-
-  &.loading {
-    opacity: 0.6;
-  }
-
-  .loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-  }
-
-  .avatar-image {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  }
-
-  .avatar-initials {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-
-    span {
-      color: white;
-      font-size: 48px;
-      font-weight: 600;
-    }
-  }
-}
-
-.profile-info {
-  margin-bottom: 20px;
-
-  .user-name {
-    font-size: 24px;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin: 0 0 12px 0;
-  }
-
-  .user-role-chip {
-    margin: 0 0 12px 0;
-    font-weight: 600;
-    padding: 8px 16px;
-    border-radius: 20px;
-    
-    .chip-icon {
-      margin-right: 8px;
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-    }
-  }
-
-  .user-email {
-    font-size: 14px;
-    color: #888;
-    margin: 0;
-  }
-}
-
-.edit-profile-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 24px;
-}
-
-.profile-details-section {
-  margin: 32px 0;
-
-  h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #1a1a1a;
-    margin: 0 0 20px 0;
-  }
-
-  .detail-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    padding: 16px 0;
-    border-bottom: 1px solid #f0f0f0;
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    &.bio-item {
-      .detail-content {
-        flex: 1;
+      p {
+        color: #64748b;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
       }
     }
 
-    .detail-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      background: #f5f7fa;
+    .header-actions {
       display: flex;
       align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+      gap: 1rem;
 
-      mat-icon {
-        color: #666;
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+      button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
       }
     }
+  }
 
-    .detail-content {
-      flex: 1;
+  .profile-content {
+    padding: 2rem;
 
-      .detail-label {
-        font-size: 12px;
-        color: #888;
-        margin: 0 0 4px 0;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 500;
-      }
+    .profile-card {
+      max-width: 800px;
+      margin: 0 auto;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 
-      .detail-value {
-        font-size: 15px;
-        color: #1a1a1a;
-        margin: 0;
-        line-height: 1.5;
+      .profile-header {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        padding: 1rem 0;
 
-        &.bio-text {
-          color: #444;
-          line-height: 1.6;
+        .profile-image-section {
+          .avatar-wrapper {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+
+            &.loading {
+              opacity: 0.6;
+            }
+
+            .image-loading-overlay {
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: rgba(255, 255, 255, 0.9);
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              z-index: 2;
+            }
+
+            .avatar-image {
+              width: 100%;
+              height: 100%;
+              border-radius: 50%;
+              overflow: hidden;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              border: 4px solid #e5e7eb;
+
+              img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+              }
+            }
+
+            .avatar-initials {
+              width: 100%;
+              height: 100%;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              border: 4px solid #e5e7eb;
+
+              span {
+                color: white;
+                font-size: 2.5rem;
+                font-weight: 600;
+              }
+            }
+          }
         }
 
-        &.role-value {
-          font-weight: 600;
-          padding: 4px 12px;
-          border-radius: 12px;
-          display: inline-block;
+        .profile-basic-info {
+          h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0 0 0.5rem 0;
+          }
+
+          .user-email {
+            color: #64748b;
+            font-size: 1rem;
+            margin: 0 0 1rem 0;
+          }
+
+          .user-type-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #eff6ff;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            display: inline-flex;
+
+            .badge-icon {
+              color: #3b82f6;
+              font-size: 18px;
+              width: 18px;
+              height: 18px;
+            }
+
+            .badge-value {
+              color: #3b82f6;
+              font-size: 0.875rem;
+              font-weight: 600;
+            }
+          }
+        }
+      }
+
+      .profile-details {
+        padding: 1rem 0;
+
+        .detail-section {
+          margin-bottom: 2rem;
+
+          h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+          }
+
+          .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+
+            .detail-item {
+              display: flex;
+              align-items: flex-start;
+              gap: 1rem;
+              padding: 1rem;
+              border-radius: 8px;
+              background: #f8fafc;
+              transition: background-color 0.2s;
+
+              &:hover {
+                background: #f1f5f9;
+              }
+
+              &.bio-item {
+                grid-column: 1 / -1;
+                
+                .detail-content {
+                  flex: 1;
+                }
+              }
+
+              .detail-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 8px;
+                background: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+                mat-icon {
+                  color: #64748b;
+                  font-size: 20px;
+                  width: 20px;
+                  height: 20px;
+                }
+              }
+
+              .detail-content {
+                flex: 1;
+
+                label {
+                  display: block;
+                  font-size: 0.875rem;
+                  font-weight: 600;
+                  color: #64748b;
+                  margin-bottom: 0.5rem;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                }
+
+                p {
+                  font-size: 1rem;
+                  color: #1e293b;
+                  margin: 0;
+                  font-weight: 500;
+
+                  &.bio-text {
+                    color: #444;
+                    line-height: 1.6;
+                    white-space: pre-line;
+                  }
+
+                  &.role-value {
+                    font-weight: 600;
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 12px;
+                    display: inline-block;
+                    color: white;
+                  }
+                }
+
+                .status-badge {
+                  padding: 0.25rem 0.75rem;
+                  border-radius: 16px;
+                  font-size: 0.875rem;
+                  font-weight: 600;
+                  text-transform: uppercase;
+                  letter-spacing: 0.5px;
+                  display: inline-block;
+
+                  &.verified {
+                    background: #d1fae5;
+                    color: #065f46;
+                  }
+
+                  &.unverified {
+                    background: #fee2e2;
+                    color: #991b1b;
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -278,119 +276,81 @@
 }
 
 mat-divider {
-  margin: 32px 0;
+  margin: 1.5rem 0;
 }
 
 /* Role-specific colors */
 .role-landlord {
   background: #ff6b35 !important;
-  color: white !important;
 }
 
 .role-tenant {
   background: #4CAF50 !important;
-  color: white !important;
 }
 
 .role-caretaker {
   background: #2196F3 !important;
-  color: white !important;
 }
 
 .role-admin {
   background: #9C27B0 !important;
-  color: white !important;
 }
 
 .role-business {
   background: #FF9800 !important;
-  color: white !important;
 }
 
 .role-user {
   background: #666 !important;
-  color: white !important;
 }
 
 @media (max-width: 768px) {
-  .profile-view-header {
-    padding: 12px 16px;
-
-    h1 {
-      font-size: 18px;
+  .profile-view-container {
+    .content-header {
+      padding: 1rem 1.5rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
     }
-  }
 
-  .profile-view-content {
-    margin: 16px auto;
-  }
+    .profile-content {
+      padding: 1rem;
 
-  .profile-card {
-    mat-card-content {
-      padding: 20px;
-    }
-  }
+      .profile-card {
+        .profile-header {
+          flex-direction: column;
+          text-align: center;
+          gap: 1rem;
 
-  .user-type-section {
-    padding: 16px;
-    
-    .user-type-badge {
-      gap: 12px;
-      padding: 12px;
-      
-      .badge-icon {
-        font-size: 24px;
-      }
-      
-      .badge-value {
-        font-size: 18px;
+          .profile-basic-info {
+            text-align: center;
+          }
+        }
+
+        .detail-grid {
+          grid-template-columns: 1fr !important;
+        }
       }
     }
   }
+}
 
-  .profile-header-section {
-    margin-bottom: 24px;
-  }
+@media (max-width: 480px) {
+  .profile-view-container {
+    .profile-content {
+      .profile-card {
+        .profile-header {
+          .profile-image-section {
+            .avatar-wrapper {
+              width: 100px;
+              height: 100px;
 
-  .avatar-wrapper {
-    width: 100px;
-    height: 100px;
-    margin-bottom: 16px;
-
-    .avatar-initials span {
-      font-size: 40px;
-    }
-  }
-
-  .profile-info {
-    .user-name {
-      font-size: 20px;
-    }
-
-    .user-role-chip {
-      padding: 6px 12px;
-      font-size: 12px;
-    }
-  }
-
-  .edit-profile-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .profile-details-section {
-    margin: 24px 0;
-
-    h3 {
-      font-size: 16px;
-    }
-
-    .detail-item {
-      padding: 12px 0;
-
-      .detail-icon {
-        width: 36px;
-        height: 36px;
+              .avatar-initials span {
+                font-size: 2rem;
+              }
+            }
+          }
+        }
       }
     }
   }
