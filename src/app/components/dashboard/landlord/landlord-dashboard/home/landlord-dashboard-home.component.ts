@@ -6,17 +6,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { PropertyService } from '../../../../../services/property.service';
 import { AuthService } from '../../../../../services/auth.service';
 import { Subscription } from 'rxjs';
-
-interface DashboardData {
-  totalProperties: number;
-  occupancyRate: number;
-  monthlyRevenue: number;
-  rentCollectionRate: number;
-  openMaintenance: number;
-}
+import { PropertyCreateComponent } from '../property/property-create/property-create.component';
+import { DashboardData, QuickAction, RecentActivity } from '../../../../../services/dashboard-interface';
 
 @Component({
   selector: 'app-landlord-dashboard-home',
@@ -41,6 +36,78 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     openMaintenance: 0
   };
 
+  quickActions: QuickAction[] = [
+    {
+      icon: 'person_add',
+      label: 'Add Tenant',
+      description: 'Invite new tenants to your properties',
+      route: ['/landlord-dashboard/tenants'],
+      color: '#3b82f6'
+    },
+    {
+      icon: 'receipt',
+      label: 'Create Invoice',
+      description: 'Generate rent invoices for tenants',
+      route: ['/landlord-dashboard/financials/invoices'],
+      color: '#10b981'
+    },
+    {
+      icon: 'handyman',
+      label: 'Maintenance',
+      description: 'Create maintenance work orders',
+      route: ['/landlord-dashboard/maintenance'],
+      color: '#f59e0b'
+    },
+    {
+      icon: 'assessment',
+      label: 'Reports',
+      description: 'View financial and property reports',
+      route: ['/landlord-dashboard/reports'],
+      color: '#8b5cf6'
+    },
+    {
+      icon: 'description',
+      label: 'Documents',
+      description: 'Manage lease agreements and documents',
+      route: ['/landlord-dashboard/documents'],
+      color: '#ef4444'
+    },
+    {
+      icon: 'message',
+      label: 'Messages',
+      description: 'Communicate with tenants',
+      route: ['/landlord-dashboard/messages'],
+      color: '#06b6d4'
+    }
+  ];
+
+  recentActivities: RecentActivity[] = [
+    {
+      type: 'Property Added',
+      message: 'Springfield Apartments was added',
+      time: '2 hours ago',
+      icon: 'apartment'
+    },
+    {
+      type: 'Payment Received',
+      message: 'KES 25,000 from John Doe - Unit 4B',
+      time: '5 hours ago',
+      icon: 'payments'
+    },
+    {
+      type: 'Maintenance Request',
+      message: 'New request for leaking faucet in Unit 2A',
+      time: '1 day ago',
+      icon: 'handyman'
+    },
+    {
+      type: 'Tenant Added',
+      message: 'Sarah Johnson moved into Unit 3C',
+      time: '2 days ago',
+      icon: 'person_add'
+    }
+  ];
+
   isLoadingDashboard = true;
   dashboardError = '';
   private subscriptions = new Subscription();
@@ -49,7 +116,8 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     private propertyService: PropertyService,
     private authService: AuthService,
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit() {
@@ -138,13 +206,40 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
 
   navigateToSection(section: string) {
     const routeMap: { [key: string]: string[] } = {
-      'properties': ['/landlord-dashboard/property']
+      'properties': ['/landlord-dashboard/property'],
+      'tenants': ['/landlord-dashboard/tenants'],
+      'maintenance': ['/landlord-dashboard/maintenance'],
+      'financials': ['/landlord-dashboard/financials'],
+      'reports': ['/landlord-dashboard/reports'],
+      'documents': ['/landlord-dashboard/documents'],
+      'messages': ['/landlord-dashboard/messages'],
+      'profile': ['/landlord-dashboard/profile/view']
     };
 
     const route = routeMap[section];
     if (route) {
       this.router.navigate(route);
     }
+  }
+
+  openPropertyForm() {
+    const dialogRef = this.dialog.open(PropertyCreateComponent, {
+      width: '90%',
+      maxWidth: '800px',
+      height: '90vh',
+      panelClass: 'property-form-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'success') {
+        this.snackBar.open('Property added successfully!', 'Close', { duration: 3000 });
+        this.loadDashboardData();
+      }
+    });
+  }
+
+  onQuickAction(action: QuickAction) {
+    this.router.navigate(action.route);
   }
 
   refreshDashboard(): void {

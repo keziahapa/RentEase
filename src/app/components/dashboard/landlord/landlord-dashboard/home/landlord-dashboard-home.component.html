@@ -7,15 +7,19 @@
     </div>
 
     <div *ngIf="!isLoadingDashboard">
-      <!-- Single Add Property Button -->
-      <div class="add-property-section">
-        <button class="add-property-btn" (click)="navigateToSection('properties')">
+      <!-- Header Section -->
+      <div class="header-section">
+        <div class="header-content">
+          <h1 class="dashboard-title">Dashboard Overview</h1>
+          <p class="dashboard-subtitle">Welcome back! Here's your property management summary.</p>
+        </div>
+        <button class="add-property-btn" (click)="openPropertyForm()">
           <mat-icon>add</mat-icon>
           <span>Add New Property</span>
         </button>
       </div>
 
-      <!-- Stats Grid - One Line -->
+      <!-- Stats Grid -->
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-header">
@@ -65,6 +69,52 @@
             </div>
           </div>
           <div class="stat-value">{{ dashboardData?.openMaintenance || 0 }}</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions Section -->
+      <div class="quick-actions-section">
+        <div class="section-header">
+          <h2>Quick Actions</h2>
+          <p>Frequently used tasks</p>
+        </div>
+        <div class="quick-actions-grid">
+          <div *ngFor="let action of quickActions" 
+               class="quick-action-card" 
+               (click)="onQuickAction(action)">
+            <div class="action-icon" [style.background]="action.color">
+              <mat-icon>{{ action.icon }}</mat-icon>
+            </div>
+            <div class="action-content">
+              <h3>{{ action.label }}</h3>
+              <p>{{ action.description }}</p>
+            </div>
+            <div class="action-arrow">
+              <mat-icon>arrow_forward</mat-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity Section -->
+      <div class="recent-activity-section">
+        <div class="section-header">
+          <h2>Recent Activity</h2>
+          <p>Latest updates from your properties</p>
+        </div>
+        <div class="activity-list">
+          <div *ngFor="let activity of recentActivities" class="activity-item">
+            <div class="activity-icon">
+              <mat-icon>{{ activity.icon }}</mat-icon>
+            </div>
+            <div class="activity-content">
+              <div class="activity-main">
+                <h4>{{ activity.type }}</h4>
+                <p>{{ activity.message }}</p>
+              </div>
+              <span class="activity-time">{{ activity.time }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
