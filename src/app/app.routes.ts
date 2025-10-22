@@ -21,7 +21,7 @@ import { LandlordDashboardComponent } from './components/dashboard/landlord/land
 import { FinancialsComponent } from './components/dashboard/landlord/landlord-dashboard/financials/financials';
 import { InvoicesComponent } from './components/dashboard/landlord/landlord-dashboard/financials/invoices/invoices';
 import { PaymentComponent } from './components/dashboard/landlord/landlord-dashboard/financials/payment/payment';
-import { PropertyCreateComponent } from './components/dashboard/landlord/landlord-dashboard/property/property-create/property-create';
+import { PropertyCreateComponent } from './components/dashboard/landlord/landlord-dashboard/property/property-create/property-create.component';
 import { PropertyListComponent } from './components/dashboard/landlord/landlord-dashboard/property/property-list/property-list.component';
 import { PropertyUnitsComponent } from './components/dashboard/landlord/landlord-dashboard/property/property-units/property-units.component';
 import { LandlordDashboardHomeComponent } from './components/dashboard/landlord/landlord-dashboard/home/landlord-dashboard-home.component';

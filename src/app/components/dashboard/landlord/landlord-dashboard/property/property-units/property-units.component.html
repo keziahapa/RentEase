@@ -1,4 +1,5 @@
 <div class="property-units-container">
+  <!-- Header Section -->
   <div class="header-section">
     <div class="header-content">
       <button mat-icon-button class="back-button" (click)="goBackToProperties()" matTooltip="Back to properties">
@@ -10,14 +11,9 @@
       </div>
     </div>
     <div class="header-actions">
-      <button mat-raised-button color="primary" (click)="createNewUnit($event)">
+      <button mat-raised-button color="primary" (click)="openAddUnitDialog()">
         <mat-icon>add</mat-icon>
         Add Unit
-      </button>
-      
-      <button mat-raised-button color="accent" (click)="inviteTenantToProperty($event)">
-        <mat-icon>person_add</mat-icon>
-        Invite Tenant
       </button>
       
       <button mat-icon-button (click)="refreshUnits()" matTooltip="Refresh">
@@ -26,11 +22,13 @@
     </div>
   </div>
 
+  <!-- Loading State -->
   <div *ngIf="loading" class="loading-section">
     <mat-spinner diameter="40"></mat-spinner>
     <p>Loading units...</p>
   </div>
 
+  <!-- Error State -->
   <div *ngIf="!loading && errorMessage" class="error-section">
     <mat-card class="error-card">
       <mat-card-content>
@@ -47,12 +45,14 @@
     </mat-card>
   </div>
 
+  <!-- Main Content -->
   <div *ngIf="!loading && !errorMessage" class="content-section">
+    <!-- Stats Overview -->
     <div class="stats-overview" *ngIf="units.length > 0">
-      <mat-card class="stat-card clickable" (click)="navigateToTotalUnits()" matTooltip="Click to view all units">
+      <mat-card class="stat-card">
         <mat-card-content>
           <div class="stat-content">
-            <div class="stat-icon total">
+            <div class="stat-icon">
               <mat-icon>meeting_room</mat-icon>
             </div>
             <div class="stat-info">
@@ -63,66 +63,38 @@
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="stat-card clickable" (click)="navigateToOccupiedUnits()" matTooltip="Occupied units">
+      <mat-card class="stat-card">
         <mat-card-content>
           <div class="stat-content">
-            <div class="stat-icon occupied">
+            <div class="stat-icon">
               <mat-icon>person</mat-icon>
             </div>
             <div class="stat-info">
               <h3>{{ occupiedUnits }}</h3>
-              <p>Occupied Units</p>
+              <p>Occupied</p>
             </div>
           </div>
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="stat-card clickable" (click)="navigateToVacantUnits()" matTooltip="Vacant units">
+      <mat-card class="stat-card">
         <mat-card-content>
           <div class="stat-content">
-            <div class="stat-icon vacant">
+            <div class="stat-icon">
               <mat-icon>event_available</mat-icon>
             </div>
             <div class="stat-info">
               <h3>{{ vacantUnits }}</h3>
-              <p>Vacant Units</p>
+              <p>Vacant</p>
             </div>
           </div>
         </mat-card-content>
       </mat-card>
 
-      <mat-card class="stat-card clickable" (click)="navigateToMaintenanceUnits()" matTooltip="Maintenance units">
+      <mat-card class="stat-card">
         <mat-card-content>
           <div class="stat-content">
-            <div class="stat-icon maintenance">
-              <mat-icon>build</mat-icon>
-            </div>
-            <div class="stat-info">
-              <h3>{{ maintenanceUnits }}</h3>
-              <p>Maintenance Units</p>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="stat-card clickable" (click)="navigateToOccupancyAnalytics()" matTooltip="Occupancy analytics">
-        <mat-card-content>
-          <div class="stat-content">
-            <div class="stat-icon analytics">
-              <mat-icon>trending_up</mat-icon>
-            </div>
-            <div class="stat-info">
-              <h3>{{ occupancyRate }}%</h3>
-              <p>Occupancy Rate</p>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card class="stat-card clickable" (click)="navigateToRevenueAnalytics()" matTooltip="Revenue analytics">
-        <mat-card-content>
-          <div class="stat-content">
-            <div class="stat-icon revenue">
+            <div class="stat-icon">
               <mat-icon>attach_money</mat-icon>
             </div>
             <div class="stat-info">
@@ -134,6 +106,7 @@
       </mat-card>
     </div>
 
+    <!-- Units Card -->
     <mat-card class="units-card">
       <mat-card-header>
         <mat-card-title>
@@ -144,18 +117,25 @@
       </mat-card-header>
 
       <mat-card-content>
-        <div class="filters-section">
+        <!-- Filters Section -->
+        <div class="filters-section" *ngIf="units.length > 0">
           <mat-form-field appearance="outline" class="search-field">
             <mat-label>Search Units</mat-label>
-            <input matInput [(ngModel)]="searchTerm" (input)="onSearchChange()" placeholder="Search by unit number, type, tenant...">
+            <input matInput [(ngModel)]="searchTerm" (input)="onSearchChange()" 
+                   placeholder="Search by unit number, type, tenant...">
             <mat-icon matSuffix>search</mat-icon>
           </mat-form-field>
 
           <div class="filter-chips">
-            <button mat-stroked-button [class.active]="activeFilter === 'all'" (click)="setFilter('all')">All</button>
-            <button mat-stroked-button [class.active]="activeFilter === 'occupied'" (click)="setFilter('occupied')">Occupied</button>
-            <button mat-stroked-button [class.active]="activeFilter === 'vacant'" (click)="setFilter('vacant')">Vacant</button>
-            <button mat-stroked-button [class.active]="activeFilter === 'maintenance'" (click)="setFilter('maintenance')">Maintenance</button>
+            <button mat-stroked-button [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
+              All
+            </button>
+            <button mat-stroked-button [class.active]="activeFilter === 'occupied'" (click)="setFilter('occupied')">
+              Occupied
+            </button>
+            <button mat-stroked-button [class.active]="activeFilter === 'vacant'" (click)="setFilter('vacant')">
+              Vacant
+            </button>
           </div>
 
           <button mat-stroked-button (click)="clearFilters()" *ngIf="hasActiveFilters()">
@@ -164,19 +144,22 @@
           </button>
         </div>
 
+        <!-- Empty State -->
         <div *ngIf="filteredUnits.length === 0" class="empty-state">
           <mat-icon>meeting_room</mat-icon>
           <h3>No units found</h3>
           <p *ngIf="hasActiveFilters()">Try adjusting your filters or search terms</p>
           <p *ngIf="!hasActiveFilters()">No units have been added to this property yet</p>
-          <button mat-raised-button color="primary" (click)="createNewUnit($event)">
+          <button mat-raised-button color="primary" (click)="openAddUnitDialog()">
             <mat-icon>add</mat-icon>
             Add First Unit
           </button>
         </div>
 
+        <!-- Units Table -->
         <div class="table-container" *ngIf="filteredUnits.length > 0">
           <table mat-table [dataSource]="filteredUnits" class="units-table">
+            <!-- Unit Number Column -->
             <ng-container matColumnDef="unitNumber">
               <th mat-header-cell *matHeaderCellDef>Unit Number</th>
               <td mat-cell *matCellDef="let unit">
@@ -187,16 +170,19 @@
               </td>
             </ng-container>
 
+            <!-- Type Column -->
             <ng-container matColumnDef="type">
               <th mat-header-cell *matHeaderCellDef>Type</th>
               <td mat-cell *matCellDef="let unit">{{ getUnitTypeDisplay(unit) }}</td>
             </ng-container>
 
+            <!-- Rent Column -->
             <ng-container matColumnDef="rent">
               <th mat-header-cell *matHeaderCellDef>Rent</th>
               <td mat-cell *matCellDef="let unit">{{ formatCurrency(unit.rentAmount) }}</td>
             </ng-container>
 
+            <!-- Status Column -->
             <ng-container matColumnDef="status">
               <th mat-header-cell *matHeaderCellDef>Status</th>
               <td mat-cell *matCellDef="let unit">
@@ -207,11 +193,13 @@
               </td>
             </ng-container>
 
+            <!-- Tenant Column -->
             <ng-container matColumnDef="tenant">
               <th mat-header-cell *matHeaderCellDef>Tenant</th>
               <td mat-cell *matCellDef="let unit">{{ getTenantDisplay(unit) }}</td>
             </ng-container>
 
+            <!-- Actions Column -->
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef>Actions</th>
               <td mat-cell *matCellDef="let unit">
@@ -219,17 +207,25 @@
                   <button mat-icon-button color="primary" 
                           *ngIf="unit.status !== 'occupied'"
                           (click)="inviteTenantToUnit(unit, $event)" 
-                          matTooltip="Invite Tenant to this unit">
+                          matTooltip="Invite Tenant">
                     <mat-icon>person_add</mat-icon>
                   </button>
                   
-                  <button mat-icon-button color="primary" (click)="viewUnit(unit.id)" matTooltip="View Unit">
+                  <button mat-icon-button color="primary" 
+                          (click)="viewUnit(unit.id)" 
+                          matTooltip="View Unit">
                     <mat-icon>visibility</mat-icon>
                   </button>
-                  <button mat-icon-button color="accent" (click)="editUnit(unit.id)" matTooltip="Edit Unit">
+                  
+                  <button mat-icon-button color="accent" 
+                          (click)="editUnit(unit.id)" 
+                          matTooltip="Edit Unit">
                     <mat-icon>edit</mat-icon>
                   </button>
-                  <button mat-icon-button color="warn" (click)="onDeleteUnit(unit.id, $event)" matTooltip="Delete Unit">
+                  
+                  <button mat-icon-button color="warn" 
+                          (click)="onDeleteUnit(unit.id, $event)" 
+                          matTooltip="Delete Unit">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
@@ -242,5 +238,108 @@
         </div>
       </mat-card-content>
     </mat-card>
+  </div>
+
+  <!-- Add Unit Dialog -->
+  <div class="add-unit-dialog-overlay" *ngIf="showAddUnitDialog" (click)="closeAddUnitDialog()">
+    <div class="add-unit-dialog-content" (click)="$event.stopPropagation()">
+      <!-- Dialog Header -->
+      <div class="dialog-header">
+        <h2>Add New Unit</h2>
+        <button mat-icon-button (click)="closeAddUnitDialog()" class="close-btn">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Dialog Content -->
+      <div class="dialog-content">
+        <form [formGroup]="unitForm">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Unit Number *</mat-label>
+            <input matInput formControlName="unitNumber" 
+                   placeholder="e.g., A1, 101, G-05"
+                   maxlength="20">
+            <mat-icon matSuffix>tag</mat-icon>
+            <mat-hint>Unique identifier for the unit</mat-hint>
+            <mat-error *ngIf="unitForm.get('unitNumber')?.invalid && unitForm.get('unitNumber')?.touched">
+              <span *ngIf="unitForm.get('unitNumber')?.hasError('required')">Unit number is required</span>
+              <span *ngIf="unitForm.get('unitNumber')?.hasError('minlength')">Minimum 1 character required</span>
+              <span *ngIf="unitForm.get('unitNumber')?.hasError('maxlength')">Maximum 20 characters allowed</span>
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Unit Type *</mat-label>
+            <mat-select formControlName="unitType">
+              <mat-option *ngFor="let type of unitTypes" [value]="type.value">
+                {{ type.label }}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="unitForm.get('unitType')?.invalid && unitForm.get('unitType')?.touched">
+              Unit type is required
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Monthly Rent (KES) *</mat-label>
+            <input matInput type="number" formControlName="rentAmount" 
+                   min="500" max="1000000"
+                   placeholder="25000">
+            <span matPrefix>KES&nbsp;</span>
+            <mat-hint>Minimum KES 500</mat-hint>
+            <mat-error *ngIf="unitForm.get('rentAmount')?.invalid && unitForm.get('rentAmount')?.touched">
+              <span *ngIf="unitForm.get('rentAmount')?.hasError('required')">Monthly rent is required</span>
+              <span *ngIf="unitForm.get('rentAmount')?.hasError('min')">Minimum KES 500 required</span>
+              <span *ngIf="unitForm.get('rentAmount')?.hasError('max')">Maximum KES 1,000,000 allowed</span>
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Deposit (KES)</mat-label>
+            <input matInput type="number" formControlName="deposit" 
+                   min="0" max="1000000"
+                   placeholder="25000">
+            <span matPrefix>KES&nbsp;</span>
+            <mat-hint>Security deposit amount</mat-hint>
+            <mat-error *ngIf="unitForm.get('deposit')?.invalid && unitForm.get('deposit')?.touched">
+              <span *ngIf="unitForm.get('deposit')?.hasError('min')">Minimum KES 0 required</span>
+              <span *ngIf="unitForm.get('deposit')?.hasError('max')">Maximum KES 1,000,000 allowed</span>
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description (Optional)</mat-label>
+            <textarea matInput formControlName="description"
+                     placeholder="Brief description of the unit, features, condition..."
+                     rows="3" maxlength="500"></textarea>
+            <mat-hint align="end">{{ unitForm.get('description')?.value?.length || 0 }}/500</mat-hint>
+          </mat-form-field>
+        </form>
+      </div>
+
+      <!-- Dialog Actions -->
+      <div class="dialog-actions">
+        <button mat-stroked-button 
+                (click)="closeAddUnitDialog()" 
+                [disabled]="isSubmittingUnit"
+                class="cancel-btn">
+          Cancel
+        </button>
+        <button mat-raised-button 
+                color="primary" 
+                (click)="addUnit()"
+                [disabled]="!unitForm.valid || isSubmittingUnit"
+                class="add-btn">
+          <span *ngIf="isSubmittingUnit" class="button-spinner">
+            <mat-icon class="spinner-icon">hourglass_empty</mat-icon>
+            Adding Unit...
+          </span>
+          <span *ngIf="!isSubmittingUnit">
+            <mat-icon>add</mat-icon>
+            Add Unit
+          </span>
+        </button>
+      </div>
+    </div>
   </div>
 </div>

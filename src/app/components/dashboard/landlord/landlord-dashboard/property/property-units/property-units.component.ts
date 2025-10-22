@@ -1,7 +1,7 @@
 import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
@@ -15,6 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSelectModule } from '@angular/material/select';
 
 import { PropertyService } from '../../../../../../services/property.service';
 import { AuthService } from '../../../../../../services/auth.service';
@@ -30,6 +31,7 @@ import { catchError } from 'rxjs/operators';
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     MatIconModule,
     MatButtonModule,
     MatTableModule,
@@ -42,11 +44,12 @@ import { catchError } from 'rxjs/operators';
     MatProgressSpinnerModule,
     MatMenuModule,
     MatDividerModule,
-    MatDialogModule
+    MatDialogModule,
+    MatSelectModule
   ],
   templateUrl: './property-units.component.html',
   styleUrls: ['./property-units.component.scss'],
-   providers: [InvitationService]
+  providers: [InvitationService]
 })
 export class PropertyUnitsComponent implements OnInit {
   propertyId!: string;
@@ -69,6 +72,22 @@ export class PropertyUnitsComponent implements OnInit {
 
   displayedColumns: string[] = ['unitNumber', 'type', 'rent', 'status', 'tenant', 'actions'];
 
+  // Add Unit Dialog properties
+  showAddUnitDialog = false;
+  unitForm: FormGroup;
+  isSubmittingUnit = false;
+
+  unitTypes = [
+    { value: 'SINGLE', label: 'Single Room' },
+    { value: 'BEDSITTER', label: 'Bedsitter' },
+    { value: '1BR', label: '1 Bedroom' },
+    { value: '2BR', label: '2 Bedroom' },
+    { value: '3BR', label: '3 Bedroom' },
+    { value: 'STUDIO', label: 'Studio' },
+    { value: 'OFFICE', label: 'Office Space' },
+    { value: 'RETAIL', label: 'Retail Shop' }
+  ];
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -77,8 +96,17 @@ export class PropertyUnitsComponent implements OnInit {
     private invitationService: InvitationService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
+    private fb: FormBuilder,
     @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+  ) {
+    this.unitForm = this.fb.group({
+      unitNumber: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(20)]],
+      unitType: ['', Validators.required],
+      rentAmount: ['', [Validators.required, Validators.min(500), Validators.max(1000000)]],
+      deposit: ['0', [Validators.min(0), Validators.max(1000000)]],
+      description: ['', [Validators.maxLength(500)]]
+    });
+  }
 
   ngOnInit() {
     this.propertyId = this.getPropertyIdFromRoute();
@@ -147,6 +175,83 @@ export class PropertyUnitsComponent implements OnInit {
     });
   }
 
+  // Add Unit Dialog Methods
+  openAddUnitDialog(): void {
+    this.showAddUnitDialog = true;
+    this.unitForm.reset({
+      deposit: '0',
+      description: ''
+    });
+  }
+
+  closeAddUnitDialog(): void {
+    this.showAddUnitDialog = false;
+    this.unitForm.reset();
+  }
+
+  addUnit(): void {
+    this.unitForm.markAllAsTouched();
+
+    if (!this.unitForm.valid) {
+      this.snackBar.open('Please fill in all required fields correctly', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.isSubmittingUnit = true;
+
+    const unitData = {
+      unitNumber: this.unitForm.value.unitNumber.trim(),
+      unitType: this.unitForm.value.unitType,
+      rentAmount: Number(this.unitForm.value.rentAmount),
+      deposit: Number(this.unitForm.value.deposit) || 0,
+      description: this.unitForm.value.description?.trim() || ''
+    };
+
+    // Check for duplicate unit numbers
+    const duplicateUnit = this.units.find(unit => 
+      unit.unitNumber?.toLowerCase() === unitData.unitNumber.toLowerCase()
+    );
+
+    if (duplicateUnit) {
+      this.isSubmittingUnit = false;
+      this.snackBar.open('Unit number already exists. Please use a different unit number.', 'Close', { duration: 3000 });
+      return;
+    }
+
+    // Real API call to create unit
+    this.propertyService.createUnit(this.propertyId, unitData).subscribe({
+      next: (response: any) => {
+        this.isSubmittingUnit = false;
+        
+        if (response.success || response.unit || response.id) {
+          this.snackBar.open(`Unit ${unitData.unitNumber} created successfully!`, 'Close', { duration: 3000 });
+          this.closeAddUnitDialog();
+          this.loadPropertyAndUnits(); // Refresh the units list
+        } else {
+          this.snackBar.open(response.message || 'Failed to create unit', 'Close', { duration: 3000 });
+        }
+      },
+      error: (error: any) => {
+        this.isSubmittingUnit = false;
+        this.handleUnitCreationError(error);
+      }
+    });
+  }
+
+  private handleUnitCreationError(error: any): void {
+    if (error.status === 401) {
+      this.snackBar.open('Not authorized. Please log in again.', 'Close', { duration: 3000 });
+    } else if (error.status === 400) {
+      this.snackBar.open(error.error?.message || 'Invalid unit data. Please check your inputs.', 'Close', { duration: 4000 });
+    } else if (error.status === 409) {
+      this.snackBar.open('A unit with this number already exists in this property.', 'Close', { duration: 4000 });
+    } else if (error.status === 500) {
+      this.snackBar.open('Server error. Please try again later.', 'Close', { duration: 3000 });
+    } else {
+      this.snackBar.open(error.message || 'Failed to create unit. Please try again.', 'Close', { duration: 3000 });
+    }
+  }
+
   private calculateStats() {
     this.totalUnits = this.units.length;
     this.occupiedUnits = this.units.filter(unit => unit.status === 'occupied').length;
@@ -162,6 +267,7 @@ export class PropertyUnitsComponent implements OnInit {
     this.annualRevenue = this.monthlyRevenue * 12;
   }
 
+  // Existing methods from your original component
   inviteTenantToProperty(event: Event) {
     event.preventDefault();
     event.stopPropagation();
@@ -231,38 +337,6 @@ export class PropertyUnitsComponent implements OnInit {
     });
   }
 
-  navigateToTotalUnits() {
-    this.activeFilter = 'all';
-    this.applyFilter();
-    this.snackBar.open('Showing all units', 'Close', { duration: 2000 });
-  }
-
-  navigateToOccupiedUnits() {
-    this.activeFilter = 'occupied';
-    this.applyFilter();
-    this.snackBar.open('Showing occupied units', 'Close', { duration: 2000 });
-  }
-
-  navigateToVacantUnits() {
-    this.activeFilter = 'vacant';
-    this.applyFilter();
-    this.snackBar.open('Showing vacant units', 'Close', { duration: 2000 });
-  }
-
-  navigateToMaintenanceUnits() {
-    this.activeFilter = 'maintenance';
-    this.applyFilter();
-    this.snackBar.open('Showing maintenance units', 'Close', { duration: 2000 });
-  }
-
-  navigateToOccupancyAnalytics() {
-    this.snackBar.open('Occupancy analytics feature coming soon!', 'Close', { duration: 3000 });
-  }
-
-  navigateToRevenueAnalytics() {
-    this.snackBar.open('Revenue analytics feature coming soon!', 'Close', { duration: 3000 });
-  }
-
   private handleError(message: string, error: any) {
     this.loading = false;
 
@@ -289,10 +363,6 @@ export class PropertyUnitsComponent implements OnInit {
       this.errorMessage = error?.error?.message || error?.message || 'Unknown error occurred';
       this.snackBar.open(`${message}: ${this.errorMessage}`, 'Close', { duration: 5000 });
     }
-  }
-
-  goBackToProperty() {
-    this.router.navigate(['/landlord-dashboard/property', this.propertyId]);
   }
 
   goBackToProperties() {
@@ -351,12 +421,6 @@ export class PropertyUnitsComponent implements OnInit {
 
   editUnit(unitId: string | number) {
     this.router.navigate(['/landlord-dashboard/property', this.propertyId, 'unit', unitId, 'edit']);
-  }
-
-  createNewUnit(event: Event) {
-    event.preventDefault();
-    event.stopPropagation();
-      this.router.navigate(['/landlord-dashboard/property', this.propertyId, 'unit', 'create']);
   }
 
   onDeleteUnit(unitId: string | number, event: Event) {
