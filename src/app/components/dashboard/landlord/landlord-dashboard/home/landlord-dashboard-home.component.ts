@@ -138,10 +138,7 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
 
   navigateToSection(section: string) {
     const routeMap: { [key: string]: string[] } = {
-      'properties': ['/landlord-dashboard/property'],
-      'tenants': ['/landlord-dashboard/tenants'],
-      'financials': ['/landlord-dashboard/financials'],
-      'maintenance': ['/landlord-dashboard/maintenance']
+      'properties': ['/landlord-dashboard/property']
     };
 
     const route = routeMap[section];

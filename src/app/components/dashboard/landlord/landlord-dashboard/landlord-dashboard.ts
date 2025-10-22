@@ -64,7 +64,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.loadNotifications();
     this.updateGreeting();
     
-    
+    // Update greeting every minute
     setInterval(() => {
       this.updateGreeting();
     }, 60000);
@@ -242,6 +242,20 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/landlord-dashboard/notifications']);
   }
 
+  // FIXED: Updated to use correct landlord profile route
+  viewProfile(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/landlord-dashboard/profile/view']);
+  }
+
+  // FIXED: Updated to use correct landlord profile edit route
+  editProfile(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/landlord-dashboard/profile/edit']);
+  }
+
   private loadProfileImage(): void {
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
@@ -286,18 +300,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     };
     
     return roleMap[role.toString()] || role.toString();
-  }
-
-  viewProfile(): void {
-    this.closeProfileMenu();
-    this.closeMobileMenu();
-    this.router.navigate(['/landlord-dashboard/profile/view']);
-  }
-
-  editProfile(): void {
-    this.closeProfileMenu();
-    this.closeMobileMenu();
-    this.router.navigate(['/landlord-dashboard/profile/edit']);
   }
 
   toggleProfileMenu(): void {
@@ -423,6 +425,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
   onLogoError(event: any): void {
     console.error('Logo failed to load:', event);
-    // You could set a fallback logo here if needed
+    
   }
 }

@@ -7,35 +7,15 @@
     </div>
 
     <div *ngIf="!isLoadingDashboard">
-      <!-- Quick Actions -->
-      <div class="quick-actions-row">
-        <button class="quick-action-btn" (click)="navigateToSection('properties')">
-          <div class="action-icon">
-            <mat-icon>apartment</mat-icon>
-          </div>
-          <span>Add Property</span>
-        </button>
-        <button class="quick-action-btn" (click)="navigateToSection('tenants')">
-          <div class="action-icon">
-            <mat-icon>person_add</mat-icon>
-          </div>
-          <span>Add Tenant</span>
-        </button>
-        <button class="quick-action-btn" (click)="navigateToSection('maintenance')">
-          <div class="action-icon">
-            <mat-icon>handyman</mat-icon>
-          </div>
-          <span>Create Work Order</span>
-        </button>
-        <button class="quick-action-btn" (click)="navigateToSection('financials')">
-          <div class="action-icon">
-            <mat-icon>payments</mat-icon>
-          </div>
-          <span>Collect Rent</span>
+      <!-- Single Add Property Button -->
+      <div class="add-property-section">
+        <button class="add-property-btn" (click)="navigateToSection('properties')">
+          <mat-icon>add</mat-icon>
+          <span>Add New Property</span>
         </button>
       </div>
 
-      <!-- Stats Grid -->
+      <!-- Stats Grid - One Line -->
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-header">
@@ -85,24 +65,6 @@
             </div>
           </div>
           <div class="stat-value">{{ dashboardData?.openMaintenance || 0 }}</div>
-        </div>
-      </div>
-
-      <!-- Recent Activity -->
-      <div class="content-grid">
-        <div class="content-column">
-          <div class="content-card">
-            <div class="card-header">
-              <h3>Recent Activity</h3>
-              <p>Latest updates in your properties</p>
-            </div>
-            <div class="card-content">
-              <div class="no-data">
-                <mat-icon>history</mat-icon>
-                <p>No recent activity</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
