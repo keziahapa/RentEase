@@ -4,7 +4,7 @@ import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
-import { MatSnackBar } from '@angular/material/snack-bar'; // Add this import
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +13,7 @@ export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
-  private snackBar = inject(MatSnackBar); // Add this injection
+  private snackBar = inject(MatSnackBar);
   private isBrowser: boolean;
 
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com/api/auth';
@@ -24,9 +24,15 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
+  // Add a flag to prevent multiple initializations
+  private initialized = false;
+
   constructor() {
     this.isBrowser = isPlatformBrowser(this.platformId);
-    if (this.isBrowser) this.initializeAuthState();
+    if (this.isBrowser && !this.initialized) {
+      this.initializeAuthState();
+      this.initialized = true;
+    }
   }
 
   private getFromStorage(key: string): string | null {
@@ -58,6 +64,7 @@ export class AuthService {
     this.clearAllStorage();
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);
+    this.initialized = false;
   }
 
   login(credentials: any): Observable<any> {
@@ -137,6 +144,7 @@ export class AuthService {
     this.clearAllStorage();
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);
+    this.initialized = false;
     this.router.navigate(['/login']);
   }
 
@@ -314,13 +322,13 @@ export class AuthService {
     );
   }
 
-  // NEW: Get phone number from localStorage
+  // IMPROVED: Get phone number from storage
   getPhoneNumber(): string {
     if (!this.isBrowser) return '';
     
     try {
-      // First try to get from current user
-      const currentUser = this.getCurrentUser();
+      // First try to get from current user subject (most up-to-date)
+      const currentUser = this.currentUserSubject.value;
       if (currentUser?.phoneNumber) {
         return currentUser.phoneNumber;
       }
@@ -419,14 +427,20 @@ export class AuthService {
     return cleanToken;
   }
 
+  // IMPROVED: Get current user with better logging
   getCurrentUser(): any {
     const userData = this.getFromStorage('userData');
-    if (!userData) return null;
+    if (!userData) {
+      console.log('GET CURRENT USER: No user data found in storage');
+      return null;
+    }
+    
     try { 
       const user = JSON.parse(userData);
-      console.log('GET CURRENT USER WITH PHONE:', user?.phoneNumber);
+      console.log('GET CURRENT USER WITH PHONE:', user?.phoneNumber || 'NO PHONE', 'Full user:', user);
       return user;
-    } catch { 
+    } catch (error) { 
+      console.error('GET CURRENT USER: Error parsing user data:', error);
       this.removeFromStorage('userData'); 
       return null; 
     }
@@ -489,13 +503,27 @@ export class AuthService {
     sessionStorage.removeItem('pendingPhoneNumber');
   }
 
+  // IMPROVED: Better phone number handling in auth success
   private handleAuthSuccess(response: any, rememberMe: boolean = false): void {
     if (!this.isBrowser) return;
     
     let user: any = null;
     let token: string | null = null;
 
-    console.log('HANDLE AUTH SUCCESS WITH PHONE:', response);
+    console.log('HANDLE AUTH SUCCESS WITH FULL RESPONSE:', response);
+
+    // Extract phone number from various possible locations
+    let phoneNumber = '';
+    
+    if (response.phoneNumber) {
+      phoneNumber = response.phoneNumber;
+    } else if (response.user?.phoneNumber) {
+      phoneNumber = response.user.phoneNumber;
+    } else {
+      phoneNumber = this.getPendingPhoneNumber() || '';
+    }
+
+    console.log('Extracted phone number for storage:', phoneNumber);
 
     if ('userId' in response) {
       token = response.token;
@@ -506,18 +534,18 @@ export class AuthService {
         role: response.role,
         verified: response.verified,
         emailVerified: response.verified,
-        phoneNumber: response.phoneNumber || this.getPendingPhoneNumber() || ''
+        phoneNumber: phoneNumber
       };
     } else if ('user' in response && response.user) {
       user = {
         ...response.user,
-        phoneNumber: response.user.phoneNumber || this.getPendingPhoneNumber() || ''
+        phoneNumber: phoneNumber
       };
       token = ('token' in response && response.token) ? response.token : null;
     } else if (response.user) {
       user = {
         ...response.user,
-        phoneNumber: response.user.phoneNumber || this.getPendingPhoneNumber() || ''
+        phoneNumber: phoneNumber
       };
       token = response.token || null;
     }
@@ -545,7 +573,7 @@ export class AuthService {
       this.currentUserSubject.next(user);
       this.isAuthenticatedSubject.next(true);
       
-      console.log('User data stored with phone number:', user.phoneNumber);
+      console.log('User data stored successfully with phone number:', user.phoneNumber);
       
       if (user.verified || user.emailVerified) {
         this.clearPendingVerification();
@@ -577,7 +605,10 @@ export class AuthService {
     }
   }
 
+  // IMPROVED: Better initialization with less logging
   private initializeAuthState(): void {
+    console.log('Initializing auth state...');
+    
     const user = this.getCurrentUser();
     const token = this.getToken();
     
@@ -587,16 +618,21 @@ export class AuthService {
       isAuthenticated = this.hasValidToken();
       
       if (!isAuthenticated) {
+        console.log('Token invalid, clearing storage');
         this.clearAllStorage();
         this.currentUserSubject.next(null);
         this.isAuthenticatedSubject.next(false);
         return;
       }
+      
+      console.log('Auth state initialized with valid user and token');
     } else {
       if (user && !token) {
+        console.log('User found but no token, clearing storage');
         this.clearAllStorage();
       }
       isAuthenticated = false;
+      console.log('Auth state initialized: No user or token found');
     }
     
     this.currentUserSubject.next(user);
