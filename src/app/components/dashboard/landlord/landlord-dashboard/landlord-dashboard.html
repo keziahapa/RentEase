@@ -55,17 +55,24 @@
       </div>
 
       <div class="nav-item" 
+           [class.active]="isNavActive('properties')" 
+           (click)="navigateToSection('properties')">
+        <mat-icon class="nav-icon">apartment</mat-icon>
+        <span>Properties</span>
+      </div>
+
+      <div class="nav-item" 
            [class.active]="isNavActive('tenants')" 
-           (click)="navigateToTenants()">
+           (click)="navigateToSection('tenants')">
         <mat-icon class="nav-icon">groups</mat-icon>
         <span>Tenants</span>
       </div>
 
       <div class="nav-item" 
-           [class.active]="isNavActive('properties')" 
-           (click)="navigateToSection('properties')">
-        <mat-icon class="nav-icon">apartment</mat-icon>
-        <span>Properties</span>
+           [class.active]="isNavActive('maintenance')" 
+           (click)="navigateToSection('maintenance')">
+        <mat-icon class="nav-icon">handyman</mat-icon>
+        <span>Maintenance</span>
       </div>
 
       <div class="nav-item" 
@@ -81,20 +88,6 @@
            (click)="navigateToSection('documents')">
         <mat-icon class="nav-icon">description</mat-icon>
         <span>Documents</span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('marketplace')" 
-           (click)="navigateToSection('marketplace')">
-        <mat-icon class="nav-icon">storefront</mat-icon>
-        <span>Marketplace</span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('reviews')" 
-           (click)="navigateToSection('reviews')">
-        <mat-icon class="nav-icon">star_rate</mat-icon>
-        <span>Reviews & Ratings</span>
       </div>
 
       <div class="nav-item" 
@@ -115,12 +108,6 @@
           </mat-icon>
         </div>
         <div *ngIf="expandedMenus.settings" class="sub-menu">
-          <div class="sub-item" 
-               [class.active]="isSubItemActive('general')" 
-               (click)="navigateToSection('general')">
-            <mat-icon class="sub-icon">tune</mat-icon>
-            <span>General</span>
-          </div>
           <div class="sub-item" 
                [class.active]="isSubItemActive('account')" 
                (click)="navigateToSection('account')">
@@ -144,7 +131,7 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="nav-item">
+      <div class="nav-item" (click)="navigateToSection('help')">
         <mat-icon>help</mat-icon>
         <span>Help & Support</span>
       </div>
@@ -207,104 +194,271 @@
 
     <div *ngIf="currentSection === 'dashboard'" class="dashboard-home">
       <div class="dashboard-content">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-header">
-              <span class="stat-title">Total Properties</span>
-              <div class="stat-icon primary">
+        
+        <!-- Loading State -->
+        <div *ngIf="isLoadingDashboard" class="loading-state">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>Loading dashboard data...</p>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div *ngIf="!isLoadingDashboard">
+          <!-- Quick Actions Row -->
+          <div class="quick-actions-row">
+            <button class="quick-action-btn" (click)="navigateToSection('properties')">
+              <div class="action-icon">
                 <mat-icon>apartment</mat-icon>
               </div>
+              <span>Add Property</span>
+            </button>
+            <button class="quick-action-btn" (click)="navigateToSection('tenants')">
+              <div class="action-icon">
+                <mat-icon>person_add</mat-icon>
+              </div>
+              <span>Add Tenant</span>
+            </button>
+            <button class="quick-action-btn" (click)="navigateToSection('maintenance')">
+              <div class="action-icon">
+                <mat-icon>handyman</mat-icon>
+              </div>
+              <span>Create Work Order</span>
+            </button>
+            <button class="quick-action-btn" (click)="navigateToSection('financials')">
+              <div class="action-icon">
+                <mat-icon>payments</mat-icon>
+              </div>
+              <span>Collect Rent</span>
+            </button>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Total Properties</span>
+                <div class="stat-icon primary">
+                  <mat-icon>apartment</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.totalProperties || 0 }}</div>
+              <div class="stat-change" [class.positive]="dashboardData?.propertiesChange?.trend === 'up'" 
+                   [class.negative]="dashboardData?.propertiesChange?.trend === 'down'">
+                <mat-icon *ngIf="dashboardData?.propertiesChange?.trend === 'up'">trending_up</mat-icon>
+                <mat-icon *ngIf="dashboardData?.propertiesChange?.trend === 'down'">trending_down</mat-icon>
+                <span>{{ dashboardData?.propertiesChange?.value || 'No change' }}</span>
+              </div>
             </div>
-            <div class="stat-value">{{ totalProperties }}</div>
-            <div class="stat-change positive">
-              <mat-icon>trending_up</mat-icon>
-              <span>+2 this month</span>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Active Tenants</span>
+                <div class="stat-icon success">
+                  <mat-icon>groups</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.activeTenants || 0 }}</div>
+              <div class="stat-change" [class.positive]="dashboardData?.tenantsChange?.trend === 'up'" 
+                   [class.negative]="dashboardData?.tenantsChange?.trend === 'down'">
+                <mat-icon *ngIf="dashboardData?.tenantsChange?.trend === 'up'">trending_up</mat-icon>
+                <mat-icon *ngIf="dashboardData?.tenantsChange?.trend === 'down'">trending_down</mat-icon>
+                <span>{{ dashboardData?.tenantsChange?.value || 'No change' }}</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Monthly Revenue</span>
+                <div class="stat-icon warning">
+                  <mat-icon>attach_money</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.monthlyRevenue || 'KSh 0' }}</div>
+              <div class="stat-change" [class.positive]="dashboardData?.revenueChange?.trend === 'up'" 
+                   [class.negative]="dashboardData?.revenueChange?.trend === 'down'">
+                <mat-icon *ngIf="dashboardData?.revenueChange?.trend === 'up'">trending_up</mat-icon>
+                <mat-icon *ngIf="dashboardData?.revenueChange?.trend === 'down'">trending_down</mat-icon>
+                <span>{{ dashboardData?.revenueChange?.value || 'No change' }}</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Vacant Units</span>
+                <div class="stat-icon danger">
+                  <mat-icon>meeting_room</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.vacantUnits || 0 }}</div>
+              <div class="stat-change" [class.positive]="dashboardData?.vacancyChange?.trend === 'down'" 
+                   [class.negative]="dashboardData?.vacancyChange?.trend === 'up'">
+                <mat-icon *ngIf="dashboardData?.vacancyChange?.trend === 'down'">trending_up</mat-icon>
+                <mat-icon *ngIf="dashboardData?.vacancyChange?.trend === 'up'">trending_down</mat-icon>
+                <span>{{ dashboardData?.vacancyChange?.value || 'No change' }}</span>
+              </div>
             </div>
           </div>
 
-          <div class="stat-card">
-            <div class="stat-header">
-              <span class="stat-title">Active Tenants</span>
-              <div class="stat-icon success">
-                <mat-icon>groups</mat-icon>
+          <!-- Main Content Grid -->
+          <div class="content-grid">
+            <!-- Left Column -->
+            <div class="content-column">
+              <!-- Financial Overview -->
+              <div class="content-card">
+                <div class="card-header">
+                  <h3>Rent Collection Status</h3>
+                  <p>Current month progress</p>
+                </div>
+                <div class="card-content">
+                  <div *ngIf="dashboardData?.rentCollection" class="progress-section">
+                    <div class="progress-bar">
+                      <div class="progress-fill" [style.width]="dashboardData.rentCollection.percentage + '%'"></div>
+                    </div>
+                    <div class="progress-stats">
+                      <div class="progress-stat">
+                        <span class="stat-label">Collected</span>
+                        <span class="stat-amount success">{{ dashboardData.rentCollection.collected }}</span>
+                      </div>
+                      <div class="progress-stat">
+                        <span class="stat-label">Pending</span>
+                        <span class="stat-amount warning">{{ dashboardData.rentCollection.pending }}</span>
+                      </div>
+                      <div class="progress-stat">
+                        <span class="stat-label">Overdue</span>
+                        <span class="stat-amount danger">{{ dashboardData.rentCollection.overdue }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div *ngIf="!dashboardData?.rentCollection" class="no-data">
+                    <mat-icon>payments</mat-icon>
+                    <p>No rent collection data available</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div class="stat-value">{{ activeTenants }}</div>
-            <div class="stat-change positive">
-              <mat-icon>trending_up</mat-icon>
-              <span>+5 this month</span>
-            </div>
-          </div>
 
-          <div class="stat-card">
-            <div class="stat-header">
-              <span class="stat-title">Monthly Revenue</span>
-              <div class="stat-icon warning">
-                <mat-icon>attach_money</mat-icon>
+              <!-- Maintenance Status -->
+              <div class="content-card">
+                <div class="card-header">
+                  <h3>Maintenance Requests</h3>
+                  <p>Open work orders</p>
+                </div>
+                <div class="card-content">
+                  <div *ngIf="dashboardData?.maintenanceRequests?.length" class="maintenance-list">
+                    <div class="maintenance-item" 
+                         *ngFor="let request of dashboardData.maintenanceRequests"
+                         [class.urgent]="request.priority === 'urgent'">
+                      <div class="maintenance-icon">
+                        <mat-icon>{{ request.icon }}</mat-icon>
+                      </div>
+                      <div class="maintenance-details">
+                        <div class="maintenance-title">{{ request.title }}</div>
+                        <div class="maintenance-meta">{{ request.property }} • {{ request.time }}</div>
+                      </div>
+                      <div class="maintenance-status" [class.urgent]="request.priority === 'urgent'">
+                        {{ request.status }}
+                      </div>
+                    </div>
+                  </div>
+                  <div *ngIf="!dashboardData?.maintenanceRequests?.length" class="no-data">
+                    <mat-icon>handyman</mat-icon>
+                    <p>No maintenance requests</p>
+                  </div>
+                  <button class="view-all-btn" (click)="navigateToSection('maintenance')">
+                    View All Work Orders
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="stat-value">{{ monthlyRevenue }}</div>
-            <div class="stat-change positive">
-              <mat-icon>trending_up</mat-icon>
-              <span>+8.2% from last month</span>
-            </div>
-          </div>
 
-          <div class="stat-card">
-            <div class="stat-header">
-              <span class="stat-title">Vacant Units</span>
-              <div class="stat-icon danger">
-                <mat-icon>meeting_room</mat-icon>
+            <!-- Right Column -->
+            <div class="content-column">
+              <!-- Quick Stats -->
+              <div class="content-card">
+                <div class="card-header">
+                  <h3>Quick Stats</h3>
+                  <p>Key performance indicators</p>
+                </div>
+                <div class="card-content">
+                  <div *ngIf="dashboardData?.quickStats?.length" class="quick-stats">
+                    <div class="quick-stat" *ngFor="let stat of dashboardData.quickStats">
+                      <div class="quick-stat-icon">
+                        <mat-icon>{{ stat.icon }}</mat-icon>
+                      </div>
+                      <div class="quick-stat-info">
+                        <div class="stat-amount">{{ stat.amount }}</div>
+                        <div class="stat-label">{{ stat.label }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div *ngIf="!dashboardData?.quickStats?.length" class="no-data">
+                    <mat-icon>analytics</mat-icon>
+                    <p>No statistics available</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div class="stat-value">{{ vacantUnits }}</div>
-            <div class="stat-change negative">
-              <mat-icon>trending_down</mat-icon>
-              <span>2 new vacancies</span>
+
+              <!-- Upcoming Deadlines -->
+              <div class="content-card">
+                <div class="card-header">
+                  <h3>Upcoming Deadlines</h3>
+                  <p>Important dates</p>
+                </div>
+                <div class="card-content">
+                  <div *ngIf="dashboardData?.upcomingDeadlines?.length" class="deadline-list">
+                    <div class="deadline-item" *ngFor="let deadline of dashboardData.upcomingDeadlines">
+                      <div class="deadline-date">
+                        <span class="date-day">{{ deadline.day }}</span>
+                        <span class="date-month">{{ deadline.month }}</span>
+                      </div>
+                      <div class="deadline-details">
+                        <div class="deadline-title">{{ deadline.title }}</div>
+                        <div class="deadline-subtitle">{{ deadline.subtitle }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div *ngIf="!dashboardData?.upcomingDeadlines?.length" class="no-data">
+                    <mat-icon>event</mat-icon>
+                    <p>No upcoming deadlines</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recent Activity -->
+              <div class="content-card">
+                <div class="card-header">
+                  <h3>Recent Activity</h3>
+                  <p>Latest updates</p>
+                </div>
+                <div class="card-content">
+                  <div *ngIf="dashboardData?.recentActivities?.length" class="activity-list">
+                    <div class="activity-item" *ngFor="let activity of dashboardData.recentActivities">
+                      <div class="activity-icon">
+                        <mat-icon [style.color]="activity.color">{{ activity.icon }}</mat-icon>
+                      </div>
+                      <div class="activity-details">
+                        <div class="activity-text">{{ activity.text }}</div>
+                        <div class="activity-time">{{ activity.time }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div *ngIf="!dashboardData?.recentActivities?.length" class="no-data">
+                    <mat-icon>history</mat-icon>
+                    <p>No recent activity</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="content-grid">
-          <div class="content-card">
-            <div class="card-header">
-              <h3>Recent Activity</h3>
-              <p>Latest updates from your properties</p>
-            </div>
-            <div class="card-content">
-              <div class="activity-list">
-                <div class="activity-item" *ngFor="let activity of recentActivities">
-                  <div class="activity-icon">
-                    <mat-icon [style.color]="activity.color">{{ activity.icon }}</mat-icon>
-                  </div>
-                  <div class="activity-details">
-                    <div class="activity-text">{{ activity.text }}</div>
-                    <div class="activity-time">{{ activity.time }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="content-card">
-            <div class="card-header">
-              <h3>Quick Stats</h3>
-              <p>Key performance indicators</p>
-            </div>
-            <div class="card-content">
-              <div class="quick-stats">
-                <div class="quick-stat" *ngFor="let stat of quickStats">
-                  <div class="quick-stat-icon">
-                    <mat-icon>{{ stat.icon }}</mat-icon>
-                  </div>
-                  <div class="quick-stat-info">
-                    <div class="stat-amount">{{ stat.amount }}</div>
-                    <div class="stat-label">{{ stat.label }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <!-- Error State -->
+        <div *ngIf="dashboardError" class="error-state">
+          <mat-icon>error_outline</mat-icon>
+          <h3>Unable to load dashboard data</h3>
+          <p>{{ dashboardError }}</p>
+          <button class="retry-btn" (click)="loadDashboardData()">
+            <mat-icon>refresh</mat-icon>
+            Try Again
+          </button>
         </div>
       </div>
     </div>

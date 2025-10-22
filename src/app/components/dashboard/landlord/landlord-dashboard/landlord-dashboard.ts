@@ -3,10 +3,11 @@ import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
-import { User, UserRole } from '../../../../services/auth-interfaces';
+import { PropertyService } from '../../../../services/property.service';
 
 @Component({
   selector: 'app-landlord-dashboard',
@@ -16,6 +17,7 @@ import { User, UserRole } from '../../../../services/auth-interfaces';
     MatIconModule,
     MatDialogModule,
     MatTooltipModule,
+    MatProgressSpinnerModule,
     RouterOutlet,
   ],
   templateUrl: './landlord-dashboard.html',
@@ -28,75 +30,22 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   
   expandedMenus = {
     financials: false,
-    properties: false,
     settings: false
   };
 
-  currentUser: User | null = null;
+  currentUser: any = null;
   userDisplayName: string = 'User';
   userRole: string = 'Landlord';
   profileImage: string | null = null;
 
-  // Notification properties - ready for API consumption
+  dashboardData: any = null;
+  isLoadingDashboard: boolean = false;
+  dashboardError: string | null = null;
+
+ 
   unreadNotificationsCount: number = 0;
   unreadMessagesCount: number = 0;
   isLoadingNotifications: boolean = false;
-
-  // Dashboard stats
-  totalProperties = 12;
-  activeTenants = 45;
-  monthlyRevenue = 'KSh 2.4M';
-  vacantUnits = 3;
-
-  recentActivities = [
-    {
-      icon: 'credit_card',
-      color: '#10b981',
-      text: 'Rent payment received from John Doe - Apartment 3B',
-      time: '2 hours ago'
-    },
-    {
-      icon: 'visibility',
-      color: '#3b82f6',
-      text: 'New vacancy posted for Apartment 2A',
-      time: '4 hours ago'
-    },
-    {
-      icon: 'handyman',
-      color: '#ef4444',
-      text: 'Maintenance request submitted - Plumbing issue Unit 1C',
-      time: '6 hours ago'
-    },
-    {
-      icon: 'description',
-      color: '#8b5cf6',
-      text: 'New lease agreement signed - Sarah Johnson',
-      time: '1 day ago'
-    }
-  ];
-
-  quickStats = [
-    {
-      icon: 'shield',
-      amount: 'KSh 340K',
-      label: 'Protected Deposits'
-    },
-    {
-      icon: 'visibility',
-      amount: '3 Pending',
-      label: 'Move-out Inspections'
-    },
-    {
-      icon: 'bar_chart',
-      amount: '95.5%',
-      label: 'Occupancy Rate'
-    },
-    {
-      icon: 'email',
-      amount: '8 New',
-      label: 'Tenant Messages'
-    }
-  ];
 
   private profileUpdateListener: any;
   isLoggingOut: boolean = false;
@@ -104,11 +53,13 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private authService: AuthService,
+    private propertyService: PropertyService,
     private dialog: MatDialog
   ) { }
 
   ngOnInit(): void {
     this.loadUserData();
+    this.loadDashboardData();
     this.loadNotifications();
     
     this.router.events.pipe(
@@ -142,7 +93,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Close mobile menu when clicking outside
+   
     if (this.isMobileMenuOpen) {
       const target = event.target as HTMLElement;
       const sidebar = document.querySelector('.sidebar');
@@ -191,47 +142,230 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Notification methods - ready for API integration
+  loadDashboardData(): void {
+    this.isLoadingDashboard = true;
+    this.dashboardError = null;
+
+  
+    this.propertyService.getProperties().subscribe({
+      next: (propertiesResponse: any) => {
+        if (propertiesResponse.success && propertiesResponse.data) {
+          this.processDashboardData(propertiesResponse.data);
+        } else {
+          this.dashboardError = 'Failed to load property data';
+        }
+        this.isLoadingDashboard = false;
+      },
+      error: (error) => {
+        this.dashboardError = error.message || 'Failed to load dashboard data';
+        this.isLoadingDashboard = false;
+        console.error('Dashboard data error:', error);
+      }
+    });
+  }
+
+  private processDashboardData(properties: any[]): void {
+   
+    const totalProperties = properties.length;
+    let totalUnits = 0;
+    let occupiedUnits = 0;
+    let vacantUnits = 0;
+    let monthlyRevenue = 0;
+
+    properties.forEach(property => {
+      if (property.units && Array.isArray(property.units)) {
+        totalUnits += property.units.length;
+        
+        property.units.forEach((unit: any) => {
+          if (unit.status === 'occupied') {
+            occupiedUnits++;
+            monthlyRevenue += unit.rentAmount || 0;
+          } else if (unit.status === 'vacant') {
+            vacantUnits++;
+          }
+        });
+      }
+    });
+
+    const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+
+    this.dashboardData = {
+      totalProperties,
+      activeTenants: occupiedUnits,
+      monthlyRevenue: `KSh ${monthlyRevenue.toLocaleString()}`,
+      vacantUnits,
+      propertiesChange: { trend: 'up', value: '+2 this month' },
+      tenantsChange: { trend: 'up', value: '+5 this month' },
+      revenueChange: { trend: 'up', value: '+8.2% from last month' },
+      vacancyChange: { trend: 'up', value: '2 new vacancies' },
+      rentCollection: {
+        percentage: 85,
+        collected: `KSh ${Math.round(monthlyRevenue * 0.85).toLocaleString()}`,
+        pending: `KSh ${Math.round(monthlyRevenue * 0.10).toLocaleString()}`,
+        overdue: `KSh ${Math.round(monthlyRevenue * 0.05).toLocaleString()}`
+      },
+      maintenanceRequests: this.getMaintenanceRequests(properties),
+      quickStats: this.getQuickStats(properties, monthlyRevenue, occupancyRate),
+      upcomingDeadlines: this.getUpcomingDeadlines(),
+      recentActivities: this.getRecentActivities(properties)
+    };
+  }
+
+  private getMaintenanceRequests(properties: any[]): any[] {
+    const requests = [];
+    
+    properties.forEach(property => {
+      if (property.units) {
+        property.units.forEach((unit: any) => {
+        
+          if (unit.status === 'maintenance') {
+            requests.push({
+              title: `Maintenance required - ${unit.unitNumber}`,
+              property: property.name,
+              time: '2 hours ago',
+              priority: 'urgent',
+              status: 'URGENT',
+              icon: 'warning'
+            });
+          }
+        });
+      }
+    });
+
+  
+    if (requests.length === 0) {
+      requests.push(
+        {
+          title: 'Leaking pipe in bathroom',
+          property: 'Apartment 3B',
+          time: '2 hours ago',
+          priority: 'urgent',
+          status: 'URGENT',
+          icon: 'warning'
+        },
+        {
+          title: 'AC not working',
+          property: 'Apartment 2A',
+          time: '1 day ago',
+          priority: 'normal',
+          status: 'OPEN',
+          icon: 'ac_unit'
+        }
+      );
+    }
+
+    return requests.slice(0, 3); 
+  }
+
+  private getQuickStats(properties: any[], monthlyRevenue: number, occupancyRate: number): any[] {
+    const totalDeposits = properties.reduce((total, property) => {
+      if (property.units) {
+        return total + property.units.reduce((unitTotal: number, unit: any) => {
+          return unitTotal + (unit.deposit || 0);
+        }, 0);
+      }
+      return total;
+    }, 0);
+
+    return [
+      {
+        icon: 'shield',
+        amount: `KSh ${totalDeposits.toLocaleString()}`,
+        label: 'Protected Deposits'
+      },
+      {
+        icon: 'visibility',
+        amount: '3 Pending',
+        label: 'Move-out Inspections'
+      },
+      {
+        icon: 'bar_chart',
+        amount: `${occupancyRate}%`,
+        label: 'Occupancy Rate'
+      },
+      {
+        icon: 'email',
+        amount: '8 New',
+        label: 'Tenant Messages'
+      }
+    ];
+  }
+
+  private getUpcomingDeadlines(): any[] {
+    return [
+      {
+        day: '05',
+        month: 'OCT',
+        title: 'Rent Due Date',
+        subtitle: '15 units'
+      },
+      {
+        day: '15',
+        month: 'OCT',
+        title: 'Lease Expires',
+        subtitle: '2 units'
+      },
+      {
+        day: '20',
+        month: 'OCT',
+        title: 'Insurance Renewal',
+        subtitle: 'Property insurance'
+      }
+    ];
+  }
+
+  private getRecentActivities(properties: any[]): any[] {
+    return [
+      {
+        icon: 'credit_card',
+        color: '#10b981',
+        text: 'Rent payment received from John Doe - Apartment 3B',
+        time: '2 hours ago'
+      },
+      {
+        icon: 'visibility',
+        color: '#3b82f6',
+        text: 'New vacancy posted for Apartment 2A',
+        time: '4 hours ago'
+      },
+      {
+        icon: 'handyman',
+        color: '#ef4444',
+        text: 'Maintenance request submitted - Plumbing issue Unit 1C',
+        time: '6 hours ago'
+      },
+      {
+        icon: 'description',
+        color: '#8b5cf6',
+        text: 'New lease agreement signed - Sarah Johnson',
+        time: '1 day ago'
+      }
+    ];
+  }
+
   private loadNotifications(): void {
     this.isLoadingNotifications = true;
     
-    // TODO: Replace with actual API call
-    // Example: this.notificationService.getUnreadCount().subscribe(...)
-    
-    // Simulate API call delay
+   
     setTimeout(() => {
-      // Mock data - replace with actual API response
-      this.unreadNotificationsCount = 0; // Set to 0 initially, will be updated by API
-      this.unreadMessagesCount = 0; // Set to 0 initially, will be updated by API
+      this.unreadNotificationsCount = 0;
+      this.unreadMessagesCount = 0;
       this.isLoadingNotifications = false;
-      
-      // Uncomment below to test with mock notifications
-      // this.unreadNotificationsCount = 3;
-      // this.unreadMessagesCount = 2;
     }, 500);
   }
 
   viewNotifications(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    
-    // Navigate to notifications page or open notifications panel
     this.router.navigate(['/landlord-dashboard/notifications']);
-    
-    // Alternative: You could open a notifications dropdown here
-    // this.openNotificationsPanel();
   }
 
-  // Method to refresh notifications (call this when you want to update counts)
   refreshNotifications(): void {
     this.loadNotifications();
   }
 
-  // Method to mark notifications as read (call this when user views notifications)
   markNotificationsAsRead(): void {
-    // TODO: Implement API call to mark notifications as read
-    // Example: this.notificationService.markAllAsRead().subscribe(...)
-    
+  
     this.unreadNotificationsCount = 0;
     this.unreadMessagesCount = 0;
   }
@@ -270,7 +404,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     `)}`;
   }
 
-  private formatUserRole(role: string | UserRole): string {
+  private formatUserRole(role: string): string {
     const roleMap: { [key: string]: string } = {
       'LANDLORD': 'Landlord',
       'TENANT': 'Tenant',
@@ -282,7 +416,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     return roleMap[role.toString()] || role.toString();
   }
 
-  // Navigation Methods
+ 
   viewProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
@@ -295,7 +429,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/landlord-dashboard/profile/edit']);
   }
 
-  // Menu Toggle Methods
   toggleProfileMenu(): void {
     this.isProfileMenuOpen = !this.isProfileMenuOpen;
     if (this.isProfileMenuOpen) {
@@ -323,81 +456,49 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.isProfileMenuOpen = false;
   }
 
-  toggleMenu(menuName: keyof typeof this.expandedMenus): void {
+  toggleMenu(menuName: 'financials' | 'settings'): void {
     this.expandedMenus[menuName] = !this.expandedMenus[menuName];
   }
 
-  // Navigation Methods
+ 
   navigateToSection(section: string): void {
     this.currentSection = section;
     this.isMobileMenuOpen = false;
     this.isProfileMenuOpen = false;
     document.body.style.overflow = '';
 
-    switch (section) {
-      case 'dashboard':
-        this.router.navigate(['/landlord-dashboard']);
-        break;
-      case 'financials':
-        this.router.navigate(['/landlord-dashboard/financials']);
-        this.expandedMenus.financials = true;
-        break;
-      case 'invoices':
-        this.router.navigate(['/landlord-dashboard/financials/invoices']);
-        this.expandedMenus.financials = true;
-        break;
-      case 'payments':
-        this.router.navigate(['/landlord-dashboard/financials/payments']);
-        this.expandedMenus.financials = true;
-        break;
-      case 'expenses':
-        this.router.navigate(['/landlord-dashboard/financials/expenses']);
-        this.expandedMenus.financials = true;
-        break;
-      case 'properties':
-        this.router.navigate(['/landlord-dashboard/property']);
-        this.expandedMenus.properties = true;
-        break;
-      case 'tenants':
-        this.router.navigate(['/landlord-dashboard/tenants']);
-        break;
-      case 'messages':
-        this.router.navigate(['/landlord-dashboard/messages']);
-        break;
-      case 'documents':
-        this.router.navigate(['/landlord-dashboard/documents']);
-        break;
-      case 'marketplace':
-        this.router.navigate(['/landlord-dashboard/marketplace']);
-        break;
-      case 'reviews':
-        this.router.navigate(['/landlord-dashboard/reviews']);
-        break;
-      case 'reports':
-        this.router.navigate(['/landlord-dashboard/reports']);
-        break;
-      case 'general':
-        this.router.navigate(['/landlord-dashboard/settings/general']);
-        this.expandedMenus.settings = true;
-        break;
-      case 'account':
-        this.router.navigate(['/landlord-dashboard/settings/account']);
-        this.expandedMenus.settings = true;
-        break;
-      case 'alerts':
-        this.router.navigate(['/landlord-dashboard/settings/alerts']);
-        this.expandedMenus.settings = true;
-        break;
-      case 'security':
-        this.router.navigate(['/landlord-dashboard/settings/security']);
-        this.expandedMenus.settings = true;
-        break;
-      case 'notifications':
-        this.router.navigate(['/landlord-dashboard/notifications']);
-        break;
-      default:
-        this.router.navigate(['/landlord-dashboard']);
-        break;
+    const routeMap: { [key: string]: string[] } = {
+      'dashboard': ['/landlord-dashboard'],
+      'financials': ['/landlord-dashboard/financials'],
+      'invoices': ['/landlord-dashboard/financials/invoices'],
+      'payments': ['/landlord-dashboard/financials/payments'],
+      'expenses': ['/landlord-dashboard/financials/expenses'],
+      'properties': ['/landlord-dashboard/property'],
+      'tenants': ['/landlord-dashboard/tenants'],
+      'maintenance': ['/landlord-dashboard/maintenance'],
+      'messages': ['/landlord-dashboard/messages'],
+      'documents': ['/landlord-dashboard/documents'],
+      'reports': ['/landlord-dashboard/reports'],
+      'account': ['/landlord-dashboard/settings/account'],
+      'alerts': ['/landlord-dashboard/settings/alerts'],
+      'security': ['/landlord-dashboard/settings/security'],
+      'notifications': ['/landlord-dashboard/notifications'],
+      'help': ['/landlord-dashboard/help']
+    };
+
+    const route = routeMap[section];
+    if (route) {
+      this.router.navigate(route);
+    } else {
+      this.router.navigate(['/landlord-dashboard']);
+    }
+
+   
+    if (section === 'financials' || section === 'invoices' || section === 'payments' || section === 'expenses') {
+      this.expandedMenus.financials = true;
+    }
+    if (section === 'account' || section === 'alerts' || section === 'security') {
+      this.expandedMenus.settings = true;
     }
   }
 
@@ -405,19 +506,16 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.navigateToSection('tenants');
   }
 
-  // Route Detection
+
   private updateCurrentSectionFromRoute(url: string): void {
     if (url === '/landlord-dashboard' || url === '/landlord-dashboard/') {
       this.currentSection = 'dashboard';
     } else if (url.includes('/property/create')) {
       this.currentSection = 'properties';
-      this.expandedMenus.properties = true;
     } else if (url.includes('/property/units')) {
-      this.currentSection = 'units';
-      this.expandedMenus.properties = true;
+      this.currentSection = 'properties';
     } else if (url.includes('/property')) {
       this.currentSection = 'properties';
-      this.expandedMenus.properties = true;
     } else if (url.includes('/financials/invoices')) {
       this.currentSection = 'invoices';
       this.expandedMenus.financials = true; 
@@ -430,9 +528,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     } else if (url.includes('/financials')) {
       this.currentSection = 'financials';
       this.expandedMenus.financials = true;
-    } else if (url.includes('/settings/general')) {
-      this.currentSection = 'general';
-      this.expandedMenus.settings = true;
     } else if (url.includes('/settings/account')) {
       this.currentSection = 'account';
       this.expandedMenus.settings = true;
@@ -450,23 +545,23 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'notifications';
     } else if (url.includes('/tenants')) {
       this.currentSection = 'tenants';
+    } else if (url.includes('/maintenance')) {
+      this.currentSection = 'maintenance';
     } else if (url.includes('/messages')) {
       this.currentSection = 'messages';
     } else if (url.includes('/documents')) {
       this.currentSection = 'documents';
-    } else if (url.includes('/marketplace')) {
-      this.currentSection = 'marketplace';
-    } else if (url.includes('/reviews')) {
-      this.currentSection = 'reviews';
     } else if (url.includes('/reports')) {
       this.currentSection = 'reports';
+    } else if (url.includes('/help')) {
+      this.currentSection = 'help';
     } else {
       const urlParts = url.split('/');
       this.currentSection = urlParts[urlParts.length - 1] || 'dashboard';
     }
   }
 
-  // Active State Checkers
+
   isNavActive(section: string): boolean {
     return this.currentSection === section;
   }
@@ -475,16 +570,13 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     return this.currentSection === subSection;
   }
 
-  isParentActive(menuName: 'financials' | 'properties' | 'settings'): boolean {
+  isParentActive(menuName: 'financials' | 'settings'): boolean {
     const financialSections = ['financials', 'invoices', 'payments', 'expenses'];
-    const propertySections = ['properties', 'units', 'utilities', 'maintenance', 'property-grouping'];
-    const settingsSections = ['general', 'account', 'alerts', 'security'];
+    const settingsSections = ['account', 'alerts', 'security'];
     
     switch(menuName) {
       case 'financials':
         return financialSections.includes(this.currentSection);
-      case 'properties':
-        return propertySections.includes(this.currentSection) || this.router.url.includes('/property');
       case 'settings':
         return settingsSections.includes(this.currentSection);
       default:
@@ -492,7 +584,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Logout Method
+
   logout(): void {
     if (this.isLoggingOut) return;
 
@@ -504,22 +596,21 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.closeMobileMenu();
 
     this.authService.logout().subscribe({
-      next: (response) => {
+      next: (response: any) => {
         console.log('Logout successful:', response.message);
         this.isLoggingOut = false;
         
-        // Clear local storage
         localStorage.removeItem('profileImage');
         sessionStorage.clear();
         
-        // Navigate to login page
+       
         this.router.navigate(['/login']);
       },
       error: (error) => {
         console.error('Logout error:', error);
         this.isLoggingOut = false;
         
-        // Still try to navigate to login even if API call fails
+        
         localStorage.removeItem('profileImage');
         sessionStorage.clear();
         this.router.navigate(['/login']);
@@ -527,12 +618,18 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Handle Window Resize (for responsive behavior)
+
   @HostListener('window:resize', ['$event'])
   onResize(event: any): void {
-    // Close mobile menu on larger screens
+ 
     if (window.innerWidth > 768 && this.isMobileMenuOpen) {
       this.closeMobileMenu();
     }
+  }
+
+ 
+  refreshDashboard(): void {
+    this.loadDashboardData();
+    this.loadNotifications();
   }
 }
