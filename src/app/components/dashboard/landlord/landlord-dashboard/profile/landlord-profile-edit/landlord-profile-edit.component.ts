@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,7 +11,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { PropertyService } from '../../../../../../services/property.service';
 import { AuthService } from '../../../../../../services/auth.service';
 
@@ -30,7 +31,8 @@ import { AuthService } from '../../../../../../services/auth.service';
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    MatDialogModule
+    MatDialogModule,
+    MatExpansionModule
   ],
   templateUrl: './landlord-profile-edit.component.html',
   styleUrls: ['./landlord-profile-edit.component.scss']
@@ -41,20 +43,25 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   user: any = null;
   profileImage: string | null = null;
   profileForm: FormGroup;
+  passwordForm: FormGroup;
   isSubmitting = false;
+  isChangingPassword = false;
   isUploadingPhoto = false;
   isDeletingPhoto = false;
   showAvatarDialog = false;
+  passwordPanelExpanded = false;
   
   originalPhoneNumber: string = '';
   currentPhoneNumber: string = '';
 
   constructor() {
-    this.profileForm = this.createForm();
+    this.profileForm = this.createProfileForm();
+    this.passwordForm = this.createPasswordForm();
   }
 
   ngOnInit(): void {
@@ -81,34 +88,51 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.originalPhoneNumber = currentUser.phoneNumber || '';
-    this.currentPhoneNumber = currentUser.phoneNumber || '';
+    this.originalPhoneNumber = this.authService.getPhoneNumber() || currentUser.phoneNumber || '';
+    this.currentPhoneNumber = this.originalPhoneNumber;
     
     this.user = currentUser;
     this.populateForm();
-    this.loadProfilePicture();
+    this.loadCachedProfilePicture();
   }
 
-  private loadProfilePicture(): void {
+  private loadCachedProfilePicture(): void {
+    const savedImage = localStorage.getItem('profileImage');
+    if (savedImage) {
+      this.profileImage = savedImage;
+    } else if (this.user?.avatar) {
+      this.profileImage = this.user.avatar;
+    } else {
+      this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
+    }
+
+    this.loadProfilePictureFromApi();
+  }
+
+  private loadProfilePictureFromApi(): void {
     this.propertyService.getProfilePicture().subscribe({
       next: (response: any) => {
         const imageUrl = response.data || response.pictureUrl;
         
         if (response.success && imageUrl) {
-          this.profileImage = imageUrl;
-          localStorage.setItem('profileImage', imageUrl);
-        } else {
-          this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
+          this.preloadImage(imageUrl).then(() => {
+            this.profileImage = imageUrl;
+            localStorage.setItem('profileImage', imageUrl);
+          });
         }
       },
       error: (error: any) => {
-        const cachedImage = localStorage.getItem('profileImage');
-        if (cachedImage) {
-          this.profileImage = cachedImage;
-        } else {
-          this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
-        }
+        console.log('Using cached profile image');
       }
+    });
+  }
+
+  private preloadImage(url: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve();
+      img.onerror = () => reject();
+      img.src = url;
     });
   }
 
@@ -127,7 +151,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     `)}`;
   }
 
-  private createForm(): FormGroup {
+  private createProfileForm(): FormGroup {
     return this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
       email: ['', [Validators.required, Validators.email]],
@@ -140,12 +164,31 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     });
   }
 
+  private createPasswordForm(): FormGroup {
+    return this.fb.group({
+      currentPassword: ['', [Validators.required, Validators.minLength(6)]],
+      newPassword: ['', [Validators.required, Validators.minLength(6)]],
+      confirmNewPassword: ['', [Validators.required]]
+    }, { validators: this.passwordMatchValidator });
+  }
+
+  private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+    const newPassword = control.get('newPassword');
+    const confirmNewPassword = control.get('confirmNewPassword');
+    
+    if (!newPassword || !confirmNewPassword) {
+      return null;
+    }
+    
+    return newPassword.value === confirmNewPassword.value ? null : { passwordMismatch: true };
+  }
+
   private populateForm(): void {
     if (this.user) {
       this.profileForm.patchValue({
         fullName: this.user.fullName || '',
         email: this.user.email || '',
-        phoneNumber: this.originalPhoneNumber || '',
+        phoneNumber: this.currentPhoneNumber || '',
         bio: this.user.bio || ''
       });
 
@@ -241,6 +284,36 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     });
   }
 
+  onChangePassword(): void {
+    if (this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched();
+      this.snackBar.open('Please fill in all password fields correctly', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.isChangingPassword = true;
+
+    const { currentPassword, newPassword, confirmNewPassword } = this.passwordForm.value;
+
+    this.authService.updatePassword(currentPassword, newPassword, confirmNewPassword).subscribe({
+      next: (response: any) => {
+        this.isChangingPassword = false;
+        
+        if (response.success) {
+          this.snackBar.open('Password changed successfully!', 'Close', { duration: 3000 });
+          this.passwordForm.reset();
+          this.passwordPanelExpanded = false;
+        } else {
+          this.snackBar.open(response.message || 'Failed to change password', 'Close', { duration: 3000 });
+        }
+      },
+      error: (error: any) => {
+        this.isChangingPassword = false;
+        this.snackBar.open(error.message || 'Failed to change password', 'Close', { duration: 3000 });
+      }
+    });
+  }
+
   onSubmit(): void {
     if (this.profileForm.invalid || !this.user) {
       this.profileForm.markAllAsTouched();
@@ -314,7 +387,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   }
 
   cancel(): void {
-    if (this.profileForm.dirty) {
+    if (this.profileForm.dirty || this.passwordForm.dirty) {
       if (confirm('You have unsaved changes. Are you sure you want to leave?')) {
         this.router.navigate(['/landlord-dashboard/profile/view']);
       }
@@ -335,4 +408,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   get email() { return this.profileForm.get('email'); }
   get phoneNumber() { return this.profileForm.get('phoneNumber'); }
   get bio() { return this.profileForm.get('bio'); }
+
+  get currentPassword() { return this.passwordForm.get('currentPassword'); }
+  get newPassword() { return this.passwordForm.get('newPassword'); }
+  get confirmNewPassword() { return this.passwordForm.get('confirmNewPassword'); }
 }

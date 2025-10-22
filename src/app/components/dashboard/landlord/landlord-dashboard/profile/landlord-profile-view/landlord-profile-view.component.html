@@ -3,6 +3,7 @@
     <div class="avatar-section">
       <div class="avatar-container">
         <div class="user-avatar-large">
+          <!-- Show cached image instantly, no loading delay -->
           <img 
             [src]="profileImage" 
             alt="Profile" 
@@ -61,11 +62,6 @@
                 {{ getAccountStatus() }}
               </span>
             </div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">Member Since</div>
-            <div class="info-value">{{ getMemberSince() || 'Not available' }}</div>
           </div>
         </div>
       </div>

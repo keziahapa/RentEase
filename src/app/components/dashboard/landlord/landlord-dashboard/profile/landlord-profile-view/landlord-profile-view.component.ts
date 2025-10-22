@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Subscription, filter } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../../../../../services/auth.service';
 import { PropertyService } from '../../../../../../services/property.service';
 
@@ -70,6 +70,7 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
     
     if (this.user) {
       this.formattedRole = this.formatUserRole(this.user.role);
+      // Load cached image instantly first
       this.loadCachedProfileImage();
     }
 
@@ -83,6 +84,7 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
           this.user = response.user;
           this.formattedRole = this.formatUserRole(response.user.role);
           this.updateLocalUserData(response.user);
+          // Load API image after cached one is already shown
           this.loadProfilePictureFromApi();
         }
       },
@@ -127,8 +129,14 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
             ? `${response.pictureUrl}&t=${timestamp}`
             : `${response.pictureUrl}?t=${timestamp}`;
           
-          this.profileImage = cacheBustedUrl;
-          localStorage.setItem('profileImage', cacheBustedUrl);
+          // Preload image before setting it
+          this.preloadImage(cacheBustedUrl).then(() => {
+            this.profileImage = cacheBustedUrl;
+            localStorage.setItem('profileImage', cacheBustedUrl);
+          }).catch(() => {
+            // If preload fails, keep cached image
+            console.warn('Failed to preload profile image, using cached version');
+          });
         } else {
           this.loadCachedProfileImage();
         }
@@ -141,14 +149,26 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
   }
 
   private loadCachedProfileImage(): void {
+    // Load from localStorage instantly
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
       this.profileImage = savedImage;
     } else if (this.user?.avatar) {
       this.profileImage = this.user.avatar;
     } else {
+      // Generate avatar instantly without API call
       this.profileImage = this.generateInitialAvatar(this.getUserFullName());
     }
+  }
+
+  // Add image preloading function
+  private preloadImage(url: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve();
+      img.onerror = () => reject();
+      img.src = url;
+    });
   }
 
   generateInitialAvatar(name: string): string {
@@ -187,7 +207,9 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
   }
 
   getUserPhone(): string {
-    const phoneNumber = this.user?.phoneNumber || 
+    // Get phone number directly from auth service
+    const phoneNumber = this.authService.getPhoneNumber() || 
+                       this.user?.phoneNumber || 
                        this.user?.phone || 
                        this.user?.phone_number ||
                        this.user?.mobile ||

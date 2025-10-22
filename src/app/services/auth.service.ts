@@ -255,6 +255,9 @@ export class AuthService {
     }).pipe(
       tap(response => {
         console.log('Password update response:', response);
+        if (response.success) {
+          this.snackBar.open('Password updated successfully!', 'Close', { duration: 3000 });
+        }
       }),
       catchError(this.handleError)
     );
@@ -307,6 +310,42 @@ export class AuthService {
       }),
       catchError(this.handleOtpError)
     );
+  }
+
+  // NEW: Get phone number from localStorage
+  getPhoneNumber(): string {
+    if (!this.isBrowser) return '';
+    
+    try {
+      // First try to get from current user
+      const currentUser = this.getCurrentUser();
+      if (currentUser?.phoneNumber) {
+        return currentUser.phoneNumber;
+      }
+      
+      // Then try from localStorage directly
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        if (parsedUser?.phoneNumber) {
+          return parsedUser.phoneNumber;
+        }
+      }
+      
+      // Finally try from sessionStorage
+      const sessionUser = sessionStorage.getItem('userData');
+      if (sessionUser) {
+        const parsedSessionUser = JSON.parse(sessionUser);
+        if (parsedSessionUser?.phoneNumber) {
+          return parsedSessionUser.phoneNumber;
+        }
+      }
+      
+      return '';
+    } catch (error) {
+      console.error('Error getting phone number from storage:', error);
+      return '';
+    }
   }
 
   private getPendingPhoneNumber(): string {
