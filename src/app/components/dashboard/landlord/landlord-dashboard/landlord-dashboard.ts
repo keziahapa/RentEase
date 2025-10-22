@@ -8,6 +8,8 @@ import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
 import { PropertyService } from '../../../../services/property.service';
+import { LandlordDashboardHomeComponent } from './home/landlord-dashboard-home.component';
+
 
 @Component({
   selector: 'app-landlord-dashboard',
@@ -19,6 +21,7 @@ import { PropertyService } from '../../../../services/property.service';
     MatTooltipModule,
     MatProgressSpinnerModule,
     RouterOutlet,
+    LandlordDashboardHomeComponent
   ],
   templateUrl: './landlord-dashboard.html',
   styleUrls: ['./landlord-dashboard.scss']
@@ -61,7 +64,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.loadNotifications();
     this.updateGreeting();
     
-    // Update greeting every minute
+    
     setInterval(() => {
       this.updateGreeting();
     }, 60000);
@@ -208,14 +211,16 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     });
 
     const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+    const rentCollectionRate = monthlyRevenue > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
 
     this.dashboardData = {
       totalProperties,
       totalUnits,
       occupiedUnits,
       vacantUnits,
-      monthlyRevenue,
       occupancyRate,
+      monthlyRevenue,
+      rentCollectionRate,
       openMaintenance,
       activeTenants: occupiedUnits
     };
@@ -414,5 +419,10 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   refreshDashboard(): void {
     this.loadDashboardData();
     this.loadNotifications();
+  }
+
+  onLogoError(event: any): void {
+    console.error('Logo failed to load:', event);
+    // You could set a fallback logo here if needed
   }
 }

@@ -1,179 +1,120 @@
-<div class="dashboard-container">
-  <div class="dashboard-header">
-    <div class="header-content">
-      <h1 class="greeting">{{ getGreeting() }}, {{ getUserDisplayName() }}! 👋</h1>
-      <p class="subtitle">Here's what's happening with your properties today</p>
-      <p class="user-role" *ngIf="getUserRoleDisplay() !== 'Landlord'">
-        <mat-icon>verified_user</mat-icon>
-        {{ getUserRoleDisplay() }}
-      </p>
-    </div>
-    <div class="header-actions">
-      <button mat-raised-button color="primary" (click)="refreshDashboard()" [disabled]="loading">
-        <mat-icon>refresh</mat-icon>
-        Refresh
-      </button>
-      <button mat-raised-button color="accent" (click)="quickAddProperty()">
-        <mat-icon>add</mat-icon>
-        Add Property
-      </button>
-    </div>
-  </div>
-
-  <div *ngIf="loading" class="loading-section">
-    <mat-spinner diameter="40"></mat-spinner>
-    <p>Loading your dashboard...</p>
-  </div>
-
-  <div *ngIf="!loading && errorMessage" class="error-section">
-    <mat-card class="error-card">
-      <mat-card-content>
-        <div class="error-content">
-          <mat-icon color="warn">error_outline</mat-icon>
-          <h3>Unable to load dashboard</h3>
-          <p>{{ errorMessage }}</p>
-          <button mat-raised-button color="primary" (click)="refreshDashboard()">
-            <mat-icon>refresh</mat-icon>
-            Try Again
-          </button>
-        </div>
-      </mat-card-content>
-    </mat-card>
-  </div>
-
-  <div *ngIf="!loading && !errorMessage" class="dashboard-content">
-    <div *ngIf="!hasData()" class="empty-state">
-      <mat-icon class="empty-icon">apartment</mat-icon>
-      <h2>Welcome to Your Dashboard, {{ getUserDisplayName() }}!</h2>
-      <p>Get started by adding your first property to see insights and statistics.</p>
-      <button mat-raised-button color="primary" (click)="quickAddProperty()">
-        <mat-icon>add_business</mat-icon>
-        Add Your First Property
-      </button>
+<div class="dashboard-home">
+  <div class="dashboard-content">
+    
+    <div *ngIf="isLoadingDashboard" class="loading-state">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Loading dashboard data...</p>
     </div>
 
-   
-  
-<div *ngIf="hasData()" class="stats-grid">
-  <mat-card 
-    *ngFor="let card of statCards" 
-    class="stat-card" 
-    [class.clickable]="card.route.length > 0"
-    [class.disabled]="card.route.length === 0"
-    (click)="card.route.length > 0 ? onStatCardClick(card) : null"
-    [matTooltip]="card.route.length > 0 ? 'Click to view ' + card.title : 'Feature coming soon'"
-  >
-    <mat-card-content>
-      <div class="stat-content">
-        <div class="stat-icon" [class]="card.color">
-          <mat-icon>{{card.icon}}</mat-icon>
-        </div>
-        <div class="stat-info">
-          <h3>{{card.value}}</h3>
-          <p>{{card.title}}</p>
-        </div>
-        <mat-icon *ngIf="card.route.length === 0" class="coming-soon-icon">lock</mat-icon>
-      </div>
-    </mat-card-content>
-  </mat-card>
-</div>
-    <mat-card *ngIf="hasData()" class="actions-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>flash_on</mat-icon>
-          Quick Actions
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <div class="actions-grid">
-          <button mat-stroked-button (click)="quickAddProperty()" class="action-btn">
-            <mat-icon>add_business</mat-icon>
-            Add Property
-          </button>
-          <button mat-stroked-button (click)="quickAddTenant()" class="action-btn">
-            <mat-icon>person_add</mat-icon>
-            Add Tenant
-          </button>
-          <button mat-stroked-button (click)="quickRecordPayment()" class="action-btn">
-            <mat-icon>payment</mat-icon>
-            Record Payment
-          </button>
-          <button mat-stroked-button (click)="quickGenerateReport()" class="action-btn">
-            <mat-icon>assessment</mat-icon>
-            Generate Report
-          </button>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <div *ngIf="hasData()" class="content-grid">
-      <mat-card class="recent-card">
-        <mat-card-header>
-          <mat-card-title>
+    <div *ngIf="!isLoadingDashboard">
+      <!-- Quick Actions -->
+      <div class="quick-actions-row">
+        <button class="quick-action-btn" (click)="navigateToSection('properties')">
+          <div class="action-icon">
             <mat-icon>apartment</mat-icon>
-            Recent Properties
-          </mat-card-title>
-          <button mat-button color="primary" (click)="navigateToProperties()">
-            View All
-          </button>
-        </mat-card-header>
-        <mat-card-content>
-          <div *ngIf="recentProperties.length === 0" class="empty-state">
-            <mat-icon>apartment</mat-icon>
-            <p>No properties found</p>
           </div>
-          
-          <div *ngFor="let property of recentProperties" class="property-item" 
-               (click)="navigateToPropertyDetails(property.id!)">
-            <div class="property-info">
-              <h4>{{ property.name }}</h4>
-              <p class="location">{{ property.location }}</p>
-              <div class="property-meta">
-                <span class="property-type">{{ getPropertyTypeDisplay(property.propertyType) }}</span>
-                <span class="units-count">{{ property.totalUnits }} units</span>
+          <span>Add Property</span>
+        </button>
+        <button class="quick-action-btn" (click)="navigateToSection('tenants')">
+          <div class="action-icon">
+            <mat-icon>person_add</mat-icon>
+          </div>
+          <span>Add Tenant</span>
+        </button>
+        <button class="quick-action-btn" (click)="navigateToSection('maintenance')">
+          <div class="action-icon">
+            <mat-icon>handyman</mat-icon>
+          </div>
+          <span>Create Work Order</span>
+        </button>
+        <button class="quick-action-btn" (click)="navigateToSection('financials')">
+          <div class="action-icon">
+            <mat-icon>payments</mat-icon>
+          </div>
+          <span>Collect Rent</span>
+        </button>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Properties</span>
+            <div class="stat-icon">
+              <mat-icon>apartment</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ dashboardData?.totalProperties || 0 }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Occupancy Rate</span>
+            <div class="stat-icon">
+              <mat-icon>bar_chart</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ dashboardData?.occupancyRate || 0 }}%</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Monthly Revenue</span>
+            <div class="stat-icon">
+              <mat-icon>attach_money</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">KES {{ (dashboardData?.monthlyRevenue || 0) | number }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Rent Collection</span>
+            <div class="stat-icon">
+              <mat-icon>trending_up</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ dashboardData?.rentCollectionRate || 0 }}%</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Maintenance</span>
+            <div class="stat-icon">
+              <mat-icon>handyman</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ dashboardData?.openMaintenance || 0 }}</div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="content-grid">
+        <div class="content-column">
+          <div class="content-card">
+            <div class="card-header">
+              <h3>Recent Activity</h3>
+              <p>Latest updates in your properties</p>
+            </div>
+            <div class="card-content">
+              <div class="no-data">
+                <mat-icon>history</mat-icon>
+                <p>No recent activity</p>
               </div>
             </div>
-            <div class="property-actions">
-              <button mat-icon-button (click)="navigateToPropertyUnits(property.id!); $event.stopPropagation()" 
-                      matTooltip="View Units">
-                <mat-icon>list</mat-icon>
-              </button>
-            </div>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
+    </div>
 
-      <mat-card class="recent-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>meeting_room</mat-icon>
-            Recent Units
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <div *ngIf="recentUnits.length === 0" class="empty-state">
-            <mat-icon>meeting_room</mat-icon>
-            <p>No units available</p>
-          </div>
-          
-          <div *ngFor="let unit of recentUnits" class="unit-item">
-            <div class="unit-status" [class]="getStatusClass(unit.status)">
-              <mat-icon>{{ getStatusIcon(unit.status) }}</mat-icon>
-            </div>
-            <div class="unit-info">
-              <h4>{{ unit.unitNumber }}</h4>
-              <p class="unit-type">{{ getUnitTypeDisplay(unit.unitType) }}</p>
-              <p class="unit-rent">{{ formatCurrency(unit.rentAmount) }}</p>
-            </div>
-            <div class="unit-tenant">
-              <p class="tenant-name">{{ getTenantDisplay(unit) }}</p>
-              <mat-chip [class]="getStatusClass(unit.status)" class="status-chip">
-                {{ unit.status || 'unknown' }}
-              </mat-chip>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
+    <div *ngIf="dashboardError" class="error-state">
+      <mat-icon>error_outline</mat-icon>
+      <h3>Unable to load dashboard data</h3>
+      <p>{{ dashboardError }}</p>
+      <button class="retry-btn" (click)="loadDashboardData()">
+        <mat-icon>refresh</mat-icon>
+        Try Again
+      </button>
     </div>
   </div>
 </div>
