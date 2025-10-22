@@ -1,13 +1,4 @@
 <div class="profile-edit-container">
-  <div class="profile-header">
-    <button class="back-button" (click)="goBack()">
-      <mat-icon>arrow_back</mat-icon>
-      Back to Profile
-    </button>
-    <h1>Edit Profile</h1>
-    <p>Update your personal information and profile picture</p>
-  </div>
-
   <div class="profile-content">
     <div class="avatar-section">
       <div class="avatar-container">
@@ -18,7 +9,6 @@
           </div>
         </div>
         
-        <!-- Avatar Menu Trigger -->
         <div class="avatar-menu-trigger" (click)="openAvatarDialog()">
           <mat-icon>edit</mat-icon>
         </div>
@@ -27,8 +17,6 @@
 
     <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
       <div class="form-section">
-        <h3>Personal Information</h3>
-        
         <div class="form-row">
           <mat-form-field appearance="outline" class="form-field">
             <mat-label>Full Name</mat-label>

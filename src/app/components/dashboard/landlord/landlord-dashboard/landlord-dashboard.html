@@ -9,49 +9,12 @@
     </div>
 
     <div class="nav-menu">
+      <!-- Core 8 Navigation Items -->
       <div class="nav-item" 
            [class.active]="isNavActive('dashboard')" 
            (click)="navigateToSection('dashboard')">
         <mat-icon class="nav-icon">dashboard</mat-icon>
         <span>Dashboard</span>
-      </div>
-
-      <div class="nav-section">
-        <div class="nav-item expandable" 
-             [class.active]="isParentActive('financials')"
-             (click)="toggleMenu('financials')">
-          <mat-icon class="nav-icon">payments</mat-icon>
-          <span>Financials</span>
-          <mat-icon class="chevron" [class.expanded]="expandedMenus.financials">
-            chevron_right
-          </mat-icon>
-        </div>
-        <div *ngIf="expandedMenus.financials" class="sub-menu">
-          <div class="sub-item" 
-               [class.active]="isSubItemActive('financials')" 
-               (click)="navigateToSection('financials')">
-            <mat-icon class="sub-icon">dashboard</mat-icon>
-            <span>Overview</span>
-          </div>
-          <div class="sub-item" 
-               [class.active]="isSubItemActive('invoices')" 
-               (click)="navigateToSection('invoices')">
-            <mat-icon class="sub-icon">receipt</mat-icon>
-            <span>Invoices</span>
-          </div>
-          <div class="sub-item" 
-               [class.active]="isSubItemActive('payments')" 
-               (click)="navigateToSection('payments')">
-            <mat-icon class="sub-icon">credit_card</mat-icon>
-            <span>Payments</span>
-          </div>
-          <div class="sub-item" 
-               [class.active]="isSubItemActive('expenses')" 
-               (click)="navigateToSection('expenses')">
-            <mat-icon class="sub-icon">trending_down</mat-icon>
-            <span>Expenses</span>
-          </div>
-        </div>
       </div>
 
       <div class="nav-item" 
@@ -69,6 +32,13 @@
       </div>
 
       <div class="nav-item" 
+           [class.active]="isNavActive('financials')" 
+           (click)="navigateToSection('financials')">
+        <mat-icon class="nav-icon">payments</mat-icon>
+        <span>Financials</span>
+      </div>
+
+      <div class="nav-item" 
            [class.active]="isNavActive('maintenance')" 
            (click)="navigateToSection('maintenance')">
         <mat-icon class="nav-icon">handyman</mat-icon>
@@ -79,61 +49,21 @@
            [class.active]="isNavActive('messages')" 
            (click)="navigateToSection('messages')">
         <mat-icon class="nav-icon">message</mat-icon>
-        <span>Communication</span>
-        <span class="notification-dot" *ngIf="unreadMessagesCount > 0">{{ unreadMessagesCount }}</span>
+        <span>Messages</span>
       </div>
 
       <div class="nav-item" 
-           [class.active]="isNavActive('documents')" 
-           (click)="navigateToSection('documents')">
-        <mat-icon class="nav-icon">description</mat-icon>
-        <span>Documents</span>
+           [class.active]="isNavActive('marketplace')" 
+           (click)="navigateToSection('marketplace')">
+        <mat-icon class="nav-icon">store</mat-icon>
+        <span>Marketplace</span>
       </div>
 
       <div class="nav-item" 
-           [class.active]="isNavActive('reports')" 
-           (click)="navigateToSection('reports')">
-        <mat-icon class="nav-icon">analytics</mat-icon>
-        <span>Reports</span>
-      </div>
-
-      <div class="nav-section">
-        <div class="nav-item expandable" 
-             [class.active]="isParentActive('settings')"
-             (click)="toggleMenu('settings')">
-          <mat-icon class="nav-icon">settings</mat-icon>
-          <span>Settings</span>
-          <mat-icon class="chevron" [class.expanded]="expandedMenus.settings">
-            chevron_right
-          </mat-icon>
-        </div>
-        <div *ngIf="expandedMenus.settings" class="sub-menu">
-          <div class="sub-item" 
-               [class.active]="isSubItemActive('account')" 
-               (click)="navigateToSection('account')">
-            <mat-icon class="sub-icon">person</mat-icon>
-            <span>Account Info</span>
-          </div>
-          <div class="sub-item" 
-               [class.active]="isSubItemActive('alerts')" 
-               (click)="navigateToSection('alerts')">
-            <mat-icon class="sub-icon">notifications</mat-icon>
-            <span>Alerts</span>
-          </div>
-          <div class="sub-item" 
-               [class.active]="isSubItemActive('security')" 
-               (click)="navigateToSection('security')">
-            <mat-icon class="sub-icon">lock</mat-icon>
-            <span>Security</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="sidebar-footer">
-      <div class="nav-item" (click)="navigateToSection('help')">
-        <mat-icon>help</mat-icon>
-        <span>Help & Support</span>
+           [class.active]="isNavActive('settings')" 
+           (click)="navigateToSection('settings')">
+        <mat-icon class="nav-icon">settings</mat-icon>
+        <span>Settings</span>
       </div>
     </div>
   </nav>
@@ -199,6 +129,60 @@
         </div>
 
         <div *ngIf="!isLoadingDashboard">
+          <!-- 5 Key Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Total Properties</span>
+                <div class="stat-icon">
+                  <mat-icon>apartment</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.totalProperties || 0 }}</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Occupancy Rate</span>
+                <div class="stat-icon">
+                  <mat-icon>bar_chart</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.occupancyRate || 0 }}%</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Monthly Revenue</span>
+                <div class="stat-icon">
+                  <mat-icon>attach_money</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">KES {{ (dashboardData?.monthlyRevenue || 0) | number }}</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Rent Collection Rate</span>
+                <div class="stat-icon">
+                  <mat-icon>trending_up</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.rentCollectionRate || 0 }}%</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Open Maintenance</span>
+                <div class="stat-icon">
+                  <mat-icon>handyman</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.openMaintenance || 0 }}</div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
           <div class="quick-actions-row">
             <button class="quick-action-btn" (click)="navigateToSection('properties')">
               <div class="action-icon">
@@ -226,130 +210,13 @@
             </button>
           </div>
 
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Total Properties</span>
-                <div class="stat-icon">
-                  <mat-icon>apartment</mat-icon>
-                </div>
-              </div>
-              <div class="stat-value">{{ dashboardData?.totalProperties || 0 }}</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Total Units</span>
-                <div class="stat-icon">
-                  <mat-icon>meeting_room</mat-icon>
-                </div>
-              </div>
-              <div class="stat-value">{{ dashboardData?.totalUnits || 0 }}</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Occupancy Rate</span>
-                <div class="stat-icon">
-                  <mat-icon>bar_chart</mat-icon>
-                </div>
-              </div>
-              <div class="stat-value">{{ dashboardData?.occupancyRate || 0 }}%</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Monthly Revenue</span>
-                <div class="stat-icon">
-                  <mat-icon>attach_money</mat-icon>
-                </div>
-              </div>
-              <div class="stat-value">KES {{ (dashboardData?.monthlyRevenue || 0) | number }}</div>
-            </div>
-          </div>
-
+          <!-- Recent Activity Only -->
           <div class="content-grid">
             <div class="content-column">
               <div class="content-card">
                 <div class="card-header">
-                  <h3>Rent Collection Status</h3>
-                  <p>Current month progress</p>
-                </div>
-                <div class="card-content">
-                  <div class="no-data" *ngIf="!dashboardData">
-                    <mat-icon>payments</mat-icon>
-                    <p>No rent collection data available</p>
-                  </div>
-                  <div *ngIf="dashboardData" class="progress-section">
-                    <div class="progress-bar">
-                      <div class="progress-fill" [style.width]="'0%'"></div>
-                    </div>
-                    <div class="progress-stats">
-                      <div class="progress-stat">
-                        <span class="stat-label">Collected</span>
-                        <span class="stat-amount">KES 0</span>
-                      </div>
-                      <div class="progress-stat">
-                        <span class="stat-label">Pending</span>
-                        <span class="stat-amount">KES 0</span>
-                      </div>
-                      <div class="progress-stat">
-                        <span class="stat-label">Overdue</span>
-                        <span class="stat-amount">KES 0</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="content-card">
-                <div class="card-header">
-                  <h3>Maintenance Requests</h3>
-                  <p>Open work orders</p>
-                </div>
-                <div class="card-content">
-                  <div class="no-data">
-                    <mat-icon>handyman</mat-icon>
-                    <p>No maintenance requests</p>
-                  </div>
-                  <button class="view-all-btn" (click)="navigateToSection('maintenance')">
-                    View All Work Orders
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="content-column">
-              <div class="content-card">
-                <div class="card-header">
-                  <h3>Quick Stats</h3>
-                  <p>Key performance indicators</p>
-                </div>
-                <div class="card-content">
-                  <div class="no-data">
-                    <mat-icon>analytics</mat-icon>
-                    <p>No statistics available</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="content-card">
-                <div class="card-header">
-                  <h3>Upcoming Deadlines</h3>
-                  <p>Important dates</p>
-                </div>
-                <div class="card-content">
-                  <div class="no-data">
-                    <mat-icon>event</mat-icon>
-                    <p>No upcoming deadlines</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="content-card">
-                <div class="card-header">
                   <h3>Recent Activity</h3>
-                  <p>Latest updates</p>
+                  <p>Latest updates in your properties</p>
                 </div>
                 <div class="card-content">
                   <div class="no-data">

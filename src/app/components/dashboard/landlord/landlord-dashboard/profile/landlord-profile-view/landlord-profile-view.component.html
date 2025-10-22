@@ -1,13 +1,4 @@
 <div class="profile-view-container">
-  <div class="profile-header">
-    <button class="back-button" (click)="goBack()">
-      <mat-icon>arrow_back</mat-icon>
-      Back to Dashboard
-    </button>
-    <h1>Profile Details</h1>
-    <p>View and manage your account information</p>
-  </div>
-
   <div class="profile-content">
     <div class="avatar-section">
       <div class="avatar-container">
@@ -21,7 +12,7 @@
             <mat-icon>account_circle</mat-icon>
           </div>
           <div *ngIf="isLoadingProfilePicture" class="image-loading-overlay">
-            <mat-spinner diameter="40"></mat-spinner>
+            <mat-spinner diameter="32"></mat-spinner>
           </div>
         </div>
       </div>
@@ -29,8 +20,6 @@
 
     <div class="profile-info-card">
       <div class="info-section">
-        <h3>Personal Information</h3>
-        
         <div class="info-grid">
           <div class="info-item">
             <div class="info-label">Full Name</div>
@@ -55,8 +44,6 @@
       </div>
 
       <div class="info-section">
-        <h3>Account Status</h3>
-        
         <div class="info-grid">
           <div class="info-item">
             <div class="info-label">Email Verification</div>

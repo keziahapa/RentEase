@@ -27,11 +27,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   isMobileMenuOpen = false;
   isProfileMenuOpen = false;
   currentSection = 'dashboard';
-  
-  expandedMenus = {
-    financials: false,
-    settings: false
-  };
 
   currentUser: any = null;
   userDisplayName: string = 'User';
@@ -114,12 +109,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     };
     
     window.addEventListener('profileImageUpdated', this.profileUpdateListener);
-    
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'profileImage' || event.key === 'profileUpdated') {
-        this.loadProfileImage();
-      }
-    });
   }
 
   private loadUserData(): void {
@@ -166,6 +155,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     let occupiedUnits = 0;
     let vacantUnits = 0;
     let monthlyRevenue = 0;
+    let openMaintenance = 0;
 
     properties.forEach(property => {
       if (property.units && Array.isArray(property.units)) {
@@ -177,21 +167,22 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
             monthlyRevenue += unit.rentAmount || 0;
           } else if (unit.status === 'vacant') {
             vacantUnits++;
+          } else if (unit.status === 'maintenance') {
+            openMaintenance++;
           }
         });
       }
     });
 
     const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+    const rentCollectionRate = monthlyRevenue > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
 
     this.dashboardData = {
       totalProperties,
-      totalUnits,
-      occupiedUnits,
-      vacantUnits,
-      monthlyRevenue,
       occupancyRate,
-      activeTenants: occupiedUnits
+      monthlyRevenue,
+      rentCollectionRate,
+      openMaintenance
     };
   }
 
@@ -209,15 +200,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.closeProfileMenu();
     this.closeMobileMenu();
     this.router.navigate(['/landlord-dashboard/notifications']);
-  }
-
-  refreshNotifications(): void {
-    this.loadNotifications();
-  }
-
-  markNotificationsAsRead(): void {
-    this.unreadNotificationsCount = 0;
-    this.unreadMessagesCount = 0;
   }
 
   private loadProfileImage(): void {
@@ -243,13 +225,13 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     const names = name.split(' ');
     const initials = names.map(name => name.charAt(0).toUpperCase()).join('').slice(0, 2);
     
-    const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+    const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
     const color = colors[initials.charCodeAt(0) % colors.length];
     
     return `data:image/svg+xml;base64,${btoa(`
       <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
         <rect width="100" height="100" fill="${color}" rx="50"/>
-        <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="36" font-weight="600">${initials}</text>
+        <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-size="40" font-weight="600">${initials}</text>
       </svg>
     `)}`;
   }
@@ -305,10 +287,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.isProfileMenuOpen = false;
   }
 
-  toggleMenu(menuName: 'financials' | 'settings'): void {
-    this.expandedMenus[menuName] = !this.expandedMenus[menuName];
-  }
-
   navigateToSection(section: string): void {
     this.currentSection = section;
     this.isMobileMenuOpen = false;
@@ -317,21 +295,13 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
     const routeMap: { [key: string]: string[] } = {
       'dashboard': ['/landlord-dashboard'],
-      'financials': ['/landlord-dashboard/financials'],
-      'invoices': ['/landlord-dashboard/financials/invoices'],
-      'payments': ['/landlord-dashboard/financials/payments'],
-      'expenses': ['/landlord-dashboard/financials/expenses'],
       'properties': ['/landlord-dashboard/property'],
       'tenants': ['/landlord-dashboard/tenants'],
+      'financials': ['/landlord-dashboard/financials'],
       'maintenance': ['/landlord-dashboard/maintenance'],
       'messages': ['/landlord-dashboard/messages'],
-      'documents': ['/landlord-dashboard/documents'],
-      'reports': ['/landlord-dashboard/reports'],
-      'account': ['/landlord-dashboard/settings/account'],
-      'alerts': ['/landlord-dashboard/settings/alerts'],
-      'security': ['/landlord-dashboard/settings/security'],
-      'notifications': ['/landlord-dashboard/notifications'],
-      'help': ['/landlord-dashboard/help']
+      'marketplace': ['/landlord-dashboard/marketplace'],
+      'settings': ['/landlord-dashboard/settings']
     };
 
     const route = routeMap[section];
@@ -340,93 +310,32 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     } else {
       this.router.navigate(['/landlord-dashboard']);
     }
-
-    if (section === 'financials' || section === 'invoices' || section === 'payments' || section === 'expenses') {
-      this.expandedMenus.financials = true;
-    }
-    if (section === 'account' || section === 'alerts' || section === 'security') {
-      this.expandedMenus.settings = true;
-    }
-  }
-
-  navigateToTenants(): void {
-    this.navigateToSection('tenants');
   }
 
   private updateCurrentSectionFromRoute(url: string): void {
     if (url === '/landlord-dashboard' || url === '/landlord-dashboard/') {
       this.currentSection = 'dashboard';
-    } else if (url.includes('/property/create')) {
-      this.currentSection = 'properties';
-    } else if (url.includes('/property/units')) {
-      this.currentSection = 'properties';
     } else if (url.includes('/property')) {
       this.currentSection = 'properties';
-    } else if (url.includes('/financials/invoices')) {
-      this.currentSection = 'invoices';
-      this.expandedMenus.financials = true;
-    } else if (url.includes('/financials/payments')) {
-      this.currentSection = 'payments';
-      this.expandedMenus.financials = true;
-    } else if (url.includes('/financials/expenses')) {
-      this.currentSection = 'expenses';
-      this.expandedMenus.financials = true;
-    } else if (url.includes('/financials')) {
-      this.currentSection = 'financials';
-      this.expandedMenus.financials = true;
-    } else if (url.includes('/settings/account')) {
-      this.currentSection = 'account';
-      this.expandedMenus.settings = true;
-    } else if (url.includes('/settings/alerts')) {
-      this.currentSection = 'alerts';
-      this.expandedMenus.settings = true;
-    } else if (url.includes('/settings/security')) {
-      this.currentSection = 'security';
-      this.expandedMenus.settings = true;
-    } else if (url.includes('/profile/view')) {
-      this.currentSection = 'profile';
-    } else if (url.includes('/profile/edit')) {
-      this.currentSection = 'profile';
-    } else if (url.includes('/notifications')) {
-      this.currentSection = 'notifications';
     } else if (url.includes('/tenants')) {
       this.currentSection = 'tenants';
+    } else if (url.includes('/financials')) {
+      this.currentSection = 'financials';
     } else if (url.includes('/maintenance')) {
       this.currentSection = 'maintenance';
     } else if (url.includes('/messages')) {
       this.currentSection = 'messages';
-    } else if (url.includes('/documents')) {
-      this.currentSection = 'documents';
-    } else if (url.includes('/reports')) {
-      this.currentSection = 'reports';
-    } else if (url.includes('/help')) {
-      this.currentSection = 'help';
+    } else if (url.includes('/marketplace')) {
+      this.currentSection = 'marketplace';
+    } else if (url.includes('/settings')) {
+      this.currentSection = 'settings';
     } else {
-      const urlParts = url.split('/');
-      this.currentSection = urlParts[urlParts.length - 1] || 'dashboard';
+      this.currentSection = 'dashboard';
     }
   }
 
   isNavActive(section: string): boolean {
     return this.currentSection === section;
-  }
-
-  isSubItemActive(subSection: string): boolean {
-    return this.currentSection === subSection;
-  }
-
-  isParentActive(menuName: 'financials' | 'settings'): boolean {
-    const financialSections = ['financials', 'invoices', 'payments', 'expenses'];
-    const settingsSections = ['account', 'alerts', 'security'];
-    
-    switch(menuName) {
-      case 'financials':
-        return financialSections.includes(this.currentSection);
-      case 'settings':
-        return settingsSections.includes(this.currentSection);
-      default:
-        return false;
-    }
   }
 
   logout(): void {

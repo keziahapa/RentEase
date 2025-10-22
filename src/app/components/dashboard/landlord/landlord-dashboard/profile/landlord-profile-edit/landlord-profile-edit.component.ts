@@ -48,7 +48,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   isSubmitting = false;
   isUploadingPhoto = false;
   isDeletingPhoto = false;
-  isLoadingUserData = false;
   showAvatarDialog = false;
   
   originalPhoneNumber: string = '';
@@ -62,11 +61,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     this.loadUserData();
   }
 
-  ngOnDestroy(): void {
-    // Clean up any event listeners if needed
-  }
+  ngOnDestroy(): void {}
 
-  // Avatar Dialog Methods
   openAvatarDialog(): void {
     this.showAvatarDialog = true;
   }
@@ -91,66 +87,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     this.user = currentUser;
     this.populateForm();
     this.loadProfilePicture();
-
-    this.loadUserDataFromApi();
-  }
-
-  private loadUserDataFromApi(): void {
-    this.isLoadingUserData = true;
-
-    this.propertyService.getCurrentUserProfile().subscribe({
-      next: (response: any) => {
-        this.isLoadingUserData = false;
-        
-        if (response.success && response.user) {
-          this.user = response.user;
-          
-          const apiPhoneNumber = response.user.phoneNumber || '';
-          if (apiPhoneNumber && apiPhoneNumber !== this.originalPhoneNumber) {
-            this.originalPhoneNumber = apiPhoneNumber;
-            this.currentPhoneNumber = apiPhoneNumber;
-          }
-          
-          this.populateForm();
-          this.updateLocalUserData(response.user);
-          
-        } else {
-          this.snackBar.open('Failed to load latest profile data', 'Close', { duration: 3000 });
-        }
-      },
-      error: (error: any) => {
-        this.isLoadingUserData = false;
-        
-        if (error.status === 401 || error.status === 403) {
-          this.snackBar.open('Authentication failed', 'Login', { duration: 5000 }).onAction().subscribe(() => {
-            this.authService.logout();
-          });
-          this.router.navigate(['/login']);
-        } else {
-          this.snackBar.open('Using local profile data', 'Close', { duration: 3000 });
-        }
-      }
-    });
-  }
-
-  private updateLocalUserData(userData: any): void {
-    try {
-      const currentUser = this.authService.getCurrentUser();
-      if (currentUser) {
-        const localStorageUser = localStorage.getItem('userData');
-        const sessionStorageUser = sessionStorage.getItem('userData');
-        
-        const isPermanent = !!localStorageUser;
-        
-        if (isPermanent) {
-          localStorage.setItem('userData', JSON.stringify(userData));
-        } else {
-          sessionStorage.setItem('userData', JSON.stringify(userData));
-        }
-      }
-    } catch (error) {
-      console.error('Error updating local user data:', error);
-    }
   }
 
   private loadProfilePicture(): void {
@@ -161,15 +97,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
         if (response.success && imageUrl) {
           this.profileImage = imageUrl;
           localStorage.setItem('profileImage', imageUrl);
-          
-          setTimeout(() => {
-            const timestamp = new Date().getTime();
-            const cacheBustedUrl = imageUrl.includes('?') 
-              ? `${imageUrl}&t=${timestamp}`
-              : `${imageUrl}?t=${timestamp}`;
-            
-            this.profileImage = cacheBustedUrl;
-          }, 100);
         } else {
           this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
         }
@@ -189,13 +116,13 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     const names = name.split(' ');
     const initials = names.map(n => n.charAt(0).toUpperCase()).join('').slice(0, 2);
     
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+    const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
     const color = colors[initials.charCodeAt(0) % colors.length];
     
     return `data:image/svg+xml;base64,${btoa(`
-      <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-        <rect width="200" height="200" fill="${color}" rx="100"/>
-        <text x="100" y="125" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="80" font-weight="bold">${initials}</text>
+      <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100" height="100" fill="${color}" rx="50"/>
+        <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-size="40" font-weight="600">${initials}</text>
       </svg>
     `)}`;
   }
@@ -253,111 +180,32 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
     this.isUploadingPhoto = true;
 
-    this.compressImage(file, 800, 0.8).then(compressedFile => {
-      const uploadMethod = this.isDefaultAvatar() 
-        ? this.propertyService.uploadProfilePicture(compressedFile)
-        : this.propertyService.updateProfilePicture(compressedFile);
+    const uploadMethod = this.isDefaultAvatar() 
+      ? this.propertyService.uploadProfilePicture(file)
+      : this.propertyService.updateProfilePicture(file);
 
-      uploadMethod.subscribe({
-        next: (response: any) => {
-          this.isUploadingPhoto = false;
-          
-          const imageUrl = response.data || response.pictureUrl;
-          
-          if (response.success && imageUrl) {
-            this.snackBar.open('Profile photo updated successfully', 'Close', { duration: 2000 });
-            
-            this.profileImage = imageUrl;
-            localStorage.setItem('profileImage', imageUrl);
-            
-            setTimeout(() => {
-              const timestamp = new Date().getTime();
-              const cacheBustedUrl = imageUrl.includes('?') 
-                ? `${imageUrl}&t=${timestamp}`
-                : `${imageUrl}?t=${timestamp}`;
-              
-              this.profileImage = cacheBustedUrl;
-            }, 100);
-            
-            window.dispatchEvent(new Event('profileImageUpdated'));
-            
-          } else {
-            this.snackBar.open(response.message || 'Failed to upload photo', 'Close', { duration: 3000 });
-          }
-        },
-        error: (error: any) => {
-          this.isUploadingPhoto = false;
-          
-          let errorMessage = 'Failed to upload profile photo';
-          if (error.status === 500) {
-            errorMessage = 'Server error - profile picture feature temporarily unavailable';
-          } else if (error.status === 401) {
-            errorMessage = 'Session expired';
-            setTimeout(() => this.authService.logout(), 2000);
-          } else if (error.status === 413) {
-            errorMessage = 'Image file is too large';
-          } else if (error.status === 415) {
-            errorMessage = 'Unsupported image format';
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
-          
-          this.snackBar.open(errorMessage, 'Close', { duration: 4000 });
-        }
-      });
-    }).catch(error => {
-      this.isUploadingPhoto = false;
-      this.snackBar.open('Error processing image', 'Close', { duration: 3000 });
-    });
-  }
-
-  private compressImage(file: File, maxWidth = 800, quality = 0.8): Promise<File> {
-    return new Promise((resolve, reject) => {
-      if (file.size < 500 * 1024) {
-        resolve(file);
-        return;
-      }
-
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height && width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        } else if (height > width && height > maxWidth) {
-          width = Math.round((width * maxWidth) / height);
-          height = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        ctx?.drawImage(img, 0, 0, width, height);
+    uploadMethod.subscribe({
+      next: (response: any) => {
+        this.isUploadingPhoto = false;
         
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now()
-              });
-              resolve(compressedFile);
-            } else {
-              reject(new Error('Image compression failed'));
-            }
-          },
-          'image/jpeg',
-          quality
-        );
-      };
-
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
+        const imageUrl = response.data || response.pictureUrl;
+        
+        if (response.success && imageUrl) {
+          this.snackBar.open('Profile photo updated successfully', 'Close', { duration: 2000 });
+          
+          this.profileImage = imageUrl;
+          localStorage.setItem('profileImage', imageUrl);
+          
+          window.dispatchEvent(new Event('profileImageUpdated'));
+          
+        } else {
+          this.snackBar.open(response.message || 'Failed to upload photo', 'Close', { duration: 3000 });
+        }
+      },
+      error: (error: any) => {
+        this.isUploadingPhoto = false;
+        this.snackBar.open('Failed to upload profile photo', 'Close', { duration: 3000 });
+      }
     });
   }
 
@@ -448,9 +296,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           this.snackBar.open('Profile updated successfully', 'Close', { duration: 2000 });
           
           setTimeout(() => {
-            this.router.navigate(['/landlord-dashboard/profile/view'], {
-              state: { refreshProfile: true }
-            });
+            this.router.navigate(['/landlord-dashboard/profile/view']);
           }, 500);
         } else {
           this.snackBar.open(response.message || 'Failed to update profile', 'Close', { duration: 3000 });
@@ -470,10 +316,10 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   cancel(): void {
     if (this.profileForm.dirty) {
       if (confirm('You have unsaved changes. Are you sure you want to leave?')) {
-        this.router.navigate(['/landlord-dashboard/home']);
+        this.router.navigate(['/landlord-dashboard/profile/view']);
       }
     } else {
-      this.router.navigate(['/landlord-dashboard/home']);
+      this.router.navigate(['/landlord-dashboard/profile/view']);
     }
   }
 
