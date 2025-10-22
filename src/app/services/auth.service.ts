@@ -24,7 +24,6 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
-  // Add a flag to prevent multiple initializations
   private initialized = false;
 
   constructor() {
@@ -73,7 +72,19 @@ export class AuthService {
     }).pipe(
       tap(res => {
         console.log('LOGIN RESPONSE:', res);
-        this.handleAuthSuccess(res, credentials.rememberMe);
+        // Extract phone number from response or use pending phone number
+        const phoneNumber = res.user?.phoneNumber || 
+                           res.phoneNumber || 
+                           this.getPendingPhoneNumber() || 
+                           '';
+        
+        const enhancedResponse = {
+          ...res,
+          phoneNumber: phoneNumber,
+          user: res.user ? { ...res.user, phoneNumber: phoneNumber } : undefined
+        };
+        
+        this.handleAuthSuccess(enhancedResponse, credentials.rememberMe);
       }),
       catchError(this.handleError)
     );
@@ -93,12 +104,14 @@ export class AuthService {
       tap(res => {
         console.log('REGISTER RESPONSE:', res);
         if (res.success && res.user) {
+          // Store phone number in pending storage
           const tempUser = {
             ...res.user,
-            phoneNumber: userData.phoneNumber,
+            phoneNumber: userData.phoneNumber, // Ensure phone number is stored
             verified: false,
             emailVerified: false
           };
+          
           if (this.isBrowser) {
             sessionStorage.setItem('pendingUser', JSON.stringify(tempUser));
             sessionStorage.setItem('pendingEmail', normalizedData.email);
@@ -302,7 +315,8 @@ export class AuthService {
           const pendingPhoneNumber = this.getPendingPhoneNumber();
           console.log('Pending phone number found:', pendingPhoneNumber);
           
-          this.handleAuthSuccess({
+          // Create enhanced response with phone number
+          const enhancedResponse = {
             token: res.token,
             tokenType: 'Bearer',
             userId: res.user.id as number,
@@ -315,14 +329,17 @@ export class AuthService {
               ...res.user,
               phoneNumber: pendingPhoneNumber || res.user.phoneNumber || ''
             }
-          }, false);
+          };
+          
+          console.log('Enhanced response with phone:', enhancedResponse.phoneNumber);
+          this.handleAuthSuccess(enhancedResponse, false);
         }
       }),
       catchError(this.handleOtpError)
     );
   }
 
-  // IMPROVED: Get phone number from storage
+  // Enhanced phone number handling
   getPhoneNumber(): string {
     if (!this.isBrowser) return '';
     
@@ -330,6 +347,7 @@ export class AuthService {
       // First try to get from current user subject (most up-to-date)
       const currentUser = this.currentUserSubject.value;
       if (currentUser?.phoneNumber) {
+        console.log('Got phone from BehaviorSubject:', currentUser.phoneNumber);
         return currentUser.phoneNumber;
       }
       
@@ -338,6 +356,7 @@ export class AuthService {
       if (userData) {
         const parsedUser = JSON.parse(userData);
         if (parsedUser?.phoneNumber) {
+          console.log('Got phone from localStorage:', parsedUser.phoneNumber);
           return parsedUser.phoneNumber;
         }
       }
@@ -347,14 +366,46 @@ export class AuthService {
       if (sessionUser) {
         const parsedSessionUser = JSON.parse(sessionUser);
         if (parsedSessionUser?.phoneNumber) {
+          console.log('Got phone from sessionStorage:', parsedSessionUser.phoneNumber);
           return parsedSessionUser.phoneNumber;
         }
       }
       
+      console.log('No phone number found in any storage');
       return '';
     } catch (error) {
       console.error('Error getting phone number from storage:', error);
       return '';
+    }
+  }
+
+  // Force update phone number in storage
+  updatePhoneNumberInStorage(phoneNumber: string): void {
+    if (!this.isBrowser) return;
+    
+    try {
+      const currentUser = this.getCurrentUser();
+      if (currentUser) {
+        const updatedUser = { ...currentUser, phoneNumber };
+        
+        // Update both storage locations
+        const localStorageUser = localStorage.getItem('userData');
+        if (localStorageUser) {
+          localStorage.setItem('userData', JSON.stringify(updatedUser));
+        }
+        
+        const sessionStorageUser = sessionStorage.getItem('userData');
+        if (sessionStorageUser) {
+          sessionStorage.setItem('userData', JSON.stringify(updatedUser));
+        }
+        
+        // Update BehaviorSubject
+        this.currentUserSubject.next(updatedUser);
+        
+        console.log('Phone number forcefully updated in storage:', phoneNumber);
+      }
+    } catch (error) {
+      console.error('Error updating phone number in storage:', error);
     }
   }
 
@@ -427,7 +478,6 @@ export class AuthService {
     return cleanToken;
   }
 
-  // IMPROVED: Get current user with better logging
   getCurrentUser(): any {
     const userData = this.getFromStorage('userData');
     if (!userData) {
@@ -503,7 +553,7 @@ export class AuthService {
     sessionStorage.removeItem('pendingPhoneNumber');
   }
 
-  // IMPROVED: Better phone number handling in auth success
+  // Enhanced phone number handling in auth success
   private handleAuthSuccess(response: any, rememberMe: boolean = false): void {
     if (!this.isBrowser) return;
     
@@ -512,18 +562,18 @@ export class AuthService {
 
     console.log('HANDLE AUTH SUCCESS WITH FULL RESPONSE:', response);
 
-    // Extract phone number from various possible locations
+    // Extract phone number from various possible locations with priority
     let phoneNumber = '';
     
-    if (response.phoneNumber) {
+    if (response.phoneNumber && response.phoneNumber.trim() !== '') {
       phoneNumber = response.phoneNumber;
-    } else if (response.user?.phoneNumber) {
+    } else if (response.user?.phoneNumber && response.user.phoneNumber.trim() !== '') {
       phoneNumber = response.user.phoneNumber;
     } else {
       phoneNumber = this.getPendingPhoneNumber() || '';
     }
 
-    console.log('Extracted phone number for storage:', phoneNumber);
+    console.log('Final extracted phone number for storage:', phoneNumber);
 
     if ('userId' in response) {
       token = response.token;
@@ -539,15 +589,24 @@ export class AuthService {
     } else if ('user' in response && response.user) {
       user = {
         ...response.user,
-        phoneNumber: phoneNumber
+        phoneNumber: phoneNumber // Ensure phone number is set
       };
       token = ('token' in response && response.token) ? response.token : null;
     } else if (response.user) {
       user = {
         ...response.user,
-        phoneNumber: phoneNumber
+        phoneNumber: phoneNumber // Ensure phone number is set
       };
       token = response.token || null;
+    }
+
+    // If we still don't have a phone number, try to get it from pending storage
+    if ((!user.phoneNumber || user.phoneNumber.trim() === '') && this.isBrowser) {
+      const pendingPhone = this.getPendingPhoneNumber();
+      if (pendingPhone) {
+        user.phoneNumber = pendingPhone;
+        console.log('Using pending phone number:', pendingPhone);
+      }
     }
 
     if (token) {
@@ -558,18 +617,14 @@ export class AuthService {
       
       if (rememberMe) {
         localStorage.setItem('authToken', cleanToken);
+        localStorage.setItem('userData', JSON.stringify(user));
       } else {
         sessionStorage.setItem('authToken', cleanToken);
+        sessionStorage.setItem('userData', JSON.stringify(user));
       }
     }
 
     if (user) {
-      if (rememberMe) {
-        localStorage.setItem('userData', JSON.stringify(user));
-      } else {
-        sessionStorage.setItem('userData', JSON.stringify(user));
-      }
-      
       this.currentUserSubject.next(user);
       this.isAuthenticatedSubject.next(true);
       
@@ -605,7 +660,6 @@ export class AuthService {
     }
   }
 
-  // IMPROVED: Better initialization with less logging
   private initializeAuthState(): void {
     console.log('Initializing auth state...');
     
