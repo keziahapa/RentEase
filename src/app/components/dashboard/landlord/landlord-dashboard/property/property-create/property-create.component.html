@@ -1,13 +1,10 @@
 <div class="property-create-container">
   <!-- Create Property Dialog -->
-  <div class="create-dialog-overlay" *ngIf="showCreateDialog" (click)="onCancel()">
+  <div class="create-dialog-overlay">
     <div class="create-dialog-content" (click)="$event.stopPropagation()">
       <!-- Dialog Header -->
       <div class="dialog-header">
         <h2>Create New Property</h2>
-        <button mat-icon-button (click)="onCancel()" class="close-btn">
-          <mat-icon>close</mat-icon>
-        </button>
       </div>
 
       <!-- Dialog Content -->

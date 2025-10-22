@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { PropertyService } from '../../../../../../services/property.service';
 
@@ -27,7 +28,6 @@ import { PropertyService } from '../../../../../../services/property.service';
   styleUrls: ['./property-create.component.scss']
 })
 export class PropertyCreateComponent implements OnInit {
-  showCreateDialog = true;
   propertyForm: FormGroup;
   isSubmitting = false;
 
@@ -44,7 +44,9 @@ export class PropertyCreateComponent implements OnInit {
     private fb: FormBuilder,
     private snackBar: MatSnackBar,
     private router: Router,
-    private propertyService: PropertyService
+    private propertyService: PropertyService,
+    public dialogRef: MatDialogRef<PropertyCreateComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: any
   ) {
     this.propertyForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
@@ -56,7 +58,7 @@ export class PropertyCreateComponent implements OnInit {
   }
 
   ngOnInit() {
-    
+    // Component initialization
   }
 
   onCreateProperty(): void {
@@ -78,18 +80,15 @@ export class PropertyCreateComponent implements OnInit {
       units: [] 
     };
 
-    
     this.propertyService.createProperty(propertyData).subscribe({
       next: (response: any) => {
         this.isSubmitting = false;
         
         if (response.success || response.property || response.id) {
-          const propertyId = response.property?.id || response.id || response.data?.id;
-          
           this.snackBar.open('Property created successfully!', 'Close', { duration: 3000 });
           
-          // Navigate to the actual property details page
-          this.router.navigate(['/landlord-dashboard/property', propertyId]);
+          // FIX: Close dialog and return success
+          this.dialogRef.close('success');
         } else {
           this.snackBar.open(response.message || 'Failed to create property', 'Close', { duration: 3000 });
         }
@@ -102,13 +101,13 @@ export class PropertyCreateComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.router.navigate(['/landlord-dashboard/property']);
+    // FIX: Simply close the dialog without navigation
+    this.dialogRef.close();
   }
 
   private handlePropertyCreationError(error: any): void {
     if (error.status === 401) {
       this.snackBar.open('Not authorized. Please log in again.', 'Close', { duration: 3000 });
-      // Redirect to login or handle authentication
     } else if (error.status === 400) {
       this.snackBar.open(error.error?.message || 'Invalid property data. Please check your inputs.', 'Close', { duration: 4000 });
     } else if (error.status === 409) {

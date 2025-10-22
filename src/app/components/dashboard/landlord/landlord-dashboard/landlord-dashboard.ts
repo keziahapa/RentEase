@@ -10,7 +10,6 @@ import { AuthService } from '../../../../services/auth.service';
 import { PropertyService } from '../../../../services/property.service';
 import { LandlordDashboardHomeComponent } from './home/landlord-dashboard-home.component';
 
-
 @Component({
   selector: 'app-landlord-dashboard',
   standalone: true,
@@ -242,14 +241,14 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/landlord-dashboard/notifications']);
   }
 
-  // FIXED: Updated to use correct landlord profile route
+  // FIXED: Avatar navigation - removed event.stopPropagation()
   viewProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
     this.router.navigate(['/landlord-dashboard/profile/view']);
   }
 
-  // FIXED: Updated to use correct landlord profile edit route
+  // FIXED: Profile edit navigation
   editProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
@@ -354,8 +353,11 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  // FIXED: Updated to include profile routes
   private updateCurrentSectionFromRoute(url: string): void {
-    if (url === '/landlord-dashboard' || url === '/landlord-dashboard/') {
+    if (url.includes('/profile/view') || url.includes('/profile/edit')) {
+      this.currentSection = 'profile';
+    } else if (url === '/landlord-dashboard' || url === '/landlord-dashboard/') {
       this.currentSection = 'dashboard';
     } else if (url.includes('/property')) {
       this.currentSection = 'properties';
@@ -425,6 +427,5 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
   onLogoError(event: any): void {
     console.error('Logo failed to load:', event);
-    
   }
 }

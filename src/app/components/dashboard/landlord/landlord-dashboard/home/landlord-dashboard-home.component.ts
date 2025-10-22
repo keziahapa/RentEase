@@ -78,6 +78,14 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
       description: 'Communicate with tenants',
       route: ['/landlord-dashboard/messages'],
       color: '#06b6d4'
+    },
+    // FIXED: Added profile edit quick action
+    {
+      icon: 'edit',
+      label: 'Edit Profile',
+      description: 'Update your personal information',
+      route: ['/landlord-dashboard/profile/edit'],
+      color: '#8b5cf6'
     }
   ];
 
@@ -240,6 +248,15 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
 
   onQuickAction(action: QuickAction) {
     this.router.navigate(action.route);
+  }
+
+  // FIXED: Added direct profile navigation methods
+  navigateToProfileView() {
+    this.router.navigate(['/landlord-dashboard/profile/view']);
+  }
+
+  navigateToProfileEdit() {
+    this.router.navigate(['/landlord-dashboard/profile/edit']);
   }
 
   refreshDashboard(): void {

@@ -93,7 +93,8 @@
         </div>
 
         <div class="profile-section">
-          <div class="user-avatar-wrapper" (click)="viewProfile(); $event.stopPropagation()">
+          <!-- FIXED: Removed $event.stopPropagation() from avatar click -->
+          <div class="user-avatar-wrapper" (click)="viewProfile()">
             <div class="user-avatar">
               <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image">
               <div *ngIf="!profileImage" class="avatar-placeholder">
@@ -123,12 +124,7 @@
       </div>
     </div>
 
-    <!-- Dashboard Home Content -->
-    <div *ngIf="currentSection === 'dashboard'" class="dashboard-home">
-      <app-landlord-dashboard-home></app-landlord-dashboard-home>
-    </div>
-
-    <!-- Router Outlet for other sections -->
-    <router-outlet *ngIf="currentSection !== 'dashboard'"></router-outlet>
+    <!-- FIXED: Use single router outlet for all routes -->
+    <router-outlet></router-outlet>
   </main>
 </div>
