@@ -44,6 +44,10 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   private profileUpdateListener: any;
   isLoggingOut: boolean = false;
 
+  // Greeting properties
+  greeting: string = '';
+  currentTime: string = '';
+
   constructor(
     private router: Router,
     private authService: AuthService,
@@ -55,7 +59,13 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.loadUserData();
     this.loadDashboardData();
     this.loadNotifications();
+    this.updateGreeting();
     
+    // Update greeting every minute
+    setInterval(() => {
+      this.updateGreeting();
+    }, 60000);
+
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: NavigationEnd) => {
@@ -73,6 +83,29 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       window.removeEventListener('profileImageUpdated', this.profileUpdateListener);
     }
     document.removeEventListener('click', this.handleClickOutside.bind(this));
+  }
+
+  private updateGreeting(): void {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    
+    // Set current time
+    this.currentTime = `${hours}:${minutes}`;
+    
+    // Set greeting based on time of day
+    if (hours < 12) {
+      this.greeting = 'Good morning';
+    } else if (hours < 18) {
+      this.greeting = 'Good afternoon';
+    } else {
+      this.greeting = 'Good evening';
+    }
+  }
+
+  getGreetingMessage(): string {
+    const firstName = this.userDisplayName.split(' ')[0];
+    return `${this.greeting}, ${firstName}! 👋`;
   }
 
   @HostListener('document:click', ['$event'])
@@ -175,14 +208,16 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     });
 
     const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
-    const rentCollectionRate = monthlyRevenue > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
 
     this.dashboardData = {
       totalProperties,
-      occupancyRate,
+      totalUnits,
+      occupiedUnits,
+      vacantUnits,
       monthlyRevenue,
-      rentCollectionRate,
-      openMaintenance
+      occupancyRate,
+      openMaintenance,
+      activeTenants: occupiedUnits
     };
   }
 

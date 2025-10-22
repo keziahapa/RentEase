@@ -58,8 +58,8 @@ export class ProfileViewComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.authService.currentUser$.subscribe(user => {
         if (user) {
-          console.log('🔄 User updated from AuthService:', user);
-          console.log('📞 Phone number from AuthService subscription:', user.phoneNumber);
+          console.log(' User updated from AuthService:', user);
+          console.log(' Phone number from AuthService subscription:', user.phoneNumber);
           this.user = user;
           this.loadProfilePictureFromApi();
         }
@@ -70,14 +70,14 @@ export class ProfileViewComponent implements OnInit, OnDestroy {
       this.router.events
         .pipe(filter(event => event instanceof NavigationEnd))
         .subscribe(() => {
-          console.log('🔄 Navigation detected, reloading user data');
+          console.log('Navigation detected, reloading user data');
           this.loadUserData();
         })
     );
 
     this.subscriptions.add(
       window.addEventListener('profileImageUpdated', () => {
-        console.log('🔄 Profile image update event received');
+        console.log(' Profile image update event received');
         this.loadProfilePictureFromApi();
       })
     );
@@ -85,8 +85,8 @@ export class ProfileViewComponent implements OnInit, OnDestroy {
 
   private loadUserData(): void {
     this.user = this.authService.getCurrentUser();
-    console.log('🔄 Loaded user data from AuthService getCurrentUser():', this.user);
-    console.log('📞 Phone number from getCurrentUser():', this.user?.phoneNumber);
+    console.log(' Loaded user data from AuthService getCurrentUser():', this.user);
+    console.log(' Phone number from getCurrentUser():', this.user?.phoneNumber);
     
     if (this.user) {
       this.loadCachedProfileImage();
@@ -113,8 +113,8 @@ export class ProfileViewComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         this.isLoadingUserData = false;
         if (response.success && response.user) {
-          console.log('🔄 User data loaded from API:', response.user);
-          console.log('📞 Phone number from API:', response.user.phoneNumber);
+          console.log('User data loaded from API:', response.user);
+          console.log(' Phone number from API:', response.user.phoneNumber);
           
           this.user = response.user;
           
@@ -124,13 +124,13 @@ export class ProfileViewComponent implements OnInit, OnDestroy {
           
           this.logPhoneNumberDetails();
         } else {
-          console.warn('⚠️ No user data received from API:', response.message);
+          console.warn(' No user data received from API:', response.message);
           this.snackBar.open('Failed to load profile data', 'Close', { duration: 3000 });
         }
       },
       error: (error: any) => {
         this.isLoadingUserData = false;
-        console.error('❌ Error loading user data from API:', error);
+        console.error(' Error loading user data from API:', error);
         this.snackBar.open('Error loading profile data', 'Close', { duration: 3000 });
         
         if (!this.user) {
@@ -155,10 +155,10 @@ export class ProfileViewComponent implements OnInit, OnDestroy {
           sessionStorage.setItem('userData', JSON.stringify(userData));
         }
         
-        console.log('💾 User data updated in', isPermanent ? 'localStorage' : 'sessionStorage');
+        console.log(' User data updated in', isPermanent ? 'localStorage' : 'sessionStorage');
       }
     } catch (error) {
-      console.error('❌ Error updating local user data:', error);
+      console.error('Error updating local user data:', error);
     }
   }
 
@@ -176,15 +176,15 @@ export class ProfileViewComponent implements OnInit, OnDestroy {
           
           this.profileImage = cacheBustedUrl;
           localStorage.setItem('profileImage', cacheBustedUrl);
-          console.log('🖼️ Profile picture loaded from API:', cacheBustedUrl);
+          console.log('Profile picture loaded from API:', cacheBustedUrl);
         } else {
           this.loadCachedProfileImage();
-          console.log('🖼️ No profile picture from API, using fallback');
+          console.log('No profile picture from API, using fallback');
         }
       },
       error: (error: any) => {
         this.isLoadingProfilePicture = false;
-        console.error('❌ Error loading profile picture from API:', error);
+        console.error('Error loading profile picture from API:', error);
         this.loadCachedProfileImage();
       }
     });
@@ -194,13 +194,13 @@ export class ProfileViewComponent implements OnInit, OnDestroy {
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
       this.profileImage = savedImage;
-      console.log('🖼️ Profile picture loaded from cache');
+      console.log('Profile picture loaded from cache');
     } else if (this.user?.avatar) {
       this.profileImage = this.user.avatar;
-      console.log('🖼️ Profile picture loaded from user avatar');
+      console.log('Profile picture loaded from user avatar');
     } else {
       this.profileImage = this.generateInitialAvatar(this.getUserFullName());
-      console.log('🖼️ Profile picture generated as initial avatar');
+      console.log(' Profile picture generated as initial avatar');
     }
   }
 
@@ -246,9 +246,9 @@ export class ProfileViewComponent implements OnInit, OnDestroy {
   }
 
   getUserPhone(): string {
-    console.log('📞 Getting phone number for display from user object:', this.user);
+    console.log(' Getting phone number for display from user object:', this.user);
     
-    // Check multiple possible phone number properties
+  
     const phoneNumber = this.user?.phoneNumber || 
                        this.user?.phone || 
                        this.user?.phone_number ||
@@ -325,7 +325,7 @@ export class ProfileViewComponent implements OnInit, OnDestroy {
   }
 
   refreshProfile(): void {
-    console.log('🔄 Manually refreshing profile data');
+    console.log(' Manually refreshing profile data');
     this.loadUserDataFromApi();
   }
 

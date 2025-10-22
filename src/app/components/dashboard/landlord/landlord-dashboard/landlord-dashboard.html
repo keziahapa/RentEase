@@ -9,7 +9,6 @@
     </div>
 
     <div class="nav-menu">
-      <!-- Core 8 Navigation Items -->
       <div class="nav-item" 
            [class.active]="isNavActive('dashboard')" 
            (click)="navigateToSection('dashboard')">
@@ -74,6 +73,10 @@
         <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
           <mat-icon>menu</mat-icon>
         </button>
+        <div class="greeting-section">
+          <h1>{{ getGreetingMessage() }}</h1>
+          <p>Here's what's happening with your properties today</p>
+        </div>
       </div>
 
       <div class="header-right">
@@ -129,59 +132,6 @@
         </div>
 
         <div *ngIf="!isLoadingDashboard">
-          <!-- 5 Key Stats Grid -->
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Total Properties</span>
-                <div class="stat-icon">
-                  <mat-icon>apartment</mat-icon>
-                </div>
-              </div>
-              <div class="stat-value">{{ dashboardData?.totalProperties || 0 }}</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Occupancy Rate</span>
-                <div class="stat-icon">
-                  <mat-icon>bar_chart</mat-icon>
-                </div>
-              </div>
-              <div class="stat-value">{{ dashboardData?.occupancyRate || 0 }}%</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Monthly Revenue</span>
-                <div class="stat-icon">
-                  <mat-icon>attach_money</mat-icon>
-                </div>
-              </div>
-              <div class="stat-value">KES {{ (dashboardData?.monthlyRevenue || 0) | number }}</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Rent Collection Rate</span>
-                <div class="stat-icon">
-                  <mat-icon>trending_up</mat-icon>
-                </div>
-              </div>
-              <div class="stat-value">{{ dashboardData?.rentCollectionRate || 0 }}%</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-header">
-                <span class="stat-title">Open Maintenance</span>
-                <div class="stat-icon">
-                  <mat-icon>handyman</mat-icon>
-                </div>
-              </div>
-              <div class="stat-value">{{ dashboardData?.openMaintenance || 0 }}</div>
-            </div>
-          </div>
-
           <!-- Quick Actions -->
           <div class="quick-actions-row">
             <button class="quick-action-btn" (click)="navigateToSection('properties')">
@@ -210,7 +160,90 @@
             </button>
           </div>
 
-          <!-- Recent Activity Only -->
+          <!-- Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Total Properties</span>
+                <div class="stat-icon">
+                  <mat-icon>apartment</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.totalProperties || 0 }}</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Total Units</span>
+                <div class="stat-icon">
+                  <mat-icon>meeting_room</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.totalUnits || 0 }}</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Occupancy Rate</span>
+                <div class="stat-icon">
+                  <mat-icon>bar_chart</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.occupancyRate || 0 }}%</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Monthly Revenue</span>
+                <div class="stat-icon">
+                  <mat-icon>attach_money</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">KES {{ (dashboardData?.monthlyRevenue || 0) | number }}</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Occupied Units</span>
+                <div class="stat-icon">
+                  <mat-icon>check_circle</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.occupiedUnits || 0 }}</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Vacant Units</span>
+                <div class="stat-icon">
+                  <mat-icon>meeting_room</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.vacantUnits || 0 }}</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Total Tenants</span>
+                <div class="stat-icon">
+                  <mat-icon>groups</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.activeTenants || 0 }}</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-header">
+                <span class="stat-title">Maintenance Units</span>
+                <div class="stat-icon">
+                  <mat-icon>handyman</mat-icon>
+                </div>
+              </div>
+              <div class="stat-value">{{ dashboardData?.openMaintenance || 0 }}</div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
           <div class="content-grid">
             <div class="content-column">
               <div class="content-card">

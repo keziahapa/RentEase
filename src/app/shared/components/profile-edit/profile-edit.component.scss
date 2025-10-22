@@ -15,13 +15,6 @@
   flex-shrink: 0;
 
   .header-left {
-    h1 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #1e293b;
-      margin: 0 0 0.25rem 0;
-    }
-
     p {
       color: #64748b;
       margin: 0;
@@ -55,7 +48,7 @@
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 600px;
+  max-width: 500px;
   overflow: hidden;
 }
 
@@ -236,33 +229,25 @@
 
 .profile-form {
   .form-section {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 
-    h3 {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+    .section-title {
       font-size: 1rem;
       font-weight: 600;
       color: #1e293b;
-      margin: 0 0 0.75rem 0;
-
-      mat-icon {
-        color: #64748b;
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-      }
+      margin: 0 0 1rem 0;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #e2e8f0;
     }
   }
 
   .form-grid {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 1rem;
   }
 
-  .full-width {
+  .form-field {
     width: 100%;
   }
 
@@ -301,7 +286,7 @@
   }
 
   textarea.mat-input-element {
-    min-height: 60px;
+    min-height: 80px;
     resize: vertical;
   }
 }
@@ -310,8 +295,8 @@
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
   border-top: 1px solid #e2e8f0;
 
   .cancel-btn {
@@ -453,15 +438,9 @@
 @media (max-width: 768px) {
   .content-header {
     padding: 0.75rem 1rem;
-
-    .header-left {
-      h1 {
-        font-size: 1.125rem;
-      }
-      
-      p {
-        font-size: 0.8rem;
-      }
+    
+    .header-left p {
+      font-size: 0.8rem;
     }
   }
 

@@ -1,13 +1,12 @@
 <div class="profile-edit-container">
   <div class="content-header">
     <div class="header-left">
-      <h1>Edit Profile</h1>
       <p>Update your personal information and preferences</p>
     </div>
     <div class="header-actions">
       <button mat-button (click)="goBack()" class="back-btn">
         <mat-icon>arrow_back</mat-icon>
-        Back
+        Back to Profile
       </button>
     </div>
   </div>
@@ -77,12 +76,11 @@
 
         <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
           <div class="form-section">
-            <h3>
-              <mat-icon>person</mat-icon>
+            <h3 class="section-title">
               Personal Information
             </h3>
             <div class="form-grid">
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Full Name</mat-label>
                 <input matInput formControlName="fullName" placeholder="Enter your full name">
                 <mat-icon matPrefix>badge</mat-icon>
@@ -94,7 +92,7 @@
                 </mat-error>
               </mat-form-field>
 
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Email Address</mat-label>
                 <input matInput formControlName="email" placeholder="your.email@example.com" type="email">
                 <mat-icon matPrefix>email</mat-icon>
@@ -106,7 +104,7 @@
                 </mat-error>
               </mat-form-field>
 
-              <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline" class="form-field">
                 <mat-label>Phone Number</mat-label>
                 <input matInput formControlName="phoneNumber" placeholder="+254 700 000 000">
                 <mat-icon matPrefix>phone</mat-icon>
@@ -118,11 +116,10 @@
           </div>
 
           <div class="form-section">
-            <h3>
-              <mat-icon>description</mat-icon>
+            <h3 class="section-title">
               About You
             </h3>
-            <mat-form-field appearance="outline" class="full-width">
+            <mat-form-field appearance="outline" class="form-field">
               <mat-label>Bio</mat-label>
               <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="4"></textarea>
               <mat-hint align="end">{{profileForm.get('bio')?.value?.length || 0}}/500</mat-hint>
