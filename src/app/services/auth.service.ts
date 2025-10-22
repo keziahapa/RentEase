@@ -4,6 +4,7 @@ import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
+import { MatSnackBar } from '@angular/material/snack-bar'; // Add this import
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +13,7 @@ export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
+  private snackBar = inject(MatSnackBar); // Add this injection
   private isBrowser: boolean;
 
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com/api/auth';
