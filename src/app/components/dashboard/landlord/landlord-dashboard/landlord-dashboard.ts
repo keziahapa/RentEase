@@ -42,7 +42,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   isLoadingDashboard: boolean = false;
   dashboardError: string | null = null;
 
- 
   unreadNotificationsCount: number = 0;
   unreadMessagesCount: number = 0;
   isLoadingNotifications: boolean = false;
@@ -83,7 +82,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   handleClickOutside(event: Event): void {
-    // Close profile dropdown when clicking outside
     if (this.isProfileMenuOpen) {
       const target = event.target as HTMLElement;
       const profileSection = document.querySelector('.profile-section');
@@ -93,7 +91,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       }
     }
 
-   
     if (this.isMobileMenuOpen) {
       const target = event.target as HTMLElement;
       const sidebar = document.querySelector('.sidebar');
@@ -146,7 +143,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.isLoadingDashboard = true;
     this.dashboardError = null;
 
-  
     this.propertyService.getProperties().subscribe({
       next: (propertiesResponse: any) => {
         if (propertiesResponse.success && propertiesResponse.data) {
@@ -165,7 +161,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   }
 
   private processDashboardData(properties: any[]): void {
-   
     const totalProperties = properties.length;
     let totalUnits = 0;
     let occupiedUnits = 0;
@@ -191,162 +186,18 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
     this.dashboardData = {
       totalProperties,
-      activeTenants: occupiedUnits,
-      monthlyRevenue: `KSh ${monthlyRevenue.toLocaleString()}`,
+      totalUnits,
+      occupiedUnits,
       vacantUnits,
-      propertiesChange: { trend: 'up', value: '+2 this month' },
-      tenantsChange: { trend: 'up', value: '+5 this month' },
-      revenueChange: { trend: 'up', value: '+8.2% from last month' },
-      vacancyChange: { trend: 'up', value: '2 new vacancies' },
-      rentCollection: {
-        percentage: 85,
-        collected: `KSh ${Math.round(monthlyRevenue * 0.85).toLocaleString()}`,
-        pending: `KSh ${Math.round(monthlyRevenue * 0.10).toLocaleString()}`,
-        overdue: `KSh ${Math.round(monthlyRevenue * 0.05).toLocaleString()}`
-      },
-      maintenanceRequests: this.getMaintenanceRequests(properties),
-      quickStats: this.getQuickStats(properties, monthlyRevenue, occupancyRate),
-      upcomingDeadlines: this.getUpcomingDeadlines(),
-      recentActivities: this.getRecentActivities(properties)
+      monthlyRevenue,
+      occupancyRate,
+      activeTenants: occupiedUnits
     };
-  }
-
-  private getMaintenanceRequests(properties: any[]): any[] {
-    const requests = [];
-    
-    properties.forEach(property => {
-      if (property.units) {
-        property.units.forEach((unit: any) => {
-        
-          if (unit.status === 'maintenance') {
-            requests.push({
-              title: `Maintenance required - ${unit.unitNumber}`,
-              property: property.name,
-              time: '2 hours ago',
-              priority: 'urgent',
-              status: 'URGENT',
-              icon: 'warning'
-            });
-          }
-        });
-      }
-    });
-
-  
-    if (requests.length === 0) {
-      requests.push(
-        {
-          title: 'Leaking pipe in bathroom',
-          property: 'Apartment 3B',
-          time: '2 hours ago',
-          priority: 'urgent',
-          status: 'URGENT',
-          icon: 'warning'
-        },
-        {
-          title: 'AC not working',
-          property: 'Apartment 2A',
-          time: '1 day ago',
-          priority: 'normal',
-          status: 'OPEN',
-          icon: 'ac_unit'
-        }
-      );
-    }
-
-    return requests.slice(0, 3); 
-  }
-
-  private getQuickStats(properties: any[], monthlyRevenue: number, occupancyRate: number): any[] {
-    const totalDeposits = properties.reduce((total, property) => {
-      if (property.units) {
-        return total + property.units.reduce((unitTotal: number, unit: any) => {
-          return unitTotal + (unit.deposit || 0);
-        }, 0);
-      }
-      return total;
-    }, 0);
-
-    return [
-      {
-        icon: 'shield',
-        amount: `KSh ${totalDeposits.toLocaleString()}`,
-        label: 'Protected Deposits'
-      },
-      {
-        icon: 'visibility',
-        amount: '3 Pending',
-        label: 'Move-out Inspections'
-      },
-      {
-        icon: 'bar_chart',
-        amount: `${occupancyRate}%`,
-        label: 'Occupancy Rate'
-      },
-      {
-        icon: 'email',
-        amount: '8 New',
-        label: 'Tenant Messages'
-      }
-    ];
-  }
-
-  private getUpcomingDeadlines(): any[] {
-    return [
-      {
-        day: '05',
-        month: 'OCT',
-        title: 'Rent Due Date',
-        subtitle: '15 units'
-      },
-      {
-        day: '15',
-        month: 'OCT',
-        title: 'Lease Expires',
-        subtitle: '2 units'
-      },
-      {
-        day: '20',
-        month: 'OCT',
-        title: 'Insurance Renewal',
-        subtitle: 'Property insurance'
-      }
-    ];
-  }
-
-  private getRecentActivities(properties: any[]): any[] {
-    return [
-      {
-        icon: 'credit_card',
-        color: '#10b981',
-        text: 'Rent payment received from John Doe - Apartment 3B',
-        time: '2 hours ago'
-      },
-      {
-        icon: 'visibility',
-        color: '#3b82f6',
-        text: 'New vacancy posted for Apartment 2A',
-        time: '4 hours ago'
-      },
-      {
-        icon: 'handyman',
-        color: '#ef4444',
-        text: 'Maintenance request submitted - Plumbing issue Unit 1C',
-        time: '6 hours ago'
-      },
-      {
-        icon: 'description',
-        color: '#8b5cf6',
-        text: 'New lease agreement signed - Sarah Johnson',
-        time: '1 day ago'
-      }
-    ];
   }
 
   private loadNotifications(): void {
     this.isLoadingNotifications = true;
     
-   
     setTimeout(() => {
       this.unreadNotificationsCount = 0;
       this.unreadMessagesCount = 0;
@@ -365,7 +216,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   }
 
   markNotificationsAsRead(): void {
-  
     this.unreadNotificationsCount = 0;
     this.unreadMessagesCount = 0;
   }
@@ -416,7 +266,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     return roleMap[role.toString()] || role.toString();
   }
 
- 
   viewProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
@@ -460,7 +309,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.expandedMenus[menuName] = !this.expandedMenus[menuName];
   }
 
- 
   navigateToSection(section: string): void {
     this.currentSection = section;
     this.isMobileMenuOpen = false;
@@ -493,7 +341,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       this.router.navigate(['/landlord-dashboard']);
     }
 
-   
     if (section === 'financials' || section === 'invoices' || section === 'payments' || section === 'expenses') {
       this.expandedMenus.financials = true;
     }
@@ -506,7 +353,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.navigateToSection('tenants');
   }
 
-
   private updateCurrentSectionFromRoute(url: string): void {
     if (url === '/landlord-dashboard' || url === '/landlord-dashboard/') {
       this.currentSection = 'dashboard';
@@ -518,7 +364,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'properties';
     } else if (url.includes('/financials/invoices')) {
       this.currentSection = 'invoices';
-      this.expandedMenus.financials = true; 
+      this.expandedMenus.financials = true;
     } else if (url.includes('/financials/payments')) {
       this.currentSection = 'payments';
       this.expandedMenus.financials = true;
@@ -561,7 +407,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-
   isNavActive(section: string): boolean {
     return this.currentSection === section;
   }
@@ -584,7 +429,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-
   logout(): void {
     if (this.isLoggingOut) return;
 
@@ -603,13 +447,11 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
         localStorage.removeItem('profileImage');
         sessionStorage.clear();
         
-       
         this.router.navigate(['/login']);
       },
       error: (error) => {
         console.error('Logout error:', error);
         this.isLoggingOut = false;
-        
         
         localStorage.removeItem('profileImage');
         sessionStorage.clear();
@@ -618,16 +460,13 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-
   @HostListener('window:resize', ['$event'])
   onResize(event: any): void {
- 
     if (window.innerWidth > 768 && this.isMobileMenuOpen) {
       this.closeMobileMenu();
     }
   }
 
- 
   refreshDashboard(): void {
     this.loadDashboardData();
     this.loadNotifications();
