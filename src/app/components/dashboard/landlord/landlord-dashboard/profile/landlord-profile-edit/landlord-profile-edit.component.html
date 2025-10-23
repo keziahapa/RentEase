@@ -16,7 +16,6 @@
     </div>
 
     <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
-     
       <div class="section-header">
         <mat-icon>person</mat-icon>
         <h3>Personal Information</h3>
@@ -59,8 +58,8 @@
         <div class="form-row">
           <mat-form-field appearance="outline" class="form-field compact-field">
             <mat-label>Bio</mat-label>
-            <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="2"></textarea>
-            <mat-hint>{{ bio?.value?.length || 0 }}/500 characters</mat-hint>
+            <textarea matInput formControlName="bio" placeholder="Tell us about yourself..."></textarea>
+            <mat-hint>{{ bio?.value?.length || 0 }}/500</mat-hint>
             <mat-error *ngIf="bio?.invalid && bio?.touched">
               Bio cannot exceed 500 characters
             </mat-error>
@@ -68,7 +67,6 @@
         </div>
       </div>
 
-      <!-- Password Change Button -->
       <div class="password-section">
         <button type="button" class="password-change-btn" (click)="openPasswordDialog()">
           <mat-icon>lock</mat-icon>
@@ -88,11 +86,10 @@
     </form>
   </div>
 
- 
   <div class="dialog-overlay" *ngIf="showAvatarDialog" (click)="closeAvatarDialog()">
     <div class="avatar-dialog" (click)="$event.stopPropagation()">
       <div class="dialog-header">
-        <h3>Profile Photo Options</h3>
+        <h3>Profile Photo</h3>
         <button class="dialog-close" (click)="closeAvatarDialog()">
           <mat-icon>close</mat-icon>
         </button>
@@ -106,16 +103,16 @@
               <mat-icon>account_circle</mat-icon>
             </div>
           </div>
-          <p class="preview-text">Current Profile Photo</p>
+          <p class="preview-text">Current Photo</p>
         </div>
 
         <div class="dialog-actions">
           <button class="dialog-btn primary-btn" (click)="changePhoto()">
             <mat-icon>photo_camera</mat-icon>
-            <span>Upload Profile Photo</span>
+            <span>Upload Photo</span>
           </button>
           
-          <button class="dialog-btn primary-btn" 
+          <button class="dialog-btn danger-btn" 
                   (click)="deletePhoto()"
                   [disabled]="isDefaultAvatar()">
             <mat-icon>delete</mat-icon>
@@ -123,7 +120,6 @@
           </button>
           
           <button class="dialog-btn cancel-btn" (click)="closeAvatarDialog()">
-            <mat-icon>close</mat-icon>
             <span>Cancel</span>
           </button>
         </div>
@@ -131,7 +127,6 @@
     </div>
   </div>
 
-  <!-- Password Change Dialog -->
   <div class="dialog-overlay" *ngIf="showPasswordDialog" (click)="closePasswordDialog()">
     <div class="password-dialog" (click)="$event.stopPropagation()">
       <div class="dialog-header">
@@ -162,18 +157,18 @@
                 <mat-icon matSuffix>lock</mat-icon>
                 <mat-hint>Minimum 6 characters</mat-hint>
                 <mat-error *ngIf="newPassword?.invalid && newPassword?.touched">
-                  New password must be at least 6 characters
+                  Password must be at least 6 characters
                 </mat-error>
               </mat-form-field>
             </div>
 
             <div class="form-row">
               <mat-form-field appearance="outline" class="form-field compact-field">
-                <mat-label>Confirm New Password</mat-label>
+                <mat-label>Confirm Password</mat-label>
                 <input matInput formControlName="confirmNewPassword" type="password" placeholder="Confirm new password">
                 <mat-icon matSuffix>lock_reset</mat-icon>
                 <mat-error *ngIf="confirmNewPassword?.invalid && confirmNewPassword?.touched">
-                  Passwords do not match
+                  Please confirm your password
                 </mat-error>
                 <mat-error *ngIf="passwordForm?.errors?.['passwordMismatch'] && confirmNewPassword?.touched">
                   Passwords do not match
@@ -183,12 +178,11 @@
 
             <div class="dialog-actions">
               <button type="button" class="dialog-btn cancel-btn" (click)="closePasswordDialog()">
-                <mat-icon>close</mat-icon>
                 <span>Cancel</span>
               </button>
               <button type="submit" class="dialog-btn primary-btn" [disabled]="passwordForm.invalid || isChangingPassword">
                 <mat-spinner diameter="16" *ngIf="isChangingPassword"></mat-spinner>
-                {{ isChangingPassword ? 'Changing...' : 'Change Password' }}
+                <span>{{ isChangingPassword ? 'Changing...' : 'Change Password' }}</span>
               </button>
             </div>
           </div>
