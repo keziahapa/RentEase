@@ -16,9 +16,15 @@
     </div>
 
     <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
+     
+      <div class="section-header">
+        <mat-icon>person</mat-icon>
+        <h3>Personal Information</h3>
+      </div>
+
       <div class="form-section">
         <div class="form-row">
-          <mat-form-field appearance="outline" class="form-field">
+          <mat-form-field appearance="outline" class="form-field compact-field">
             <mat-label>Full Name</mat-label>
             <input matInput formControlName="fullName" placeholder="Enter your full name">
             <mat-icon matSuffix>person</mat-icon>
@@ -29,7 +35,7 @@
         </div>
 
         <div class="form-row">
-          <mat-form-field appearance="outline" class="form-field">
+          <mat-form-field appearance="outline" class="form-field compact-field">
             <mat-label>Email Address</mat-label>
             <input matInput formControlName="email" placeholder="your@email.com" type="email">
             <mat-icon matSuffix>email</mat-icon>
@@ -40,7 +46,7 @@
         </div>
 
         <div class="form-row">
-          <mat-form-field appearance="outline" class="form-field">
+          <mat-form-field appearance="outline" class="form-field compact-field">
             <mat-label>Phone Number</mat-label>
             <input matInput formControlName="phoneNumber" placeholder="+254 XXX XXX XXX" type="tel">
             <mat-icon matSuffix>phone</mat-icon>
@@ -51,7 +57,7 @@
         </div>
 
         <div class="form-row">
-          <mat-form-field appearance="outline" class="form-field">
+          <mat-form-field appearance="outline" class="form-field compact-field">
             <mat-label>Bio</mat-label>
             <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="2"></textarea>
             <mat-hint>{{ bio?.value?.length || 0 }}/500 characters</mat-hint>
@@ -62,68 +68,13 @@
         </div>
       </div>
 
-      <!-- Password Change Section -->
-      <mat-accordion class="password-accordion">
-        <mat-expansion-panel [(expanded)]="passwordPanelExpanded">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <mat-icon>lock</mat-icon>
-              Change Password
-            </mat-panel-title>
-            <mat-panel-description>
-              Update your account password
-            </mat-panel-description>
-          </mat-expansion-panel-header>
-
-          <form [formGroup]="passwordForm" (ngSubmit)="onChangePassword()" class="password-form">
-            <div class="form-section">
-              <div class="form-row">
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Current Password</mat-label>
-                  <input matInput formControlName="currentPassword" type="password" placeholder="Enter current password">
-                  <mat-icon matSuffix>vpn_key</mat-icon>
-                  <mat-error *ngIf="currentPassword?.invalid && currentPassword?.touched">
-                    Current password is required
-                  </mat-error>
-                </mat-form-field>
-              </div>
-
-              <div class="form-row">
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>New Password</mat-label>
-                  <input matInput formControlName="newPassword" type="password" placeholder="Enter new password">
-                  <mat-icon matSuffix>lock</mat-icon>
-                  <mat-hint>Minimum 6 characters</mat-hint>
-                  <mat-error *ngIf="newPassword?.invalid && newPassword?.touched">
-                    New password must be at least 6 characters
-                  </mat-error>
-                </mat-form-field>
-              </div>
-
-              <div class="form-row">
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Confirm New Password</mat-label>
-                  <input matInput formControlName="confirmNewPassword" type="password" placeholder="Confirm new password">
-                  <mat-icon matSuffix>lock_reset</mat-icon>
-                  <mat-error *ngIf="confirmNewPassword?.invalid && confirmNewPassword?.touched">
-                    Passwords do not match
-                  </mat-error>
-                  <mat-error *ngIf="passwordForm?.errors?.['passwordMismatch'] && confirmNewPassword?.touched">
-                    Passwords do not match
-                  </mat-error>
-                </mat-form-field>
-              </div>
-
-              <div class="password-actions">
-                <button type="submit" class="btn-primary" [disabled]="passwordForm.invalid || isChangingPassword">
-                  <mat-spinner diameter="20" *ngIf="isChangingPassword"></mat-spinner>
-                  {{ isChangingPassword ? 'Changing Password...' : 'Change Password' }}
-                </button>
-              </div>
-            </div>
-          </form>
-        </mat-expansion-panel>
-      </mat-accordion>
+      <!-- Password Change Button -->
+      <div class="password-section">
+        <button type="button" class="password-change-btn" (click)="openPasswordDialog()">
+          <mat-icon>lock</mat-icon>
+          <span>Change Password</span>
+        </button>
+      </div>
 
       <div class="form-actions">
         <button type="button" class="btn-outline" (click)="cancel()" [disabled]="isSubmitting">
@@ -137,7 +88,7 @@
     </form>
   </div>
 
-  <!-- Avatar Options Dialog -->
+ 
   <div class="dialog-overlay" *ngIf="showAvatarDialog" (click)="closeAvatarDialog()">
     <div class="avatar-dialog" (click)="$event.stopPropagation()">
       <div class="dialog-header">
@@ -176,6 +127,72 @@
             <span>Cancel</span>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Change Dialog -->
+  <div class="dialog-overlay" *ngIf="showPasswordDialog" (click)="closePasswordDialog()">
+    <div class="password-dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>Change Password</h3>
+        <button class="dialog-close" (click)="closePasswordDialog()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      
+      <div class="dialog-content">
+        <form [formGroup]="passwordForm" (ngSubmit)="onChangePassword()" class="password-form">
+          <div class="form-section">
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field compact-field">
+                <mat-label>Current Password</mat-label>
+                <input matInput formControlName="currentPassword" type="password" placeholder="Enter current password">
+                <mat-icon matSuffix>vpn_key</mat-icon>
+                <mat-error *ngIf="currentPassword?.invalid && currentPassword?.touched">
+                  Current password is required
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field compact-field">
+                <mat-label>New Password</mat-label>
+                <input matInput formControlName="newPassword" type="password" placeholder="Enter new password">
+                <mat-icon matSuffix>lock</mat-icon>
+                <mat-hint>Minimum 6 characters</mat-hint>
+                <mat-error *ngIf="newPassword?.invalid && newPassword?.touched">
+                  New password must be at least 6 characters
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field compact-field">
+                <mat-label>Confirm New Password</mat-label>
+                <input matInput formControlName="confirmNewPassword" type="password" placeholder="Confirm new password">
+                <mat-icon matSuffix>lock_reset</mat-icon>
+                <mat-error *ngIf="confirmNewPassword?.invalid && confirmNewPassword?.touched">
+                  Passwords do not match
+                </mat-error>
+                <mat-error *ngIf="passwordForm?.errors?.['passwordMismatch'] && confirmNewPassword?.touched">
+                  Passwords do not match
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="dialog-actions">
+              <button type="button" class="dialog-btn cancel-btn" (click)="closePasswordDialog()">
+                <mat-icon>close</mat-icon>
+                <span>Cancel</span>
+              </button>
+              <button type="submit" class="dialog-btn primary-btn" [disabled]="passwordForm.invalid || isChangingPassword">
+                <mat-spinner diameter="16" *ngIf="isChangingPassword"></mat-spinner>
+                {{ isChangingPassword ? 'Changing...' : 'Change Password' }}
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   </div>

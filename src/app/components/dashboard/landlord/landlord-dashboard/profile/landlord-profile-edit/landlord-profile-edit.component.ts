@@ -54,7 +54,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   isUploadingPhoto = false;
   isDeletingPhoto = false;
   showAvatarDialog = false;
-  passwordPanelExpanded = false;
+  showPasswordDialog = false;
   
   originalPhoneNumber: string = '';
   currentPhoneNumber: string = '';
@@ -76,6 +76,15 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
   closeAvatarDialog(): void {
     this.showAvatarDialog = false;
+  }
+
+  openPasswordDialog(): void {
+    this.showPasswordDialog = true;
+  }
+
+  closePasswordDialog(): void {
+    this.showPasswordDialog = false;
+    this.passwordForm.reset();
   }
 
   private loadUserData(): void {
@@ -118,6 +127,10 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           this.preloadImage(imageUrl).then(() => {
             this.profileImage = imageUrl;
             localStorage.setItem('profileImage', imageUrl);
+            // Emit event to update profile view instantly
+            window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
+              detail: { imageUrl } 
+            }));
           });
         }
       },
@@ -239,7 +252,10 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           this.profileImage = imageUrl;
           localStorage.setItem('profileImage', imageUrl);
           
-          window.dispatchEvent(new Event('profileImageUpdated'));
+          // Emit event to update profile view instantly
+          window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
+            detail: { imageUrl } 
+          }));
           
         } else {
           this.snackBar.open(response.message || 'Failed to upload photo', 'Close', { duration: 3000 });
@@ -267,10 +283,14 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         this.isDeletingPhoto = false;
         if (response.success) {
-          this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
+          const newAvatar = this.generateInitialAvatar(this.user?.fullName || 'User');
+          this.profileImage = newAvatar;
           localStorage.removeItem('profileImage');
           
-          window.dispatchEvent(new Event('profileImageUpdated'));
+          // Emit event to update profile view instantly
+          window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
+            detail: { imageUrl: newAvatar } 
+          }));
           
           this.snackBar.open('Profile photo removed', 'Close', { duration: 2000 });
         } else {
@@ -301,8 +321,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
         
         if (response.success) {
           this.snackBar.open('Password changed successfully!', 'Close', { duration: 3000 });
-          this.passwordForm.reset();
-          this.passwordPanelExpanded = false;
+          this.closePasswordDialog();
         } else {
           this.snackBar.open(response.message || 'Failed to change password', 'Close', { duration: 3000 });
         }
