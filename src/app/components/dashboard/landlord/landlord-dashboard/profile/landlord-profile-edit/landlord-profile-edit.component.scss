@@ -135,128 +135,127 @@
     flex-direction: column;
   }
 
-  .form-field {
-    width: 100%;
+  // CORRECTED: Targeting outline appearance specifically
+  ::ng-deep {
+    .mat-mdc-form-field {
+      width: 100%;
+      margin-bottom: 20px;
 
-    &.compact-field {
-      ::ng-deep {
-        .mat-form-field-wrapper {
-          padding-bottom: 0;
-          margin-bottom: 20px; // Match registration spacing
-        }
-
-        .mat-form-field-flex {
-          height: 56px !important; // Match registration height
-          min-height: 56px !important;
-          align-items: center;
-          padding: 0 16px; // Match registration padding
-          background: #fff !important;
-          transition: all 0.3s ease;
-
-          &:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); // Hover effect
-          }
-        }
-
-        .mat-form-field-infix {
-          padding: 0.5rem 0 !important;
-          border-top: 0.5em solid transparent;
-          min-height: 56px !important;
-          display: flex;
-          align-items: center;
-          width: 100% !important;
-        }
-
-        .mat-input-element {
-          font-size: 16px !important; // Match registration font size
-          padding: 0 !important;
-          line-height: 1.5 !important;
-          color: #2c3e50; // Match registration text color
+      // Outline appearance styling
+      &.mat-form-field-appearance-outline {
+        .mat-mdc-text-field-wrapper {
+          height: 56px !important;
+          border-radius: 12px !important;
           
-          &::placeholder {
-            color: #7f8c8d;
-            opacity: 0.8;
+          .mat-mdc-form-field-flex {
+            height: 56px !important;
+            align-items: center !important;
+            padding: 0 16px !important;
           }
         }
 
-        .mat-form-field-label-wrapper {
-          top: -0.5em;
-        }
-
-        .mat-form-field-label {
-          font-size: 16px !important; // Match registration label size
-          color: #7f8c8d; // Match registration label color
-          font-weight: 500;
-        }
-
-        textarea.mat-input-element {
+        .mat-mdc-form-field-infix {
+          padding: 0.5rem 0 !important;
           min-height: 56px !important;
-          max-height: 120px !important; // Allow textarea to grow
-          resize: vertical; // Allow resizing for bio field
-          overflow: auto;
+          display: flex !important;
+          align-items: center !important;
+        }
+
+        .mdc-notched-outline {
+          &__leading,
+          &__notch,
+          &__trailing {
+            border-radius: 12px !important;
+            border-color: #e0e0e0 !important;
+          }
+        }
+
+        &.mat-focused {
+          .mdc-notched-outline {
+            &__leading,
+            &__notch,
+            &__trailing {
+              border-color: #3b82f6 !important;
+              border-width: 2px !important;
+            }
+          }
+        }
+      }
+
+      // Input element styling
+      .mat-mdc-input-element {
+        font-size: 16px !important;
+        color: #2c3e50 !important;
+        line-height: 1.5 !important;
+        height: auto !important;
+        
+        &::placeholder {
+          color: #7f8c8d !important;
+          opacity: 0.8;
+        }
+      }
+
+      // Label styling
+      .mat-mdc-floating-label {
+        font-size: 16px !important;
+        color: #7f8c8d !important;
+        font-weight: 500 !important;
+      }
+
+      &.mat-focused .mat-mdc-floating-label {
+        color: #3b82f6 !important;
+      }
+
+      // Textarea specific styles
+      &.mat-form-field-type-mat-textarea {
+        .mat-mdc-text-field-wrapper {
+          height: auto !important;
+          min-height: 56px !important;
+        }
+
+        .mat-mdc-form-field-flex {
+          height: auto !important;
+          min-height: 56px !important;
+        }
+
+        .mat-mdc-form-field-infix {
+          min-height: 56px !important;
+        }
+
+        .mat-mdc-input-element {
+          min-height: 56px !important;
+          max-height: 120px !important;
+          resize: vertical !important;
           line-height: 1.5 !important;
           padding: 12px 0 !important;
         }
-
-        .mat-form-field-subscript-wrapper {
-          position: static;
-          margin-top: 4px;
-          font-size: 14px;
-        }
-
-        .mat-error {
-          font-size: 14px;
-          line-height: 1.2;
-          color: #e74c3c; // Error color
-        }
-
-        .mat-hint {
-          font-size: 14px;
-          color: #7f8c8d; // Hint color
-        }
-
-        .mat-form-field-suffix {
-          align-self: center;
-
-          .mat-icon {
-            font-size: 20px !important;
-            width: 20px;
-            height: 20px;
-            color: #7f8c8d; // Match registration icon color
-          }
-        }
-      }
-    }
-  }
-
-  mat-form-field {
-    width: 100%;
-
-    ::ng-deep {
-      .mat-form-field-outline {
-        border-radius: 12px; // Match registration border radius
       }
 
-      .mat-form-field-outline-start,
-      .mat-form-field-outline-end,
-      .mat-form-field-outline-gap {
-        border-width: 1px;
-        border-color: #e0e0e0; // Match registration border color
+      // Error and hint styling
+      .mat-mdc-form-field-subscript-wrapper {
+        font-size: 14px !important;
+        margin-top: 4px !important;
+        height: auto !important;
       }
-    }
 
-    &.mat-form-field-appearance-outline.mat-focused {
-      ::ng-deep {
-        .mat-form-field-outline-thick {
-          color: #3b82f6; // Focus color
-        }
+      .mat-mdc-form-field-error {
+        font-size: 14px !important;
+        color: #e74c3c !important;
+        line-height: 1.2 !important;
+      }
 
-        .mat-form-field-label {
-          color: #3b82f6; // Focus label color
-        }
+      .mat-mdc-form-field-hint {
+        font-size: 14px !important;
+        color: #7f8c8d !important;
+      }
 
-        .mat-form-field-flex {
-          box-shadow: 0 2px 12px rgba(59, 130, 246, 0.2); // Focus shadow
+      // Icon styling
+      .mat-mdc-icon-button {
+        .mat-icon {
+          font-size: 20px !important;
+          width: 20px !important;
+          height: 20px !important;
+          color: #7f8c8d !important;
         }
       }
     }
@@ -366,6 +365,7 @@
   }
 }
 
+// Rest of your dialog styles...
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -600,22 +600,8 @@
     max-width: 100%;
   }
 
-  .avatar-container {
-    .user-avatar-large {
-      width: 60px;
-      height: 60px;
-
-      .avatar-placeholder-large mat-icon {
-        font-size: 30px;
-        width: 30px;
-        height: 30px;
-      }
-    }
-  }
-
   .profile-form {
     padding: 1.25rem;
-    gap: 0.4rem;
 
     .form-actions {
       flex-direction: column-reverse;
@@ -641,15 +627,5 @@
 
   .password-dialog .dialog-actions {
     flex-direction: column;
-  }
-}
-
-@media (max-width: 480px) {
-  .profile-edit-container {
-    padding: 0.5rem;
-  }
-
-  .profile-form {
-    padding: 1rem;
   }
 }
