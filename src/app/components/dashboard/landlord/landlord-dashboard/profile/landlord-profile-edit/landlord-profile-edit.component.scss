@@ -206,12 +206,10 @@
 
         .mdc-notched-outline__notch {
           border-color: rgba(0, 0, 0, 0.24);
-          border-width: 1px;
-          border-top: none;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.24);
           border-left: none;
           border-right: none;
-          padding: 0 8px;
+          border-top: 1px solid rgba(0, 0, 0, 0.24);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.24);
         }
 
         .mdc-notched-outline__trailing {
@@ -220,6 +218,13 @@
           border-top-right-radius: 4px;
           border-bottom-right-radius: 4px;
           border-left: none;
+        }
+      }
+
+      &.mat-form-field-should-float {
+        .mdc-notched-outline__notch {
+          border-top: none;
+          padding: 0 4px;
         }
       }
 
@@ -232,10 +237,11 @@
 
           .mdc-notched-outline__notch {
             border-color: #3b82f6;
-            border-width: 2px;
+            border-left: none;
+            border-right: none;
             border-top: none;
             border-bottom: 2px solid #3b82f6;
-            padding: 0 8px;
+            padding: 0 4px;
           }
 
           .mdc-notched-outline__trailing {
@@ -253,13 +259,20 @@
 
           .mdc-notched-outline__notch {
             border-color: #ef4444;
-            border-top: none;
+            border-left: none;
+            border-right: none;
             border-bottom: 1px solid #ef4444;
-            padding: 0 8px;
           }
 
           .mdc-notched-outline__trailing {
             border-color: #ef4444;
+          }
+        }
+
+        &.mat-form-field-should-float {
+          .mdc-notched-outline__notch {
+            border-top: none;
+            padding: 0 4px;
           }
         }
       }
@@ -283,6 +296,7 @@
 
       .mat-mdc-form-field-flex {
         height: auto;
+        min-height: 120px;
       }
 
       .mat-mdc-form-field-infix {
@@ -291,20 +305,28 @@
       }
 
       .mat-mdc-input-element {
-        min-height: 80px;
+        min-height: 100px;
+        max-height: 200px;
         resize: vertical;
         line-height: 1.5;
         padding: 0;
-        border: none;
-        outline: none;
-        box-shadow: none;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
       }
 
       textarea.mat-mdc-input-element {
-        border: none;
-        outline: none;
-        box-shadow: none;
-        background: transparent;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        
+        &:focus {
+          border: none !important;
+          outline: none !important;
+          box-shadow: none !important;
+        }
       }
     }
 
@@ -578,12 +600,10 @@
 
           .mdc-notched-outline__notch {
             border-color: rgba(0, 0, 0, 0.24);
-            border-width: 1px;
-            border-top: none;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.24);
             border-left: none;
             border-right: none;
-            padding: 0 8px;
+            border-top: 1px solid rgba(0, 0, 0, 0.24);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.24);
           }
 
           .mdc-notched-outline__trailing {
@@ -592,6 +612,13 @@
             border-top-right-radius: 4px;
             border-bottom-right-radius: 4px;
             border-left: none;
+          }
+        }
+
+        &.mat-form-field-should-float {
+          .mdc-notched-outline__notch {
+            border-top: none;
+            padding: 0 4px;
           }
         }
 
@@ -604,10 +631,11 @@
 
             .mdc-notched-outline__notch {
               border-color: #3b82f6;
-              border-width: 2px;
+              border-left: none;
+              border-right: none;
               border-top: none;
               border-bottom: 2px solid #3b82f6;
-              padding: 0 8px;
+              padding: 0 4px;
             }
 
             .mdc-notched-outline__trailing {
@@ -625,13 +653,20 @@
 
             .mdc-notched-outline__notch {
               border-color: #ef4444;
-              border-top: none;
+              border-left: none;
+              border-right: none;
               border-bottom: 1px solid #ef4444;
-              padding: 0 8px;
             }
 
             .mdc-notched-outline__trailing {
               border-color: #ef4444;
+            }
+          }
+
+          &.mat-form-field-should-float {
+            .mdc-notched-outline__notch {
+              border-top: none;
+              padding: 0 4px;
             }
           }
         }
