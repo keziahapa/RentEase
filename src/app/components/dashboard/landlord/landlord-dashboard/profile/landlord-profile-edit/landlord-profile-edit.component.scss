@@ -17,46 +17,20 @@
   margin-top: 1rem;
 }
 
-// Header Styles - Moved inside form container
+// Header Styles - Simplified without back button
 .form-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
   padding: 1.5rem 1.5rem 0 1.5rem;
   margin-bottom: 0.5rem;
-
-  .back-button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    color: #64748b;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
-
-    &:hover {
-      background: #f8fafc;
-      border-color: #cbd5e1;
-      transform: translateY(-1px);
-    }
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
-  }
 
   .page-title {
     font-size: 1.5rem;
     font-weight: 700;
     color: #1e293b;
     margin: 0;
-    flex: 1;
+    text-align: center;
   }
 }
 
@@ -208,131 +182,68 @@
   margin-bottom: 0.75rem;
 }
 
-// FIXED: Material Form Fields with Consistent Border Styling
+// NORMAL Material Form Fields - Standard Angular Material styling
 ::ng-deep {
   .mat-mdc-form-field {
     width: 100%;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
 
+    // Remove custom border styling - use default Material styles
     &.mat-form-field-appearance-outline {
       .mat-mdc-text-field-wrapper {
-        height: 52px !important;
-        border-radius: 10px !important;
-        
-        .mat-mdc-form-field-flex {
-          height: 52px !important;
-          align-items: center !important;
-          padding: 0 14px !important;
-        }
+        height: 56px !important;
       }
 
       .mat-mdc-form-field-infix {
-        padding: 0.4rem 0 !important;
-        min-height: 52px !important;
-        display: flex !important;
-        align-items: center !important;
+        padding: 1rem 0 !important;
+        min-height: 56px !important;
       }
 
-      // FIXED: Consistent default border styling
+      // Let Material handle the borders naturally
       .mdc-notched-outline {
         &__leading,
         &__notch,
         &__trailing {
-          border-radius: 10px !important;
-          border-color: #cbd5e1 !important;
-          border-width: 1px !important;
-          transition: border-color 0.2s ease, border-width 0.2s ease;
-        }
-      }
-
-      // FIXED: Focus state with smooth transition
-      &.mat-focused {
-        .mdc-notched-outline {
-          &__leading,
-          &__notch,
-          &__trailing {
-            border-color: #3b82f6 !important;
-            border-width: 2px !important;
-          }
-        }
-      }
-
-      // FIXED: Error state only when touched and invalid
-      &.mat-form-field-invalid {
-        &.mat-form-field-touched {
-          .mdc-notched-outline {
-            &__leading,
-            &__notch,
-            &__trailing {
-              border-color: #ef4444 !important;
-              border-width: 1px !important;
-            }
-          }
-
-          &.mat-focused {
-            .mdc-notched-outline {
-              &__leading,
-              &__notch,
-              &__trailing {
-                border-color: #ef4444 !important;
-                border-width: 2px !important;
-              }
-            }
-          }
+          // Remove custom border overrides
+          border-radius: 4px !important; // Standard Material border radius
         }
       }
     }
 
     .mat-mdc-input-element {
-      font-size: 15px !important;
+      font-size: 16px !important; // Standard size for better accessibility
       color: #2c3e50 !important;
-      line-height: 1.4 !important;
-      height: auto !important;
     }
 
     .mat-mdc-floating-label {
-      font-size: 15px !important;
-      color: #7f8c8d !important;
-      font-weight: 500 !important;
-    }
-
-    &.mat-focused .mat-mdc-floating-label {
-      color: #3b82f6 !important;
+      font-size: 16px !important;
     }
 
     &.mat-form-field-type-mat-textarea {
       .mat-mdc-text-field-wrapper {
         height: auto !important;
-        min-height: 52px !important;
-      }
-
-      .mat-mdc-form-field-infix {
-        min-height: 52px !important;
       }
 
       .mat-mdc-input-element {
-        min-height: 80px !important;
+        min-height: 100px !important;
         resize: vertical !important;
-        line-height: 1.4 !important;
-        padding: 10px 0 !important;
+        line-height: 1.5 !important;
       }
     }
 
     .mat-mdc-form-field-subscript-wrapper {
-      font-size: 13px !important;
-      margin-top: 2px !important;
+      font-size: 12px !important;
       height: auto !important;
     }
 
     .mat-mdc-form-field-error {
-      font-size: 13px !important;
-      color: #ef4444 !important;
-      line-height: 1.1 !important;
+      font-size: 12px !important;
+      color: #f44336 !important; // Standard Material error color
     }
 
     .mat-mdc-form-field-hint {
-      font-size: 13px !important;
-      color: #7f8c8d !important;
+      font-size: 12px !important;
+      color: rgba(0, 0, 0, 0.6) !important; // Standard Material hint color
     }
   }
 }
@@ -445,7 +356,7 @@
   }
 }
 
-// Dialog Styles (Keep your existing dialog styles)
+// Dialog Styles
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -683,9 +594,6 @@
   }
 
   .form-header {
-    flex-direction: column;
-    gap: 0.75rem;
-    align-items: flex-start;
     padding: 1rem 1rem 0 1rem;
 
     .page-title {
@@ -757,11 +665,6 @@
   .form-header {
     padding: 0.75rem 0.75rem 0 0.75rem;
     
-    .back-button {
-      padding: 0.4rem 0.8rem;
-      font-size: 0.85rem;
-    }
-    
     .page-title {
       font-size: 1.1rem;
     }
@@ -796,6 +699,10 @@
       .mdc-tab__text-label {
         font-size: 0.75rem;
       }
+    }
+
+    .mat-mdc-form-field {
+      margin-bottom: 0.75rem;
     }
   }
 }
