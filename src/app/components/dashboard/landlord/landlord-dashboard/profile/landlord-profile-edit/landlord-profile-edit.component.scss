@@ -17,7 +17,6 @@
   margin-top: 1rem;
 }
 
-// Header Styles - Simplified without back button
 .form-header {
   display: flex;
   align-items: center;
@@ -34,7 +33,6 @@
   }
 }
 
-// Form Container
 .form-container {
   background: #ffffff;
   border-radius: 16px;
@@ -43,13 +41,11 @@
   overflow: hidden;
 }
 
-// Profile Form
 .profile-form {
   display: flex;
   flex-direction: column;
 }
 
-// Avatar Section Inside Form
 .avatar-section {
   display: flex;
   justify-content: center;
@@ -125,9 +121,7 @@
   }
 }
 
-// Tabbed Form Section
 .tabbed-form-section {
-  // Material Tabs Customization
   ::ng-deep {
     .mat-mdc-tab-header {
       background: #f8fafc;
@@ -169,7 +163,6 @@
   }
 }
 
-// Form Styles
 .form-section {
   display: flex;
   flex-direction: column;
@@ -182,73 +175,148 @@
   margin-bottom: 0.75rem;
 }
 
-// NORMAL Material Form Fields - Standard Angular Material styling
 ::ng-deep {
   .mat-mdc-form-field {
     width: 100%;
     margin-bottom: 1rem;
 
-    // Remove custom border styling - use default Material styles
     &.mat-form-field-appearance-outline {
       .mat-mdc-text-field-wrapper {
-        height: 56px !important;
+        height: 56px;
+      }
+
+      .mat-mdc-form-field-flex {
+        height: 56px;
       }
 
       .mat-mdc-form-field-infix {
-        padding: 1rem 0 !important;
-        min-height: 56px !important;
+        padding-top: 16px;
+        padding-bottom: 16px;
+        min-height: 56px;
       }
 
-      // Let Material handle the borders naturally
       .mdc-notched-outline {
-        &__leading,
-        &__notch,
-        &__trailing {
-          // Remove custom border overrides
-          border-radius: 4px !important; // Standard Material border radius
+        .mdc-notched-outline__leading {
+          border-color: rgba(0, 0, 0, 0.24);
+          border-width: 1px;
+          border-top-left-radius: 4px;
+          border-bottom-left-radius: 4px;
+          border-right: none;
+        }
+
+        .mdc-notched-outline__notch {
+          border-color: rgba(0, 0, 0, 0.24);
+          border-width: 1px;
+          border-top: 1px solid rgba(0, 0, 0, 0.24);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.24);
+          border-left: none;
+          border-right: none;
+        }
+
+        .mdc-notched-outline__trailing {
+          border-color: rgba(0, 0, 0, 0.24);
+          border-width: 1px;
+          border-top-right-radius: 4px;
+          border-bottom-right-radius: 4px;
+          border-left: none;
+        }
+      }
+
+      &.mat-focused {
+        .mdc-notched-outline {
+          .mdc-notched-outline__leading {
+            border-color: #3b82f6;
+            border-width: 2px;
+          }
+
+          .mdc-notched-outline__notch {
+            border-color: #3b82f6;
+            border-width: 2px;
+            border-top: 2px solid #3b82f6;
+            border-bottom: 2px solid #3b82f6;
+          }
+
+          .mdc-notched-outline__trailing {
+            border-color: #3b82f6;
+            border-width: 2px;
+          }
+        }
+      }
+
+      &.mat-form-field-invalid {
+        .mdc-notched-outline {
+          .mdc-notched-outline__leading {
+            border-color: #ef4444;
+          }
+
+          .mdc-notched-outline__notch {
+            border-color: #ef4444;
+            border-top: 1px solid #ef4444;
+            border-bottom: 1px solid #ef4444;
+          }
+
+          .mdc-notched-outline__trailing {
+            border-color: #ef4444;
+          }
         }
       }
     }
 
     .mat-mdc-input-element {
-      font-size: 16px !important; // Standard size for better accessibility
-      color: #2c3e50 !important;
+      font-size: 16px;
+      color: #1e293b;
+      padding: 0;
     }
 
-    .mat-mdc-floating-label {
-      font-size: 16px !important;
+    .mdc-floating-label {
+      font-size: 16px;
+      color: #64748b;
     }
 
     &.mat-form-field-type-mat-textarea {
       .mat-mdc-text-field-wrapper {
-        height: auto !important;
+        height: auto;
+      }
+
+      .mat-mdc-form-field-flex {
+        height: auto;
       }
 
       .mat-mdc-input-element {
-        min-height: 100px !important;
-        resize: vertical !important;
-        line-height: 1.5 !important;
+        min-height: 80px;
+        resize: vertical;
+        line-height: 1.5;
+        padding-top: 8px;
       }
     }
 
     .mat-mdc-form-field-subscript-wrapper {
-      font-size: 12px !important;
-      height: auto !important;
+      font-size: 12px;
+      margin-top: 4px;
     }
 
     .mat-mdc-form-field-error {
-      font-size: 12px !important;
-      color: #f44336 !important; // Standard Material error color
+      font-size: 12px;
+      color: #ef4444;
     }
 
     .mat-mdc-form-field-hint {
-      font-size: 12px !important;
-      color: rgba(0, 0, 0, 0.6) !important; // Standard Material hint color
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .mat-mdc-form-field-icon-suffix {
+      color: #64748b;
+      
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
     }
   }
 }
 
-// Security Section
 .security-section {
   padding: 1rem;
   background: #f8fafc;
@@ -294,7 +362,6 @@
   }
 }
 
-// Form Actions
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -323,11 +390,11 @@
   .btn-outline {
     background: #ffffff;
     color: #64748b;
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid #e2e8f0;
 
     &:hover:not(:disabled) {
       background: #f8fafc;
-      border-color: #cbd5e1 !important;
+      border-color: #cbd5e1;
       transform: translateY(-1px);
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
@@ -356,7 +423,6 @@
   }
 }
 
-// Dialog Styles
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -582,7 +648,6 @@
   }
 }
 
-// Responsive Design
 @media (max-width: 768px) {
   .profile-edit-container {
     padding: 0.5rem;
