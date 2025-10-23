@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyService } from '../../../../../../services/property.service';
 import { AuthService } from '../../../../../../services/auth.service';
 
@@ -32,7 +33,8 @@ import { AuthService } from '../../../../../../services/auth.service';
     MatProgressSpinnerModule,
     MatTooltipModule,
     MatDialogModule,
-    MatExpansionModule
+    MatExpansionModule,
+    MatTabsModule
   ],
   templateUrl: './landlord-profile-edit.component.html',
   styleUrls: ['./landlord-profile-edit.component.scss']
@@ -55,6 +57,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   isDeletingPhoto = false;
   showAvatarDialog = false;
   showPasswordDialog = false;
+  selectedTab = 0;
   
   originalPhoneNumber: string = '';
   currentPhoneNumber: string = '';
@@ -69,6 +72,10 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {}
+
+  onTabChange(event: any): void {
+    this.selectedTab = event.index;
+  }
 
   openAvatarDialog(): void {
     this.showAvatarDialog = true;
@@ -127,7 +134,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           this.preloadImage(imageUrl).then(() => {
             this.profileImage = imageUrl;
             localStorage.setItem('profileImage', imageUrl);
-            // Emit event to update profile view instantly
             window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
               detail: { imageUrl } 
             }));
@@ -252,7 +258,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           this.profileImage = imageUrl;
           localStorage.setItem('profileImage', imageUrl);
           
-          // Emit event to update profile view instantly
           window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
             detail: { imageUrl } 
           }));
@@ -287,7 +292,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           this.profileImage = newAvatar;
           localStorage.removeItem('profileImage');
           
-          // Emit event to update profile view instantly
           window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
             detail: { imageUrl: newAvatar } 
           }));
@@ -431,4 +435,4 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   get currentPassword() { return this.passwordForm.get('currentPassword'); }
   get newPassword() { return this.passwordForm.get('newPassword'); }
   get confirmNewPassword() { return this.passwordForm.get('confirmNewPassword'); }
-} 
+}
