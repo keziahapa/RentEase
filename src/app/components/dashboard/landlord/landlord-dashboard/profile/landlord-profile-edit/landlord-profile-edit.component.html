@@ -9,118 +9,116 @@
       <h1 class="page-title">Edit Profile</h1>
     </div>
 
-    <!-- Profile Picture Section -->
-    <div class="avatar-section">
-      <div class="avatar-container">
-        <div class="user-avatar-large">
-          <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image-large" (error)="handleImageError()">
-          <div *ngIf="!profileImage" class="avatar-placeholder-large">
-            <mat-icon>account_circle</mat-icon>
+    <!-- Single Form Container -->
+    <div class="form-container">
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
+        
+        <!-- Profile Picture Section Inside Form -->
+        <div class="avatar-section">
+          <div class="avatar-container">
+            <div class="user-avatar-large">
+              <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image-large" (error)="handleImageError()">
+              <div *ngIf="!profileImage" class="avatar-placeholder-large">
+                <mat-icon>account_circle</mat-icon>
+              </div>
+            </div>
+            
+            <div class="avatar-menu-trigger" (click)="openAvatarDialog()">
+              <mat-icon>edit</mat-icon>
+            </div>
           </div>
         </div>
-        
-        <div class="avatar-menu-trigger" (click)="openAvatarDialog()">
-          <mat-icon>edit</mat-icon>
+
+        <!-- Tabbed Form Section -->
+        <div class="tabbed-form-section">
+          <mat-tab-group (selectedTabChange)="onTabChange($event)" animationDuration="0ms">
+            
+            <!-- Basic Information Tab -->
+            <mat-tab label="Basic Information">
+              <div class="tab-content">
+                <div class="form-section">
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Full Name</mat-label>
+                      <input matInput formControlName="fullName" placeholder="Enter your full name">
+                      <mat-icon matSuffix>person</mat-icon>
+                      <mat-error *ngIf="fullName?.invalid && fullName?.touched">
+                        <span *ngIf="fullName?.errors?.['required']">Full name is required</span>
+                        <span *ngIf="fullName?.errors?.['minlength']">Full name must be at least 2 characters</span>
+                        <span *ngIf="fullName?.errors?.['maxlength']">Full name cannot exceed 100 characters</span>
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Bio</mat-label>
+                      <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="3"></textarea>
+                      <mat-hint>{{ bio?.value?.length || 0 }}/500</mat-hint>
+                      <mat-error *ngIf="bio?.invalid && bio?.touched">
+                        Bio cannot exceed 500 characters
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                <!-- Security Section in Basic Tab -->
+                <div class="security-section">
+                  <h3 class="section-title">Account Security</h3>
+                  <button type="button" class="security-btn" (click)="openPasswordDialog()">
+                    <mat-icon>lock</mat-icon>
+                    <span>Change Password</span>
+                  </button>
+                </div>
+              </div>
+            </mat-tab>
+
+            <!-- Contact Information Tab -->
+            <mat-tab label="Contact Information">
+              <div class="tab-content">
+                <div class="form-section">
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Email Address</mat-label>
+                      <input matInput formControlName="email" placeholder="your@email.com" type="email">
+                      <mat-icon matSuffix>email</mat-icon>
+                      <mat-error *ngIf="email?.invalid && email?.touched">
+                        <span *ngIf="email?.errors?.['required']">Email is required</span>
+                        <span *ngIf="email?.errors?.['email']">Please enter a valid email address</span>
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Phone Number</mat-label>
+                      <input matInput formControlName="phoneNumber" placeholder="+254 XXX XXX XXX" type="tel">
+                      <mat-icon matSuffix>phone</mat-icon>
+                      <mat-error *ngIf="phoneNumber?.invalid && phoneNumber?.touched">
+                        <span *ngIf="phoneNumber?.errors?.['required']">Phone number is required</span>
+                        <span *ngIf="phoneNumber?.errors?.['pattern']">Please enter a valid phone number</span>
+                        <span *ngIf="phoneNumber?.errors?.['minlength']">Phone number must be at least 10 digits</span>
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+            </mat-tab>
+
+          </mat-tab-group>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="button" class="btn-outline" (click)="cancel()" [disabled]="isSubmitting">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary" [disabled]="profileForm.invalid || isSubmitting">
+              <mat-spinner diameter="20" *ngIf="isSubmitting"></mat-spinner>
+              {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
         </div>
-      </div>
-      <button class="change-photo-btn" (click)="openAvatarDialog()">
-        <mat-icon>photo_camera</mat-icon>
-        <span>Change Profile Photo</span>
-      </button>
-    </div>
-
-    <!-- Tabbed Form Section -->
-    <div class="tabbed-form-section">
-      <mat-tab-group (selectedTabChange)="onTabChange($event)" animationDuration="0ms">
-        
-        <!-- Basic Information Tab -->
-        <mat-tab label="Basic Information">
-          <div class="tab-content">
-            <form [formGroup]="profileForm" class="profile-form">
-              <div class="form-section">
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Full Name</mat-label>
-                    <input matInput formControlName="fullName" placeholder="Enter your full name">
-                    <mat-icon matSuffix>person</mat-icon>
-                    <mat-error *ngIf="fullName?.invalid && fullName?.touched">
-                      <span *ngIf="fullName?.errors?.['required']">Full name is required</span>
-                      <span *ngIf="fullName?.errors?.['minlength']">Full name must be at least 2 characters</span>
-                      <span *ngIf="fullName?.errors?.['maxlength']">Full name cannot exceed 100 characters</span>
-                    </mat-error>
-                  </mat-form-field>
-                </div>
-
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Bio</mat-label>
-                    <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="4"></textarea>
-                    <mat-hint>{{ bio?.value?.length || 0 }}/500</mat-hint>
-                    <mat-error *ngIf="bio?.invalid && bio?.touched">
-                      Bio cannot exceed 500 characters
-                    </mat-error>
-                  </mat-form-field>
-                </div>
-              </div>
-
-              <!-- Security Section in Basic Tab -->
-              <div class="security-section">
-                <h3 class="section-title">Account Security</h3>
-                <button type="button" class="security-btn" (click)="openPasswordDialog()">
-                  <mat-icon>lock</mat-icon>
-                  <span>Change Password</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </mat-tab>
-
-        <!-- Contact Information Tab -->
-        <mat-tab label="Contact Information">
-          <div class="tab-content">
-            <form [formGroup]="profileForm" class="profile-form">
-              <div class="form-section">
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Email Address</mat-label>
-                    <input matInput formControlName="email" placeholder="your@email.com" type="email">
-                    <mat-icon matSuffix>email</mat-icon>
-                    <mat-error *ngIf="email?.invalid && email?.touched">
-                      <span *ngIf="email?.errors?.['required']">Email is required</span>
-                      <span *ngIf="email?.errors?.['email']">Please enter a valid email address</span>
-                    </mat-error>
-                  </mat-form-field>
-                </div>
-
-                <div class="form-row">
-                  <mat-form-field appearance="outline" class="form-field">
-                    <mat-label>Phone Number</mat-label>
-                    <input matInput formControlName="phoneNumber" placeholder="+254 XXX XXX XXX" type="tel">
-                    <mat-icon matSuffix>phone</mat-icon>
-                    <mat-error *ngIf="phoneNumber?.invalid && phoneNumber?.touched">
-                      <span *ngIf="phoneNumber?.errors?.['required']">Phone number is required</span>
-                      <span *ngIf="phoneNumber?.errors?.['pattern']">Please enter a valid phone number</span>
-                      <span *ngIf="phoneNumber?.errors?.['minlength']">Phone number must be at least 10 digits</span>
-                    </mat-error>
-                  </mat-form-field>
-                </div>
-              </div>
-            </form>
-          </div>
-        </mat-tab>
-
-      </mat-tab-group>
-
-      <!-- Form Actions -->
-      <div class="form-actions">
-        <button type="button" class="btn-outline" (click)="cancel()" [disabled]="isSubmitting">
-          Cancel
-        </button>
-        <button type="button" class="btn-primary" (click)="onSubmit()" [disabled]="profileForm.invalid || isSubmitting">
-          <mat-spinner diameter="20" *ngIf="isSubmitting"></mat-spinner>
-          {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
-        </button>
-      </div>
+      </form>
     </div>
   </div>
 
