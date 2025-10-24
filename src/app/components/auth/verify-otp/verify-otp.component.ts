@@ -38,6 +38,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
 
   email = '';
   userType = '';
+  phoneNumber = '';
 
   pageTitle = 'Verify Your Account';
   infoText = 'We\'ve sent a 7-character verification code to your email';
@@ -71,6 +72,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       this.route.queryParams.subscribe(params => {
         this.email = (params['email'] || '').trim().toLowerCase();
         this.userType = params['userType'] || '';
+        this.phoneNumber = params['phoneNumber'] || '';
 
         if (!this.email) {
           this.showMessage('No email found. Please restart the process.', 'error');
@@ -78,9 +80,60 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
           return;
         }
 
+        this.phoneNumber = this.extractPhoneNumber();
         this.updateUIText();
       })
     );
+  }
+
+  private extractPhoneNumber(): string {
+    const sources = [
+      () => this.route.snapshot.queryParams['phoneNumber'],
+      () => {
+        try {
+          const pendingUser = sessionStorage.getItem('pendingUser');
+          return pendingUser ? JSON.parse(pendingUser).phoneNumber : null;
+        } catch {
+          return null;
+        }
+      },
+      () => sessionStorage.getItem('pendingPhoneNumber'),
+      () => {
+        try {
+          const navigation = this.router.getCurrentNavigation();
+          return navigation?.extras?.state?.['phoneNumber'] || null;
+        } catch {
+          return null;
+        }
+      },
+      () => {
+        try {
+          const pendingVerification = sessionStorage.getItem('pendingVerificationEmail');
+          if (pendingVerification) {
+            const pendingUser = sessionStorage.getItem('pendingUser');
+            return pendingUser ? JSON.parse(pendingUser).phoneNumber : null;
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      }
+    ];
+
+    for (const source of sources) {
+      const phone = source();
+      if (phone && this.isValidPhoneNumber(phone)) {
+        return phone;
+      }
+    }
+
+    return '';
+  }
+
+  private isValidPhoneNumber(phone: string): boolean {
+    if (!phone || typeof phone !== 'string') return false;
+    const cleanPhone = phone.replace(/\s/g, '');
+    return /^(\+254|0)[1-9]\d{8}$/.test(cleanPhone);
   }
 
   private updateUIText() {
@@ -152,100 +205,38 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   private async handleSuccessfulVerification(response: any) {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const userRole = response.user?.role || this.userType;
+    await new Promise(resolve => setTimeout(resolve, 100));
     
-    if (response.token) {
-      localStorage.setItem('authToken', response.token);
-    }
-    
-    if (response.user) {
-     
-      const phoneNumber = this.getPhoneNumberFromRegistration();
-      console.log('Phone number from registration:', phoneNumber);
-      
-      const userData = {
-        ...response.user,
-        phoneNumber: phoneNumber || response.user.phoneNumber || '' 
-      };
-      
-      localStorage.setItem('userData', JSON.stringify(userData));
-      console.log('User data stored with phone number:', userData);
-     
-      this.cleanupTemporaryStorage();
-    }
-
-    
+    const userRole = response.user?.role || this.userType || 'tenant';
     const dashboardRoute = this.getDashboardRoute(userRole);
     
-    await new Promise(resolve => setTimeout(resolve, 500));
-    this.router.navigate([dashboardRoute], { replaceUrl: true });
-  }
-
-  private getPhoneNumberFromRegistration(): string {
     try {
+      const navigationSuccess = await this.router.navigate([dashboardRoute], { 
+        replaceUrl: true 
+      });
       
-      const pendingUser = sessionStorage.getItem('pendingUser');
-      if (pendingUser) {
-        const userData = JSON.parse(pendingUser);
-        console.log('Found phone in pendingUser:', userData.phoneNumber);
-        return userData.phoneNumber;
+      if (navigationSuccess) {
+        console.log('Navigation completed successfully');
+      } else {
+        await this.router.navigate(['/tenant-dashboard'], { replaceUrl: true });
       }
-      
-      
-      const pendingPhone = sessionStorage.getItem('pendingPhoneNumber');
-      if (pendingPhone) {
-        console.log('Found phone in pendingPhoneNumber:', pendingPhone);
-        return pendingPhone;
-      }
-      
-    
-      const queryPhone = this.route.snapshot.queryParams['phoneNumber'];
-      if (queryPhone) {
-        console.log('Found phone in query params:', queryPhone);
-        return queryPhone;
-      }
-      
-      console.warn('No phone number found in any temporary storage');
-      return '';
-    } catch (error) {
-      console.error('Error getting phone number from registration:', error);
-      return '';
+    } catch (navigationError) {
+      window.location.href = '/tenant-dashboard';
     }
-  }
-
-  private cleanupTemporaryStorage(): void {
-  
-    const itemsToRemove = [
-      'pendingUser',
-      'pendingPhoneNumber', 
-      'pendingVerificationEmail'
-    ];
-    
-    itemsToRemove.forEach(item => {
-      sessionStorage.removeItem(item);
-      console.log('Cleaned up:', item);
-    });
   }
 
   private getDashboardRoute(role: string): string {
     const normalizedRole = role.toUpperCase().trim();
     
-    switch (normalizedRole) {
-      case 'LANDLORD':
-        return '/landlord-dashboard';
-      case 'TENANT':
-        return '/tenant-dashboard';
-      case 'CARETAKER':
-        return '/caretaker-dashboard';
-      case 'BUSINESS':
-        return '/business-dashboard';
-      case 'ADMIN':
-        return '/admin-dashboard';
-      default:
-        return '/dashboard';
-    }
+    const routeMap: { [key: string]: string } = {
+      'LANDLORD': '/landlord-dashboard',
+      'TENANT': '/tenant-dashboard',
+      'CARETAKER': '/caretaker-dashboard',
+      'BUSINESS': '/business-dashboard',
+      'ADMIN': '/admin-dashboard'
+    };
+    
+    return routeMap[normalizedRole] || '/tenant-dashboard';
   }
 
   private handleVerificationError(error: any) {
@@ -260,11 +251,9 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       this.showMessage('Account not found. Please check your email or register.', 'error');
     } else if (errorMsg.includes('already verified')) {
       this.showMessage('Account already verified. Redirecting to dashboard...', 'info');
-      setTimeout(() => {
-        const userRole = this.userType;
-        const dashboardRoute = this.getDashboardRoute(userRole);
-        this.router.navigate([dashboardRoute]);
-      }, 2000);
+      const userRole = this.userType || 'tenant';
+      const dashboardRoute = this.getDashboardRoute(userRole);
+      this.router.navigate([dashboardRoute]);
     } else {
       this.showMessage(error.message || 'Verification failed. Please try again.', 'error');
     }
