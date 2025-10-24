@@ -1,79 +1,82 @@
 <div class="profile-view-container">
   <div class="profile-content">
-    <div class="avatar-section">
-      <div class="avatar-container">
-        <div class="user-avatar-large">
-          <!-- Show cached image instantly, no loading delay -->
-          <img 
-            [src]="profileImage" 
-            alt="Profile" 
-            class="avatar-image-large"
-            (error)="profileImage = generateInitialAvatar(getUserFullName())">
-          <div *ngIf="!profileImage" class="avatar-placeholder-large">
-            <mat-icon>account_circle</mat-icon>
-          </div>
-          <div *ngIf="isLoadingProfilePicture" class="image-loading-overlay">
-            <mat-spinner diameter="32"></mat-spinner>
-          </div>
+    <div class="form-container">
+      <div class="profile-form">
+        
+        <div class="form-header">
+          <h1 class="page-title">My Profile</h1>
         </div>
-      </div>
-    </div>
 
-    <div class="profile-info-card">
-      <div class="info-section">
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">Full Name</div>
-            <div class="info-value">{{ getUserFullName() || 'Not provided' }}</div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">Email Address</div>
-            <div class="info-value">{{ getUserEmail() || 'Not provided' }}</div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">Phone Number</div>
-            <div class="info-value">{{ getUserPhone() || 'Not provided' }}</div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">Account Type</div>
-            <div class="info-value">{{ formattedRole || 'Not provided' }}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="info-section">
-        <div class="info-grid">
-          <div class="info-item">
-            <div class="info-label">Email Verification</div>
-            <div class="info-value">
-              <span class="status-badge" [class.verified]="user?.emailVerified" [class.unverified]="!user?.emailVerified">
-                {{ getEmailVerificationStatus() }}
-              </span>
-            </div>
-          </div>
-
-          <div class="info-item">
-            <div class="info-label">Account Status</div>
-            <div class="info-value">
-              <span class="status-badge" [class.verified]="user?.verified" [class.unverified]="!user?.verified">
-                {{ getAccountStatus() }}
-              </span>
+        <div class="avatar-section">
+          <div class="avatar-container">
+            <div class="user-avatar-large">
+              <img *ngIf="profileImage && !isLoadingProfilePicture" 
+                   [src]="profileImage" 
+                   alt="Profile" 
+                   class="avatar-image-large" 
+                   (error)="handleImageError()">
+              <div *ngIf="isLoadingProfilePicture" class="image-loading-overlay">
+                <mat-spinner diameter="24"></mat-spinner>
+              </div>
+              <div *ngIf="!profileImage && !isLoadingProfilePicture" class="avatar-placeholder-large">
+                <mat-icon>account_circle</mat-icon>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="form-actions">
-        <button type="button" class="btn-outline" (click)="goBack()">
-          Back to Dashboard
-        </button>
-        <button type="button" class="btn-primary" (click)="editProfile()">
-          <mat-icon>edit</mat-icon>
-          Edit Profile
-        </button>
+        <div class="profile-info-card">
+          <div class="info-section">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="info-label">Full Name</div>
+                <div class="info-value">{{ getUserFullName() }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Email Address</div>
+                <div class="info-value">{{ getUserEmail() }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Phone Number</div>
+                <div class="info-value">{{ getUserPhone() }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Role</div>
+                <div class="info-value">{{ formattedRole }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Email Verification</div>
+                <div class="status-badge" [class.verified]="user?.emailVerified" [class.unverified]="!user?.emailVerified">
+                  {{ getEmailVerificationStatus() }}
+                </div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Account Status</div>
+                <div class="info-value">{{ getAccountStatus() }}</div>
+              </div>
+
+              <div class="info-item">
+                <div class="info-label">Member Since</div>
+                <div class="info-value">{{ getMemberSince() }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-outline" (click)="goBack()">
+              Back to Dashboard
+            </button>
+            <button type="button" class="btn-primary" (click)="editProfile()">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Profile</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

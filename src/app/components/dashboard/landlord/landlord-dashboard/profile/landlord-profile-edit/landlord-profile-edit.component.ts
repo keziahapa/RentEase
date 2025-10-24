@@ -68,10 +68,52 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.debugAuthState();
     this.loadUserData();
   }
 
   ngOnDestroy(): void {}
+
+ 
+  private debugAuthState(): void {
+    console.log('=== AUTH SERVICE DEBUG INFO ===');
+    
+
+    console.log('Is authenticated:', this.authService.isAuthenticated());
+    console.log('Is logged in:', this.authService.isLoggedIn());
+    
+ 
+    const token = this.authService.getToken();
+    console.log('Token exists:', !!token);
+    console.log('Token length:', token?.length);
+    
+    const currentUser = this.authService.getCurrentUser();
+    console.log('Current user from service:', currentUser);
+    
+   
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const localStorageUser = localStorage.getItem('userData');
+        const sessionStorageUser = sessionStorage.getItem('userData');
+        const authToken = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        
+        console.log('LocalStorage userData:', localStorageUser);
+        console.log('SessionStorage userData:', sessionStorageUser);
+        console.log('Auth token from storage:', authToken);
+        
+        if (localStorageUser) {
+          console.log('Parsed localStorage user:', JSON.parse(localStorageUser));
+        }
+        if (sessionStorageUser) {
+          console.log('Parsed sessionStorage user:', JSON.parse(sessionStorageUser));
+        }
+      } catch (error) {
+        console.error('Error reading storage:', error);
+      }
+    }
+    
+    console.log('=== END DEBUG INFO ===');
+  }
 
   onTabChange(event: any): void {
     this.selectedTab = event.index;
@@ -98,52 +140,109 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     const currentUser = this.authService.getCurrentUser();
     const token = this.authService.getToken();
     
+    console.log('Loading user data - User:', currentUser);
+    console.log('Loading user data - Token:', token);
+    
     if (!currentUser || !token) {
+      console.error('No user data or token found');
       this.snackBar.open('Please log in to continue', 'Close', { duration: 3000 });
       this.router.navigate(['/login']);
       return;
     }
 
-    console.log('Current user data:', currentUser);
-
-    this.originalPhoneNumber = this.authService.getPhoneNumber() || currentUser.phoneNumber || '';
+   
+    this.originalPhoneNumber = this.extractPhoneNumber(currentUser);
     this.currentPhoneNumber = this.originalPhoneNumber;
+    
+    console.log('Extracted phone number:', this.originalPhoneNumber);
+    console.log('Full user object:', currentUser);
     
     this.user = currentUser;
     this.populateForm();
-    this.loadCachedProfilePicture();
+    this.loadProfilePicture();
   }
 
-  private loadCachedProfilePicture(): void {
+  private extractPhoneNumber(user: any): string {
+    if (!user) return '';
+    
+ 
+    const possiblePhoneProperties = [
+      'phoneNumber',
+      'phone',
+      'phone_number',
+      'mobile',
+      'mobileNumber',
+      'contactNumber'
+    ];
+    
+    for (const prop of possiblePhoneProperties) {
+      if (user[prop]) {
+        console.log(`Found phone number in property '${prop}':`, user[prop]);
+        return user[prop];
+      }
+    }
+    
+ 
+    if (user.profile?.phoneNumber) return user.profile.phoneNumber;
+    if (user.profile?.phone) return user.profile.phone;
+    if (user.user?.phoneNumber) return user.user.phoneNumber;
+    if (user.user?.phone) return user.user.phone;
+    
+    console.log('No phone number found in user object');
+    return '';
+  }
+
+  private loadProfilePicture(): void {
+ 
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
+      console.log('Loaded profile image from localStorage');
       this.profileImage = savedImage;
-    } else if (this.user?.avatar) {
-      this.profileImage = this.user.avatar;
-    } else {
-      this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
+      return;
     }
 
+  
+    const avatarSources = ['avatar', 'profilePicture', 'picture', 'image', 'photo'];
+    for (const source of avatarSources) {
+      if (this.user[source]) {
+        console.log(`Found profile image in property '${source}':`, this.user[source]);
+        this.profileImage = this.user[source];
+        localStorage.setItem('profileImage', this.user[source]);
+        return;
+      }
+    }
+
+    // Otherwise generate initial avatar
+    console.log('Generating initial avatar');
+    this.profileImage = this.generateInitialAvatar(this.user?.fullName || this.user?.name || 'User');
+    
+    // Try to load from API as fallback
     this.loadProfilePictureFromApi();
   }
 
   private loadProfilePictureFromApi(): void {
+    console.log('Attempting to load profile picture from API');
     this.propertyService.getProfilePicture().subscribe({
       next: (response: any) => {
-        const imageUrl = response.data || response.pictureUrl;
+        console.log('Profile picture API response:', response);
+        
+        const imageUrl = response.data || response.pictureUrl || response.avatar || response.url;
         
         if (response.success && imageUrl) {
+          console.log('Profile picture loaded from API:', imageUrl);
           this.preloadImage(imageUrl).then(() => {
             this.profileImage = imageUrl;
             localStorage.setItem('profileImage', imageUrl);
-            window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
-              detail: { imageUrl } 
-            }));
+            this.updateProfileImageEvent(imageUrl);
+          }).catch(() => {
+            console.log('Failed to preload image from API');
           });
+        } else {
+          console.log('No profile picture found in API response');
         }
       },
       error: (error: any) => {
-        console.log('Using cached profile image');
+        console.log('Profile picture API call failed:', error);
       }
     });
   }
@@ -155,6 +254,12 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       img.onerror = () => reject();
       img.src = url;
     });
+  }
+
+  private updateProfileImageEvent(imageUrl: string): void {
+    window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
+      detail: { imageUrl } 
+    }));
   }
 
   private generateInitialAvatar(name: string): string {
@@ -208,19 +313,41 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     if (this.user) {
       console.log('Populating form with user data:', this.user);
       
+   
+      const fullName = this.user.fullName || this.user.name || this.user.username || '';
+      
+   
+      const bio = this.user.bio || this.user.description || this.user.about || '';
+      
+    
+      const email = this.user.email || this.user.emailAddress || '';
+      
+      console.log('Extracted form data:', { fullName, email, phoneNumber: this.currentPhoneNumber, bio });
+      
       this.profileForm.patchValue({
-        fullName: this.user.fullName || '',
-        email: this.user.email || '',
-        phoneNumber: this.currentPhoneNumber || '',
-        bio: this.user.bio || ''
+        fullName: fullName,
+        email: email,
+        phoneNumber: this.currentPhoneNumber,
+        bio: bio
       });
 
-      this.currentPhoneNumber = this.profileForm.value.phoneNumber;
+      console.log('Form values after population:', this.profileForm.value);
+      console.log('Form valid:', this.profileForm.valid);
+      console.log('Form errors:', this.profileForm.errors);
+      
+    
+      console.log('FullName field valid:', this.fullName?.valid);
+      console.log('Email field valid:', this.email?.valid);
+      console.log('PhoneNumber field valid:', this.phoneNumber?.valid);
+      console.log('Bio field valid:', this.bio?.valid);
+      
     } else {
       console.error('No user data available to populate form');
       this.snackBar.open('Failed to load user data', 'Close', { duration: 3000 });
     }
   }
+
+ 
 
   changePhoto(): void {
     this.closeAvatarDialog();
@@ -238,7 +365,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      this.snackBar.open('Please select a valid image file', 'Close', { duration: 3000 });
+      this.snackBar.open('Please select a valid image file (JPEG, PNG, WebP)', 'Close', { duration: 3000 });
       return;
     }
 
@@ -257,17 +384,14 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         this.isUploadingPhoto = false;
         
-        const imageUrl = response.data || response.pictureUrl;
+        const imageUrl = response.data || response.pictureUrl || response.avatar;
         
         if (response.success && imageUrl) {
           this.snackBar.open('Profile photo updated successfully', 'Close', { duration: 2000 });
           
           this.profileImage = imageUrl;
           localStorage.setItem('profileImage', imageUrl);
-          
-          window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
-            detail: { imageUrl } 
-          }));
+          this.updateProfileImageEvent(imageUrl);
           
         } else {
           this.snackBar.open(response.message || 'Failed to upload photo', 'Close', { duration: 3000 });
@@ -275,6 +399,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         this.isUploadingPhoto = false;
+        console.error('Upload error:', error);
         this.snackBar.open('Failed to upload profile photo', 'Close', { duration: 3000 });
       }
     });
@@ -298,10 +423,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           const newAvatar = this.generateInitialAvatar(this.user?.fullName || 'User');
           this.profileImage = newAvatar;
           localStorage.removeItem('profileImage');
-          
-          window.dispatchEvent(new CustomEvent('profileImageUpdated', { 
-            detail: { imageUrl: newAvatar } 
-          }));
+          this.updateProfileImageEvent(newAvatar);
           
           this.snackBar.open('Profile photo removed', 'Close', { duration: 2000 });
         } else {
@@ -310,6 +432,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         this.isDeletingPhoto = false;
+        console.error('Delete error:', error);
         this.snackBar.open('Failed to remove profile photo', 'Close', { duration: 3000 });
       }
     });
@@ -333,12 +456,14 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
         if (response.success) {
           this.snackBar.open('Password changed successfully!', 'Close', { duration: 3000 });
           this.closePasswordDialog();
+          this.passwordForm.reset();
         } else {
           this.snackBar.open(response.message || 'Failed to change password', 'Close', { duration: 3000 });
         }
       },
       error: (error: any) => {
         this.isChangingPassword = false;
+        console.error('Password change error:', error);
         this.snackBar.open(error.message || 'Failed to change password', 'Close', { duration: 3000 });
       }
     });
@@ -347,7 +472,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   onSubmit(): void {
     if (this.profileForm.invalid || !this.user) {
       this.profileForm.markAllAsTouched();
-      this.snackBar.open('Please fill in all required fields', 'Close', { duration: 3000 });
+      this.snackBar.open('Please fill in all required fields correctly', 'Close', { duration: 3000 });
       return;
     }
 
@@ -368,6 +493,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         if (response.success) {
           this.originalPhoneNumber = newPhoneNumber;
+          this.currentPhoneNumber = newPhoneNumber;
           this.snackBar.open('Phone number updated successfully', 'Close', { duration: 2000 });
           this.updateUserProfile();
         } else {
@@ -377,6 +503,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         this.isSubmitting = false;
+        console.error('Phone update error:', error);
         this.snackBar.open(error.message || 'Failed to update phone number', 'Close', { duration: 3000 });
       }
     });
@@ -409,6 +536,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         this.isSubmitting = false;
+        console.error('Profile update error:', error);
         this.snackBar.open('Failed to update profile', 'Close', { duration: 3000 });
       }
     });
@@ -418,16 +546,20 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     try {
       const currentUser = this.authService.getCurrentUser();
       if (currentUser) {
+        const updatedUser = { ...currentUser, ...userData };
+        
+      
         const localStorageUser = localStorage.getItem('userData');
         const isPermanent = !!localStorageUser;
         
         if (isPermanent) {
-          localStorage.setItem('userData', JSON.stringify(userData));
+          localStorage.setItem('userData', JSON.stringify(updatedUser));
         } else {
-          sessionStorage.setItem('userData', JSON.stringify(userData));
+          sessionStorage.setItem('userData', JSON.stringify(updatedUser));
         }
         
        
+        this.user = updatedUser;
       }
     } catch (error) {
       console.error('Error updating local user data:', error);
@@ -455,6 +587,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   handleImageError(): void {
     this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
   }
+
 
   get fullName() { return this.profileForm.get('fullName'); }
   get email() { return this.profileForm.get('email'); }
