@@ -9,35 +9,35 @@
 
   .profile-content {
     background: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    padding: 30px;
     width: 100%;
-    max-width: 600px;
+    max-width: 500px;
     animation: slideIn 0.6s ease-out;
     border: 1px solid #e0e0e0;
 
     @media (max-width: 768px) {
-      padding: 30px 20px;
+      padding: 20px 15px;
       margin: 10px;
-      border-radius: 16px;
+      border-radius: 12px;
       max-width: 100%;
     }
   }
 
   .form-header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 
     .page-title {
       color: #2c3e50;
       font-weight: 600;
-      font-size: 28px;
+      font-size: 24px;
       margin: 0;
       letter-spacing: -0.5px;
 
       @media (max-width: 768px) {
-        font-size: 24px;
+        font-size: 20px;
       }
     }
   }
@@ -45,19 +45,19 @@
   .avatar-section {
     display: flex;
     justify-content: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 
     .avatar-container {
       position: relative;
       display: inline-block;
 
       .user-avatar-large {
-        width: 120px;
-        height: 120px;
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
         overflow: hidden;
-        border: 4px solid #f8f9fa;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border: 3px solid #f8f9fa;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
         .avatar-image-large {
           width: 100%;
@@ -75,28 +75,28 @@
           color: white;
 
           mat-icon {
-            font-size: 60px;
-            width: 60px;
-            height: 60px;
+            font-size: 40px;
+            width: 40px;
+            height: 40px;
           }
         }
       }
 
       .avatar-menu-trigger {
         position: absolute;
-        bottom: 5px;
-        right: 5px;
+        bottom: 2px;
+        right: 2px;
         background: #3b82f6;
         color: white;
         border-radius: 50%;
-        width: 36px;
-        height: 36px;
+        width: 28px;
+        height: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
 
         &:hover {
           background: #2563eb;
@@ -104,9 +104,9 @@
         }
 
         mat-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
+          font-size: 14px;
+          width: 14px;
+          height: 14px;
         }
       }
     }
@@ -115,13 +115,14 @@
   .tabbed-form-section {
     .mat-mdc-tab-group {
       .mat-mdc-tab-header {
-        margin-bottom: 20px;
+        margin-bottom: 15px;
       }
 
       .mat-mdc-tab {
         .mdc-tab__text-label {
           color: #64748b;
           font-weight: 500;
+          font-size: 0.85rem;
         }
 
         &.mdc-tab--active {
@@ -133,15 +134,14 @@
     }
 
     .tab-content {
-      padding: 20px 0;
+      padding: 15px 0;
     }
   }
 
-  // Form field styling (same as registration)
   .form-section {
     .form-row {
       width: 100%;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
 
       .form-field {
         width: 100%;
@@ -150,32 +150,39 @@
           width: 100%;
 
           .mat-mdc-text-field-wrapper {
-            border-radius: 12px;
+            border-radius: 8px;
             transition: all 0.3s ease;
             background: #fff;
 
             &:hover {
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+              box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
             }
           }
 
           .mat-mdc-form-field-focus-overlay {
-            border-radius: 12px;
+            border-radius: 8px;
           }
 
           .mat-mdc-input-element {
             color: #2c3e50;
-            font-size: 16px;
+            font-size: 14px;
+            padding: 10px 14px;
 
             &::placeholder {
               color: #7f8c8d;
               opacity: 0.8;
+              font-size: 13px;
             }
           }
 
           .mat-mdc-floating-label {
             color: #7f8c8d;
             font-weight: 500;
+            font-size: 14px;
+          }
+
+          .mat-mdc-form-field-subscript-wrapper {
+            min-height: 18px;
           }
 
           &.mat-focused {
@@ -185,7 +192,6 @@
           }
         }
 
-        // Bio field specific styling
         &.bio-row {
           .bio-field {
             .mat-mdc-form-field {
@@ -193,8 +199,10 @@
                 .mat-mdc-form-field-flex {
                   .mat-mdc-form-field-infix {
                     textarea {
-                      min-height: 100px;
+                      min-height: 80px;
                       resize: vertical;
+                      font-size: 14px;
+                      padding: 10px 14px;
                     }
                   }
                 }
@@ -207,27 +215,27 @@
   }
 
   .security-section {
-    margin-top: 30px;
-    padding-top: 20px;
+    margin-top: 20px;
+    padding-top: 15px;
     border-top: 1px solid #e2e8f0;
 
     .section-title {
       color: #2c3e50;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
 
     .security-btn {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 12px 20px;
+      gap: 6px;
+      padding: 10px 16px;
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 12px;
+      border-radius: 8px;
       color: #475569;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s ease;
@@ -239,9 +247,9 @@
       }
 
       mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
         color: #64748b;
       }
     }
@@ -249,10 +257,10 @@
 
   .form-actions {
     display: flex;
-    gap: 15px;
+    gap: 12px;
     justify-content: flex-end;
-    margin-top: 30px;
-    padding-top: 20px;
+    margin-top: 20px;
+    padding-top: 15px;
     border-top: 1px solid #e2e8f0;
 
     @media (max-width: 768px) {
@@ -260,13 +268,13 @@
     }
 
     .btn-outline, .btn-primary {
-      height: 50px;
-      font-size: 16px;
+      height: 42px;
+      font-size: 14px;
       font-weight: 600;
-      letter-spacing: 0.5px;
-      border-radius: 12px;
+      letter-spacing: 0.3px;
+      border-radius: 8px;
       transition: all 0.3s ease;
-      min-width: 140px;
+      min-width: 120px;
 
       @media (max-width: 768px) {
         min-width: 100%;
@@ -275,14 +283,14 @@
 
     .btn-outline {
       background: transparent;
-      border: 2px solid #64748b;
+      border: 1px solid #64748b;
       color: #64748b;
 
       &:not(:disabled) {
         &:hover {
           background: #64748b;
           color: white;
-          transform: translateY(-2px);
+          transform: translateY(-1px);
         }
       }
 
@@ -296,17 +304,17 @@
       background: #3b82f6;
       color: white;
       border: none;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 
       &:not(:disabled) {
         &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
           background: #2563eb;
         }
 
         &:active {
-          transform: translateY(-1px);
+          transform: translateY(0);
         }
       }
 
@@ -317,12 +325,11 @@
       }
 
       .mat-spinner {
-        margin-right: 8px;
+        margin-right: 6px;
       }
     }
   }
 
-  // Dialog styling
   .dialog-overlay {
     position: fixed;
     top: 0;
@@ -335,26 +342,28 @@
     justify-content: center;
     z-index: 1000;
     padding: 20px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 
     .avatar-dialog, .password-dialog {
       background: white;
-      border-radius: 20px;
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
       width: 100%;
-      max-width: 480px;
+      max-width: 400px;
       animation: dialogSlideIn 0.3s ease-out;
 
       .dialog-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 25px 30px 20px;
+        padding: 20px 24px 15px;
         border-bottom: 1px solid #e2e8f0;
 
         h3 {
           color: #2c3e50;
           font-weight: 600;
-          font-size: 22px;
+          font-size: 18px;
           margin: 0;
         }
 
@@ -363,8 +372,8 @@
           border: none;
           color: #64748b;
           cursor: pointer;
-          padding: 8px;
-          border-radius: 8px;
+          padding: 6px;
+          border-radius: 6px;
           transition: all 0.3s ease;
 
           &:hover {
@@ -373,28 +382,28 @@
           }
 
           mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
           }
         }
       }
 
       .dialog-content {
-        padding: 30px;
+        padding: 20px;
 
         .avatar-preview {
           text-align: center;
-          margin-bottom: 30px;
+          margin-bottom: 20px;
 
           .preview-avatar {
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             overflow: hidden;
-            margin: 0 auto 15px;
-            border: 3px solid #f8f9fa;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 12px;
+            border: 2px solid #f8f9fa;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
             .preview-image {
               width: 100%;
@@ -412,66 +421,66 @@
               color: white;
 
               mat-icon {
-                font-size: 48px;
-                width: 48px;
-                height: 48px;
+                font-size: 36px;
+                width: 36px;
+                height: 36px;
               }
             }
           }
 
           .preview-text {
             color: #64748b;
-            font-size: 14px;
+            font-size: 13px;
             margin: 0;
           }
         }
 
         .password-form {
           .form-row {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
           }
         }
 
         .dialog-actions {
           display: flex;
-          gap: 12px;
+          gap: 10px;
           flex-wrap: wrap;
-          margin-top: 25px;
+          margin-top: 20px;
 
           .dialog-btn {
             flex: 1;
-            min-width: 120px;
-            height: 45px;
-            border-radius: 12px;
+            min-width: 100px;
+            height: 38px;
+            border-radius: 8px;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             border: none;
             cursor: pointer;
 
             &.primary-btn {
               background: #3b82f6;
               color: white;
-              box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+              box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
 
               &:hover:not(:disabled) {
                 background: #2563eb;
-                transform: translateY(-2px);
+                transform: translateY(-1px);
               }
             }
 
             &.danger-btn {
               background: #ef4444;
               color: white;
-              box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+              box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
 
               &:hover:not(:disabled) {
                 background: #dc2626;
-                transform: translateY(-2px);
+                transform: translateY(-1px);
               }
             }
 
@@ -502,11 +511,10 @@
   }
 }
 
-// Animations
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -517,7 +525,7 @@
 @keyframes dialogSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-20px) scale(0.95);
+    transform: translateY(-15px) scale(0.95);
   }
   to {
     opacity: 1;
@@ -525,7 +533,6 @@
   }
 }
 
-// Snackbar styling (same as registration)
 .snackbar-success {
   background-color: #27ae60 !important;
   color: #ffffff !important;
@@ -548,38 +555,37 @@
   }
 }
 
-// Mobile responsiveness
 @media (max-width: 480px) {
   .profile-edit-container {
     padding: 10px;
 
     .profile-content {
-      padding: 25px 15px;
+      padding: 15px 10px;
     }
 
     .form-header {
-      margin-bottom: 25px;
+      margin-bottom: 15px;
 
       .page-title {
-        font-size: 22px;
+        font-size: 18px;
       }
     }
 
     .avatar-section {
       .avatar-container {
         .user-avatar-large {
-          width: 100px;
-          height: 100px;
+          width: 70px;
+          height: 70px;
         }
       }
     }
 
     .dialog-overlay {
-      padding: 15px;
+      padding: 10px;
 
       .avatar-dialog, .password-dialog {
         .dialog-content {
-          padding: 20px;
+          padding: 15px;
         }
 
         .dialog-actions {
