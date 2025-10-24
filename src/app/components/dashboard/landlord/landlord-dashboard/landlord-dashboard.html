@@ -59,10 +59,10 @@
       </div>
 
       <div class="nav-item" 
-           [class.active]="isNavActive('settings')" 
-           (click)="navigateToSection('settings')">
-        <mat-icon class="nav-icon">settings</mat-icon>
-        <span>Settings</span>
+           [class.active]="isNavActive('profile')" 
+           (click)="viewProfile()">
+        <mat-icon class="nav-icon">account_circle</mat-icon>
+        <span>Profile</span>
       </div>
     </div>
   </nav>
@@ -93,8 +93,7 @@
         </div>
 
         <div class="profile-section">
-          <!-- FIXED: Removed $event.stopPropagation() from avatar click -->
-          <div class="user-avatar-wrapper" (click)="viewProfile()">
+          <div class="user-avatar-wrapper" (click)="toggleProfileMenu(); $event.stopPropagation()">
             <div class="user-avatar">
               <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image">
               <div *ngIf="!profileImage" class="avatar-placeholder">
@@ -124,7 +123,6 @@
       </div>
     </div>
 
-    <!-- FIXED: Use single router outlet for all routes -->
     <router-outlet></router-outlet>
   </main>
 </div>

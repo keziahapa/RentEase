@@ -1,15 +1,12 @@
 <div class="profile-edit-container">
   <div class="profile-content">
-    <!-- Single Form Container -->
     <div class="form-container">
       <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
         
-        <!-- Edit Profile Header Inside Form -->
         <div class="form-header">
           <h1 class="page-title">Edit Profile</h1>
         </div>
 
-        <!-- Profile Picture Section -->
         <div class="avatar-section">
           <div class="avatar-container">
             <div class="user-avatar-large">
@@ -25,11 +22,9 @@
           </div>
         </div>
 
-        <!-- Tabbed Form Section -->
         <div class="tabbed-form-section">
           <mat-tab-group (selectedTabChange)="onTabChange($event)" animationDuration="0ms">
             
-            <!-- Basic Information Tab -->
             <mat-tab label="Basic Information">
               <div class="tab-content">
                 <div class="form-section">
@@ -46,10 +41,10 @@
                     </mat-form-field>
                   </div>
 
-                  <div class="form-row">
-                    <mat-form-field appearance="outline" class="form-field">
+                  <div class="form-row bio-row">
+                    <mat-form-field appearance="outline" class="form-field bio-field">
                       <mat-label>Bio</mat-label>
-                      <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="3"></textarea>
+                      <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="4"></textarea>
                       <mat-hint>{{ bio?.value?.length || 0 }}/500</mat-hint>
                       <mat-error *ngIf="bio?.invalid && bio?.touched">
                         Bio cannot exceed 500 characters
@@ -58,7 +53,6 @@
                   </div>
                 </div>
 
-                <!-- Security Section in Basic Tab -->
                 <div class="security-section">
                   <h3 class="section-title">Account Security</h3>
                   <button type="button" class="security-btn" (click)="openPasswordDialog()">
@@ -69,7 +63,6 @@
               </div>
             </mat-tab>
 
-            <!-- Contact Information Tab -->
             <mat-tab label="Contact Information">
               <div class="tab-content">
                 <div class="form-section">
@@ -103,7 +96,6 @@
 
           </mat-tab-group>
 
-          <!-- Form Actions -->
           <div class="form-actions">
             <button type="button" class="btn-outline" (click)="cancel()" [disabled]="isSubmitting">
               Cancel
@@ -118,7 +110,6 @@
     </div>
   </div>
 
-  <!-- Avatar Dialog -->
   <div class="dialog-overlay" *ngIf="showAvatarDialog" (click)="closeAvatarDialog()">
     <div class="avatar-dialog" (click)="$event.stopPropagation()">
       <div class="dialog-header">
@@ -162,7 +153,6 @@
     </div>
   </div>
 
-  <!-- Password Dialog -->
   <div class="dialog-overlay" *ngIf="showPasswordDialog" (click)="closePasswordDialog()">
     <div class="password-dialog" (click)="$event.stopPropagation()">
       <div class="dialog-header">
@@ -225,5 +215,5 @@
         </form>
       </div>
     </div>
-  </div>  
+  </div>
 </div>

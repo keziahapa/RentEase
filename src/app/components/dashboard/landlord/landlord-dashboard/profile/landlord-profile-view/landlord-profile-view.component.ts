@@ -69,9 +69,12 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
     this.user = this.authService.getCurrentUser();
     
     if (this.user) {
+      console.log('User data loaded:', this.user);
       this.formattedRole = this.formatUserRole(this.user.role);
-      // Load cached image instantly first
       this.loadCachedProfileImage();
+    } else {
+      console.log('No user data found in storage');
+      this.loadUserDataFromApi();
     }
 
     this.loadUserDataFromApi();
@@ -84,15 +87,17 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
           this.user = response.user;
           this.formattedRole = this.formatUserRole(response.user.role);
           this.updateLocalUserData(response.user);
-          // Load API image after cached one is already shown
           this.loadProfilePictureFromApi();
         }
       },
       error: (error: any) => {
+        console.error('Failed to load user data from API:', error);
         if (!this.user) {
           this.user = this.authService.getCurrentUser();
           if (this.user) {
             this.formattedRole = this.formatUserRole(this.user.role);
+          } else {
+            this.snackBar.open('Failed to load user data', 'Close', { duration: 3000 });
           }
         }
       }
@@ -111,6 +116,7 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
         } else {
           sessionStorage.setItem('userData', JSON.stringify(userData));
         }
+       
       }
     } catch (error) {
       console.error('Error updating local user data:', error);
@@ -129,12 +135,10 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
             ? `${response.pictureUrl}&t=${timestamp}`
             : `${response.pictureUrl}?t=${timestamp}`;
           
-          // Preload image before setting it
           this.preloadImage(cacheBustedUrl).then(() => {
             this.profileImage = cacheBustedUrl;
             localStorage.setItem('profileImage', cacheBustedUrl);
           }).catch(() => {
-            // If preload fails, keep cached image
             console.warn('Failed to preload profile image, using cached version');
           });
         } else {
@@ -149,19 +153,16 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
   }
 
   private loadCachedProfileImage(): void {
-    // Load from localStorage instantly
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
       this.profileImage = savedImage;
     } else if (this.user?.avatar) {
       this.profileImage = this.user.avatar;
     } else {
-      // Generate avatar instantly without API call
       this.profileImage = this.generateInitialAvatar(this.getUserFullName());
     }
   }
 
-  // Add image preloading function
   private preloadImage(url: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -207,7 +208,6 @@ export class LandlordProfileViewComponent implements OnInit, OnDestroy {
   }
 
   getUserPhone(): string {
-    // Get phone number directly from auth service
     const phoneNumber = this.authService.getPhoneNumber() || 
                        this.user?.phoneNumber || 
                        this.user?.phone || 

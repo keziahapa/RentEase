@@ -104,6 +104,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       return;
     }
 
+    console.log('Current user data:', currentUser);
+
     this.originalPhoneNumber = this.authService.getPhoneNumber() || currentUser.phoneNumber || '';
     this.currentPhoneNumber = this.originalPhoneNumber;
     
@@ -204,6 +206,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
   private populateForm(): void {
     if (this.user) {
+      console.log('Populating form with user data:', this.user);
+      
       this.profileForm.patchValue({
         fullName: this.user.fullName || '',
         email: this.user.email || '',
@@ -212,6 +216,9 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       });
 
       this.currentPhoneNumber = this.profileForm.value.phoneNumber;
+    } else {
+      console.error('No user data available to populate form');
+      this.snackBar.open('Failed to load user data', 'Close', { duration: 3000 });
     }
   }
 
@@ -391,6 +398,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
         if (response.success && response.user) {
           this.snackBar.open('Profile updated successfully', 'Close', { duration: 2000 });
           
+          this.updateLocalUserData(response.user);
+          
           setTimeout(() => {
             this.router.navigate(['/landlord-dashboard/profile/view']);
           }, 500);
@@ -403,6 +412,26 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
         this.snackBar.open('Failed to update profile', 'Close', { duration: 3000 });
       }
     });
+  }
+
+  private updateLocalUserData(userData: any): void {
+    try {
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser) {
+        const localStorageUser = localStorage.getItem('userData');
+        const isPermanent = !!localStorageUser;
+        
+        if (isPermanent) {
+          localStorage.setItem('userData', JSON.stringify(userData));
+        } else {
+          sessionStorage.setItem('userData', JSON.stringify(userData));
+        }
+        
+       
+      }
+    } catch (error) {
+      console.error('Error updating local user data:', error);
+    }
   }
 
   goBack(): void {

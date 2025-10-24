@@ -46,7 +46,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   private profileUpdateListener: any;
   isLoggingOut: boolean = false;
 
-  // Greeting properties
   greeting: string = '';
   currentTime: string = '';
 
@@ -63,7 +62,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.loadNotifications();
     this.updateGreeting();
     
-    // Update greeting every minute
     setInterval(() => {
       this.updateGreeting();
     }, 60000);
@@ -92,10 +90,8 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     const hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
     
-    // Set current time
     this.currentTime = `${hours}:${minutes}`;
     
-    // Set greeting based on time of day
     if (hours < 12) {
       this.greeting = 'Good morning';
     } else if (hours < 18) {
@@ -241,14 +237,12 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/landlord-dashboard/notifications']);
   }
 
-  // FIXED: Avatar navigation - removed event.stopPropagation()
   viewProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
     this.router.navigate(['/landlord-dashboard/profile/view']);
   }
 
-  // FIXED: Profile edit navigation
   editProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
@@ -342,7 +336,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       'maintenance': ['/landlord-dashboard/maintenance'],
       'messages': ['/landlord-dashboard/messages'],
       'marketplace': ['/landlord-dashboard/marketplace'],
-      'settings': ['/landlord-dashboard/settings']
+      'profile': ['/landlord-dashboard/profile/view']
     };
 
     const route = routeMap[section];
@@ -353,7 +347,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  // FIXED: Updated to include profile routes
   private updateCurrentSectionFromRoute(url: string): void {
     if (url.includes('/profile/view') || url.includes('/profile/edit')) {
       this.currentSection = 'profile';
@@ -371,8 +364,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'messages';
     } else if (url.includes('/marketplace')) {
       this.currentSection = 'marketplace';
-    } else if (url.includes('/settings')) {
-      this.currentSection = 'settings';
     } else {
       this.currentSection = 'dashboard';
     }
