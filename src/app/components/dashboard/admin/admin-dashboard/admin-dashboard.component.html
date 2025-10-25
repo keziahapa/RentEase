@@ -4,7 +4,8 @@
   <nav class="sidebar" [class.mobile-open]="isMobileMenuOpen">
     <div class="sidebar-header">
       <div class="logo" (click)="navigateToSection('overview')">
-         <img src="/images/logo.png" alt="RentEase Logo" class="logo-image">
+        <img src="/images/logo.png" alt="RentEase Logo" class="logo-image" (error)="onLogoError($event)">
+        <span class="logo-text">RentEase Admin</span>
       </div>
     </div>
 
@@ -152,7 +153,7 @@
     <router-outlet></router-outlet>
     
     <!-- Default overview content when no route is active -->
-    <div *ngIf="router.url === '/admin-dashboard'">
+    <div *ngIf="isOverviewPage()">
       <app-admin-overview></app-admin-overview>
     </div>
   </main>
