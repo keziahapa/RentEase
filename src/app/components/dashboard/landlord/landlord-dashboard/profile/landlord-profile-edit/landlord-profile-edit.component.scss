@@ -189,8 +189,13 @@
 
         &::placeholder {
           color: #7f8c8d !important;
-          opacity: 0.8 !important;
+          opacity: 0 !important;
           font-size: 10px !important;
+          transition: opacity 0.2s;
+        }
+
+        &:focus::placeholder {
+          opacity: 0.6 !important;
         }
       }
 
@@ -198,6 +203,10 @@
         color: #7f8c8d !important;
         font-weight: 500 !important;
         font-size: 11px !important;
+      }
+
+      .mat-form-field-should-float .mat-mdc-floating-label {
+        transform: translateY(-1.2em) scale(0.85) !important;
       }
 
       .mat-mdc-form-field-subscript-wrapper {
