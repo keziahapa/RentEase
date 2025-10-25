@@ -4,40 +4,40 @@
   align-items: center;
   justify-content: center;
   background: #ffffff;
-  padding: 0.75rem;
+  padding: 18px;
   font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   .profile-content {
     background: #ffffff;
-    border-radius: 0.625rem;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
-    padding: 1.25rem;
+    border-radius: 14px;
+    box-shadow: 0 13px 26px rgba(0, 0, 0, 0.1);
+    padding: 28px;
     width: 100%;
-    max-width: 26rem;
-    animation: slideIn 0.5s ease-out;
+    max-width: 480px;
+    animation: slideIn 0.6s ease-out;
     border: 1px solid #e0e0e0;
 
     @media (max-width: 768px) {
-      padding: 1rem 0.75rem;
-      margin: 0.5rem;
-      border-radius: 0.5rem;
+      padding: 18px 13px;
+      margin: 8px;
+      border-radius: 10px;
       max-width: 100%;
     }
   }
 
   .form-header {
     text-align: center;
-    margin-bottom: 0.875rem;
+    margin-bottom: 18px;
 
     .page-title {
       color: #2c3e50;
       font-weight: 600;
-      font-size: 1.125rem;
+      font-size: 22px;
       margin: 0;
-      letter-spacing: -0.025rem;
+      letter-spacing: -0.5px;
 
       @media (max-width: 768px) {
-        font-size: 1rem;
+        font-size: 18px;
       }
     }
   }
@@ -45,19 +45,19 @@
   .avatar-section {
     display: flex;
     justify-content: center;
-    margin-bottom: 0.875rem;
+    margin-bottom: 18px;
 
     .avatar-container {
       position: relative;
       display: inline-block;
 
       .user-avatar-large {
-        width: 3.5rem;
-        height: 3.5rem;
+        width: 76px;
+        height: 76px;
         border-radius: 50%;
         overflow: hidden;
-        border: 0.125rem solid #f8f9fa;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+        border: 3px solid #f8f9fa;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 
         .avatar-image-large {
           width: 100%;
@@ -75,28 +75,28 @@
           color: white;
 
           mat-icon {
-            font-size: 1.75rem;
-            width: 1.75rem;
-            height: 1.75rem;
+            font-size: 38px;
+            width: 38px;
+            height: 38px;
           }
         }
       }
 
       .avatar-menu-trigger {
         position: absolute;
-        bottom: 0;
-        right: 0;
+        bottom: 2px;
+        right: 2px;
         background: #3b82f6;
         color: white;
         border-radius: 50%;
-        width: 1.25rem;
-        height: 1.25rem;
+        width: 26px;
+        height: 26px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 0.125rem 0.25rem rgba(59, 130, 246, 0.4);
+        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.4);
 
         &:hover {
           background: #2563eb;
@@ -104,9 +104,9 @@
         }
 
         mat-icon {
-          font-size: 0.625rem;
-          width: 0.625rem;
-          height: 0.625rem;
+          font-size: 12px;
+          width: 12px;
+          height: 12px;
         }
       }
     }
@@ -115,14 +115,14 @@
   .tabbed-form-section {
     .mat-mdc-tab-group {
       .mat-mdc-tab-header {
-        margin-bottom: 0.625rem;
+        margin-bottom: 13px;
       }
 
       .mat-mdc-tab {
         .mdc-tab__text-label {
           color: #64748b;
           font-weight: 500;
-          font-size: 0.75rem;
+          font-size: 0.8rem;
         }
 
         &.mdc-tab--active {
@@ -134,14 +134,14 @@
     }
 
     .tab-content {
-      padding: 0.625rem 0;
+      padding: 13px 0;
     }
   }
 
   .form-section {
     .form-row {
       width: 100%;
-      margin-bottom: 0.625rem;
+      margin-bottom: 13px;
 
       .form-field {
         width: 100%;
@@ -150,39 +150,39 @@
           width: 100%;
 
           .mat-mdc-text-field-wrapper {
-            border-radius: 0.375rem;
+            border-radius: 6px;
             transition: all 0.3s ease;
             background: #fff;
 
             &:hover {
-              box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.1);
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             }
           }
 
           .mat-mdc-form-field-focus-overlay {
-            border-radius: 0.375rem;
+            border-radius: 6px;
           }
 
           .mat-mdc-input-element {
             color: #2c3e50;
-            font-size: 0.6875rem;
-            padding: 0.375rem 0.625rem;
+            font-size: 12px;
+            padding: 8px 12px;
 
             &::placeholder {
               color: #7f8c8d;
               opacity: 0.8;
-              font-size: 0.625rem;
+              font-size: 11px;
             }
           }
 
           .mat-mdc-floating-label {
             color: #7f8c8d;
             font-weight: 500;
-            font-size: 0.6875rem;
+            font-size: 12px;
           }
 
           .mat-mdc-form-field-subscript-wrapper {
-            min-height: 0.875rem;
+            min-height: 16px;
           }
 
           &.mat-focused {
@@ -199,10 +199,10 @@
                 .mat-mdc-form-field-flex {
                   .mat-mdc-form-field-infix {
                     textarea {
-                      min-height: 3.5rem;
+                      min-height: 76px;
                       resize: vertical;
-                      font-size: 0.6875rem;
-                      padding: 0.375rem 0.625rem;
+                      font-size: 12px;
+                      padding: 8px 12px;
                     }
                   }
                 }
@@ -215,27 +215,27 @@
   }
 
   .security-section {
-    margin-top: 0.875rem;
-    padding-top: 0.625rem;
+    margin-top: 18px;
+    padding-top: 13px;
     border-top: 1px solid #e2e8f0;
 
     .section-title {
       color: #2c3e50;
-      font-size: 0.75rem;
+      font-size: 14px;
       font-weight: 600;
-      margin-bottom: 0.5rem;
+      margin-bottom: 10px;
     }
 
     .security-btn {
       display: flex;
       align-items: center;
-      gap: 0.25rem;
-      padding: 0.375rem 0.75rem;
+      gap: 4px;
+      padding: 8px 14px;
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 0.375rem;
+      border-radius: 6px;
       color: #475569;
-      font-size: 0.625rem;
+      font-size: 11px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.3s ease;
@@ -247,9 +247,9 @@
       }
 
       mat-icon {
-        font-size: 0.75rem;
-        width: 0.75rem;
-        height: 0.75rem;
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
         color: #64748b;
       }
     }
@@ -257,10 +257,10 @@
 
   .form-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 10px;
     justify-content: flex-end;
-    margin-top: 0.875rem;
-    padding-top: 0.625rem;
+    margin-top: 18px;
+    padding-top: 13px;
     border-top: 1px solid #e2e8f0;
 
     @media (max-width: 768px) {
@@ -268,13 +268,13 @@
     }
 
     .btn-outline, .btn-primary {
-      height: 2rem;
-      font-size: 0.6875rem;
+      height: 40px;
+      font-size: 12px;
       font-weight: 600;
-      letter-spacing: 0.0125rem;
-      border-radius: 0.375rem;
+      letter-spacing: 0.2px;
+      border-radius: 6px;
       transition: all 0.3s ease;
-      min-width: 5.5rem;
+      min-width: 110px;
 
       @media (max-width: 768px) {
         min-width: 100%;
@@ -290,7 +290,7 @@
         &:hover {
           background: #64748b;
           color: white;
-          transform: translateY(-0.0625rem);
+          transform: translateY(-1px);
         }
       }
 
@@ -304,12 +304,12 @@
       background: #3b82f6;
       color: white;
       border: none;
-      box-shadow: 0 0.125rem 0.375rem rgba(102, 126, 234, 0.3);
+      box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
 
       &:not(:disabled) {
         &:hover {
-          transform: translateY(-0.0625rem);
-          box-shadow: 0 0.1875rem 0.625rem rgba(102, 126, 234, 0.4);
+          transform: translateY(-1px);
+          box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
           background: #2563eb;
         }
 
@@ -325,7 +325,7 @@
       }
 
       .mat-spinner {
-        margin-right: 0.25rem;
+        margin-right: 4px;
       }
     }
   }
@@ -341,29 +341,29 @@
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: 0.875rem;
-    backdrop-filter: blur(0.5rem);
-    -webkit-backdrop-filter: blur(0.5rem);
+    padding: 18px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 
     .avatar-dialog, .password-dialog {
       background: white;
-      border-radius: 0.625rem;
-      box-shadow: 0 0.875rem 1.75rem rgba(0, 0, 0, 0.2);
+      border-radius: 14px;
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.2);
       width: 100%;
-      max-width: 20rem;
+      max-width: 380px;
       animation: dialogSlideIn 0.3s ease-out;
 
       .dialog-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.875rem 1rem 0.625rem;
+        padding: 18px 22px 13px;
         border-bottom: 1px solid #e2e8f0;
 
         h3 {
           color: #2c3e50;
           font-weight: 600;
-          font-size: 0.875rem;
+          font-size: 16px;
           margin: 0;
         }
 
@@ -372,8 +372,8 @@
           border: none;
           color: #64748b;
           cursor: pointer;
-          padding: 0.25rem;
-          border-radius: 0.25rem;
+          padding: 4px;
+          border-radius: 4px;
           transition: all 0.3s ease;
 
           &:hover {
@@ -382,28 +382,28 @@
           }
 
           mat-icon {
-            font-size: 0.875rem;
-            width: 0.875rem;
-            height: 0.875rem;
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
           }
         }
       }
 
       .dialog-content {
-        padding: 0.875rem;
+        padding: 18px;
 
         .avatar-preview {
           text-align: center;
-          margin-bottom: 0.875rem;
+          margin-bottom: 18px;
 
           .preview-avatar {
-            width: 3.5rem;
-            height: 3.5rem;
+            width: 76px;
+            height: 76px;
             border-radius: 50%;
             overflow: hidden;
-            margin: 0 auto 0.5rem;
-            border: 0.125rem solid #f8f9fa;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+            margin: 0 auto 10px;
+            border: 2px solid #f8f9fa;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 
             .preview-image {
               width: 100%;
@@ -421,66 +421,66 @@
               color: white;
 
               mat-icon {
-                font-size: 1.75rem;
-                width: 1.75rem;
-                height: 1.75rem;
+                font-size: 34px;
+                width: 34px;
+                height: 34px;
               }
             }
           }
 
           .preview-text {
             color: #64748b;
-            font-size: 0.625rem;
+            font-size: 11px;
             margin: 0;
           }
         }
 
         .password-form {
           .form-row {
-            margin-bottom: 0.625rem;
+            margin-bottom: 13px;
           }
         }
 
         .dialog-actions {
           display: flex;
-          gap: 0.5rem;
+          gap: 8px;
           flex-wrap: wrap;
-          margin-top: 0.875rem;
+          margin-top: 18px;
 
           .dialog-btn {
             flex: 1;
-            min-width: 4.5rem;
-            height: 1.875rem;
-            border-radius: 0.375rem;
+            min-width: 90px;
+            height: 36px;
+            border-radius: 6px;
             font-weight: 600;
-            font-size: 0.625rem;
+            font-size: 11px;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.25rem;
+            gap: 4px;
             border: none;
             cursor: pointer;
 
             &.primary-btn {
               background: #3b82f6;
               color: white;
-              box-shadow: 0 0.125rem 0.25rem rgba(102, 126, 234, 0.3);
+              box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
 
               &:hover:not(:disabled) {
                 background: #2563eb;
-                transform: translateY(-0.0625rem);
+                transform: translateY(-1px);
               }
             }
 
             &.danger-btn {
               background: #ef4444;
               color: white;
-              box-shadow: 0 0.125rem 0.25rem rgba(239, 68, 68, 0.3);
+              box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
 
               &:hover:not(:disabled) {
                 background: #dc2626;
-                transform: translateY(-0.0625rem);
+                transform: translateY(-1px);
               }
             }
 
@@ -514,7 +514,7 @@
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(0.875rem);
+    transform: translateY(18px);
   }
   to {
     opacity: 1;
@@ -525,7 +525,7 @@
 @keyframes dialogSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-0.625rem) scale(0.95);
+    transform: translateY(-13px) scale(0.95);
   }
   to {
     opacity: 1;
@@ -537,55 +537,55 @@
   background-color: #27ae60 !important;
   color: #ffffff !important;
   font-weight: 500;
-  border-radius: 0.375rem !important;
-  box-shadow: 0 0.1875rem 0.5rem rgba(39, 174, 96, 0.3);
+  border-radius: 6px !important;
+  box-shadow: 0 3px 8px rgba(39, 174, 96, 0.3);
 }
 
 .snackbar-error {
   background-color: #e74c3c !important;
   color: #ffffff !important;
   font-weight: 500;
-  border-radius: 0.375rem !important;
-  box-shadow: 0 0.1875rem 0.5rem rgba(231, 76, 60, 0.3);
+  border-radius: 6px !important;
+  box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
 }
 
 .mat-mdc-snack-bar-container {
   .mdc-snackbar__surface {
-    border-radius: 0.375rem !important;
+    border-radius: 6px !important;
   }
 }
 
 @media (max-width: 480px) {
   .profile-edit-container {
-    padding: 0.5rem;
+    padding: 8px;
 
     .profile-content {
-      padding: 0.75rem 0.5rem;
+      padding: 13px 8px;
     }
 
     .form-header {
-      margin-bottom: 0.625rem;
+      margin-bottom: 13px;
 
       .page-title {
-        font-size: 0.875rem;
+        font-size: 16px;
       }
     }
 
     .avatar-section {
       .avatar-container {
         .user-avatar-large {
-          width: 3rem;
-          height: 3rem;
+          width: 66px;
+          height: 66px;
         }
       }
     }
 
     .dialog-overlay {
-      padding: 0.5rem;
+      padding: 8px;
 
       .avatar-dialog, .password-dialog {
         .dialog-content {
-          padding: 0.625rem;
+          padding: 13px;
         }
 
         .dialog-actions {
