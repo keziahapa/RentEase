@@ -149,6 +149,24 @@
         .mat-mdc-form-field {
           width: 100%;
 
+          // Make fields more compact
+          &.mat-form-field-appearance-outline {
+            .mat-mdc-text-field-wrapper {
+              padding: 0;
+
+              .mat-mdc-form-field-flex {
+                padding: 0;
+
+                .mat-mdc-form-field-infix {
+                  padding-top: 10px;
+                  padding-bottom: 10px;
+                  min-height: unset;
+                  border-top: none;
+                }
+              }
+            }
+          }
+
           .mat-mdc-text-field-wrapper {
             border-radius: 6px;
             transition: all 0.3s ease;
@@ -166,7 +184,6 @@
           .mat-mdc-input-element {
             color: #2c3e50;
             font-size: 12px;
-            padding: 8px 12px;
 
             &::placeholder {
               color: #7f8c8d;
@@ -183,6 +200,12 @@
 
           .mat-mdc-form-field-subscript-wrapper {
             min-height: 16px;
+            margin-top: 4px;
+          }
+
+          .mat-mdc-form-field-hint-wrapper,
+          .mat-mdc-form-field-error-wrapper {
+            padding: 0;
           }
 
           &.mat-focused {
@@ -202,7 +225,6 @@
                       min-height: 76px;
                       resize: vertical;
                       font-size: 12px;
-                      padding: 8px 12px;
                     }
                   }
                 }
