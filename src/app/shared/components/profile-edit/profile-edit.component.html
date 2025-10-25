@@ -1,172 +1,221 @@
 <div class="profile-edit-container">
-  <div class="content-header">
-    <div class="header-left">
-      <p>Update your personal information and preferences</p>
-    </div>
-    <div class="header-actions">
-      <button mat-button (click)="goBack()" class="back-btn">
-        <mat-icon>arrow_back</mat-icon>
-        Back to Profile
-      </button>
-    </div>
-  </div>
-
   <div class="profile-content">
-    <div class="profile-card">
-      <div class="profile-banner">
-        <div class="banner-gradient"></div>
-      </div>
+    <div class="form-container">
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
+        
+        <div class="form-header">
+          <h1 class="page-title">Edit Profile</h1>
+        </div>
 
-      <div class="profile-main">
-        <div class="profile-avatar-section">
-          <div class="avatar-wrapper">
-            <div class="image-loading" *ngIf="isUploadingPhoto || isDeletingPhoto">
-              <mat-spinner diameter="60"></mat-spinner>
+        <div class="avatar-section">
+          <div class="avatar-container">
+            <div class="user-avatar-large">
+              <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image-large" (error)="handleImageError()">
+              <div *ngIf="!profileImage" class="avatar-placeholder-large">
+                <mat-icon>account_circle</mat-icon>
+              </div>
             </div>
-            <img 
-              [src]="profileImage" 
-              alt="Profile" 
-              class="profile-avatar"
-              [class.loading]="isUploadingPhoto || isDeletingPhoto"
-              (error)="handleImageError()">
-            <div class="avatar-badge">
-              <mat-icon>verified</mat-icon>
+            
+            <div class="avatar-menu-trigger" (click)="openAvatarDialog()">
+              <mat-icon>edit</mat-icon>
             </div>
-          </div>
-
-          <div class="avatar-actions">
-            <button 
-              class="action-btn upload-btn" 
-              (click)="changePhoto()" 
-              [disabled]="isUploadingPhoto || isDeletingPhoto">
-              <mat-icon>cloud_upload</mat-icon>
-              <span>Upload</span>
-            </button>
-            <button 
-              class="action-btn camera-btn" 
-              (click)="startCamera()" 
-              [disabled]="isUploadingPhoto || isDeletingPhoto">
-              <mat-icon>photo_camera</mat-icon>
-              <span>Camera</span>
-            </button>
-            <button 
-              class="action-btn delete-btn" 
-              (click)="deletePhoto()" 
-              [disabled]="isUploadingPhoto || isDeletingPhoto || !profileImage || isDefaultAvatar()">
-              <mat-icon>delete</mat-icon>
-              <span>Remove</span>
-            </button>
-          </div>
-
-          <div class="avatar-info">
-            <p *ngIf="isUploadingPhoto && !isDeletingPhoto" class="status-uploading">
-              <mat-icon>sync</mat-icon>
-              Processing image...
-            </p>
-            <p *ngIf="isDeletingPhoto" class="status-deleting">
-              <mat-icon>delete_sweep</mat-icon>
-              Removing photo...
-            </p>
-            <p *ngIf="!isUploadingPhoto && !isDeletingPhoto" class="status-ready">
-              <mat-icon>check_circle</mat-icon>
-              Profile photo ready
-            </p>
           </div>
         </div>
 
-        <form [formGroup]="profileForm" (ngSubmit)="onSubmit()" class="profile-form">
-          <div class="form-section">
-            <h3 class="section-title">
-              Personal Information
-            </h3>
-            <div class="form-grid">
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Full Name</mat-label>
-                <input matInput formControlName="fullName" placeholder="Enter your full name">
-                <mat-icon matPrefix>badge</mat-icon>
-                <mat-error *ngIf="profileForm.get('fullName')?.hasError('required')">
-                  Full name is required
-                </mat-error>
-                <mat-error *ngIf="profileForm.get('fullName')?.hasError('minlength')">
-                  Name must be at least 2 characters
-                </mat-error>
-              </mat-form-field>
+        <div class="tabbed-form-section">
+          <mat-tab-group (selectedTabChange)="onTabChange($event)" animationDuration="0ms">
+            
+            <mat-tab label="Basic Information">
+              <div class="tab-content">
+                <div class="form-section">
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Full Name</mat-label>
+                      <input matInput formControlName="fullName" placeholder="Enter your full name">
+                      <mat-icon matSuffix>person</mat-icon>
+                      <mat-error *ngIf="fullName?.invalid && fullName?.touched">
+                        <span *ngIf="fullName?.errors?.['required']">Full name is required</span>
+                        <span *ngIf="fullName?.errors?.['minlength']">Full name must be at least 2 characters</span>
+                        <span *ngIf="fullName?.errors?.['maxlength']">Full name cannot exceed 100 characters</span>
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
 
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Email Address</mat-label>
-                <input matInput formControlName="email" placeholder="your.email@example.com" type="email">
-                <mat-icon matPrefix>email</mat-icon>
-                <mat-error *ngIf="profileForm.get('email')?.hasError('required')">
-                  Email is required
-                </mat-error>
-                <mat-error *ngIf="profileForm.get('email')?.hasError('email')">
-                  Enter a valid email
-                </mat-error>
-              </mat-form-field>
+                  <!-- Bio field designed to be larger for longer text input -->
+                  <div class="form-row bio-row">
+                    <mat-form-field appearance="outline" class="form-field bio-field">
+                      <mat-label>Bio</mat-label>
+                      <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="4"></textarea>
+                      <mat-hint>{{ bio?.value?.length || 0 }}/500</mat-hint>
+                      <mat-error *ngIf="bio?.invalid && bio?.touched">
+                        Bio cannot exceed 500 characters
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+                </div>
 
-              <mat-form-field appearance="outline" class="form-field">
-                <mat-label>Phone Number</mat-label>
-                <input matInput formControlName="phoneNumber" placeholder="+254 700 000 000">
-                <mat-icon matPrefix>phone</mat-icon>
-                <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('pattern')">
-                  Invalid phone format
-                </mat-error>
-              </mat-form-field>
-            </div>
-          </div>
+                <div class="security-section">
+                  <h3 class="section-title">Account Security</h3>
+                  <button type="button" class="security-btn" (click)="openPasswordDialog()">
+                    <mat-icon>lock</mat-icon>
+                    <span>Change Password</span>
+                  </button>
+                </div>
+              </div>
+            </mat-tab>
 
-          <div class="form-section">
-            <h3 class="section-title">
-              About You
-            </h3>
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Bio</mat-label>
-              <textarea matInput formControlName="bio" placeholder="Tell us about yourself..." rows="4"></textarea>
-              <mat-hint align="end">{{profileForm.get('bio')?.value?.length || 0}}/500</mat-hint>
-            </mat-form-field>
-          </div>
+            <mat-tab label="Contact Information">
+              <div class="tab-content">
+                <div class="form-section">
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Email Address</mat-label>
+                      <input matInput formControlName="email" placeholder="your@email.com" type="email">
+                      <mat-icon matSuffix>email</mat-icon>
+                      <mat-error *ngIf="email?.invalid && email?.touched">
+                        <span *ngIf="email?.errors?.['required']">Email is required</span>
+                        <span *ngIf="email?.errors?.['email']">Please enter a valid email address</span>
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Phone Number</mat-label>
+                      <input matInput formControlName="phoneNumber" placeholder="+254 XXX XXX XXX" type="tel">
+                      <mat-icon matSuffix>phone</mat-icon>
+                      <mat-error *ngIf="phoneNumber?.invalid && phoneNumber?.touched">
+                        <span *ngIf="phoneNumber?.errors?.['required']">Phone number is required</span>
+                        <span *ngIf="phoneNumber?.errors?.['pattern']">Please enter a valid phone number</span>
+                        <span *ngIf="phoneNumber?.errors?.['minlength']">Phone number must be at least 10 digits</span>
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+            </mat-tab>
+
+          </mat-tab-group>
 
           <div class="form-actions">
-            <button mat-stroked-button type="button" (click)="cancel()" [disabled]="isSubmitting" class="cancel-btn">
-              <mat-icon>close</mat-icon>
+            <button type="button" class="btn-outline" (click)="cancel()" [disabled]="isSubmitting">
               Cancel
             </button>
-            <button mat-raised-button color="primary" type="submit" [disabled]="isSubmitting" class="save-btn">
-              <mat-icon *ngIf="!isSubmitting">save</mat-icon>
-              <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
+            <button type="submit" class="btn-primary" [disabled]="profileForm.invalid || isSubmitting">
+              <mat-spinner diameter="20" *ngIf="isSubmitting"></mat-spinner>
               {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
             </button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   </div>
 
-  <div *ngIf="isCameraActive" class="camera-overlay" (click)="stopCamera()">
-    <div class="camera-modal" (click)="$event.stopPropagation()">
-      <div class="camera-header">
-        <div class="camera-title">
-          <mat-icon>photo_camera</mat-icon>
-          <h3>Take a Photo</h3>
-        </div>
-        <button mat-icon-button class="close-btn" (click)="stopCamera()">
+  <!-- Avatar Dialog -->
+  <div class="dialog-overlay" *ngIf="showAvatarDialog" (click)="closeAvatarDialog()">
+    <div class="avatar-dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>Profile Photo</h3>
+        <button class="dialog-close" (click)="closeAvatarDialog()">
           <mat-icon>close</mat-icon>
         </button>
       </div>
       
-      <div class="camera-viewport">
-        <video #cameraVideo id="cameraVideo" autoplay playsinline></video>
-        <div class="camera-guide">
-          <div class="guide-circle"></div>
+      <div class="dialog-content">
+        <div class="avatar-preview">
+          <div class="preview-avatar">
+            <img *ngIf="profileImage" [src]="profileImage" alt="Profile Preview" class="preview-image">
+            <div *ngIf="!profileImage" class="preview-placeholder">
+              <mat-icon>account_circle</mat-icon>
+            </div>
+          </div>
+          <p class="preview-text">Current Photo</p>
+        </div>
+
+        <div class="dialog-actions">
+          <button class="dialog-btn primary-btn" (click)="changePhoto()" [disabled]="isUploadingPhoto">
+            <mat-spinner diameter="16" *ngIf="isUploadingPhoto"></mat-spinner>
+            <mat-icon *ngIf="!isUploadingPhoto">photo_camera</mat-icon>
+            <span>{{ isUploadingPhoto ? 'Uploading...' : 'Upload Photo' }}</span>
+          </button>
+          
+          <button class="dialog-btn danger-btn" 
+                  (click)="deletePhoto()"
+                  [disabled]="isDefaultAvatar() || isDeletingPhoto">
+            <mat-spinner diameter="16" *ngIf="isDeletingPhoto"></mat-spinner>
+            <mat-icon *ngIf="!isDeletingPhoto">delete</mat-icon>
+            <span>{{ isDeletingPhoto ? 'Deleting...' : 'Delete Photo' }}</span>
+          </button>
+          
+          <button class="dialog-btn cancel-btn" (click)="closeAvatarDialog()">
+            <span>Cancel</span>
+          </button>
         </div>
       </div>
-      <canvas #cameraCanvas id="cameraCanvas" style="display: none"></canvas>
-      
-      <div class="camera-controls">
-        <button mat-fab class="capture-btn" (click)="capturePhoto()" [disabled]="isUploadingPhoto">
-          <mat-icon>camera</mat-icon>
+    </div>
+  </div>
+
+  <!-- Password Dialog -->
+  <div class="dialog-overlay" *ngIf="showPasswordDialog" (click)="closePasswordDialog()">
+    <div class="password-dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>Change Password</h3>
+        <button class="dialog-close" (click)="closePasswordDialog()">
+          <mat-icon>close</mat-icon>
         </button>
-        <p class="capture-hint">Click to capture</p>
+      </div>
+      
+      <div class="dialog-content">
+        <form [formGroup]="passwordForm" (ngSubmit)="onChangePassword()" class="password-form">
+          <div class="form-section">
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Current Password</mat-label>
+                <input matInput formControlName="currentPassword" type="password" placeholder="Enter current password">
+                <mat-icon matSuffix>vpn_key</mat-icon>
+                <mat-error *ngIf="currentPassword?.invalid && currentPassword?.touched">
+                  Current password is required
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>New Password</mat-label>
+                <input matInput formControlName="newPassword" type="password" placeholder="Enter new password">
+                <mat-icon matSuffix>lock</mat-icon>
+                <mat-hint>Minimum 6 characters</mat-hint>
+                <mat-error *ngIf="newPassword?.invalid && newPassword?.touched">
+                  Password must be at least 6 characters
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Confirm Password</mat-label>
+                <input matInput formControlName="confirmNewPassword" type="password" placeholder="Confirm new password">
+                <mat-icon matSuffix>lock_reset</mat-icon>
+                <mat-error *ngIf="confirmNewPassword?.invalid && confirmNewPassword?.touched">
+                  Please confirm your password
+                </mat-error>
+                <mat-error *ngIf="passwordForm?.errors?.['passwordMismatch'] && confirmNewPassword?.touched">
+                  Passwords do not match
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="dialog-actions">
+              <button type="button" class="dialog-btn cancel-btn" (click)="closePasswordDialog()">
+                <span>Cancel</span>
+              </button>
+              <button type="submit" class="dialog-btn primary-btn" [disabled]="passwordForm.invalid || isChangingPassword">
+                <mat-spinner diameter="16" *ngIf="isChangingPassword"></mat-spinner>
+                <span>{{ isChangingPassword ? 'Changing...' : 'Change Password' }}</span>
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   </div>

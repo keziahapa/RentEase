@@ -1,478 +1,128 @@
-<div class="modern-dashboard">
-  <aside class="sidebar" [class.sidebar-open]="isMobileMenuOpen">
+<div class="dashboard-container">
+  <div class="mobile-menu-overlay" [class.active]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
+  
+  <nav class="sidebar" [class.mobile-open]="isMobileMenuOpen">
     <div class="sidebar-header">
-      <div class="logo">
-        <img src="/images/logo.png" alt="RentEase Logo" />
+      <div class="logo" (click)="navigateToSection('dashboard')">
+        <img src="/images/logo.png" alt="RentEase Logo" class="logo-image">
       </div>
     </div>
 
-    <nav class="sidebar-nav">
-      <div class="nav-primary">
-        <a 
-          href="javascript:void(0)" 
-          class="nav-item" 
-          [class.nav-item-active]="activeSection === 'dashboard'"
-          (click)="setActiveSection('dashboard')">
-          <mat-icon class="nav-icon">dashboard</mat-icon>
-          <span class="nav-text">Dashboard</span>
-        </a>
-        
-        <a 
-          *ngFor="let item of navigationItems" 
-          href="javascript:void(0)" 
-          class="nav-item"
-          [class.nav-item-active]="activeSection === item.id"
-          (click)="setActiveSection(item.id)">
-          <mat-icon class="nav-icon">{{item.icon}}</mat-icon>
-          <span class="nav-text">{{item.text}}</span>
-        </a>
+    <div class="nav-menu">
+      <div class="nav-item" 
+           [class.active]="isNavActive('dashboard')" 
+           (click)="navigateToSection('dashboard')">
+        <mat-icon class="nav-icon">dashboard</mat-icon>
+        <span>Dashboard</span>
       </div>
 
-      <div class="nav-secondary">
-        <a href="javascript:void(0)" class="nav-item nav-item-logout" (click)="logout()">
-          <mat-icon class="nav-icon">logout</mat-icon>
-          <span class="nav-text">Logout</span>
-        </a>
+      <div class="nav-item" 
+           [class.active]="isNavActive('rental')" 
+           (click)="navigateToSection('rental')">
+        <mat-icon class="nav-icon">home</mat-icon>
+        <span>My Rental</span>
       </div>
-    </nav>
-  </aside>
 
-  <div 
-    class="mobile-overlay" 
-    [class.mobile-overlay-active]="isMobileMenuOpen"
-    (click)="closeMobileMenu()">
-  </div>
+      <div class="nav-item" 
+           [class.active]="isNavActive('payments')" 
+           (click)="navigateToSection('payments')">
+        <mat-icon class="nav-icon">payments</mat-icon>
+        <span>Payments</span>
+      </div>
 
-  <!-- Main Content -->
-  <main class="main-container">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <div class="header-left">
-          <button 
-            class="mobile-menu-btn"
-            (click)="toggleMobileMenu()"
-            aria-label="Toggle menu">
-            <mat-icon>menu</mat-icon>
-          </button>
-          
-          <div class="welcome-section">
-            <div class="profile-section">
-              <!-- Replace static image with ProfilePictureComponent -->
-              <app-profile-picture
-                [size]="'small'"
-                [editable]="false"
-                [showName]="false"
-                [showRole]="false"
-                (pictureUpdated)="onPictureUpdated($event)"
-                (pictureDeleted)="onPictureDeleted()">
-              </app-profile-picture>
-              <div class="welcome-content">
-                <h1 class="welcome-title">Welcome back, {{userName}}!</h1>
-                <p class="welcome-subtitle">{{propertyAddress}}</p>
-              </div>
-            </div>
-          </div>
+      <div class="nav-item" 
+           [class.active]="isNavActive('maintenance')" 
+           (click)="navigateToSection('maintenance')">
+        <mat-icon class="nav-icon">handyman</mat-icon>
+        <span>Maintenance</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('documents')" 
+           (click)="navigateToSection('documents')">
+        <mat-icon class="nav-icon">description</mat-icon>
+        <span>Documents</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('messages')" 
+           (click)="navigateToSection('messages')">
+        <mat-icon class="nav-icon">message</mat-icon>
+        <span>Messages</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('deposit')" 
+           (click)="navigateToSection('deposit')">
+        <mat-icon class="nav-icon">account_balance_wallet</mat-icon>
+        <span>Deposit</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('profile')" 
+           (click)="viewProfile()">
+        <mat-icon class="nav-icon">account_circle</mat-icon>
+        <span>Profile</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="top-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <div class="greeting-section">
+          <h1>{{ getGreetingMessage() }}</h1>
+          <p>Here's what's happening with your rental today</p>
         </div>
-        
-        <div class="header-right">
-          <!-- Collapse Controls (Only on Dashboard) -->
-          <div class="collapse-controls" *ngIf="activeSection === 'dashboard'">
-            <button class="control-btn" (click)="expandAllSections()" title="Expand All">
-              <mat-icon>unfold_more</mat-icon>
-            </button>
-            <button class="control-btn" (click)="collapseAllSections()" title="Collapse All">
-              <mat-icon>unfold_less</mat-icon>
-            </button>
-            <span class="collapse-counter" *ngIf="getCollapsedCount() > 0">
-              {{getCollapsedCount()}} collapsed
+      </div>
+
+      <div class="header-right">
+        <div class="header-actions">
+          <button class="notification-btn" (click)="viewNotifications()" 
+                  [class.has-notifications]="unreadNotificationsCount > 0"
+                  matTooltip="{{ unreadNotificationsCount > 0 ? unreadNotificationsCount + ' unread notifications' : 'No new notifications' }}"
+                  matTooltipPosition="below">
+            <mat-icon>notifications</mat-icon>
+            <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
+              {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
             </span>
-          </div>
-
-          <button class="notification-btn" (click)="toggleNotifications()" aria-label="Notifications">
-            <mat-icon class="notification-icon">notifications</mat-icon>
-            <span class="notification-badge" *ngIf="unreadNotifications > 0">{{unreadNotifications}}</span>
           </button>
-          
-          <div class="user-menu">
-            <div class="user-avatar">{{userInitials}}</div>
-            <div class="user-info">
-              <div class="user-name">{{userName}}</div>
-              <div class="user-role">Tenant</div>
-            </div>
-          </div>
         </div>
-      </div>
-    </header>
 
-    <!-- Content Area -->
-    <div class="content-area">
-      
-      <!-- Dashboard Page -->
-      <div class="page-content" *ngIf="activeSection === 'dashboard'">
-        <div class="dashboard-grid">
-
-          <!-- Deposit Status Card -->
-          <div class="card card-feature collapsible-card" 
-               [class.collapsed]="isSectionCollapsed('deposit')"
-               [class.animating]="isAnimating('deposit')">
-            <div class="card-header clickable-header" (click)="toggleSection('deposit')">
-              <div class="card-title">
-                <mat-icon class="card-icon">account_balance_wallet</mat-icon>
-                <h3>Deposit Status</h3>
-              </div>
-              <div class="header-actions">
-                <button class="card-action" 
-                        (click)="viewDepositDetails(); $event.stopPropagation()"
-                        title="View detailed deposit information">
-                  View Details
-                  <mat-icon>chevron_right</mat-icon>
-                </button>
-                <button class="collapse-toggle" 
-                        [attr.aria-label]="getAriaLabel('deposit')"
-                        title="Toggle deposit section">
-                  <mat-icon class="collapse-icon">expand_more</mat-icon>
-                </button>
-              </div>
-            </div>
-            
-            <div class="card-content collapsible-content" [class.collapsed]="isSectionCollapsed('deposit')">
-              <div class="deposit-summary">
-                <div class="amount-display">
-                  <span class="currency">KSH</span>
-                  <span class="amount">{{formatNumber(depositAmount)}}</span>
-                </div>
-                
-                <div class="status-info">
-                  <div class="status-badge status-success">
-                    <mat-icon>verified</mat-icon>
-                    {{getDepositStatusText()}}
-                  </div>
-                  <div class="protection-info">
-                    <mat-icon>shield</mat-icon>
-                    <span>Government Deposit Protection</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="timeline-progress">
-                <div class="progress-header">
-                  <span class="progress-label">Completion Progress</span>
-                  <span class="progress-count">
-                    {{getCompletedTimelineCount()}}/{{getTotalTimelineCount()}} completed
-                  </span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill" 
-                       [style.width.%]="getTimelineCompletionPercentage()">
-                  </div>
-                </div>
-              </div>
-              
-              <div class="progress-timeline" *ngIf="depositTimeline && depositTimeline.length > 0">
-                <div class="timeline-item" 
-                     *ngFor="let event of depositTimeline; let i = index"
-                     [class.completed]="event.completed">
-                  <div class="timeline-indicator" [class.timeline-completed]="event.completed">
-                    <mat-icon class="timeline-icon" *ngIf="event.completed">check_circle</mat-icon>
-                    <mat-icon class="timeline-icon" *ngIf="!event.completed">radio_button_unchecked</mat-icon>
-                    <div class="timeline-line" *ngIf="i < depositTimeline.length - 1"></div>
-                  </div>
-                  <div class="timeline-content">
-                    <div class="timeline-title">{{event.title}}</div>
-                    <div class="timeline-date">{{event.date}}</div>
-                    <div class="timeline-description" *ngIf="event.description">
-                      {{event.description}}
-                    </div>
-                  </div>
-                </div>
+        <div class="profile-section">
+          <div class="user-avatar-wrapper" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <div class="user-avatar">
+              <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image">
+              <div *ngIf="!profileImage" class="avatar-placeholder">
+                <mat-icon>account_circle</mat-icon>
               </div>
             </div>
           </div>
 
-          <!-- Current Rental Card -->
-          <div class="card collapsible-card" 
-               [class.collapsed]="isSectionCollapsed('rental')"
-               [class.animating]="isAnimating('rental')">
-            <div class="card-header clickable-header" (click)="toggleSection('rental')">
-              <div class="card-title">
-                <mat-icon class="card-icon">home</mat-icon>
-                <h3>Current Rental</h3>
-              </div>
-              <div class="header-actions">
-                <button class="card-action" 
-                        (click)="viewPaymentHistory(); $event.stopPropagation()"
-                        title="View payment history">
-                  Payment History
-                  <mat-icon>chevron_right</mat-icon>
-                </button>
-                <button class="collapse-toggle" 
-                        [attr.aria-label]="getAriaLabel('rental')"
-                        title="Toggle rental section">
-                  <mat-icon class="collapse-icon">expand_more</mat-icon>
-                </button>
-              </div>
-            </div>
-            
-            <div class="card-content collapsible-content" [class.collapsed]="isSectionCollapsed('rental')">
-              <div class="rental-overview">
-                <div class="property-info">
-                  <div class="property-address">
-                    <mat-icon>location_on</mat-icon>
-                    <span>{{propertyAddress}}</span>
-                  </div>
-                  <div class="landlord-info">
-                    <mat-icon>person</mat-icon>
-                    <span>{{landlordName}}</span>
-                  </div>
-                </div>
-                
-                <div class="payment-info">
-                  <div class="rent-amount">
-                    <div class="amount-label">Monthly Rent</div>
-                    <div class="amount-value">{{formatCurrency(rentAmount)}}</div>
-                  </div>
-                  
-                  <div class="payment-status">
-                    <div class="status-badge" [ngClass]="paymentStatus.className">
-                      <mat-icon *ngIf="paymentStatus.status === 'Paid'">check_circle</mat-icon>
-                      <mat-icon *ngIf="paymentStatus.status !== 'Paid'">schedule</mat-icon>
-                      {{paymentStatus.status}}
-                    </div>
-                    <div class="next-due" *ngIf="paymentStatus.status === 'Paid'">
-                      Next due: {{nextRentDueDate}}
-                    </div>
-                    <div class="days-left" *ngIf="paymentStatus.status !== 'Paid'">
-                      {{paymentStatus.daysLeft}} days remaining
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div class="dropdown-trigger" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <mat-icon class="dropdown-chevron" [class.rotated]="isProfileMenuOpen">expand_more</mat-icon>
           </div>
 
-          <!-- Quick Actions Card -->
-          <div class="card collapsible-card" 
-               [class.collapsed]="isSectionCollapsed('quickActions')"
-               [class.animating]="isAnimating('quickActions')">
-            <div class="card-header clickable-header" (click)="toggleSection('quickActions')">
-              <div class="card-title">
-                <mat-icon class="card-icon">flash_on</mat-icon>
-                <h3>Quick Actions</h3>
-              </div>
-              <button class="collapse-toggle" 
-                      [attr.aria-label]="getAriaLabel('quickActions')"
-                      title="Toggle quick actions section">
-                <mat-icon class="collapse-icon">expand_more</mat-icon>
-              </button>
-            </div>
-            
-            <div class="card-content collapsible-content" [class.collapsed]="isSectionCollapsed('quickActions')">
-              <div class="action-grid">
-                <button class="action-btn" 
-                        *ngFor="let action of quickActions"
-                        (click)="executeQuickAction(action.id)"
-                        [title]="action.description">
-                  <div class="action-icon" [style.background-color]="action.color">
-                    <mat-icon>{{action.icon}}</mat-icon>
-                  </div>
-                  <span class="action-label">{{action.title}}</span>
-                  <span class="action-description">{{action.description}}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Recent Activity Card -->
-          <div class="card card-full-width collapsible-card" 
-               [class.collapsed]="isSectionCollapsed('activity')"
-               [class.animating]="isAnimating('activity')">
-            <div class="card-header clickable-header" (click)="toggleSection('activity')">
-              <div class="card-title">
-                <mat-icon class="card-icon">history</mat-icon>
-                <h3>Recent Activity</h3>
-                <span class="activity-count" *ngIf="hasRecentActivities()">
-                  ({{getRecentActivitiesCount()}})
-                </span>
-              </div>
-              <div class="header-actions">
-                <button class="refresh-btn" 
-                        (click)="refreshData(); $event.stopPropagation()"
-                        title="Refresh activity data">
-                  <mat-icon>refresh</mat-icon>
-                </button>
-                <button class="collapse-toggle" 
-                        [attr.aria-label]="getAriaLabel('activity')"
-                        title="Toggle activity section">
-                  <mat-icon class="collapse-icon">expand_more</mat-icon>
-                </button>
-              </div>
-            </div>
-            
-            <div class="card-content collapsible-content" [class.collapsed]="isSectionCollapsed('activity')">
-              <div class="activity-list" *ngIf="hasRecentActivities(); else noActivities">
-                <div class="activity-item" 
-                     *ngFor="let activity of recentActivities; trackBy: trackByActivityId">
-                  <div class="activity-icon" [ngClass]="getActivityIconClass(activity.type)">
-                    <mat-icon>{{activity.icon}}</mat-icon>
-                  </div>
-                  <div class="activity-content">
-                    <div class="activity-title">{{activity.title}}</div>
-                    <div class="activity-description">{{activity.description}}</div>
-                    <div class="activity-time">
-                      <mat-icon>schedule</mat-icon>
-                      {{activity.time}}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <ng-template #noActivities>
-                <div class="no-activities">
-                  <mat-icon>inbox</mat-icon>
-                  <p>No recent activity to display</p>
-                </div>
-              </ng-template>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Other Sections -->
-      <div class="page-content" *ngIf="activeSection === 'deposit'">
-        <div class="section-header">
-          <button class="back-btn" (click)="setActiveSection('dashboard')">
-            <mat-icon>arrow_back</mat-icon>
-            Back to Dashboard
-          </button>
-          <h2>Deposit Management</h2>
-        </div>
-        <!-- Deposit content here -->
-      </div>
-
-      <div class="page-content" *ngIf="activeSection === 'payments'">
-        <div class="section-header">
-          <button class="back-btn" (click)="setActiveSection('dashboard')">
-            <mat-icon>arrow_back</mat-icon>
-            Back to Dashboard
-          </button>
-          <h2>Payment History</h2>
-        </div>
-        <!-- Payment content here -->
-      </div>
-
-      <div class="page-content" *ngIf="activeSection === 'maintenance'">
-        <div class="section-header">
-          <button class="back-btn" (click)="setActiveSection('dashboard')">
-            <mat-icon>arrow_back</mat-icon>
-            Back to Dashboard
-          </button>
-          <h2>Maintenance Requests</h2>
-        </div>
-        
-        <!-- Maintenance Request Form -->
-        <div class="card">
-          <div class="card-header">
-            <h3>Submit New Request</h3>
-          </div>
-          <div class="card-content">
-            <form (ngSubmit)="submitMaintenanceRequest()" #maintenanceForm="ngForm">
-              <div class="form-group">
-                <label class="form-label">Request Title</label>
-                <input 
-                  class="form-input" 
-                  type="text" 
-                  [(ngModel)]="newMaintenanceRequest.title" 
-                  name="title" 
-                  placeholder="Brief description of the issue"
-                  required>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">Description</label>
-                <textarea 
-                  class="form-textarea" 
-                  [(ngModel)]="newMaintenanceRequest.description" 
-                  name="description" 
-                  rows="4" 
-                  placeholder="Detailed description of the maintenance issue"
-                  required></textarea>
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">Priority</label>
-                <select class="form-select" [(ngModel)]="newMaintenanceRequest.priority" name="priority">
-                  <option value="low">Low</option>
-                  <option value="medium" selected>Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-              </div>
-              
-              <button type="submit" class="btn btn-primary" [disabled]="!maintenanceForm.valid">
-                Submit Request
-              </button>
-            </form>
+          <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
+            <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Profile</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item logout-item" 
+                    (click)="logout(); $event.stopPropagation()"
+                    [disabled]="isLoggingOut">
+              <mat-icon>logout</mat-icon>
+              <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+            </button>
           </div>
         </div>
       </div>
-
-      <div class="page-content" *ngIf="activeSection === 'documents'">
-        <div class="section-header">
-          <button class="back-btn" (click)="setActiveSection('dashboard')">
-            <mat-icon>arrow_back</mat-icon>
-            Back to Dashboard
-          </button>
-          <h2>Documents</h2>
-        </div>
-        <!-- Documents content here -->
-      </div>
-
-      <div class="page-content" *ngIf="activeSection === 'messages'">
-        <div class="section-header">
-          <button class="back-btn" (click)="setActiveSection('dashboard')">
-            <mat-icon>arrow_back</mat-icon>
-            Back to Dashboard
-          </button>
-          <h2>Messages</h2>
-        </div>
-        <!-- Messages content here -->
-      </div>
-
-      <div class="page-content" *ngIf="activeSection === 'marketplace'">
-        <div class="section-header">
-          <button class="back-btn" (click)="setActiveSection('dashboard')">
-            <mat-icon>arrow_back</mat-icon>
-            Back to Dashboard
-          </button>
-          <h2>Marketplace</h2>
-        </div>
-        <!-- Marketplace content here -->
-      </div>
-
-      <div class="page-content" *ngIf="activeSection === 'reviews'">
-        <div class="section-header">
-          <button class="back-btn" (click)="setActiveSection('dashboard')">
-            <mat-icon>arrow_back</mat-icon>
-            Back to Dashboard
-          </button>
-          <h2>Reviews & Ratings</h2>
-        </div>
-        <!-- Reviews content here -->
-      </div>
-
-      <div class="page-content" *ngIf="activeSection === 'settings'">
-        <div class="section-header">
-          <button class="back-btn" (click)="setActiveSection('dashboard')">
-            <mat-icon>arrow_back</mat-icon>
-            Back to Dashboard
-          </button>
-          <h2>Settings</h2>
-        </div>
-        <!-- Settings content here -->
-      </div>
-
     </div>
+
+    <router-outlet></router-outlet>
   </main>
 </div>

@@ -11,6 +11,7 @@ export interface ProfilePictureResponse {
   imageUrl?: string;
   pictureUrl?: string;
 }
+
 export interface UserProfile {
   id: string;
   fullName: string;
@@ -23,6 +24,20 @@ export interface UserProfile {
   bio?: string;
   createdAt?: string;
 }
+
+export interface UpdateProfileRequest {
+  fullName?: string;
+  email?: string;
+  phoneNumber?: string;
+  bio?: string;
+}
+
+export interface UpdateProfileResponse {
+  success: boolean;
+  message: string;
+  user?: UserProfile;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -33,6 +48,58 @@ export class ProfilePictureService {
     private http: HttpClient,
     private authService: AuthService
   ) {}
+
+  updateProfile(profileData: UpdateProfileRequest): Observable<UpdateProfileResponse> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return throwError(() => ({ 
+        status: 401, 
+        message: 'No authentication token found' 
+      }));
+    }
+
+    return this.http.put<UpdateProfileResponse>(
+      `${this.apiUrl}/profile/update`,
+      profileData,
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success && response.user) {
+          this.updateLocalUserData(response.user);
+          if ((this.authService as any).currentUserSubject) {
+            (this.authService as any).currentUserSubject.next(response.user);
+          }
+        }
+      }),
+      catchError(this.handleProfileError)
+    );
+  }
+
+  updateProfilePartial(profileData: Partial<UpdateProfileRequest>): Observable<UpdateProfileResponse> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return throwError(() => ({ 
+        status: 401, 
+        message: 'No authentication token found' 
+      }));
+    }
+
+    return this.http.patch<UpdateProfileResponse>(
+      `${this.apiUrl}/profile`,
+      profileData,
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success && response.user) {
+          this.updateLocalUserData(response.user);
+          if ((this.authService as any).currentUserSubject) {
+            (this.authService as any).currentUserSubject.next(response.user);
+          }
+        }
+      }),
+      catchError(this.handleProfileError)
+    );
+  }
 
   getCurrentUserProfile(): Observable<UserProfile> {
     const currentUser = this.authService.getCurrentUser();
@@ -51,7 +118,10 @@ export class ProfilePictureService {
       role: currentUser.role,
       profilePicture: currentUser.profilePicture,
       verified: currentUser.verified,
-      emailVerified: currentUser.emailVerified
+      emailVerified: currentUser.emailVerified,
+      phoneNumber: currentUser.phoneNumber,
+      bio: currentUser.bio,
+      createdAt: currentUser.createdAt
     };
 
     return of(userProfile);
@@ -72,12 +142,9 @@ export class ProfilePictureService {
       { headers: this.createHeaders() }
     ).pipe(
       tap(response => {
-        // Check data field first, then fallback to imageUrl/pictureUrl
         const pictureUrl = response.data || response.imageUrl || response.pictureUrl;
-        
         if (response.success && pictureUrl) {
           localStorage.setItem('profileImage', pictureUrl);
-          
           const currentUser = this.authService.getCurrentUser();
           if (currentUser) {
             const updatedUser = {
@@ -128,12 +195,9 @@ export class ProfilePictureService {
       { headers }
     ).pipe(
       tap(response => {
-        // Check data field first, then fallback to imageUrl/pictureUrl
         const pictureUrl = response.data || response.imageUrl || response.pictureUrl;
-        
         if (response.success && pictureUrl) {
           localStorage.removeItem('profileImage');
-          
           const currentUser = this.authService.getCurrentUser();
           if (currentUser) {
             const updatedUser = {
@@ -170,12 +234,9 @@ export class ProfilePictureService {
       { headers }
     ).pipe(
       tap(response => {
-        // Check data field first, then fallback to imageUrl/pictureUrl
         const pictureUrl = response.data || response.imageUrl || response.pictureUrl;
-        
         if (response.success && pictureUrl) {
           localStorage.removeItem('profileImage');
-          
           const currentUser = this.authService.getCurrentUser();
           if (currentUser) {
             const updatedUser = {
@@ -206,7 +267,6 @@ export class ProfilePictureService {
       tap(response => {
         if (response.success) {
           localStorage.removeItem('profileImage');
-          
           const currentUser = this.authService.getCurrentUser();
           if (currentUser) {
             const updatedUser = {

@@ -1,380 +1,395 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { TenantService } from '../../../../services/tenant.service';
-import { ProfilePictureService, UserProfile } from '../../../../services/profile-picture.service';
-import { ProfilePictureComponent } from '../../../../shared/components/profile-picture/profile-picture.component';
-import { ProfileViewComponent } from '../../../../shared/components/profile-view/profile-view.component';
-import { ProfileEditComponent } from '../../../../shared/components/profile-edit/profile-edit.component';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { CommonModule } from '@angular/common';
+import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
+import { TenantService } from '../../../../services/tenant.service';
+import { DashboardOverviewComponent } from '../dashboard-overview/dashboard-overview.component';
+
 
 @Component({
   selector: 'app-tenant-dashboard',
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule, 
     MatIconModule,
-    ProfilePictureComponent,
-    ProfileViewComponent,
-    ProfileEditComponent
+    MatDialogModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+    RouterOutlet,
+    DashboardOverviewComponent
   ],
   templateUrl: './tenant-dashboard.component.html',
   styleUrls: ['./tenant-dashboard.component.scss']
 })
 export class TenantDashboardComponent implements OnInit, OnDestroy {
-  private tenantService = inject(TenantService);
-  private profilePictureService = inject(ProfilePictureService);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  isMobileMenuOpen = false;
+  isProfileMenuOpen = false;
+  currentSection = 'dashboard';
 
- 
-  activeSection: string = 'dashboard';
-  isMobileMenuOpen: boolean = false;
-  
-
-  userProfile: UserProfile | null = null;
+  currentUser: any = null;
+  userDisplayName: string = 'Tenant';
+  userRole: string = 'Tenant';
   profileImage: string | null = null;
-  userName: string = 'Tenant';
-  userInitials: string = 'T';
-  propertyAddress: string = 'Loading...';
-  landlordName: string = 'Loading...';
-  
 
-  depositAmount: number = 0;
-  rentAmount: number = 0;
-  nextRentDueDate: string = '';
-  unreadNotifications: number = 0;
-  
+  dashboardData: any = null;
+  isLoadingDashboard: boolean = false;
+  dashboardError: string | null = null;
 
-  collapsedSections: Set<string> = new Set();
-  animatingSections: Set<string> = new Set();
-  
- 
-  paymentStatus = {
-    status: 'Pending',
-    className: 'status-pending',
-    daysLeft: 5
-  };
+  unreadNotificationsCount: number = 0;
+  unreadMessagesCount: number = 0;
+  isLoadingNotifications: boolean = false;
 
-  navigationItems = [
-    { id: 'deposit', text: 'Deposit', icon: 'account_balance_wallet' },
-    { id: 'payments', text: 'Payments', icon: 'payments' },
-    { id: 'maintenance', text: 'Maintenance', icon: 'build' },
-    { id: 'documents', text: 'Documents', icon: 'description' },
-    { id: 'messages', text: 'Messages', icon: 'chat' },
-    { id: 'marketplace', text: 'Marketplace', icon: 'store' },
-    { id: 'reviews', text: 'Reviews', icon: 'star' },
-    { id: 'settings', text: 'Settings', icon: 'settings' }
-  ];
-  
- 
-  quickActions = [
-    { id: 'payRent', title: 'Pay Rent', description: 'Make rent payment', icon: 'payments', color: '#4CAF50' },
-    { id: 'maintenance', title: 'Maintenance', description: 'Submit request', icon: 'build', color: '#FF9800' },
-    { id: 'message', title: 'Message', description: 'Contact landlord', icon: 'chat', color: '#2196F3' },
-    { id: 'documents', title: 'Documents', description: 'View lease', icon: 'description', color: '#9C27B0' }
-  ];
-  
- 
-  depositTimeline = [
-    { title: 'Deposit Paid', date: '2024-01-15', completed: true, description: 'Initial security deposit payment' },
-    { title: 'Lease Signed', date: '2024-01-20', completed: true, description: 'Rental agreement executed' },
-    { title: 'Property Inspection', date: '2024-01-25', completed: true, description: 'Move-in inspection completed' },
-    { title: 'Deposit Protection', date: 'Pending', completed: false, description: 'Government protection registration' },
-    { title: 'Deposit Certificate', date: 'Pending', completed: false, description: 'Receive protection certificate' }
-  ];
-  
-  
-  recentActivities = [
-    { id: 1, type: 'payment', title: 'Rent Payment', description: 'January rent payment completed', time: '2 days ago', icon: 'payments' },
-    { id: 2, type: 'maintenance', title: 'Maintenance Request', description: 'Kitchen sink repair requested', time: '1 week ago', icon: 'build' },
-    { id: 3, type: 'message', title: 'New Message', description: 'Message from landlord', time: '1 week ago', icon: 'chat' }
-  ];
-  
+  private profileUpdateListener: any;
+  isLoggingOut: boolean = false;
 
-  newMaintenanceRequest = {
-    title: '',
-    description: '',
-    priority: 'medium'
-  };
+  greeting: string = '';
+  currentTime: string = '';
+
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private tenantService: TenantService,
+    private dialog: MatDialog
+  ) { }
 
   ngOnInit(): void {
     this.loadUserData();
     this.loadDashboardData();
+    this.loadNotifications();
+    this.updateGreeting();
+    
+    setInterval(() => {
+      this.updateGreeting();
+    }, 60000);
+
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
+      this.updateCurrentSectionFromRoute(event.urlAfterRedirects);
+      this.loadProfileImage();
+    });
+
+    this.updateCurrentSectionFromRoute(this.router.url);
+    this.setupProfileUpdateListener();
+    this.setupClickOutsideListener();
   }
 
-  ngOnDestroy(): void {}
+  ngOnDestroy(): void {
+    if (this.profileUpdateListener) {
+      window.removeEventListener('profileImageUpdated', this.profileUpdateListener);
+    }
+    document.removeEventListener('click', this.handleClickOutside.bind(this));
+  }
+
+  private updateGreeting(): void {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    
+    this.currentTime = `${hours}:${minutes}`;
+    
+    if (hours < 12) {
+      this.greeting = 'Good morning';
+    } else if (hours < 18) {
+      this.greeting = 'Good afternoon';
+    } else {
+      this.greeting = 'Good evening';
+    }
+  }
+
+  getGreetingMessage(): string {
+    const firstName = this.userDisplayName.split(' ')[0];
+    return `${this.greeting}, ${firstName}! 👋`;
+  }
+
+  @HostListener('document:click', ['$event'])
+  handleClickOutside(event: Event): void {
+    if (this.isProfileMenuOpen) {
+      const target = event.target as HTMLElement;
+      const profileSection = document.querySelector('.profile-section');
+      
+      if (profileSection && !profileSection.contains(target)) {
+        this.closeProfileMenu();
+      }
+    }
+
+    if (this.isMobileMenuOpen) {
+      const target = event.target as HTMLElement;
+      const sidebar = document.querySelector('.sidebar');
+      const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+      
+      if (sidebar && !sidebar.contains(target) && 
+          mobileMenuBtn && !mobileMenuBtn.contains(target) &&
+          target.classList.contains('mobile-menu-overlay')) {
+        this.closeMobileMenu();
+      }
+    }
+  }
+
+  private setupClickOutsideListener(): void {
+    document.addEventListener('click', this.handleClickOutside.bind(this));
+  }
+
+  private setupProfileUpdateListener(): void {
+    this.profileUpdateListener = () => {
+      this.loadProfileImage();
+    };
+    
+    window.addEventListener('profileImageUpdated', this.profileUpdateListener);
+  }
 
   private loadUserData(): void {
-    this.profilePictureService.getCurrentUserProfile().subscribe({
-      next: (profile: UserProfile) => {
-        this.userProfile = profile;
-        this.userName = profile.fullName || 'Tenant';
-        this.userInitials = this.getInitials(this.userName);
-        this.loadProfilePicture();
-      },
-      error: (error) => {
-        console.error('Failed to load user profile:', error);
-        this.loadUserDataFromLocalStorage();
-      }
-    });
-  }
-
-  private loadUserDataFromLocalStorage(): void {
-    const currentUser = this.authService.getCurrentUser();
-    if (currentUser) {
-      this.userName = currentUser.fullName || 'Tenant';
-      this.userInitials = this.getInitials(this.userName);
-    }
-  }
-
-  private loadProfilePicture(): void {
-    this.profilePictureService.getProfilePicture().subscribe({
-      next: (response: any) => {
-        const imageUrl = response.data || response.pictureUrl;
-        
-        if (response.success && imageUrl) {
-          this.profileImage = imageUrl;
-          localStorage.setItem('profileImage', imageUrl);
-        } else {
-          this.profileImage = this.profilePictureService.getDefaultAvatar(this.userName);
-        }
-      },
-      error: (error: any) => {
-        const cachedImage = localStorage.getItem('profileImage');
-        if (cachedImage) {
-          this.profileImage = cachedImage;
-        } else {
-          this.profileImage = this.profilePictureService.getDefaultAvatar(this.userName);
-        }
-      }
-    });
-  }
-
-  private loadDashboardData(): void {
-    this.tenantService.getTenantDashboardData().subscribe({
-      next: (data: any) => {
-        this.propertyAddress = data.propertyAddress || '123 Main Street, Nairobi';
-        this.landlordName = data.landlordName || 'John Doe';
-        this.depositAmount = data.depositAmount || 50000;
-        this.rentAmount = data.rentAmount || 25000;
-        this.nextRentDueDate = data.nextRentDueDate || '2024-02-01';
-        this.unreadNotifications = data.unreadNotifications || 3;
-        
+    this.currentUser = this.authService.getCurrentUser();
     
-        this.updatePaymentStatus();
-      },
-      error: (error) => {
-        console.error('Failed to load dashboard data:', error);
-        this.propertyAddress = '123 Main Street, Nairobi';
-        this.landlordName = 'John Doe';
-        this.depositAmount = 50000;
-        this.rentAmount = 25000;
-        this.nextRentDueDate = '2024-02-01';
-        this.unreadNotifications = 3;
-        this.updatePaymentStatus();
-      }
-    });
-  }
-
-  private updatePaymentStatus(): void {
-    const today = new Date();
-    const dueDate = new Date(this.nextRentDueDate);
-    const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysUntilDue <= 0) {
-      this.paymentStatus = { status: 'Overdue', className: 'status-overdue', daysLeft: 0 };
-    } else if (daysUntilDue <= 7) {
-      this.paymentStatus = { status: 'Due Soon', className: 'status-warning', daysLeft: daysUntilDue };
+    if (this.currentUser) {
+      this.userDisplayName = this.currentUser.fullName || 
+                           this.currentUser.email?.split('@')[0] || 
+                           'Tenant';
+      
+      this.userRole = this.formatUserRole(this.currentUser.role);
+      this.loadProfileImage();
     } else {
-      this.paymentStatus = { status: 'Paid', className: 'status-success', daysLeft: daysUntilDue };
+      this.userDisplayName = 'Tenant';
+      this.userRole = 'Tenant';
+      this.profileImage = this.generateInitialAvatar('Tenant');
     }
   }
 
- 
-  setActiveSection(section: string): void {
-    this.activeSection = section;
-    if (this.isMobileMenuOpen) {
-      this.closeMobileMenu();
+  loadDashboardData(): void {
+    this.isLoadingDashboard = true;
+    this.dashboardError = null;
+
+    this.tenantService.getTenantDashboardData().subscribe({
+      next: (tenantData: any) => {
+        if (tenantData.success && tenantData.data) {
+          this.processDashboardData(tenantData.data);
+        } else {
+          this.dashboardError = 'Failed to load tenant data';
+        }
+        this.isLoadingDashboard = false;
+      },
+      error: (error) => {
+        this.dashboardError = error.message || 'Failed to load dashboard data';
+        this.isLoadingDashboard = false;
+        console.error('Dashboard data error:', error);
+      }
+    });
+  }
+
+  private processDashboardData(tenantData: any): void {
+    this.dashboardData = {
+      currentRent: tenantData.currentRent || 25000,
+      paymentStatus: tenantData.paymentStatus || 'Current',
+      daysUntilDue: tenantData.daysUntilDue || 15,
+      openMaintenance: tenantData.openMaintenance || 0,
+      leaseEndDays: tenantData.leaseEndDays || 120,
+      propertyAddress: tenantData.propertyAddress || '123 Main Street, Nairobi',
+      landlordName: tenantData.landlordName || 'John Doe',
+      depositAmount: tenantData.depositAmount || 50000
+    };
+  }
+
+  private loadNotifications(): void {
+    this.isLoadingNotifications = true;
+    
+    setTimeout(() => {
+      this.unreadNotificationsCount = 3; 
+      this.unreadMessagesCount = 2; 
+      this.isLoadingNotifications = false;
+    }, 500);
+  }
+
+  viewNotifications(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/tenant-dashboard/notifications']);
+  }
+
+  viewProfile(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/tenant-dashboard/profile/view']);
+  }
+
+  editProfile(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/tenant-dashboard/profile/edit']);
+  }
+
+  private loadProfileImage(): void {
+    const savedImage = localStorage.getItem('profileImage');
+    if (savedImage) {
+      this.profileImage = this.addCacheBuster(savedImage);
+    } else if (this.currentUser?.avatar) {
+      this.profileImage = this.addCacheBuster(this.currentUser.avatar);
+    } else {
+      this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+    }
+  }
+
+  private addCacheBuster(imageUrl: string): string {
+    if (imageUrl.startsWith('data:')) {
+      return imageUrl;
+    }
+    const separator = imageUrl.includes('?') ? '&' : '?';
+    return `${imageUrl}${separator}t=${Date.now()}`;
+  }
+
+  private generateInitialAvatar(name: string): string {
+    const names = name.split(' ');
+    const initials = names.map(name => name.charAt(0).toUpperCase()).join('').slice(0, 2);
+    
+    const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+    const color = colors[initials.charCodeAt(0) % colors.length];
+    
+    return `data:image/svg+xml;base64,${btoa(`
+      <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100" height="100" fill="${color}" rx="50"/>
+        <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-size="40" font-weight="600">${initials}</text>
+      </svg>
+    `)}`;
+  }
+
+  private formatUserRole(role: string): string {
+    const roleMap: { [key: string]: string } = {
+      'LANDLORD': 'Landlord',
+      'TENANT': 'Tenant',
+      'CARETAKER': 'Caretaker',
+      'BUSINESS': 'Business Owner',
+      'ADMIN': 'Administrator'
+    };
+    
+    return roleMap[role.toString()] || role.toString();
+  }
+
+  toggleProfileMenu(): void {
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+    if (this.isProfileMenuOpen) {
+      this.isMobileMenuOpen = false;
     }
   }
 
   toggleMobileMenu(): void {
     this.isMobileMenuOpen = !this.isMobileMenuOpen;
+    
+    if (this.isMobileMenuOpen) {
+      this.isProfileMenuOpen = false;
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
   }
 
   closeMobileMenu(): void {
     this.isMobileMenuOpen = false;
+    document.body.style.overflow = '';
   }
 
+  closeProfileMenu(): void {
+    this.isProfileMenuOpen = false;
+  }
 
-  toggleSection(section: string): void {
-    if (this.collapsedSections.has(section)) {
-      this.collapsedSections.delete(section);
+  navigateToSection(section: string): void {
+    this.currentSection = section;
+    this.isMobileMenuOpen = false;
+    this.isProfileMenuOpen = false;
+    document.body.style.overflow = '';
+
+    const routeMap: { [key: string]: string[] } = {
+      'dashboard': ['/tenant-dashboard'],
+      'rental': ['/tenant-dashboard/rental'],
+      'payments': ['/tenant-dashboard/payments'],
+      'maintenance': ['/tenant-dashboard/maintenance'],
+      'documents': ['/tenant-dashboard/documents'],
+      'messages': ['/tenant-dashboard/messages'],
+      'deposit': ['/tenant-dashboard/deposit'],
+      'profile': ['/tenant-dashboard/profile/view']
+    };
+
+    const route = routeMap[section];
+    if (route) {
+      this.router.navigate(route);
     } else {
-      this.collapsedSections.add(section);
-    }
-    
-    this.animatingSections.add(section);
-    setTimeout(() => {
-      this.animatingSections.delete(section);
-    }, 300);
-  }
-
-  isSectionCollapsed(section: string): boolean {
-    return this.collapsedSections.has(section);
-  }
-
-  isAnimating(section: string): boolean {
-    return this.animatingSections.has(section);
-  }
-
-  expandAllSections(): void {
-    this.collapsedSections.clear();
-  }
-
-  collapseAllSections(): void {
-    this.navigationItems.forEach(item => {
-      this.collapsedSections.add(item.id);
-    });
-    this.collapsedSections.add('deposit');
-    this.collapsedSections.add('rental');
-    this.collapsedSections.add('quickActions');
-    this.collapsedSections.add('activity');
-  }
-
-  getCollapsedCount(): number {
-    return this.collapsedSections.size;
-  }
-
-  getAriaLabel(section: string): string {
-    return this.isSectionCollapsed(section) ? `Expand ${section} section` : `Collapse ${section} section`;
-  }
-
-
-  executeQuickAction(actionId: string): void {
-    switch (actionId) {
-      case 'payRent':
-        this.setActiveSection('payments');
-        break;
-      case 'maintenance':
-        this.setActiveSection('maintenance');
-        break;
-      case 'message':
-        this.setActiveSection('messages');
-        break;
-      case 'documents':
-        this.setActiveSection('documents');
-        break;
+      this.router.navigate(['/tenant-dashboard']);
     }
   }
 
-
-  getDepositStatusText(): string {
-    return 'Protected';
-  }
-
-  getCompletedTimelineCount(): number {
-    return this.depositTimeline.filter(event => event.completed).length;
-  }
-
-  getTotalTimelineCount(): number {
-    return this.depositTimeline.length;
-  }
-
-  getTimelineCompletionPercentage(): number {
-    return (this.getCompletedTimelineCount() / this.getTotalTimelineCount()) * 100;
-  }
-
-  viewDepositDetails(): void {
-    this.setActiveSection('deposit');
-  }
-
-  viewPaymentHistory(): void {
-    this.setActiveSection('payments');
-  }
-
-  hasRecentActivities(): boolean {
-    return this.recentActivities && this.recentActivities.length > 0;
-  }
-
-  getRecentActivitiesCount(): number {
-    return this.recentActivities ? this.recentActivities.length : 0;
-  }
-
-  getActivityIconClass(type: string): string {
-    return `activity-${type}`;
-  }
-
-  trackByActivityId(index: number, activity: any): number {
-    return activity.id;
-  }
-
-  refreshData(): void {
-    this.loadDashboardData();
-  }
-
-  submitMaintenanceRequest(): void {
-    if (this.newMaintenanceRequest.title && this.newMaintenanceRequest.description) {
-      this.tenantService.submitMaintenanceRequest(this.newMaintenanceRequest).subscribe({
-        next: (response: any) => {
-          if (response.success) {
-         
-            this.newMaintenanceRequest = { title: '', description: '', priority: 'medium' };
-         
-            alert('Maintenance request submitted successfully!');
-          } else {
-            alert('Failed to submit maintenance request: ' + response.message);
-          }
-        },
-        error: (error) => {
-          alert('Error submitting maintenance request: ' + error.message);
-        }
-      });
+  private updateCurrentSectionFromRoute(url: string): void {
+    if (url.includes('/profile/view') || url.includes('/profile/edit')) {
+      this.currentSection = 'profile';
+    } else if (url === '/tenant-dashboard' || url === '/tenant-dashboard/') {
+      this.currentSection = 'dashboard';
+    } else if (url.includes('/rental')) {
+      this.currentSection = 'rental';
+    } else if (url.includes('/payments')) {
+      this.currentSection = 'payments';
+    } else if (url.includes('/maintenance')) {
+      this.currentSection = 'maintenance';
+    } else if (url.includes('/documents')) {
+      this.currentSection = 'documents';
+    } else if (url.includes('/messages')) {
+      this.currentSection = 'messages';
+    } else if (url.includes('/deposit')) {
+      this.currentSection = 'deposit';
+    } else {
+      this.currentSection = 'dashboard';
     }
   }
 
- 
-  getInitials(name: string): string {
-    if (!name) return 'T';
-    const names = name.split(' ');
-    if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
-  }
-
-  formatNumber(num: number): string {
-    return num.toLocaleString('en-KE');
-  }
-
-  formatCurrency(amount: number): string {
-    return `KSH ${this.formatNumber(amount)}`;
-  }
-
-  toggleNotifications(): void {
-   
-    console.log('Toggle notifications');
+  isNavActive(section: string): boolean {
+    return this.currentSection === section;
   }
 
   logout(): void {
+    if (this.isLoggingOut) return;
+
+    const confirmed = confirm('Are you sure you want to logout?');
+    if (!confirmed) return;
+
+    this.isLoggingOut = true;
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+
     this.authService.logout().subscribe({
-      next: () => {
+      next: (response: any) => {
+        console.log('Logout successful:', response.message);
+        this.isLoggingOut = false;
+        
+        localStorage.removeItem('profileImage');
+        sessionStorage.clear();
+        
         this.router.navigate(['/login']);
       },
       error: (error) => {
         console.error('Logout error:', error);
+        this.isLoggingOut = false;
+        
+        localStorage.removeItem('profileImage');
+        sessionStorage.clear();
         this.router.navigate(['/login']);
       }
     });
   }
 
-  onPictureUpdated(imageUrl: string): void {
-    this.profileImage = imageUrl;
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any): void {
+    if (window.innerWidth > 768 && this.isMobileMenuOpen) {
+      this.closeMobileMenu();
+    }
   }
 
-  onPictureDeleted(): void {
-    this.profileImage = this.profilePictureService.getDefaultAvatar(this.userName);
+  refreshDashboard(): void {
+    this.loadDashboardData();
+    this.loadNotifications();
+  }
+
+  onLogoError(event: any): void {
+    console.error('Logo failed to load:', event);
   }
 }

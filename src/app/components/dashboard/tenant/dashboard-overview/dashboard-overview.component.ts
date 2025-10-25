@@ -1,344 +1,268 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { PropertyService } from '../../../../services/property.service';
+import { AuthService } from '../../../../services/auth.service';
+import { Subscription } from 'rxjs';
 
-export interface TimelineEvent {
-  title: string;
-  date: string;
-  completed: boolean;
-  description?: string;
-}
-
-export interface ActivityItem {
-  id: string;
-  title: string;
-  description: string;
-  time: string;
-  type: 'success' | 'info' | 'warning' | 'error';
-  icon: string;
-}
+import { DashboardData, QuickAction, RecentActivity } from '../../../../services/dashboard-interface';
 
 @Component({
-  selector: 'app-dashboard-overview',
+  selector: 'app-tenant-dashboard-home',
   standalone: true,
   imports: [
     CommonModule,
-    MatIconModule
+    MatCardModule,
+    MatIconModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule
   ],
   templateUrl: './dashboard-overview.component.html',
   styleUrls: ['./dashboard-overview.component.scss']
 })
-export class DashboardOverviewComponent implements OnInit, OnChanges {
+export class DashboardOverviewComponent implements OnInit, OnDestroy {
+   dashboardData: any = {
+    currentRent: 0,
+    paymentStatus: '',
+    daysUntilDue: 0,
+    openMaintenance: 0,
+    leaseEndDays: 0
+  };
 
-  @Input() depositAmount!: number;
-  @Input() rentAmount!: number;
-  @Input() propertyAddress!: string;
-  @Input() landlordName!: string;
-  @Input() depositTimeline!: TimelineEvent[];
-  @Input() collapsedSections!: Set<string>;
-  @Input() animatingSections!: Set<string>;
-  
-  @Output() sectionToggle = new EventEmitter<string>();
-  @Output() actionClick = new EventEmitter<string>();
-  @Output() paymentClick = new EventEmitter<void>();
-  
- 
-  recentActivities: ActivityItem[] = [
+  quickActions: QuickAction[] = [
     {
-      id: '1',
-      title: 'February rent payment received',
-      description: 'Payment processed successfully via M-Pesa',
+      icon: 'payments',
+      label: 'Pay Rent',
+      description: 'Make your monthly rent payment',
+      route: ['/tenant-dashboard/payments'],
+      color: '#10b981'
+    },
+    {
+      icon: 'receipt',
+      label: 'Payment History',
+      description: 'View your payment records',
+      route: ['/tenant-dashboard/payments/history'],
+      color: '#3b82f6'
+    },
+    {
+      icon: 'handyman',
+      label: 'Maintenance',
+      description: 'Request maintenance services',
+      route: ['/tenant-dashboard/maintenance'],
+      color: '#f59e0b'
+    },
+    {
+      icon: 'description',
+      label: 'Documents',
+      description: 'Access lease and other documents',
+      route: ['/tenant-dashboard/documents'],
+      color: '#8b5cf6'
+    },
+    {
+      icon: 'message',
+      label: 'Messages',
+      description: 'Communicate with your landlord',
+      route: ['/tenant-dashboard/messages'],
+      color: '#06b6d4'
+    },
+    {
+      icon: 'edit',
+      label: 'Edit Profile',
+      description: 'Update your personal information',
+      route: ['/tenant-dashboard/profile/edit'],
+      color: '#ef4444'
+    }
+  ];
+
+  recentActivities: RecentActivity[] = [
+    {
+      type: 'Rent Payment',
+      message: 'February rent payment confirmed',
       time: '2 days ago',
-      type: 'success',
-      icon: 'check'
+      icon: 'payments'
     },
     {
-      id: '2',
-      title: 'Maintenance request submitted',
-      description: 'Kitchen faucet leaking issue reported',
+      type: 'Maintenance',
+      message: 'Kitchen faucet repair scheduled',
       time: '5 days ago',
-      type: 'info',
-      icon: 'build'
+      icon: 'handyman'
     },
     {
-      id: '3',
-      title: 'Message from landlord',
-      description: 'Monthly property inspection scheduled',
+      type: 'Message',
+      message: 'New message from property manager',
       time: '1 week ago',
-      type: 'info',
-      icon: 'mail'
+      icon: 'message'
     },
     {
-      id: '4',
-      title: 'Document uploaded',
-      description: 'Insurance policy document added',
+      type: 'Document',
+      message: 'Updated lease agreement available',
       time: '2 weeks ago',
-      type: 'info',
       icon: 'description'
     }
   ];
 
-  
-  quickActions = [
-    {
-      id: 'payment',
-      title: 'Pay Rent',
-      description: 'Make your monthly rent payment',
-      icon: 'payment',
-      color: '#10b981',
-      action: () => this.makePayment()
-    },
-    {
-      id: 'maintenance',
-      title: 'Report Issue',
-      description: 'Submit a maintenance request',
-      icon: 'build',
-      color: '#f59e0b',
-      action: () => this.navigateToSection('maintenance')
-    },
-    {
-      id: 'messages',
-      title: 'Message',
-      description: 'Contact your landlord',
-      icon: 'message',
-      color: '#3b82f6',
-      action: () => this.navigateToSection('messages')
-    },
-    {
-      id: 'documents',
-      title: 'Documents',
-      description: 'Access your documents',
-      icon: 'folder',
-      color: '#8b5cf6',
-      action: () => this.navigateToSection('documents')
-    }
-  ];
+  isLoadingDashboard = true;
+  dashboardError = '';
+  private subscriptions = new Subscription();
 
+  constructor(
+    private propertyService: PropertyService,
+    private authService: AuthService,
+    private router: Router,
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
+  ) {}
 
-  
+  ngOnInit() {
+    this.loadDashboardData();
+  }
 
-  get nextRentDueDate(): string {
-    const today = new Date();
-    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 15);
-    return nextMonth.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+  ngOnDestroy() {
+    this.subscriptions.unsubscribe();
+  }
+
+  loadDashboardData() {
+    this.isLoadingDashboard = true;
+    this.dashboardError = '';
+
+    const propertiesSub = this.propertyService.getProperties().subscribe({
+      next: (response: any) => {
+        this.processTenantDashboardData();
+        this.isLoadingDashboard = false;
+      },
+      error: (error: any) => {
+        this.processTenantDashboardData();
+        this.isLoadingDashboard = false;
+        
+        if (error.status !== 404) {
+          this.dashboardError = error?.message || 'Failed to load dashboard data';
+          this.snackBar.open(this.dashboardError, 'Close', { duration: 5000 });
+        }
+        
+        if (error.status === 401) {
+          setTimeout(() => {
+            this.authService.logout().subscribe();
+            this.router.navigate(['/login']);
+          }, 2000);
+        }
+      }
     });
+
+    this.subscriptions.add(propertiesSub);
   }
 
-  get paymentStatus(): { status: string; daysLeft: number; className: string } {
-    const today = new Date();
-    const dueDate = new Date(today.getFullYear(), today.getMonth(), 15);
-    
-    if (today > dueDate) {
-      const nextDue = new Date(today.getFullYear(), today.getMonth() + 1, 15);
-      return {
-        status: 'Paid',
-        daysLeft: Math.ceil((nextDue.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
-        className: 'status-success'
-      };
-    } else {
-      const daysLeft = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      return {
-        status: daysLeft > 5 ? 'Due Soon' : 'Due Very Soon',
-        daysLeft: daysLeft,
-        className: daysLeft > 5 ? 'status-warning' : 'status-danger'
-      };
-    }
-  }
-
-  ngOnInit(): void {
-    this.validateInputs();
-    this.loadDashboardData();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['depositTimeline'] && this.depositTimeline) {
-      this.updateTimelineProgress();
-    }
-  }
-  private validateInputs(): void {
-    if (!this.depositAmount || this.depositAmount <= 0) {
-      console.warn('Invalid deposit amount provided to dashboard overview');
-    }
-    if (!this.rentAmount || this.rentAmount <= 0) {
-      console.warn('Invalid rent amount provided to dashboard overview');
-    }
-    if (!this.propertyAddress) {
-      console.warn('Property address not provided to dashboard overview');
-    }
-  }
-
-
-  private loadDashboardData(): void {
-  
-    this.refreshActivities();
-  }
-
-  private refreshActivities(): void {
-
-    this.recentActivities = this.recentActivities.map(activity => ({
-      ...activity,
-      time: this.formatRelativeTime(activity.time)
-    }));
-  }
-
-  private updateTimelineProgress(): void {
+  private processTenantDashboardData(): void {
    
-    if (this.depositTimeline) {
-      const completedCount = this.depositTimeline.filter(event => event.completed).length;
-      console.log(`Timeline progress: ${completedCount}/${this.depositTimeline.length} completed`);
-    }
-  }
-
-
-  
-  formatNumber(num: number): string {
-    if (!num || isNaN(num)) return '0';
-    return new Intl.NumberFormat('en-KE').format(num);
-  }
-
-  formatCurrency(amount: number): string {
-    if (!amount || isNaN(amount)) return 'KSH 0';
-    return `KSH ${this.formatNumber(amount)}`;
-  }
-
-  getDepositStatusText(): string {
-    return 'Secured & Protected';
-  }
-trackByActivityId(index: number, activity: any): string {
-  return activity.id; 
-  
-}
-
-  getActivityIconClass(type: string): string {
-    const typeClasses = {
-      'success': 'activity-success',
-      'info': 'activity-info',
-      'warning': 'activity-warning',
-      'error': 'activity-error'
+    this.dashboardData = {
+      currentRent: 25000,
+      paymentStatus: 'Current',
+      daysUntilDue: 12,
+      openMaintenance: 1,
+      leaseEndDays: 85
     };
-    return typeClasses[type as keyof typeof typeClasses] || 'activity-info';
   }
 
-  private formatRelativeTime(timeString: string): string {
-    
-    return timeString;
-  }
+  navigateToSection(section: string) {
+    const routeMap: { [key: string]: string[] } = {
+      'payments': ['/tenant-dashboard/payments'],
+      'maintenance': ['/tenant-dashboard/maintenance'],
+      'documents': ['/tenant-dashboard/documents'],
+      'messages': ['/tenant-dashboard/messages'],
+      'profile': ['/tenant-dashboard/profile/view']
+    };
 
-
-  
-  isSectionCollapsed(sectionId: string): boolean {
-    return this.collapsedSections?.has(sectionId) || false;
-  }
-
-  isAnimating(sectionId: string): boolean {
-    return this.animatingSections?.has(sectionId) || false;
-  }
-
-  toggleSection(sectionId: string): void {
-    this.sectionToggle.emit(sectionId);
-  }
-
-
-  navigateToSection(section: string): void {
-    console.log(`Navigating to section: ${section}`);
-    this.actionClick.emit(section);
-  }
-
-  makePayment(): void {
-    console.log('Initiating payment from dashboard overview');
-    this.paymentClick.emit();
-  }
-
-  viewDepositDetails(): void {
-    this.navigateToSection('deposit');
-  }
-
-  viewPaymentHistory(): void {
-    this.navigateToSection('payments');
-  }
-
- 
-  getTimelineCompletionPercentage(): number {
-    if (!this.depositTimeline || this.depositTimeline.length === 0) return 0;
-    
-    const completedCount = this.depositTimeline.filter(event => event.completed).length;
-    return Math.round((completedCount / this.depositTimeline.length) * 100);
-  }
-
-  getCompletedTimelineCount(): number {
-    if (!this.depositTimeline) return 0;
-    return this.depositTimeline.filter(event => event.completed).length;
-  }
-
-  getTotalTimelineCount(): number {
-    return this.depositTimeline?.length || 0;
-  }
-
-
-  
-  getRecentActivitiesCount(): number {
-    return this.recentActivities.length;
-  }
-
-  hasRecentActivities(): boolean {
-    return this.recentActivities.length > 0;
-  }
-
- 
-  
-  executeQuickAction(actionId: string): void {
-    const action = this.quickActions.find(a => a.id === actionId);
-    if (action && action.action) {
-      action.action();
+    const route = routeMap[section];
+    if (route) {
+      this.router.navigate(route);
     }
   }
 
-
-  
-
-  getPropertySummary(): string {
-    return `${this.propertyAddress} • Landlord: ${this.landlordName}`;
-  }
-
-
-  
-  handleError(error: any, context: string): void {
-    console.error(`Error in dashboard overview - ${context}:`, error);
-  }
-
-  
-  
-  getAriaLabel(sectionId: string): string {
-    const collapsed = this.isSectionCollapsed(sectionId);
-    return `${collapsed ? 'Expand' : 'Collapse'} ${sectionId} section`;
-  }
-
-
-  
-  getSectionClasses(sectionId: string): string {
-    let classes = 'card collapsible-card';
+  openMaintenanceRequest() {
+   
+    this.snackBar.open('Redirecting to maintenance requests...', 'Close', { duration: 2000 });
+    this.router.navigate(['/tenant-dashboard/maintenance']);
     
-    if (this.isSectionCollapsed(sectionId)) {
-      classes += ' collapsed';
-    }
-    
-    if (this.isAnimating(sectionId)) {
-      classes += ' animating';
-    }
-    
-    return classes;
+    // This would be the correct implementation when MaintenanceRequestComponent exists:
+    /*
+    const dialogRef = this.dialog.open(MaintenanceRequestComponent, {
+      width: '90%',
+      maxWidth: '600px',
+      height: 'auto',
+      panelClass: 'maintenance-form-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'success') {
+        this.snackBar.open('Maintenance request submitted successfully!', 'Close', { duration: 3000 });
+        this.loadDashboardData();
+      }
+    });
+    */
   }
 
- 
-  refreshData(): void {
+  onQuickAction(action: QuickAction) {
+    this.router.navigate(action.route);
+  }
+
+  navigateToProfileView() {
+    this.router.navigate(['/tenant-dashboard/profile/view']);
+  }
+
+  navigateToProfileEdit() {
+    this.router.navigate(['/tenant-dashboard/profile/edit']);
+  }
+
+  refreshDashboard(): void {
     this.loadDashboardData();
-    console.log('Dashboard overview data refreshed');
+    this.snackBar.open('Refreshing dashboard...', 'Close', { duration: 2000 });
+  }
+
+  
+  getCurrentRent(): number {
+    return this.dashboardData?.currentRent || 0;
+  }
+
+  getPaymentStatus(): string {
+    return this.dashboardData?.paymentStatus || 'Unknown';
+  }
+
+  getDaysUntilDue(): number {
+    return this.dashboardData?.daysUntilDue || 0;
+  }
+
+  getOpenMaintenance(): number {
+    return this.dashboardData?.openMaintenance || 0;
+  }
+
+  getLeaseEndDays(): number {
+    return this.dashboardData?.leaseEndDays || 0;
+  }
+
+ 
+  payRent() {
+    this.snackBar.open('Redirecting to payment page...', 'Close', { duration: 2000 });
+    this.router.navigate(['/tenant-dashboard/payments']);
+  }
+
+ 
+  viewMaintenance() {
+    this.router.navigate(['/tenant-dashboard/maintenance']);
   }
 
 
-  onDestroy(): void {
+  viewDocuments() {
+    this.router.navigate(['/tenant-dashboard/documents']);
+  }
+
+
+  viewMessages() {
+    this.router.navigate(['/tenant-dashboard/messages']);
   }
 }
