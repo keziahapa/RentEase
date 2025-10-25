@@ -1,76 +1,128 @@
 <div class="dashboard-container">
-  <aside class="sidebar" [class.open]="isSidebarOpen" [class.mobile-open]="isMobileMenuOpen">
+  <div class="mobile-menu-overlay" [class.active]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
+  
+  <nav class="sidebar" [class.mobile-open]="isMobileMenuOpen">
     <div class="sidebar-header">
-      <div class="logo">
+      <div class="logo" (click)="navigateToSection('dashboard')">
         <img src="/images/logo.png" alt="RentEase Logo" class="logo-image">
       </div>
-      <button mat-icon-button (click)="toggleSidebar()" class="toggle-btn">
-        <mat-icon>{{ isSidebarOpen ? 'chevron_left' : 'menu' }}</mat-icon>
-      </button>
     </div>
 
-    <div class="sidebar-profile">
-      <app-profile-picture 
-        [size]="'medium'" 
-        [editable]="false"
-        [showName]="isSidebarOpen"
-        [showRole]="false"
-        [routerLink]="['/caretaker-dashboard/profile']">
-      </app-profile-picture>
+    <div class="nav-menu">
+      <div class="nav-item" 
+           [class.active]="isNavActive('dashboard')" 
+           (click)="navigateToSection('dashboard')">
+        <mat-icon class="nav-icon">dashboard</mat-icon>
+        <span>Dashboard</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('maintenance')" 
+           (click)="navigateToSection('maintenance')">
+        <mat-icon class="nav-icon">build</mat-icon>
+        <span>Maintenance</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('inspections')" 
+           (click)="navigateToSection('inspections')">
+        <mat-icon class="nav-icon">home</mat-icon>
+        <span>Inspections</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('deposits')" 
+           (click)="navigateToSection('deposits')">
+        <mat-icon class="nav-icon">account_balance</mat-icon>
+        <span>Deposits</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('properties')" 
+           (click)="navigateToSection('properties')">
+        <mat-icon class="nav-icon">apartment</mat-icon>
+        <span>Properties</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('messages')" 
+           (click)="navigateToSection('messages')">
+        <mat-icon class="nav-icon">message</mat-icon>
+        <span>Messages</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('reports')" 
+           (click)="navigateToSection('reports')">
+        <mat-icon class="nav-icon">assessment</mat-icon>
+        <span>Reports</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('profile')" 
+           (click)="viewProfile()">
+        <mat-icon class="nav-icon">account_circle</mat-icon>
+        <span>Profile</span>
+      </div>
     </div>
+  </nav>
 
-    <div class="sidebar-role" *ngIf="isSidebarOpen">
-      <mat-chip class="user-role-chip" [style.background]="getRoleColor()">
-        <mat-icon class="chip-icon">verified</mat-icon>
-        {{ getRoleDisplay() }}
-      </mat-chip>
-    </div>
-
-    <nav class="sidebar-nav">
-      <a 
-        *ngFor="let item of navItems" 
-        mat-button 
-        [routerLink]="item.route"
-        routerLinkActive="active"
-        class="nav-item">
-        <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
-        <span class="nav-label">{{ item.label }}</span>
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <button mat-button (click)="logout()" class="logout-btn">
-        <mat-icon>logout</mat-icon>
-        <span>Logout</span>
-      </button>
-    </div>
-  </aside>
-
-  <div class="mobile-overlay" *ngIf="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
-
-  <main class="main-content" [class.sidebar-collapsed]="!isSidebarOpen && !isMobile">
-    <header class="dashboard-header">
+  <main class="main-content">
+    <div class="top-header">
       <div class="header-left">
-        <button mat-icon-button (click)="toggleSidebar()" class="menu-toggle">
+        <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
           <mat-icon>menu</mat-icon>
         </button>
-        <h1 class="page-title">Caretaker Dashboard</h1>
-        
-        <mat-chip class="header-role-chip" [style.background]="getRoleColor()" *ngIf="!isSidebarOpen && !isMobile">
-          <mat-icon class="chip-icon">verified</mat-icon>
-          {{ getRoleDisplay() }}
-        </mat-chip>
+        <div class="greeting-section">
+          <h1>{{ getGreetingMessage() }}</h1>
+          <p>Here's what's happening with your caretaking duties today</p>
+        </div>
       </div>
-      
-      <div class="header-actions">
-        <button mat-icon-button>
-          <mat-icon>notifications</mat-icon>
-        </button>
-      </div>
-    </header>
 
-    <div class="content-area">
-      <router-outlet></router-outlet>
+      <div class="header-right">
+        <div class="header-actions">
+          <button class="notification-btn" (click)="viewNotifications()" 
+                  [class.has-notifications]="unreadNotificationsCount > 0"
+                  matTooltip="{{ unreadNotificationsCount > 0 ? unreadNotificationsCount + ' unread notifications' : 'No new notifications' }}"
+                  matTooltipPosition="below">
+            <mat-icon>notifications</mat-icon>
+            <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
+              {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
+            </span>
+          </button>
+        </div>
+
+        <div class="profile-section">
+          <div class="user-avatar-wrapper" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <div class="user-avatar">
+              <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image">
+              <div *ngIf="!profileImage" class="avatar-placeholder">
+                <mat-icon>account_circle</mat-icon>
+              </div>
+            </div>
+          </div>
+
+          <div class="dropdown-trigger" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <mat-icon class="dropdown-chevron" [class.rotated]="isProfileMenuOpen">expand_more</mat-icon>
+          </div>
+
+          <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
+            <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Profile</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item logout-item" 
+                    (click)="logout(); $event.stopPropagation()"
+                    [disabled]="isLoggingOut">
+              <mat-icon>logout</mat-icon>
+              <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <router-outlet></router-outlet>
   </main>
 </div>

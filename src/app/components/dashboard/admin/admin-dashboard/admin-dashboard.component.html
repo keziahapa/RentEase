@@ -1,525 +1,159 @@
-<div class="admin-dashboard" [class.dark-mode]="isDarkMode">
-  <div class="sidebar" [class.sidebar-collapsed]="!isSidebarOpen" [class.mobile-open]="isMobileMenuOpen">
+<div class="dashboard-container">
+  <div class="mobile-menu-overlay" [class.active]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
+  
+  <nav class="sidebar" [class.mobile-open]="isMobileMenuOpen">
     <div class="sidebar-header">
       <div class="logo" (click)="navigateToSection('overview')">
-        <img src="/images/logo.png" alt="RentEase Logo" class="logo-image">
+         <img src="/images/logo.png" alt="RentEase Logo" class="logo-image">
       </div>
-      <button class="sidebar-toggle" (click)="toggleSidebar()" matTooltip="Toggle Sidebar">
-        <mat-icon>{{isSidebarOpen ? 'chevron_left' : 'chevron_right'}}</mat-icon>
-      </button>
     </div>
 
-    <nav class="sidebar-nav">
-      <a *ngFor="let item of navItems" 
-         class="nav-item" 
-         [class.active]="currentView === item.id"
-         (click)="setView(item.id)"
-         [matTooltip]="item.label"
-         matTooltipPosition="right">
-        <mat-icon class="nav-icon">{{item.icon}}</mat-icon>
-        <span class="nav-label" *ngIf="isSidebarOpen">{{item.label}}</span>
-      </a>
-    </nav>
+    <div class="nav-menu">
+      <div class="nav-item" 
+           [class.active]="isNavActive('overview')" 
+           (click)="navigateToSection('overview')">
+        <mat-icon class="nav-icon">dashboard</mat-icon>
+        <span>Dashboard</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('users')" 
+           (click)="navigateToSection('users')">
+        <mat-icon class="nav-icon">people</mat-icon>
+        <span>Users</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('properties')" 
+           (click)="navigateToSection('properties')">
+        <mat-icon class="nav-icon">apartment</mat-icon>
+        <span>Properties</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('businesses')" 
+           (click)="navigateToSection('businesses')">
+        <mat-icon class="nav-icon">business</mat-icon>
+        <span>Businesses</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('disputes')" 
+           (click)="navigateToSection('disputes')">
+        <mat-icon class="nav-icon">gavel</mat-icon>
+        <span>Disputes</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('transactions')" 
+           (click)="navigateToSection('transactions')">
+        <mat-icon class="nav-icon">payments</mat-icon>
+        <span>Transactions</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('reports')" 
+           (click)="navigateToSection('reports')">
+        <mat-icon class="nav-icon">assessment</mat-icon>
+        <span>Reports</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('settings')" 
+           (click)="navigateToSection('settings')">
+        <mat-icon class="nav-icon">settings</mat-icon>
+        <span>Settings</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('profile')" 
+           (click)="viewProfile()">
+        <mat-icon class="nav-icon">account_circle</mat-icon>
+        <span>Profile</span>
+      </div>
+    </div>
 
     <div class="sidebar-footer">
-      <button class="logout-btn" (click)="logout()" matTooltip="Logout">
-        <mat-icon>logout</mat-icon>
-        <span *ngIf="isSidebarOpen">Logout</span>
+      <button class="logout-btn" (click)="logout()" [disabled]="isLoggingOut">
+        <mat-icon class="logout-icon">logout</mat-icon>
+        <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
       </button>
     </div>
-  </div>
+  </nav>
 
-  <div class="overlay" [class.mobile-open]="isMobileMenuOpen" (click)="toggleMobileMenu()"></div>
-
-  <div class="main-content">
+  <main class="main-content">
     <div class="top-header">
       <div class="header-left">
-        <button class="menu-toggle" (click)="toggleMobileMenu()">
+        <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
           <mat-icon>menu</mat-icon>
         </button>
-        
-        <div class="breadcrumb">
-          <span class="breadcrumb-item">Admin</span>
-          <mat-icon class="breadcrumb-separator">chevron_right</mat-icon>
-          <span class="breadcrumb-item active">{{currentView | titlecase}}</span>
+        <div class="greeting-section">
+          <h1>{{ getGreetingMessage() }}</h1>
+          <p>Platform administration and monitoring</p>
         </div>
       </div>
-      
-      <div class="header-actions">
-        <div class="search-bar">
-          <mat-icon class="search-icon">search</mat-icon>
-          <input 
-            type="text" 
-            placeholder="Search users, properties..." 
-            [(ngModel)]="searchQuery"
-            (keyup.enter)="performSearch()">
-        </div>
 
-        <button class="icon-btn" (click)="toggleDarkMode()" matTooltip="Toggle Dark Mode">
-          <mat-icon>{{isDarkMode ? 'light_mode' : 'dark_mode'}}</mat-icon>
-        </button>
-
-        <button class="icon-btn" [matMenuTriggerFor]="notificationMenu" matTooltip="Notifications">
-          <mat-icon [matBadge]="getUnreadNotificationsCount()" matBadgeColor="warn">notifications</mat-icon>
-        </button>
-        <mat-menu #notificationMenu="matMenu" class="notification-menu">
-          <div class="notification-header">
-            <h3>Notifications</h3>
-          </div>
-          <div class="notification-list">
-            <button mat-menu-item *ngFor="let notification of notifications" 
-                    (click)="markNotificationAsRead(notification)"
-                    [class.unread]="notification.unread">
-              <mat-icon>{{notification.unread ? 'circle' : 'check_circle'}}</mat-icon>
-              <span>{{notification.message}}</span>
-            </button>
-          </div>
-        </mat-menu>
-
-        <button class="btn btn-secondary" (click)="refreshData()" matTooltip="Refresh Data">
-          <mat-icon>refresh</mat-icon>
-          <span class="btn-text">Refresh</span>
-        </button>
-
-        <div class="user-menu" [matMenuTriggerFor]="userActionsMenu">
-          <div class="user-avatar">A</div>
-          <span class="user-name">Admin</span>
-          <mat-icon>arrow_drop_down</mat-icon>
-        </div>
-        <mat-menu #userActionsMenu="matMenu">
-          <button mat-menu-item>
-            <mat-icon>person</mat-icon>
-            <span>Profile</span>
+      <div class="header-right">
+        <div class="header-actions">
+          <button class="notification-btn" (click)="viewNotifications()" 
+                  [class.has-notifications]="unreadNotificationsCount > 0"
+                  matTooltip="{{ unreadNotificationsCount > 0 ? unreadNotificationsCount + ' unread notifications' : 'No new notifications' }}"
+                  matTooltipPosition="below">
+            <mat-icon>notifications</mat-icon>
+            <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
+              {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
+            </span>
           </button>
-          <button mat-menu-item>
-            <mat-icon>settings</mat-icon>
-            <span>Settings</span>
+
+          <button class="refresh-btn" (click)="refreshDashboard()" matTooltip="Refresh Data">
+            <mat-icon>refresh</mat-icon>
           </button>
-          <mat-divider></mat-divider>
-          <button mat-menu-item (click)="logout()">
-            <mat-icon>logout</mat-icon>
-            <span>Logout</span>
-          </button>
-        </mat-menu>
-      </div>
-    </div>
-
-    <mat-progress-bar *ngIf="isLoading" mode="indeterminate" class="loading-bar"></mat-progress-bar>
-
-    <div class="dashboard-content">
-      
-      <div *ngIf="currentView === 'overview'" class="overview-view">
-        <div class="stats-grid">
-          <div class="stat-card" (click)="setView('users')">
-            <div class="stat-icon users">
-              <mat-icon>people</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatNumber(stats.totalUsers)}}</div>
-              <div class="stat-label">Total Users</div>
-              <div class="stat-growth positive">
-                <mat-icon>trending_up</mat-icon>
-                <span>+{{stats.userGrowth}}%</span>
-              </div>
-              <div class="stat-breakdown">
-                <span class="breakdown-item" (click)="viewLandlords(); $event.stopPropagation()">
-                  {{stats.totalLandlords}} Landlords
-                </span>
-                <span class="breakdown-item" (click)="viewTenants(); $event.stopPropagation()">
-                  {{stats.totalTenants}} Tenants
-                </span>
-                <span class="breakdown-item" (click)="viewCaretakers(); $event.stopPropagation()">
-                  {{stats.totalCaretakers}} Caretakers
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="stat-card" (click)="viewLandlordProperties()">
-            <div class="stat-icon landlords">
-              <mat-icon>apartment</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatNumber(stats.totalProperties)}}</div>
-              <div class="stat-label">Total Properties</div>
-              <div class="stat-growth positive">
-                <mat-icon>trending_up</mat-icon>
-                <span>+{{stats.propertiesGrowth}}%</span>
-              </div>
-              <div class="stat-breakdown">
-                <span class="breakdown-item" (click)="$event.stopPropagation()">
-                  {{getOccupiedPropertiesCount()}} Occupied
-                </span>
-                <span class="breakdown-item" (click)="$event.stopPropagation()">
-                  {{getVacantPropertiesCount()}} Vacant
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="stat-card" (click)="setView('businesses')">
-            <div class="stat-icon businesses">
-              <mat-icon>store</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatNumber(stats.activeBusinesses)}}</div>
-              <div class="stat-label">Active Businesses</div>
-              <div class="stat-meta">
-                <mat-icon>pending_actions</mat-icon>
-                <span>{{stats.pendingApprovals}} pending</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon transactions">
-              <mat-icon>swap_horiz</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatCurrency(stats.monthlyTransactions)}}</div>
-              <div class="stat-label">Monthly Transactions</div>
-              <mat-progress-bar mode="determinate" value="75" class="stat-progress"></mat-progress-bar>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon revenue">
-              <mat-icon>attach_money</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatCurrency(stats.commissionRevenue)}}</div>
-              <div class="stat-label">Commission Revenue</div>
-              <div class="stat-growth positive">
-                <mat-icon>trending_up</mat-icon>
-                <span>+{{stats.revenueGrowth}}%</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="stat-card alert-card" (click)="setView('businesses')">
-            <div class="stat-icon approvals">
-              <mat-icon>pending_actions</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatNumber(stats.pendingApprovals)}}</div>
-              <div class="stat-label">Pending Approvals</div>
-              <div class="stat-alert">Requires attention</div>
-            </div>
-          </div>
-
-          <div class="stat-card alert-card" (click)="setView('disputes')">
-            <div class="stat-icon disputes">
-              <mat-icon>warning</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatNumber(stats.activeDisputes)}}</div>
-              <div class="stat-label">Active Disputes</div>
-              <div class="stat-alert">Action needed</div>
-            </div>
-          </div>
         </div>
 
-        <div class="dashboard-grid">
-          <div class="chart-card">
-            <div class="card-header">
-              <h3>Monthly Revenue</h3>
-              <button class="icon-btn" matTooltip="Export">
-                <mat-icon>download</mat-icon>
-              </button>
-            </div>
-            <div class="chart-container">
-              <div class="bar-chart">
-                <div class="chart-bars">
-                  <div *ngFor="let data of monthlyRevenueData" class="bar-wrapper">
-                    <div class="bar-value">{{formatCurrency(data.value)}}</div>
-                    <div class="bar" [style.height.%]="getChartBarHeight(data.value)"></div>
-                    <div class="bar-label">{{data.label}}</div>
-                  </div>
-                </div>
+        <div class="profile-section">
+          <div class="user-avatar-wrapper" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <div class="user-avatar">
+              <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image">
+              <div *ngIf="!profileImage" class="avatar-placeholder">
+                <mat-icon>account_circle</mat-icon>
               </div>
             </div>
-          </div>
-
-          <div class="chart-card">
-            <div class="card-header">
-              <h3>User Distribution</h3>
-              <button class="icon-btn" matTooltip="View Details">
-                <mat-icon>open_in_new</mat-icon>
-              </button>
-            </div>
-            <div class="chart-container">
-              <div class="pie-chart-legend">
-                <div *ngFor="let data of userTypeDistribution; let i = index" class="legend-item">
-                  <div class="legend-color" [class]="'color-' + i"></div>
-                  <div class="legend-info">
-                    <div class="legend-label">{{data.label}}</div>
-                    <div class="legend-value">{{data.value}} ({{(data.value / stats.totalUsers * 100).toFixed(1)}}%)</div>
-                  </div>
-                </div>
-              </div>
-              <div class="donut-chart">
-                <svg viewBox="0 0 100 100" class="donut-svg">
-                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e0e0e0" stroke-width="15"></circle>
-                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#1976d2" stroke-width="15"
-                          stroke-dasharray="251.2" stroke-dashoffset="0" transform="rotate(-90 50 50)"></circle>
-                </svg>
-                <div class="donut-center">
-                  <div class="donut-value">{{stats.totalUsers}}</div>
-                  <div class="donut-label">Total</div>
-                </div>
-              </div>
+            <div class="user-info">
+              <div class="user-name">{{ userDisplayName }}</div>
+              <div class="user-role">{{ userRole }}</div>
             </div>
           </div>
 
-          <div class="activity-card">
-            <div class="card-header">
-              <h3>Recent Activity</h3>
-              <button class="icon-btn" matTooltip="View All">
-                <mat-icon>more_horiz</mat-icon>
-              </button>
-            </div>
-            <div class="activity-list">
-              <div *ngFor="let activity of recentActivities" class="activity-item">
-                <div class="activity-icon" [class]="'activity-' + activity.type">
-                  <mat-icon>{{activity.icon}}</mat-icon>
-                </div>
-                <div class="activity-content">
-                  <div class="activity-action">{{activity.action}}</div>
-                  <div class="activity-description">{{activity.description}}</div>
-                  <div class="activity-time">{{activity.timestamp}}</div>
-                </div>
-              </div>
-            </div>
+          <div class="dropdown-trigger" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <mat-icon class="dropdown-chevron" [class.rotated]="isProfileMenuOpen">expand_more</mat-icon>
           </div>
 
-          <div class="quick-stats-card">
-            <div class="card-header">
-              <h3>Performance Metrics</h3>
-            </div>
-            <div class="metrics-list">
-              <div class="metric-item">
-                <div class="metric-label">
-                  <span>Occupancy Rate</span>
-                  <span class="metric-value">83.3%</span>
-                </div>
-                <mat-progress-bar mode="determinate" value="83.3" class="metric-progress"></mat-progress-bar>
-              </div>
-              <div class="metric-item">
-                <div class="metric-label">
-                  <span>Collection Rate</span>
-                  <span class="metric-value">92.5%</span>
-                </div>
-                <mat-progress-bar mode="determinate" value="92.5" class="metric-progress success"></mat-progress-bar>
-              </div>
-              <div class="metric-item">
-                <div class="metric-label">
-                  <span>Business Satisfaction</span>
-                  <span class="metric-value">4.6/5.0</span>
-                </div>
-                <mat-progress-bar mode="determinate" value="92" class="metric-progress"></mat-progress-bar>
-              </div>
-              <div class="metric-item">
-                <div class="metric-label">
-                  <span>Response Time</span>
-                  <span class="metric-value">2.3 hrs</span>
-                </div>
-                <mat-progress-bar mode="determinate" value="78" class="metric-progress warning"></mat-progress-bar>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="quick-actions-section">
-          <h3>Quick Actions</h3>
-          <div class="actions-grid">
-            <button class="action-btn" (click)="setView('users')">
-              <mat-icon>people</mat-icon>
-              <span>Manage Users</span>
+          <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
+            <button class="dropdown-item" (click)="viewProfile(); $event.stopPropagation()">
+              <mat-icon>account_circle</mat-icon>
+              <span>View Profile</span>
             </button>
-            <button class="action-btn" (click)="setView('properties')">
-              <mat-icon>apartment</mat-icon>
-              <span>View Properties</span>
+            <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Profile</span>
             </button>
-            <button class="action-btn" (click)="setView('businesses')">
-              <mat-icon>business</mat-icon>
-              <span>Approve Businesses</span>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item logout-item" 
+                    (click)="logout(); $event.stopPropagation()"
+                    [disabled]="isLoggingOut">
+              <mat-icon>logout</mat-icon>
+              <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
             </button>
-            <button class="action-btn" (click)="setView('disputes')">
-              <mat-icon>gavel</mat-icon>
-              <span>Resolve Disputes</span>
-            </button>
-            <button class="action-btn" (click)="exportData('csv')">
-              <mat-icon>download</mat-icon>
-              <span>Export Data</span>
-            </button>
-            <button class="action-btn" (click)="setView('reports')">
-              <mat-icon>assessment</mat-icon>
-              <span>Generate Reports</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <app-users-view 
-        *ngIf="currentView === 'users'"
-        [filteredUsers]="filteredUsers"
-        [selectedUserType]="selectedUserType"
-        [selectedStatus]="selectedStatus"
-        (filterUsers)="filterUsers()"
-        (viewUserDetails)="viewUserDetails($event)"
-        (editUser)="editUser($event)"
-        (suspendUser)="suspendUser($event)"
-        (activateUser)="activateUser($event)">
-      </app-users-view>
-
-      <app-properties-view 
-        *ngIf="currentView === 'properties'"
-        [properties]="properties"
-        [totalProperties]="stats.totalProperties"
-        [occupiedPropertiesCount]="getOccupiedPropertiesCount()"
-        [vacantPropertiesCount]="getVacantPropertiesCount()"
-        (viewPropertyDetails)="viewPropertyDetails($event)"
-        (editProperty)="editProperty($event)">
-      </app-properties-view>
-
-      <app-businesses-view 
-        *ngIf="currentView === 'businesses'"
-        [businesses]="businesses"
-        [pendingApprovals]="stats.pendingApprovals"
-        [activeBusinesses]="stats.activeBusinesses"
-        (approveBusiness)="approveBusiness($event)"
-        (rejectBusiness)="rejectBusiness($event)">
-      </app-businesses-view>
-
-      <app-disputes-view 
-        *ngIf="currentView === 'disputes'"
-        [disputes]="disputes"
-        [activeDisputes]="stats.activeDisputes"
-        (resolveDispute)="resolveDispute($event)">
-      </app-disputes-view>
-
-      <div *ngIf="currentView === 'transactions'" class="transactions-view">
-        <div class="view-header">
-          <h2>Transaction History</h2>
-          <div class="view-actions">
-            <div class="view-stats">
-              <span class="stat-badge total">{{transactions.length}} Total Transactions</span>
-              <span class="stat-badge completed">{{getCompletedTransactionsCount()}} Completed</span>
-            </div>
-            <button class="btn btn-primary" matTooltip="Export Transactions">
-              <mat-icon>download</mat-icon>
-              <span>Export</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="table-container" *ngIf="transactions.length > 0; else noTransactions">
-          <table class="transaction-table">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Business</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let transaction of transactions">
-                <td>
-                  <span class="transaction-type type-{{transaction.type}}">{{transaction.type}}</span>
-                </td>
-                <td>{{transaction.business}}</td>
-                <td>{{formatCurrency(transaction.amount)}}</td>
-                <td>{{transaction.date}}</td>
-                <td>
-                  <span class="status-badge" [class]="getStatusClass(transaction.status)">
-                    {{transaction.status}}
-                  </span>
-                </td>
-                <td>
-                  <div class="action-buttons">
-                    <button class="btn-secondary" (click)="viewTransactionDetails(transaction)" matTooltip="View Details">
-                      View
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <ng-template #noTransactions>
-          <div class="empty-state">
-            <mat-icon>payments</mat-icon>
-            <h3>No Transactions Found</h3>
-            <p>There are no transactions recorded yet.</p>
-          </div>
-        </ng-template>
-      </div>
-
-      <div *ngIf="currentView === 'reports'" class="reports-view">
-        <div class="view-header">
-          <h2>Reports & Analytics</h2>
-          <div class="view-actions">
-            <button class="btn btn-primary" (click)="exportData('pdf')">
-              <mat-icon>picture_as_pdf</mat-icon>
-              <span>Export PDF</span>
-            </button>
-            <button class="btn btn-secondary" (click)="exportData('excel')">
-              <mat-icon>table_chart</mat-icon>
-              <span>Export Excel</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="reports-grid">
-          <div class="report-card">
-            <div class="report-icon">
-              <mat-icon>assessment</mat-icon>
-            </div>
-            <div class="report-info">
-              <h3>Monthly Performance Report</h3>
-              <p>Comprehensive overview of platform performance and metrics</p>
-              <button class="btn btn-primary" (click)="generateReport('monthly')">Generate Report</button>
-            </div>
-          </div>
-
-          <div class="report-card">
-            <div class="report-icon">
-              <mat-icon>people</mat-icon>
-            </div>
-            <div class="report-info">
-              <h3>User Analytics</h3>
-              <p>Detailed analysis of user growth and engagement patterns</p>
-              <button class="btn btn-primary" (click)="generateReport('user-analytics')">Generate Report</button>
-            </div>
-          </div>
-
-          <div class="report-card">
-            <div class="report-icon">
-              <mat-icon>apartment</mat-icon>
-            </div>
-            <div class="report-info">
-              <h3>Property Management Report</h3>
-              <p>Property occupancy rates and management efficiency</p>
-              <button class="btn btn-primary" (click)="generateReport('property')">Generate Report</button>
-            </div>
-          </div>
-
-          <div class="report-card">
-            <div class="report-icon">
-              <mat-icon>business</mat-icon>
-            </div>
-            <div class="report-info">
-              <h3>Business Performance</h3>
-              <p>Service provider performance and customer satisfaction</p>
-              <button class="btn btn-primary" (click)="generateReport('business')">Generate Report</button>
-            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+
+    <router-outlet></router-outlet>
+    
+    <!-- Default overview content when no route is active -->
+    <div *ngIf="router.url === '/admin-dashboard'">
+      <app-admin-overview></app-admin-overview>
+    </div>
+  </main>
 </div>

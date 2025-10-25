@@ -170,19 +170,7 @@ export class CaretakerOverviewComponent implements OnInit {
   }
 
   loadData(): void {
-    // For demo purposes - update stats with actual data
     this.updateStats();
-    
-    // Uncomment for actual service calls:
-    // this.caretakerService.getMaintenanceRequests().subscribe(requests => {
-    //   this.maintenanceRequests = requests;
-    //   this.updateStats();
-    // });
-
-    // this.caretakerService.getInspections().subscribe(inspections => {
-    //   this.inspections = inspections;
-    //   this.updateStats();
-    // });
   }
 
   updateStats(): void {
@@ -196,22 +184,18 @@ export class CaretakerOverviewComponent implements OnInit {
 
   createMaintenance(): void {
     console.log('Creating new maintenance request...');
-    // Implement navigation to maintenance creation
   }
 
   scheduleInspection(): void {
     console.log('Scheduling inspection...');
-    // Implement navigation to inspection scheduling
   }
 
   processDeposit(): void {
     console.log('Processing deposit...');
-    // Implement navigation to deposit processing
   }
 
   contactTenant(): void {
     console.log('Contacting tenant...');
-    // Implement navigation to messaging
   }
 
   formatNumber(num: number): string {
