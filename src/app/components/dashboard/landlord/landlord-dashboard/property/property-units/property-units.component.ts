@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -51,7 +51,7 @@ import { catchError } from 'rxjs/operators';
   styleUrls: ['./property-units.component.scss'],
   providers: [InvitationService]
 })
-export class PropertyUnitsComponent implements OnInit {
+export class PropertyUnitsComponent implements OnInit, OnDestroy {
   propertyId!: string;
   property!: Property;
   units: Unit[] = [];
@@ -120,6 +120,10 @@ export class PropertyUnitsComponent implements OnInit {
     }
   }
 
+  ngOnDestroy() {
+    document.body.classList.remove('dialog-open');
+  }
+
   private getPropertyIdFromRoute(): string {
     let propertyId = this.route.snapshot.paramMap.get('propertyId') || 
                     this.route.snapshot.paramMap.get('id') ||
@@ -182,11 +186,12 @@ export class PropertyUnitsComponent implements OnInit {
       deposit: '0',
       description: ''
     });
+    document.body.classList.add('dialog-open');
   }
 
   closeAddUnitDialog(): void {
     this.showAddUnitDialog = false;
-    this.unitForm.reset();
+    document.body.classList.remove('dialog-open');
   }
 
   addUnit(): void {

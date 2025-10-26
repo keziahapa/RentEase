@@ -13,6 +13,7 @@ import { AuthService } from '../../../../../../services/auth.service';
 import { InvitationService } from '../../../../../../services/invitation.service';
 import { Property } from '../../../../../../services/dashboard-interface';
 import { InviteDialogComponent } from '../../invite-dialog/invite-dialog.component';
+import { PropertyCreateComponent } from '../property-create/property-create.component'; 
 
 @Component({
   selector: 'app-property-list',
@@ -25,11 +26,11 @@ import { InviteDialogComponent } from '../../invite-dialog/invite-dialog.compone
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatDialogModule
+    MatDialogModule,
   ],
   templateUrl: './property-list.component.html',
   styleUrls: ['./property-list.component.scss'],
-   providers: [InvitationService]
+  providers: [InvitationService]
 })
 export class PropertyListComponent implements OnInit {
   properties: Property[] = [];
@@ -89,16 +90,28 @@ export class PropertyListComponent implements OnInit {
     });
   }
 
+  // UPDATED: Open Property Create as Dialog instead of navigating
+  createProperty() {
+    const dialogRef = this.dialog.open(PropertyCreateComponent, {
+      width: '500px',
+      maxWidth: '95vw',
+      panelClass: 'property-create-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'success') {
+        this.snackBar.open('Property created successfully!', 'Close', { duration: 3000 });
+        this.loadProperties(); // Refresh the properties list
+      }
+    });
+  }
+
   viewProperty(propertyId: string) {
     this.router.navigate(['/landlord-dashboard/property', propertyId]);
   }
 
   viewPropertyUnits(propertyId: string) {
     this.router.navigate(['/landlord-dashboard/property', propertyId, 'units']);
-  }
-
-  createProperty() {
-    this.router.navigate(['/landlord-dashboard/property/create']);
   }
 
   editProperty(propertyId: string, event: Event) {

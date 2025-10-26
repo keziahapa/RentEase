@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -9,7 +9,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { InviteDialogData } from '../../../../../services/dashboard-interface';
-
 
 @Component({
   selector: 'app-invite-dialog',
@@ -28,9 +27,10 @@ import { InviteDialogData } from '../../../../../services/dashboard-interface';
   templateUrl: './invite-dialog.component.html',
   styleUrls: ['./invite-dialog.component.scss']
 })
-export class InviteDialogComponent implements OnInit {
+export class InviteDialogComponent implements OnInit, OnDestroy {
   inviteForm: FormGroup;
   loading = false;
+  showInviteDialog = true;
 
   constructor(
     private fb: FormBuilder,
@@ -41,10 +41,16 @@ export class InviteDialogComponent implements OnInit {
   }
 
   ngOnInit() {
+    document.body.classList.add('dialog-open');
+    
     if (this.data.type === 'tenant') {
       this.inviteForm.get('unitId')?.setValidators(Validators.required);
       this.inviteForm.get('unitId')?.updateValueAndValidity();
     }
+  }
+
+  ngOnDestroy() {
+    document.body.classList.remove('dialog-open');
   }
 
   private createForm(): FormGroup {
@@ -85,6 +91,7 @@ export class InviteDialogComponent implements OnInit {
 
   onCancel(): void {
     this.dialogRef.close();
+    document.body.classList.remove('dialog-open');
   }
 
   private markFormGroupTouched(formGroup: FormGroup) {
