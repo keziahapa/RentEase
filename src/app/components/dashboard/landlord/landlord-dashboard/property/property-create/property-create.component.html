@@ -1,100 +1,100 @@
 <div class="property-create-container">
   <!-- Create Property Dialog -->
-  <div class="dialog-overlay" *ngIf="showCreateDialog" (click)="closeCreateDialog()">
-    <div class="create-dialog" (click)="$event.stopPropagation()">
+  <div class="create-dialog-overlay">
+    <div class="create-dialog-content" (click)="$event.stopPropagation()">
+      <!-- Dialog Header -->
       <div class="dialog-header">
-        <h3>Create New Property</h3>
-        <button class="dialog-close" (click)="closeCreateDialog()">
-          <mat-icon>close</mat-icon>
-        </button>
+        <h2>Create New Property</h2>
       </div>
-      
+
+      <!-- Dialog Content -->
       <div class="dialog-content">
         <form [formGroup]="propertyForm">
-          <!-- Your form content remains exactly the same -->
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Property Name *</mat-label>
-              <input matInput formControlName="name" 
-                     placeholder="e.g., Sunrise Apartments"
-                     maxlength="100">
-              <mat-icon matSuffix>home</mat-icon>
-              <mat-hint>2-100 characters</mat-hint>
-              <mat-error *ngIf="formControls['name']?.invalid && formControls['name']?.touched">
-                <span *ngIf="formControls['name']?.hasError('required')">Property name is required</span>
-                <span *ngIf="formControls['name']?.hasError('minlength')">Minimum 2 characters required</span>
-                <span *ngIf="formControls['name']?.hasError('maxlength')">Maximum 100 characters allowed</span>
-              </mat-error>
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Property Name *</mat-label>
+            <input matInput formControlName="name" 
+                   placeholder="e.g., Sunrise Apartments"
+                   maxlength="100">
+            <mat-icon matSuffix>home</mat-icon>
+            <mat-hint>2-100 characters</mat-hint>
+            <mat-error *ngIf="formControls['name']?.invalid && formControls['name']?.touched">
+              <span *ngIf="formControls['name']?.hasError('required')">Property name is required</span>
+              <span *ngIf="formControls['name']?.hasError('minlength')">Minimum 2 characters required</span>
+              <span *ngIf="formControls['name']?.hasError('maxlength')">Maximum 100 characters allowed</span>
+            </mat-error>
+          </mat-form-field>
 
-          <!-- Rest of your form fields remain exactly the same -->
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Location *</mat-label>
-              <input matInput formControlName="location" 
-                     placeholder="e.g., Westlands, Nairobi, Kenya"
-                     maxlength="200">
-              <mat-icon matSuffix>location_on</mat-icon>
-              <mat-hint>Full address or area name</mat-hint>
-              <mat-error *ngIf="formControls['location']?.invalid && formControls['location']?.touched">
-                <span *ngIf="formControls['location']?.hasError('required')">Location is required</span>
-                <span *ngIf="formControls['location']?.hasError('minlength')">Minimum 5 characters required</span>
-                <span *ngIf="formControls['location']?.hasError('maxlength')">Maximum 200 characters allowed</span>
-              </mat-error>
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Location *</mat-label>
+            <input matInput formControlName="location" 
+                   placeholder="e.g., Westlands, Nairobi, Kenya"
+                   maxlength="200">
+            <mat-icon matSuffix>location_on</mat-icon>
+            <mat-hint>Full address or area name</mat-hint>
+            <mat-error *ngIf="formControls['location']?.invalid && formControls['location']?.touched">
+              <span *ngIf="formControls['location']?.hasError('required')">Location is required</span>
+              <span *ngIf="formControls['location']?.hasError('minlength')">Minimum 5 characters required</span>
+              <span *ngIf="formControls['location']?.hasError('maxlength')">Maximum 200 characters allowed</span>
+            </mat-error>
+          </mat-form-field>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Property Type *</mat-label>
-              <mat-select formControlName="propertyType">
-                <mat-option *ngFor="let type of propertyTypes" [value]="type.value">
-                  {{ type.label }}
-                </mat-option>
-              </mat-select>
-              <mat-error *ngIf="formControls['propertyType']?.invalid && formControls['propertyType']?.touched">
-                Property type is required
-              </mat-error>
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Property Type *</mat-label>
+            <mat-select formControlName="propertyType">
+              <mat-option *ngFor="let type of propertyTypes" [value]="type.value">
+                {{ type.label }}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="formControls['propertyType']?.invalid && formControls['propertyType']?.touched">
+              Property type is required
+            </mat-error>
+          </mat-form-field>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Total Units *</mat-label>
-              <input matInput type="number" formControlName="totalUnits" 
-                     min="1" max="500" placeholder="e.g., 10">
-              <mat-icon matSuffix>door_front</mat-icon>
-              <mat-hint>Maximum 500 units</mat-hint>
-              <mat-error *ngIf="formControls['totalUnits']?.invalid && formControls['totalUnits']?.touched">
-                <span *ngIf="formControls['totalUnits']?.hasError('required')">Total units is required</span>
-                <span *ngIf="formControls['totalUnits']?.hasError('min')">Minimum 1 unit required</span>
-                <span *ngIf="formControls['totalUnits']?.hasError('max')">Maximum 500 units allowed</span>
-              </mat-error>
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Total Units *</mat-label>
+            <input matInput type="number" formControlName="totalUnits" 
+                   min="1" max="500" placeholder="e.g., 10">
+            <mat-icon matSuffix>door_front</mat-icon>
+            <mat-hint>Maximum 500 units</mat-hint>
+            <mat-error *ngIf="formControls['totalUnits']?.invalid && formControls['totalUnits']?.touched">
+              <span *ngIf="formControls['totalUnits']?.hasError('required')">Total units is required</span>
+              <span *ngIf="formControls['totalUnits']?.hasError('min')">Minimum 1 unit required</span>
+              <span *ngIf="formControls['totalUnits']?.hasError('max')">Maximum 500 units allowed</span>
+            </mat-error>
+          </mat-form-field>
 
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Description (Optional)</mat-label>
-              <textarea matInput formControlName="description" 
-                       placeholder="Brief description of the property, amenities, features..."
-                       rows="4" maxlength="1000"></textarea>
-              <mat-hint align="end">{{ formControls['description']?.value?.length || 0 }}/1000</mat-hint>
-            </mat-form-field>
-          </div>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description (Optional)</mat-label>
+            <textarea matInput formControlName="description" 
+                     placeholder="Brief description of the property, amenities, features..."
+                     rows="4" maxlength="1000"></textarea>
+            <mat-hint align="end">{{ formControls['description']?.value?.length || 0 }}/1000</mat-hint>
+          </mat-form-field>
         </form>
       </div>
 
+      <!-- Dialog Actions -->
       <div class="dialog-actions">
-        <button type="button" class="dialog-btn cancel-btn" (click)="closeCreateDialog()" [disabled]="isSubmitting">
+        <button mat-stroked-button 
+                (click)="onCancel()" 
+                [disabled]="isSubmitting"
+                class="cancel-btn">
+          <mat-icon>cancel</mat-icon>
           Cancel
         </button>
-        <button type="button" class="dialog-btn primary-btn" 
+        <button mat-raised-button 
+                color="primary" 
                 (click)="onCreateProperty()"
-                [disabled]="!propertyForm.valid || isSubmitting">
-          <mat-spinner diameter="16" *ngIf="isSubmitting"></mat-spinner>
-          <span>{{ isSubmitting ? 'Creating...' : 'Create Property' }}</span>
+                [disabled]="!propertyForm.valid || isSubmitting"
+                class="create-btn">
+          <span *ngIf="isSubmitting" class="button-spinner">
+            <mat-icon class="spinner-icon">hourglass_empty</mat-icon>
+            Creating Property...
+          </span>
+          <span *ngIf="!isSubmitting">
+            <mat-icon>check_circle</mat-icon>
+            Create Property
+          </span>
         </button>
       </div>
     </div>

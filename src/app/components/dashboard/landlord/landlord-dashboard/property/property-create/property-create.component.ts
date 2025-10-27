@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,8 +7,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDialogRef } from '@angular/material/dialog'; 
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { PropertyService } from '../../../../../../services/property.service';
 
 @Component({
@@ -22,16 +22,14 @@ import { PropertyService } from '../../../../../../services/property.service';
     MatInputModule,
     MatFormFieldModule,
     MatSelectModule,
-    MatSnackBarModule,
-    MatProgressSpinnerModule
+    MatSnackBarModule
   ],
   templateUrl: './property-create.component.html',
   styleUrls: ['./property-create.component.scss']
 })
-export class PropertyCreateComponent implements OnInit, OnDestroy {
+export class PropertyCreateComponent implements OnInit {
   propertyForm: FormGroup;
   isSubmitting = false;
-  showCreateDialog = true;
 
   propertyTypes = [
     { value: 'APARTMENT', label: 'Apartment' },
@@ -45,8 +43,10 @@ export class PropertyCreateComponent implements OnInit, OnDestroy {
   constructor(
     private fb: FormBuilder,
     private snackBar: MatSnackBar,
+    private router: Router,
     private propertyService: PropertyService,
-    public dialogRef: MatDialogRef<PropertyCreateComponent> 
+    public dialogRef: MatDialogRef<PropertyCreateComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: any
   ) {
     this.propertyForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
@@ -58,15 +58,7 @@ export class PropertyCreateComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    document.body.classList.add('dialog-open');
-  }
-
-  ngOnDestroy() {
-    document.body.classList.remove('dialog-open');
-  }
-
-  closeCreateDialog() {
-    this.dialogRef.close(); 
+    // Component initialization
   }
 
   onCreateProperty(): void {
@@ -94,7 +86,9 @@ export class PropertyCreateComponent implements OnInit, OnDestroy {
         
         if (response.success || response.property || response.id) {
           this.snackBar.open('Property created successfully!', 'Close', { duration: 3000 });
-          this.dialogRef.close('success'); 
+          
+          // FIX: Close dialog and return success
+          this.dialogRef.close('success');
         } else {
           this.snackBar.open(response.message || 'Failed to create property', 'Close', { duration: 3000 });
         }
@@ -104,6 +98,11 @@ export class PropertyCreateComponent implements OnInit, OnDestroy {
         this.handlePropertyCreationError(error);
       }
     });
+  }
+
+  onCancel(): void {
+    // FIX: Simply close the dialog without navigation
+    this.dialogRef.close();
   }
 
   private handlePropertyCreationError(error: any): void {
@@ -122,6 +121,12 @@ export class PropertyCreateComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Helper method to check if form has errors
+  hasFormErrors(): boolean {
+    return this.propertyForm.invalid && this.propertyForm.touched;
+  }
+
+  // Get form control for template
   get formControls() {
     return this.propertyForm.controls;
   }
