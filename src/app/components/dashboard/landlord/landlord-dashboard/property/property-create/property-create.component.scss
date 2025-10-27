@@ -9,7 +9,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(248, 250, 252, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -19,14 +21,15 @@
 
     .create-dialog-content {
       background: white;
-      border-radius: 12px;
+      border-radius: 16px;
       width: 500px;
       max-width: 95vw;
       max-height: 90vh;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
       animation: slideIn 0.3s ease;
+      border: 1px solid rgba(226, 232, 240, 0.8);
 
       .dialog-header {
         display: flex;
@@ -58,6 +61,24 @@
         padding: 24px;
         overflow-y: auto;
 
+        &::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        &::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+          
+          &:hover {
+            background: #94a3b8;
+          }
+        }
+
         .full-width {
           width: 100%;
           margin-bottom: 16px;
@@ -88,16 +109,18 @@
         padding: 20px 24px;
         border-top: 1px solid #e2e8f0;
         background: #f8fafc;
-        border-radius: 0 0 12px 12px;
+        border-radius: 0 0 16px 16px;
 
         .cancel-btn {
           color: #64748b;
           border-color: #cbd5e1;
           font-weight: 600;
+          transition: all 0.3s ease;
           
           &:hover:not([disabled]) {
             background: rgba(100, 116, 139, 0.1);
             border-color: #94a3b8;
+            transform: translateY(-1px);
           }
 
           mat-icon {
@@ -109,22 +132,28 @@
         }
 
         .create-btn {
-          background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+          background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
           color: white;
           font-weight: 600;
           border: none;
           min-width: 160px;
           height: 44px;
+          transition: all 0.3s ease;
 
           &:disabled {
             background: #94a3b8;
             cursor: not-allowed;
             transform: none !important;
+            opacity: 0.6;
           }
 
           &:hover:not([disabled]) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
+          }
+
+          &:active:not([disabled]) {
+            transform: translateY(0);
           }
 
           mat-icon {
@@ -155,14 +184,18 @@
 
 // Animations
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { 
+    opacity: 0;
+  }
+  to { 
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: scale(0.9) translateY(-20px);
+    transform: scale(0.95) translateY(-20px);
   }
   to {
     opacity: 1;
@@ -180,10 +213,18 @@
   .property-create-container {
     .create-dialog-overlay {
       padding: 16px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
 
       .create-dialog-content {
+        border-radius: 12px;
+
         .dialog-header {
           padding: 20px 20px 12px;
+
+          h2 {
+            font-size: 1.375rem;
+          }
         }
 
         .dialog-content {
@@ -194,10 +235,15 @@
           padding: 16px 20px;
           flex-direction: column-reverse;
           gap: 8px;
+          border-radius: 0 0 12px 12px;
 
           button {
             width: 100%;
             justify-content: center;
+          }
+
+          .create-btn {
+            min-width: 100%;
           }
         }
       }
@@ -209,8 +255,12 @@
   .property-create-container {
     .create-dialog-overlay {
       padding: 8px;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
 
       .create-dialog-content {
+        border-radius: 12px;
+
         .dialog-header {
           padding: 16px 16px 12px;
 
@@ -273,5 +323,21 @@
     color: #dc2626;
     font-size: 0.75rem;
     font-weight: 500;
+  }
+
+  .mat-select-value {
+    color: #1e293b;
+    font-weight: 500;
+  }
+
+  .mat-select-placeholder {
+    color: #94a3b8;
+  }
+}
+
+
+@supports not (backdrop-filter: blur(8px)) {
+  .create-dialog-overlay {
+    background: rgba(15, 23, 42, 0.5) !important;
   }
 }
