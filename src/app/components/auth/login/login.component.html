@@ -39,7 +39,7 @@
         <mat-label>Password</mat-label>
         <input
           matInput
-          [type]="showPassword ? 'text' : 'password'"
+          [type]="showPassword ? 'password' : 'text'"
           [(ngModel)]="loginData.password"
           name="password"
           placeholder="Enter your password"
@@ -57,7 +57,7 @@
           type="button"
           [disabled]="isLoading"
         >
-          <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          <mat-icon>{{ showPassword ? 'visibility' : 'visibility_off' }}</mat-icon>
         </button>
         
         <mat-error *ngIf="passwordError">

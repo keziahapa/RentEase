@@ -217,7 +217,6 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   private handleApiError(error: any): void {
-  
     this.emailError = '';
     this.passwordError = '';
     
@@ -229,7 +228,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     } else if (error.error?.message) {
       const msg = error.error.message.toLowerCase();
       
-     
       if (msg.includes('email') && msg.includes('not found')) {
         this.emailError = 'No account with this email';
         errorMessage = 'This email is not registered';
@@ -302,7 +300,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     } else if (error.status === 403) {
       errorMessage = 'Access denied. Please contact support';
     }
-    
     
     if (this.passwordError || 
         errorMessage.includes('password') || 
