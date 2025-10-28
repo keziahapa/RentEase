@@ -1,65 +1,15 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+// business-dashboard.component.ts
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatTableModule } from '@angular/material/table';
-import { MatBadgeModule } from '@angular/material/badge';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatTabsModule } from '@angular/material/tabs';
-
-interface BusinessStats {
-  totalJobs: number;
-  completedJobs: number;
-  pendingJobs: number;
-  totalEarnings: number;
-  averageRating: number;
-  responseRate: number;
-}
-
-interface Job {
-  id: string;
-  title: string;
-  category: string;
-  priority: string;
-  description: string;
-  status: 'pending' | 'accepted' | 'in-progress' | 'completed' | 'cancelled';
-  dateRequested: string;
-  tenantName: string;
-  property: string;
-  quoteAmount: number;
-  scheduledDate: string;
-}
-
-interface Earnings {
-  id: string;
-  jobId: string;
-  jobTitle: string;
-  amount: number;
-  commission: number;
-  netAmount: number;
-  date: string;
-  status: 'pending' | 'paid';
-}
-
-interface Review {
-  id: string;
-  tenantName: string;
-  rating: number;
-  comment: string;
-  date: string;
-  jobTitle: string;
-}
-
-interface QuickAction {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  color: string;
-  action: () => void;
-}
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { CommonModule } from '@angular/common';
+import { filter } from 'rxjs/operators';
+import { AuthService } from '../../../services/auth.service';
+import { BusinessService } from '../../../services/business.service';
+import { BusinessOverviewComponent } from '../bussiness/components/business-overview/business-overview.component';
 
 @Component({
   selector: 'app-business-dashboard',
@@ -67,213 +17,378 @@ interface QuickAction {
   imports: [
     CommonModule,
     MatIconModule,
-    MatCardModule,
-    MatButtonModule,
-    MatTableModule,
-    MatBadgeModule,
-    MatMenuModule,
-    MatProgressBarModule,
-    MatTabsModule
+    MatDialogModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule,
+    RouterOutlet,
+    BusinessOverviewComponent
   ],
   templateUrl: './business-dashboard.component.html',
   styleUrls: ['./business-dashboard.component.scss']
 })
-export class BusinessDashboardComponent implements OnInit {
-  currentView: string = 'overview';
-  isSidebarOpen = true;
-  
-  stats: BusinessStats = {
-    totalJobs: 67,
-    completedJobs: 45,
-    pendingJobs: 8,
-    totalEarnings: 287500,
-    averageRating: 4.5,
-    responseRate: 95
-  };
+export class BusinessDashboardComponent implements OnInit, OnDestroy {
+  isMobileMenuOpen = false;
+  isProfileMenuOpen = false;
+  currentSection = 'dashboard';
 
-  jobs: Job[] = [
-    { id: '1', title: 'Kitchen faucet repair', category: 'Plumbing', priority: 'medium', description: 'Fix leaking kitchen faucet', status: 'accepted', dateRequested: '2024-03-01', tenantName: 'John Doe', property: 'Apartment 4B', quoteAmount: 3500, scheduledDate: '2024-03-03' },
-    { id: '2', title: 'AC maintenance', category: 'HVAC', priority: 'high', description: 'AC not cooling properly', status: 'in-progress', dateRequested: '2024-02-28', tenantName: 'Sarah Smith', property: 'House 12', quoteAmount: 8000, scheduledDate: '2024-03-02' },
-    { id: '3', title: 'Electrical wiring', category: 'Electrical', priority: 'urgent', description: 'Kitchen outlet sparking', status: 'pending', dateRequested: '2024-03-02', tenantName: 'Mike Johnson', property: 'Apartment 7C', quoteAmount: 12000, scheduledDate: '2024-03-04' },
-    { id: '4', title: 'Window lock repair', category: 'General Repairs', priority: 'low', description: 'Fix bedroom window lock', status: 'completed', dateRequested: '2024-02-25', tenantName: 'Alice Brown', property: 'House 8', quoteAmount: 2500, scheduledDate: '2024-02-26' }
-  ];
+  currentUser: any = null;
+  userDisplayName: string = 'Business Owner';
+  userRole: string = 'Business';
+  profileImage: string | null = null;
 
-  earnings: Earnings[] = [
-    { id: '1', jobId: '4', jobTitle: 'Window lock repair', amount: 2500, commission: 250, netAmount: 2250, date: '2024-02-28', status: 'paid' },
-    { id: '2', jobId: '5', jobTitle: 'Paint touch up', amount: 15000, commission: 1500, netAmount: 13500, date: '2024-02-25', status: 'paid' },
-    { id: '3', jobId: '6', jobTitle: 'Furniture assembly', amount: 8000, commission: 800, netAmount: 7200, date: '2024-02-20', status: 'paid' },
-    { id: '4', jobId: '1', jobTitle: 'Kitchen faucet repair', amount: 3500, commission: 350, netAmount: 3150, date: '2024-03-05', status: 'pending' }
-  ];
+  dashboardData: any = null;
+  isLoadingDashboard: boolean = false;
+  dashboardError: string | null = null;
 
-  reviews: Review[] = [
-    { id: '1', tenantName: 'John Doe', rating: 5, comment: 'Excellent service, fixed the issue quickly!', date: '2024-02-28', jobTitle: 'Plumbing repair' },
-    { id: '2', tenantName: 'Sarah Smith', rating: 4, comment: 'Good work, but arrived 30 minutes late', date: '2024-02-25', jobTitle: 'AC maintenance' },
-    { id: '3', tenantName: 'Mike Johnson', rating: 5, comment: 'Professional and efficient service', date: '2024-02-20', jobTitle: 'Electrical work' },
-    { id: '4', tenantName: 'Alice Brown', rating: 4, comment: 'Quality work, fair pricing', date: '2024-02-15', jobTitle: 'General repairs' }
-  ];
+  unreadNotificationsCount: number = 0;
+  isLoadingNotifications: boolean = false;
 
-  quickActions: QuickAction[] = [
-    { id: 'viewJobs', title: 'View Jobs', description: 'Check available jobs', icon: 'work', color: '#007bff', action: () => this.setView('jobs') },
-    { id: 'updateProfile', title: 'Update Profile', description: 'Edit business info', icon: 'business', color: '#28a745', action: () => this.updateProfile() },
-    { id: 'viewEarnings', title: 'View Earnings', description: 'Check payments', icon: 'payments', color: '#ffc107', action: () => this.setView('earnings') },
-    { id: 'addService', title: 'Add Service', description: 'New service offering', icon: 'add_circle', color: '#17a2b8', action: () => this.addService() }
-  ];
+  private profileUpdateListener: any;
+  isLoggingOut: boolean = false;
 
-  navItems = [
-    { id: 'overview', label: 'Dashboard', icon: 'dashboard' },
-    { id: 'jobs', label: 'Jobs', icon: 'work' },
-    { id: 'earnings', label: 'Earnings', icon: 'payments' },
-    { id: 'reviews', label: 'Reviews', icon: 'star' },
-    { id: 'profile', label: 'Profile', icon: 'business' },
-    { id: 'services', label: 'Services', icon: 'build' },
-    { id: 'messages', label: 'Messages', icon: 'chat' }
-  ];
+  greeting: string = '';
+  currentTime: string = '';
 
-  displayedJobColumns: string[] = ['title', 'category', 'priority', 'status', 'tenantName', 'quoteAmount', 'scheduledDate', 'actions'];
-  displayedEarningColumns: string[] = ['jobTitle', 'amount', 'commission', 'netAmount', 'date', 'status', 'actions'];
-  displayedReviewColumns: string[] = ['tenantName', 'rating', 'comment', 'jobTitle', 'date'];
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private businessService: BusinessService,
+    private dialog: MatDialog
+  ) { }
 
   ngOnInit(): void {
-    this.loadBusinessData();
+    this.loadUserData();
+    this.loadDashboardData();
+    this.loadNotifications();
+    this.updateGreeting();
+    
+    setInterval(() => {
+      this.updateGreeting();
+    }, 60000);
+
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
+      this.updateCurrentSectionFromRoute(event.urlAfterRedirects);
+      this.loadProfileImage();
+    });
+
+    this.updateCurrentSectionFromRoute(this.router.url);
+    this.setupProfileUpdateListener();
+    this.setupClickOutsideListener();
   }
 
-  loadBusinessData(): void {
-    console.log('Loading business data...');
+  ngOnDestroy(): void {
+    if (this.profileUpdateListener) {
+      window.removeEventListener('profileImageUpdated', this.profileUpdateListener);
+    }
+    document.removeEventListener('click', this.handleClickOutside.bind(this));
   }
 
-  setView(view: string): void {
-    this.currentView = view;
+  private updateGreeting(): void {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    
+    this.currentTime = `${hours}:${minutes}`;
+    
+    if (hours < 12) {
+      this.greeting = 'Good morning';
+    } else if (hours < 18) {
+      this.greeting = 'Good afternoon';
+    } else {
+      this.greeting = 'Good evening';
+    }
   }
 
-  toggleSidebar(): void {
-    this.isSidebarOpen = !this.isSidebarOpen;
+  getGreetingMessage(): string {
+    const firstName = this.userDisplayName.split(' ')[0];
+    return `${this.greeting}, ${firstName}! 👋`;
   }
 
-  updateProfile(): void {
-    console.log('Updating business profile...');
+  @HostListener('document:click', ['$event'])
+  handleClickOutside(event: Event): void {
+    if (this.isProfileMenuOpen) {
+      const target = event.target as HTMLElement;
+      const profileSection = document.querySelector('.profile-section');
+      
+      if (profileSection && !profileSection.contains(target)) {
+        this.closeProfileMenu();
+      }
+    }
+
+    if (this.isMobileMenuOpen) {
+      const target = event.target as HTMLElement;
+      const sidebar = document.querySelector('.sidebar');
+      const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+      
+      if (sidebar && !sidebar.contains(target) && 
+          mobileMenuBtn && !mobileMenuBtn.contains(target) &&
+          target.classList.contains('mobile-menu-overlay')) {
+        this.closeMobileMenu();
+      }
+    }
   }
 
-  addService(): void {
-    console.log('Adding new service...');
+  private setupClickOutsideListener(): void {
+    document.addEventListener('click', this.handleClickOutside.bind(this));
   }
 
-  acceptJob(job: Job): void {
-    job.status = 'accepted';
-  }
-
-  startJob(job: Job): void {
-    job.status = 'in-progress';
-  }
-
-  completeJob(job: Job): void {
-    job.status = 'completed';
-  }
-
-  rejectJob(job: Job): void {
-    job.status = 'cancelled';
-  }
-
-  formatCurrency(amount: number): string {
-    return `KSH ${amount.toLocaleString('en-KE')}`;
-  }
-
-  formatNumber(num: number): string {
-    return num.toLocaleString('en-KE');
-  }
-
-  getStatusClass(status: string): string {
-    const statusMap: any = {
-      'pending': 'status-pending',
-      'accepted': 'status-accepted',
-      'in-progress': 'status-progress',
-      'completed': 'status-completed',
-      'cancelled': 'status-cancelled',
-      'paid': 'status-paid'
+  private setupProfileUpdateListener(): void {
+    this.profileUpdateListener = () => {
+      this.loadProfileImage();
     };
-    return statusMap[status] || 'status-pending';
+    
+    window.addEventListener('profileImageUpdated', this.profileUpdateListener);
   }
 
-  getPriorityClass(priority: string): string {
-    const priorityMap: any = {
-      'low': 'priority-low',
-      'medium': 'priority-medium',
-      'high': 'priority-high',
-      'urgent': 'priority-urgent'
+  private loadUserData(): void {
+    this.currentUser = this.authService.getCurrentUser();
+    
+    if (this.currentUser) {
+      this.userDisplayName = this.currentUser.businessName || 
+                           this.currentUser.fullName || 
+                           this.currentUser.email?.split('@')[0] || 
+                           'Business Owner';
+      
+      this.userRole = this.formatUserRole(this.currentUser.role);
+      this.loadProfileImage();
+    } else {
+      this.userDisplayName = 'Business Owner';
+      this.userRole = 'Business';
+      this.profileImage = this.generateInitialAvatar('Business');
+    }
+  }
+
+  loadDashboardData(): void {
+    this.isLoadingDashboard = true;
+    this.dashboardError = null;
+
+    this.businessService.getBusinessDashboardData().subscribe({
+      next: (businessData: any) => {
+        if (businessData.success && businessData.data) {
+          this.processDashboardData(businessData.data);
+        } else {
+          this.dashboardError = 'Failed to load business data';
+        }
+        this.isLoadingDashboard = false;
+      },
+      error: (error) => {
+        this.dashboardError = error.message || 'Failed to load dashboard data';
+        this.isLoadingDashboard = false;
+        console.error('Business dashboard data error:', error);
+      }
+    });
+  }
+
+  private processDashboardData(businessData: any): void {
+    this.dashboardData = {
+      totalAds: businessData.totalAds || 0,
+      activeAds: businessData.activeAds || 0,
+      pendingAds: businessData.pendingAds || 0,
+      totalSpent: businessData.totalSpent || 0,
+      totalClicks: businessData.totalClicks || 0,
+      approvalRate: businessData.approvalRate || '0%',
+      businessName: businessData.businessName || 'Your Business',
+      registrationStatus: businessData.registrationStatus || 'Verified'
     };
-    return priorityMap[priority] || 'priority-medium';
   }
 
-  getRatingStars(rating: number): number[] {
-    return Array(5).fill(0).map((_, i) => i + 1);
+  private loadNotifications(): void {
+    this.isLoadingNotifications = true;
+    
+    setTimeout(() => {
+      this.unreadNotificationsCount = 2; // Mock data
+      this.isLoadingNotifications = false;
+    }, 500);
   }
 
-  getPendingJobsCount(): number {
-    return this.jobs.filter(job => job.status === 'pending').length;
+  viewNotifications(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/business-dashboard/notifications']);
   }
 
-  getInProgressJobsCount(): number {
-    return this.jobs.filter(job => job.status === 'in-progress').length;
+  viewProfile(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/business-dashboard/profile/view']);
   }
 
-  getCompletedJobsCount(): number {
-    return this.jobs.filter(job => job.status === 'completed').length;
+  editProfile(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/business-dashboard/profile/edit']);
   }
 
-  getTotalRevenue(): number {
-    return this.earnings.reduce((sum, earning) => sum + earning.amount, 0);
+  private loadProfileImage(): void {
+    const savedImage = localStorage.getItem('businessProfileImage');
+    if (savedImage) {
+      this.profileImage = this.addCacheBuster(savedImage);
+    } else if (this.currentUser?.logo) {
+      this.profileImage = this.addCacheBuster(this.currentUser.logo);
+    } else {
+      this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+    }
   }
 
-  getTotalCommission(): number {
-    return this.earnings.reduce((sum, earning) => sum + earning.commission, 0);
+  private addCacheBuster(imageUrl: string): string {
+    if (imageUrl.startsWith('data:')) {
+      return imageUrl;
+    }
+    const separator = imageUrl.includes('?') ? '&' : '?';
+    return `${imageUrl}${separator}t=${Date.now()}`;
   }
 
-  getNetEarnings(): number {
-    return this.earnings.reduce((sum, earning) => sum + earning.netAmount, 0);
+  private generateInitialAvatar(name: string): string {
+    const names = name.split(' ');
+    const initials = names.map(name => name.charAt(0).toUpperCase()).join('').slice(0, 2);
+    
+    const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+    const color = colors[initials.charCodeAt(0) % colors.length];
+    
+    return `data:image/svg+xml;base64,${btoa(`
+      <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100" height="100" fill="${color}" rx="50"/>
+        <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-size="40" font-weight="600">${initials}</text>
+      </svg>
+    `)}`;
   }
 
-  getPendingEarningsCount(): number {
-    return this.earnings.filter(earning => earning.status === 'pending').length;
+  private formatUserRole(role: string): string {
+    const roleMap: { [key: string]: string } = {
+      'BUSINESS': 'Business Owner',
+      'LANDLORD': 'Landlord',
+      'TENANT': 'Tenant',
+      'CARETAKER': 'Caretaker',
+      'ADMIN': 'Administrator'
+    };
+    
+    return roleMap[role.toString()] || role.toString();
   }
 
-  getPaidEarningsCount(): number {
-    return this.earnings.filter(earning => earning.status === 'paid').length;
+  toggleProfileMenu(): void {
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+    if (this.isProfileMenuOpen) {
+      this.isMobileMenuOpen = false;
+    }
   }
 
-  getRecentJobs(): Job[] {
-    return this.jobs.slice(0, 3);
+  toggleMobileMenu(): void {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
+    
+    if (this.isMobileMenuOpen) {
+      this.isProfileMenuOpen = false;
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
   }
 
-  getRecentReviews(): Review[] {
-    return this.reviews.slice(0, 3);
+  closeMobileMenu(): void {
+    this.isMobileMenuOpen = false;
+    document.body.style.overflow = '';
   }
 
-  getJobsByStatus(status: string): Job[] {
-    return this.jobs.filter(job => job.status === status);
+  closeProfileMenu(): void {
+    this.isProfileMenuOpen = false;
   }
 
-  getEarningsByStatus(status: string): Earnings[] {
-    return this.earnings.filter(earning => earning.status === status);
+  navigateToSection(section: string): void {
+    this.currentSection = section;
+    this.isMobileMenuOpen = false;
+    this.isProfileMenuOpen = false;
+    document.body.style.overflow = '';
+
+    const routeMap: { [key: string]: string[] } = {
+      'dashboard': ['/business-dashboard'],
+      'ads': ['/business-dashboard/ads'],
+      'create-ad': ['/business-dashboard/ads/create'],
+      'analytics': ['/business-dashboard/analytics'],
+      'billing': ['/business-dashboard/billing'],
+      'documents': ['/business-dashboard/documents'],
+      'messages': ['/business-dashboard/messages'],
+      'profile': ['/business-dashboard/profile/view']
+    };
+
+    const route = routeMap[section];
+    if (route) {
+      this.router.navigate(route);
+    } else {
+      this.router.navigate(['/business-dashboard']);
+    }
   }
 
-  getAverageRating(): number {
-    if (this.reviews.length === 0) return 0;
-    const total = this.reviews.reduce((sum, review) => sum + review.rating, 0);
-    return total / this.reviews.length;
+  private updateCurrentSectionFromRoute(url: string): void {
+    if (url.includes('/profile/view') || url.includes('/profile/edit')) {
+      this.currentSection = 'profile';
+    } else if (url === '/business-dashboard' || url === '/business-dashboard/') {
+      this.currentSection = 'dashboard';
+    } else if (url.includes('/ads/create')) {
+      this.currentSection = 'create-ad';
+    } else if (url.includes('/ads')) {
+      this.currentSection = 'ads';
+    } else if (url.includes('/analytics')) {
+      this.currentSection = 'analytics';
+    } else if (url.includes('/billing')) {
+      this.currentSection = 'billing';
+    } else if (url.includes('/documents')) {
+      this.currentSection = 'documents';
+    } else if (url.includes('/messages')) {
+      this.currentSection = 'messages';
+    } else {
+      this.currentSection = 'dashboard';
+    }
   }
 
-  getTotalJobsCount(): number {
-    return this.jobs.length;
-  }
-
-  getTotalEarningsAmount(): number {
-    return this.earnings.reduce((sum, earning) => sum + earning.netAmount, 0);
-  }
-
-  refreshData(): void {
-    this.loadBusinessData();
+  isNavActive(section: string): boolean {
+    return this.currentSection === section;
   }
 
   logout(): void {
-    console.log('Business logging out...');
+    if (this.isLoggingOut) return;
+
+    const confirmed = confirm('Are you sure you want to logout?');
+    if (!confirmed) return;
+
+    this.isLoggingOut = true;
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+
+    this.authService.logout().subscribe({
+      next: (response: any) => {
+        console.log('Logout successful:', response.message);
+        this.isLoggingOut = false;
+        
+        localStorage.removeItem('businessProfileImage');
+        sessionStorage.clear();
+        
+        this.router.navigate(['/business-login']);
+      },
+      error: (error) => {
+        console.error('Logout error:', error);
+        this.isLoggingOut = false;
+        
+        localStorage.removeItem('businessProfileImage');
+        sessionStorage.clear();
+        this.router.navigate(['/business-login']);
+      }
+    });
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any): void {
+    if (window.innerWidth > 768 && this.isMobileMenuOpen) {
+      this.closeMobileMenu();
+    }
+  }
+
+  refreshDashboard(): void {
+    this.loadDashboardData();
+    this.loadNotifications();
+  }
+
+  onLogoError(event: any): void {
+    console.error('Logo failed to load:', event);
   }
 }

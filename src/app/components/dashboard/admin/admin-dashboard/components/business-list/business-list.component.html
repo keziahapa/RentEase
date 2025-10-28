@@ -1,0 +1,102 @@
+<div class="business-list-container">
+  <div class="header">
+    <h2>Business Management</h2>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="loadBusinesses()" [disabled]="isLoading">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div *ngIf="isLoading" class="loading-section">
+      <mat-progress-spinner diameter="40" mode="indeterminate"></mat-progress-spinner>
+      <p>Loading businesses...</p>
+    </div>
+
+    <div *ngIf="!isLoading && businesses.length === 0" class="empty-state">
+      <mat-icon>business</mat-icon>
+      <h3>No Businesses Found</h3>
+      <p>There are no businesses registered in the system yet.</p>
+    </div>
+
+    <div *ngIf="!isLoading && businesses.length > 0" class="businesses-grid">
+      <mat-card *ngFor="let business of businesses" class="business-card">
+        <mat-card-header>
+          <mat-card-title>{{ business.name }}</mat-card-title>
+          <mat-card-subtitle>{{ business.category }}</mat-card-subtitle>
+          <div class="spacer"></div>
+          <mat-chip [color]="getStatusColor(business.status)" [class]="business.status">
+            {{ business.status | uppercase }}
+          </mat-chip>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="business-details">
+            <div class="detail-item">
+              <mat-icon>person</mat-icon>
+              <span>{{ business.ownerName }}</span>
+            </div>
+            <div class="detail-item">
+              <mat-icon>email</mat-icon>
+              <span>{{ business.ownerEmail }}</span>
+            </div>
+            <div class="detail-item">
+              <mat-icon>phone</mat-icon>
+              <span>{{ business.phoneNumber }}</span>
+            </div>
+            <div class="detail-item">
+              <mat-icon>calendar_today</mat-icon>
+              <span>{{ business.registrationDate | date }}</span>
+            </div>
+            <div *ngIf="business.rating" class="detail-item">
+              <mat-icon>star</mat-icon>
+              <span>{{ business.rating }}/5 Rating</span>
+            </div>
+          </div>
+
+          <div *ngIf="business.description" class="description">
+            <p>{{ business.description }}</p>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions align="end">
+          <div class="actions-container">
+            <button *ngIf="business.status === 'pending'" 
+                    mat-raised-button 
+                    color="primary" 
+                    (click)="approveBusiness(business.id)">
+              <mat-icon>check_circle</mat-icon>
+              Approve
+            </button>
+            
+            <button *ngIf="business.status === 'pending'" 
+                    mat-raised-button 
+                    color="warn" 
+                    (click)="openRejectDialog(business.id)">
+              <mat-icon>cancel</mat-icon>
+              Reject
+            </button>
+            
+            <button *ngIf="business.status === 'approved'" 
+                    mat-raised-button 
+                    color="warn" 
+                    (click)="suspendBusiness(business.id)">
+              <mat-icon>pause_circle</mat-icon>
+              Suspend
+            </button>
+            
+            <button *ngIf="business.status === 'suspended'" 
+                    mat-raised-button 
+                    color="primary" 
+                    (click)="approveBusiness(business.id)">
+              <mat-icon>play_circle</mat-icon>
+              Activate
+            </button>
+          </div>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+</div>

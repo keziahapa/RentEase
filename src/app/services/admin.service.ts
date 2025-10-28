@@ -1,3 +1,4 @@
+// admin.service.ts - COMPLETE CORRECTED VERSION
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
@@ -19,7 +20,10 @@ import {
   Notification,
   ApiResponse,
   SearchParams,
-  BulkOperationResult
+  BulkOperationResult,
+  Advertisement,
+  ExternalBusiness,
+  RejectionRequest
 } from './admin-interfaces';
 
 @Injectable({
@@ -30,7 +34,8 @@ export class AdminService {
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
 
-  private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com/api/v1/admin';
+  // CORRECTED: Use base URL without /api/v1/admin
+  private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
 
   constructor() {}
 
@@ -82,9 +87,9 @@ export class AdminService {
     }));
   }
 
-  // Dashboard Statistics
+  // ==================== DASHBOARD STATISTICS ====================
   getDashboardStats(): Observable<ApiResponse<AdminStats>> {
-    return this.http.get<ApiResponse<AdminStats>>(`${this.apiUrl}/dashboard/stats`, {
+    return this.http.get<ApiResponse<AdminStats>>(`${this.apiUrl}/api/v1/admin/dashboard/stats`, {
       headers: this.createHeaders()
     }).pipe(
       catchError(this.handleError)
@@ -94,7 +99,7 @@ export class AdminService {
   getPlatformAnalytics(timeRange: string = '30d'): Observable<ApiResponse<any>> {
     const params = new HttpParams().set('timeRange', timeRange);
     
-    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/analytics`, {
+    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/api/v1/admin/analytics`, {
       headers: this.createHeaders(),
       params
     }).pipe(
@@ -102,7 +107,149 @@ export class AdminService {
     );
   }
 
-  // User Management
+  // ==================== BUSINESS MANAGEMENT ====================
+  getBusinesses(): Observable<ApiResponse<Business[]>> {
+    return this.http.get<ApiResponse<Business[]>>(`${this.apiUrl}/api/admin/businesses`, {
+      headers: this.createHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  getPendingBusinesses(): Observable<ApiResponse<Business[]>> {
+    return this.http.get<ApiResponse<Business[]>>(`${this.apiUrl}/api/admin/businesses/pending`, {
+      headers: this.createHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  getBusinessDetails(businessId: number): Observable<ApiResponse<Business>> {
+    return this.http.get<ApiResponse<Business>>(`${this.apiUrl}/api/admin/businesses/${businessId}`, {
+      headers: this.createHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  approveBusiness(businessId: number): Observable<ApiResponse<Business>> {
+    return this.http.post<ApiResponse<Business>>(
+      `${this.apiUrl}/api/admin/businesses/${businessId}/approve`,
+      {},
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success) {
+          this.snackBar.open('Business approved successfully', 'Close', { duration: 3000 });
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  rejectBusiness(businessId: number, rejectionReason: string): Observable<ApiResponse<Business>> {
+    return this.http.post<ApiResponse<Business>>(
+      `${this.apiUrl}/api/admin/businesses/${businessId}/reject`,
+      { rejectionReason },
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success) {
+          this.snackBar.open('Business rejected successfully', 'Close', { duration: 3000 });
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  suspendBusiness(businessId: number, reason: string): Observable<ApiResponse<Business>> {
+    return this.http.patch<ApiResponse<Business>>(
+      `${this.apiUrl}/api/admin/businesses/${businessId}/suspend`,
+      { reason },
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success) {
+          this.snackBar.open('Business suspended successfully', 'Close', { duration: 3000 });
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  // ==================== ADVERTISEMENT MANAGEMENT ====================
+  getAdvertisements(): Observable<ApiResponse<Advertisement[]>> {
+    return this.http.get<ApiResponse<Advertisement[]>>(`${this.apiUrl}/api/admin/advertisements`, {
+      headers: this.createHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  getPendingAdvertisements(): Observable<ApiResponse<Advertisement[]>> {
+    return this.http.get<ApiResponse<Advertisement[]>>(`${this.apiUrl}/api/admin/advertisements/pending`, {
+      headers: this.createHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  getAdvertisementDetails(advertisementId: number): Observable<ApiResponse<Advertisement>> {
+    return this.http.get<ApiResponse<Advertisement>>(`${this.apiUrl}/api/admin/advertisements/${advertisementId}`, {
+      headers: this.createHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  approveAdvertisement(advertisementId: number): Observable<ApiResponse<Advertisement>> {
+    return this.http.post<ApiResponse<Advertisement>>(
+      `${this.apiUrl}/api/admin/advertisements/${advertisementId}/approve`,
+      {},
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success) {
+          this.snackBar.open('Advertisement approved successfully', 'Close', { duration: 3000 });
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  rejectAdvertisement(advertisementId: number, rejectionReason: string): Observable<ApiResponse<Advertisement>> {
+    return this.http.post<ApiResponse<Advertisement>>(
+      `${this.apiUrl}/api/admin/advertisements/${advertisementId}/reject`,
+      { rejectionReason },
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success) {
+          this.snackBar.open('Advertisement rejected successfully', 'Close', { duration: 3000 });
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  // ==================== EXTERNAL BUSINESS MANAGEMENT ====================
+  getExternalBusinesses(): Observable<ApiResponse<ExternalBusiness[]>> {
+    return this.http.get<ApiResponse<ExternalBusiness[]>>(`${this.apiUrl}/api/admin/external-businesses`, {
+      headers: this.createHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  getPendingExternalBusinesses(): Observable<ApiResponse<ExternalBusiness[]>> {
+    return this.http.get<ApiResponse<ExternalBusiness[]>>(`${this.apiUrl}/api/admin/external-businesses/pending`, {
+      headers: this.createHeaders()
+    }).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  // ==================== USER MANAGEMENT ====================
   getUsers(params?: SearchParams): Observable<ApiResponse<User[]>> {
     let httpParams = new HttpParams();
     
@@ -114,7 +261,7 @@ export class AdminService {
       });
     }
     
-    return this.http.get<ApiResponse<User[]>>(`${this.apiUrl}/users`, {
+    return this.http.get<ApiResponse<User[]>>(`${this.apiUrl}/api/v1/admin/users`, {
       headers: this.createHeaders(),
       params: httpParams
     }).pipe(
@@ -123,7 +270,7 @@ export class AdminService {
   }
 
   getUserDetails(userId: string): Observable<ApiResponse<User>> {
-    return this.http.get<ApiResponse<User>>(`${this.apiUrl}/users/${userId}`, {
+    return this.http.get<ApiResponse<User>>(`${this.apiUrl}/api/v1/admin/users/${userId}`, {
       headers: this.createHeaders()
     }).pipe(
       catchError(this.handleError)
@@ -132,7 +279,7 @@ export class AdminService {
 
   updateUserStatus(userId: string, status: string): Observable<ApiResponse<User>> {
     return this.http.patch<ApiResponse<User>>(
-      `${this.apiUrl}/users/${userId}/status`, 
+      `${this.apiUrl}/api/v1/admin/users/${userId}/status`, 
       { status },
       { headers: this.createHeaders() }
     ).pipe(
@@ -147,7 +294,7 @@ export class AdminService {
 
   suspendUser(userId: string, reason: string): Observable<ApiResponse<User>> {
     return this.http.post<ApiResponse<User>>(
-      `${this.apiUrl}/users/${userId}/suspend`,
+      `${this.apiUrl}/api/v1/admin/users/${userId}/suspend`,
       { reason },
       { headers: this.createHeaders() }
     ).pipe(
@@ -162,7 +309,7 @@ export class AdminService {
 
   activateUser(userId: string): Observable<ApiResponse<User>> {
     return this.http.post<ApiResponse<User>>(
-      `${this.apiUrl}/users/${userId}/activate`,
+      `${this.apiUrl}/api/v1/admin/users/${userId}/activate`,
       {},
       { headers: this.createHeaders() }
     ).pipe(
@@ -176,7 +323,7 @@ export class AdminService {
   }
 
   deleteUser(userId: string): Observable<ApiResponse<any>> {
-    return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/users/${userId}`, {
+    return this.http.delete<ApiResponse<any>>(`${this.apiUrl}/api/v1/admin/users/${userId}`, {
       headers: this.createHeaders()
     }).pipe(
       tap(response => {
@@ -188,7 +335,7 @@ export class AdminService {
     );
   }
 
-  // Property Management
+  // ==================== PROPERTY MANAGEMENT ====================
   getProperties(params?: SearchParams): Observable<ApiResponse<Property[]>> {
     let httpParams = new HttpParams();
     
@@ -200,7 +347,7 @@ export class AdminService {
       });
     }
     
-    return this.http.get<ApiResponse<Property[]>>(`${this.apiUrl}/properties`, {
+    return this.http.get<ApiResponse<Property[]>>(`${this.apiUrl}/api/v1/admin/properties`, {
       headers: this.createHeaders(),
       params: httpParams
     }).pipe(
@@ -209,7 +356,7 @@ export class AdminService {
   }
 
   getPropertyDetails(propertyId: string): Observable<ApiResponse<Property>> {
-    return this.http.get<ApiResponse<Property>>(`${this.apiUrl}/properties/${propertyId}`, {
+    return this.http.get<ApiResponse<Property>>(`${this.apiUrl}/api/v1/admin/properties/${propertyId}`, {
       headers: this.createHeaders()
     }).pipe(
       catchError(this.handleError)
@@ -218,7 +365,7 @@ export class AdminService {
 
   updatePropertyStatus(propertyId: string, status: string): Observable<ApiResponse<Property>> {
     return this.http.patch<ApiResponse<Property>>(
-      `${this.apiUrl}/properties/${propertyId}/status`,
+      `${this.apiUrl}/api/v1/admin/properties/${propertyId}/status`,
       { status },
       { headers: this.createHeaders() }
     ).pipe(
@@ -231,80 +378,7 @@ export class AdminService {
     );
   }
 
-  // Business Management
-  getBusinesses(params?: SearchParams): Observable<ApiResponse<Business[]>> {
-    let httpParams = new HttpParams();
-    
-    if (params) {
-      Object.keys(params).forEach(key => {
-        if (params[key as keyof SearchParams] !== null && params[key as keyof SearchParams] !== undefined) {
-          httpParams = httpParams.set(key, params[key as keyof SearchParams]!.toString());
-        }
-      });
-    }
-    
-    return this.http.get<ApiResponse<Business[]>>(`${this.apiUrl}/businesses`, {
-      headers: this.createHeaders(),
-      params: httpParams
-    }).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  getBusinessDetails(businessId: string): Observable<ApiResponse<Business>> {
-    return this.http.get<ApiResponse<Business>>(`${this.apiUrl}/businesses/${businessId}`, {
-      headers: this.createHeaders()
-    }).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  approveBusiness(businessId: string): Observable<ApiResponse<Business>> {
-    return this.http.patch<ApiResponse<Business>>(
-      `${this.apiUrl}/businesses/${businessId}/approve`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success) {
-          this.snackBar.open('Business approved successfully', 'Close', { duration: 3000 });
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  rejectBusiness(businessId: string, reason: string): Observable<ApiResponse<Business>> {
-    return this.http.patch<ApiResponse<Business>>(
-      `${this.apiUrl}/businesses/${businessId}/reject`,
-      { reason },
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success) {
-          this.snackBar.open('Business rejected successfully', 'Close', { duration: 3000 });
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  suspendBusiness(businessId: string, reason: string): Observable<ApiResponse<Business>> {
-    return this.http.patch<ApiResponse<Business>>(
-      `${this.apiUrl}/businesses/${businessId}/suspend`,
-      { reason },
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success) {
-          this.snackBar.open('Business suspended successfully', 'Close', { duration: 3000 });
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  // Dispute Management
+  // ==================== DISPUTE MANAGEMENT ====================
   getDisputes(params?: SearchParams): Observable<ApiResponse<Dispute[]>> {
     let httpParams = new HttpParams();
     
@@ -316,7 +390,7 @@ export class AdminService {
       });
     }
     
-    return this.http.get<ApiResponse<Dispute[]>>(`${this.apiUrl}/disputes`, {
+    return this.http.get<ApiResponse<Dispute[]>>(`${this.apiUrl}/api/v1/admin/disputes`, {
       headers: this.createHeaders(),
       params: httpParams
     }).pipe(
@@ -325,7 +399,7 @@ export class AdminService {
   }
 
   getDisputeDetails(disputeId: string): Observable<ApiResponse<Dispute>> {
-    return this.http.get<ApiResponse<Dispute>>(`${this.apiUrl}/disputes/${disputeId}`, {
+    return this.http.get<ApiResponse<Dispute>>(`${this.apiUrl}/api/v1/admin/disputes/${disputeId}`, {
       headers: this.createHeaders()
     }).pipe(
       catchError(this.handleError)
@@ -334,7 +408,7 @@ export class AdminService {
 
   assignDispute(disputeId: string, adminId: string): Observable<ApiResponse<Dispute>> {
     return this.http.patch<ApiResponse<Dispute>>(
-      `${this.apiUrl}/disputes/${disputeId}/assign`,
+      `${this.apiUrl}/api/v1/admin/disputes/${disputeId}/assign`,
       { adminId },
       { headers: this.createHeaders() }
     ).pipe(
@@ -349,7 +423,7 @@ export class AdminService {
 
   resolveDispute(disputeId: string, resolution: any): Observable<ApiResponse<Dispute>> {
     return this.http.patch<ApiResponse<Dispute>>(
-      `${this.apiUrl}/disputes/${disputeId}/resolve`,
+      `${this.apiUrl}/api/v1/admin/disputes/${disputeId}/resolve`,
       resolution,
       { headers: this.createHeaders() }
     ).pipe(
@@ -364,7 +438,7 @@ export class AdminService {
 
   escalateDispute(disputeId: string, reason: string): Observable<ApiResponse<Dispute>> {
     return this.http.patch<ApiResponse<Dispute>>(
-      `${this.apiUrl}/disputes/${disputeId}/escalate`,
+      `${this.apiUrl}/api/v1/admin/disputes/${disputeId}/escalate`,
       { reason },
       { headers: this.createHeaders() }
     ).pipe(
@@ -377,7 +451,7 @@ export class AdminService {
     );
   }
 
-  // Transaction Management
+  // ==================== TRANSACTION MANAGEMENT ====================
   getTransactions(params?: SearchParams): Observable<ApiResponse<Transaction[]>> {
     let httpParams = new HttpParams();
     
@@ -389,7 +463,7 @@ export class AdminService {
       });
     }
     
-    return this.http.get<ApiResponse<Transaction[]>>(`${this.apiUrl}/transactions`, {
+    return this.http.get<ApiResponse<Transaction[]>>(`${this.apiUrl}/api/v1/admin/transactions`, {
       headers: this.createHeaders(),
       params: httpParams
     }).pipe(
@@ -398,7 +472,7 @@ export class AdminService {
   }
 
   getTransactionDetails(transactionId: string): Observable<ApiResponse<Transaction>> {
-    return this.http.get<ApiResponse<Transaction>>(`${this.apiUrl}/transactions/${transactionId}`, {
+    return this.http.get<ApiResponse<Transaction>>(`${this.apiUrl}/api/v1/admin/transactions/${transactionId}`, {
       headers: this.createHeaders()
     }).pipe(
       catchError(this.handleError)
@@ -407,7 +481,7 @@ export class AdminService {
 
   refundTransaction(transactionId: string, reason: string): Observable<ApiResponse<Transaction>> {
     return this.http.post<ApiResponse<Transaction>>(
-      `${this.apiUrl}/transactions/${transactionId}/refund`,
+      `${this.apiUrl}/api/v1/admin/transactions/${transactionId}/refund`,
       { reason },
       { headers: this.createHeaders() }
     ).pipe(
@@ -420,7 +494,7 @@ export class AdminService {
     );
   }
 
-  // Tenant Management
+  // ==================== TENANT MANAGEMENT ====================
   getTenants(params?: SearchParams): Observable<ApiResponse<Tenant[]>> {
     let httpParams = new HttpParams();
     
@@ -432,7 +506,7 @@ export class AdminService {
       });
     }
     
-    return this.http.get<ApiResponse<Tenant[]>>(`${this.apiUrl}/tenants`, {
+    return this.http.get<ApiResponse<Tenant[]>>(`${this.apiUrl}/api/v1/admin/tenants`, {
       headers: this.createHeaders(),
       params: httpParams
     }).pipe(
@@ -441,14 +515,14 @@ export class AdminService {
   }
 
   getTenantDetails(tenantId: string): Observable<ApiResponse<Tenant>> {
-    return this.http.get<ApiResponse<Tenant>>(`${this.apiUrl}/tenants/${tenantId}`, {
+    return this.http.get<ApiResponse<Tenant>>(`${this.apiUrl}/api/v1/admin/tenants/${tenantId}`, {
       headers: this.createHeaders()
     }).pipe(
       catchError(this.handleError)
     );
   }
 
-  // Maintenance Management
+  // ==================== MAINTENANCE MANAGEMENT ====================
   getMaintenanceRequests(params?: SearchParams): Observable<ApiResponse<MaintenanceRequest[]>> {
     let httpParams = new HttpParams();
     
@@ -460,7 +534,7 @@ export class AdminService {
       });
     }
     
-    return this.http.get<ApiResponse<MaintenanceRequest[]>>(`${this.apiUrl}/maintenance`, {
+    return this.http.get<ApiResponse<MaintenanceRequest[]>>(`${this.apiUrl}/api/v1/admin/maintenance`, {
       headers: this.createHeaders(),
       params: httpParams
     }).pipe(
@@ -468,7 +542,7 @@ export class AdminService {
     );
   }
 
-  // Reports & Analytics
+  // ==================== REPORTS & ANALYTICS ====================
   generateReport(reportType: string, params?: SearchParams): Observable<ApiResponse<any>> {
     let httpParams = new HttpParams();
     
@@ -480,7 +554,7 @@ export class AdminService {
       });
     }
     
-    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/reports/${reportType}`, {
+    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/api/v1/admin/reports/${reportType}`, {
       headers: this.createHeaders(),
       params: httpParams
     }).pipe(
@@ -499,7 +573,7 @@ export class AdminService {
       });
     }
     
-    return this.http.get(`${this.apiUrl}/reports/${reportType}/export`, {
+    return this.http.get(`${this.apiUrl}/api/v1/admin/reports/${reportType}/export`, {
       headers: this.createHeaders(false),
       params: httpParams,
       responseType: 'blob'
@@ -511,9 +585,9 @@ export class AdminService {
     );
   }
 
-  // System Settings
+  // ==================== SYSTEM SETTINGS ====================
   getSystemSettings(): Observable<ApiResponse<SystemSettings>> {
-    return this.http.get<ApiResponse<SystemSettings>>(`${this.apiUrl}/settings`, {
+    return this.http.get<ApiResponse<SystemSettings>>(`${this.apiUrl}/api/v1/admin/settings`, {
       headers: this.createHeaders()
     }).pipe(
       catchError(this.handleError)
@@ -522,7 +596,7 @@ export class AdminService {
 
   updateSystemSettings(settings: Partial<SystemSettings>): Observable<ApiResponse<SystemSettings>> {
     return this.http.put<ApiResponse<SystemSettings>>(
-      `${this.apiUrl}/settings`,
+      `${this.apiUrl}/api/v1/admin/settings`,
       settings,
       { headers: this.createHeaders() }
     ).pipe(
@@ -535,10 +609,10 @@ export class AdminService {
     );
   }
 
-  // Platform Management
+  // ==================== PLATFORM MANAGEMENT ====================
   toggleMaintenanceMode(enabled: boolean): Observable<ApiResponse<any>> {
     return this.http.patch<ApiResponse<any>>(
-      `${this.apiUrl}/platform/maintenance`,
+      `${this.apiUrl}/api/v1/admin/platform/maintenance`,
       { enabled },
       { headers: this.createHeaders() }
     ).pipe(
@@ -554,7 +628,7 @@ export class AdminService {
 
   clearCache(cacheType: string): Observable<ApiResponse<any>> {
     return this.http.post<ApiResponse<any>>(
-      `${this.apiUrl}/platform/clear-cache`,
+      `${this.apiUrl}/api/v1/admin/platform/clear-cache`,
       { cacheType },
       { headers: this.createHeaders() }
     ).pipe(
@@ -567,10 +641,10 @@ export class AdminService {
     );
   }
 
-  // Admin User Management
+  // ==================== ADMIN USER MANAGEMENT ====================
   createAdmin(userData: any): Observable<ApiResponse<User>> {
     return this.http.post<ApiResponse<User>>(
-      `${this.apiUrl}/admins`,
+      `${this.apiUrl}/api/v1/admin/admins`,
       userData,
       { headers: this.createHeaders() }
     ).pipe(
@@ -584,21 +658,21 @@ export class AdminService {
   }
 
   getAdmins(): Observable<ApiResponse<User[]>> {
-    return this.http.get<ApiResponse<User[]>>(`${this.apiUrl}/admins`, {
+    return this.http.get<ApiResponse<User[]>>(`${this.apiUrl}/api/v1/admin/admins`, {
       headers: this.createHeaders()
     }).pipe(
       catchError(this.handleError)
     );
   }
 
-  // Utility Methods
+  // ==================== UTILITY METHODS ====================
   searchUsers(query: string, role?: string): Observable<ApiResponse<User[]>> {
     let params = new HttpParams().set('query', query);
     if (role) {
       params = params.set('role', role);
     }
     
-    return this.http.get<ApiResponse<User[]>>(`${this.apiUrl}/search/users`, {
+    return this.http.get<ApiResponse<User[]>>(`${this.apiUrl}/api/v1/admin/search/users`, {
       headers: this.createHeaders(),
       params
     }).pipe(
@@ -609,7 +683,7 @@ export class AdminService {
   searchProperties(query: string): Observable<ApiResponse<Property[]>> {
     const params = new HttpParams().set('query', query);
     
-    return this.http.get<ApiResponse<Property[]>>(`${this.apiUrl}/search/properties`, {
+    return this.http.get<ApiResponse<Property[]>>(`${this.apiUrl}/api/v1/admin/search/properties`, {
       headers: this.createHeaders(),
       params
     }).pipe(
@@ -617,10 +691,10 @@ export class AdminService {
     );
   }
 
-  // Bulk Operations
+  // ==================== BULK OPERATIONS ====================
   bulkUpdateUserStatus(userIds: string[], status: string): Observable<ApiResponse<BulkOperationResult>> {
     return this.http.post<ApiResponse<BulkOperationResult>>(
-      `${this.apiUrl}/users/bulk-update`,
+      `${this.apiUrl}/api/v1/admin/users/bulk-update`,
       { userIds, status },
       { headers: this.createHeaders() }
     ).pipe(
@@ -633,10 +707,10 @@ export class AdminService {
     );
   }
 
-  // Notification Management
+  // ==================== NOTIFICATION MANAGEMENT ====================
   sendPlatformNotification(notification: any): Observable<ApiResponse<any>> {
     return this.http.post<ApiResponse<any>>(
-      `${this.apiUrl}/notifications`,
+      `${this.apiUrl}/api/v1/admin/notifications`,
       notification,
       { headers: this.createHeaders() }
     ).pipe(
@@ -649,9 +723,9 @@ export class AdminService {
     );
   }
 
-  // Health Check
+  // ==================== HEALTH CHECK ====================
   checkSystemHealth(): Observable<ApiResponse<any>> {
-    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/health`, {
+    return this.http.get<ApiResponse<any>>(`${this.apiUrl}/api/v1/admin/health`, {
       headers: this.createHeaders()
     }).pipe(
       catchError(this.handleError)

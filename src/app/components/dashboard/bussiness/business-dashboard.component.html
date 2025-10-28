@@ -1,419 +1,129 @@
-<div class="business-dashboard">
-  <div class="sidebar" [class.sidebar-collapsed]="!isSidebarOpen">
+<!-- business-dashboard.component.html -->
+<div class="dashboard-container">
+  <div class="mobile-menu-overlay" [class.active]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
+  
+  <nav class="sidebar" [class.mobile-open]="isMobileMenuOpen">
     <div class="sidebar-header">
-      <div class="logo">
-        <mat-icon>store</mat-icon>
-        <span class="logo-text" *ngIf="isSidebarOpen">Business Panel</span>
+      <div class="logo" (click)="navigateToSection('dashboard')">
+               <img src="/images/logo.png" alt="RentEase Logo" class="logo-image">
       </div>
-      <button class="sidebar-toggle" (click)="toggleSidebar()">
-        <mat-icon>{{isSidebarOpen ? 'chevron_left' : 'chevron_right'}}</mat-icon>
-      </button>
     </div>
 
-    <nav class="sidebar-nav">
-      <a *ngFor="let item of navItems" 
-         class="nav-item" 
-         [class.active]="currentView === item.id"
-         (click)="setView(item.id)">
-        <mat-icon class="nav-icon">{{item.icon}}</mat-icon>
-        <span class="nav-label" *ngIf="isSidebarOpen">{{item.label}}</span>
-      </a>
-    </nav>
+    <div class="nav-menu">
+      <div class="nav-item" 
+           [class.active]="isNavActive('dashboard')" 
+           (click)="navigateToSection('dashboard')">
+        <mat-icon class="nav-icon">dashboard</mat-icon>
+        <span>Dashboard</span>
+      </div>
 
-    <div class="sidebar-footer">
-      <button class="logout-btn" (click)="logout()">
-        <mat-icon>logout</mat-icon>
-        <span *ngIf="isSidebarOpen">Logout</span>
-      </button>
+      <div class="nav-item" 
+           [class.active]="isNavActive('ads')" 
+           (click)="navigateToSection('ads')">
+        <mat-icon class="nav-icon">campaign</mat-icon>
+        <span>My Ads</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('create-ad')" 
+           (click)="navigateToSection('create-ad')">
+        <mat-icon class="nav-icon">add_circle</mat-icon>
+        <span>Create Ad</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('analytics')" 
+           (click)="navigateToSection('analytics')">
+        <mat-icon class="nav-icon">analytics</mat-icon>
+        <span>Analytics</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('billing')" 
+           (click)="navigateToSection('billing')">
+        <mat-icon class="nav-icon">receipt</mat-icon>
+        <span>Billing</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('documents')" 
+           (click)="navigateToSection('documents')">
+        <mat-icon class="nav-icon">description</mat-icon>
+        <span>Documents</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('messages')" 
+           (click)="navigateToSection('messages')">
+        <mat-icon class="nav-icon">message</mat-icon>
+        <span>Messages</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('profile')" 
+           (click)="viewProfile()">
+        <mat-icon class="nav-icon">business</mat-icon>
+        <span>Business Profile</span>
+      </div>
     </div>
-  </div>
+  </nav>
 
-  <div class="main-content" [class.content-expanded]="!isSidebarOpen">
+  <main class="main-content">
     <div class="top-header">
       <div class="header-left">
-        <button class="menu-toggle" (click)="toggleSidebar()">
+        <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
           <mat-icon>menu</mat-icon>
         </button>
-        <h1 class="page-title">Business Dashboard</h1>
-      </div>
-      
-      <div class="header-actions">
-        <button class="btn btn-secondary" (click)="refreshData()">
-          <mat-icon>refresh</mat-icon>
-          Refresh
-        </button>
-        <div class="user-menu">
-          <div class="user-avatar">B</div>
-          <span class="user-name">Joe Plumbing</span>
+        <div class="greeting-section">
+          <h1>{{ getGreetingMessage() }}</h1>
+          <p>Here's what's happening with your business ads today</p>
         </div>
       </div>
-    </div>
 
-    <div class="dashboard-content">
-      
-      <div *ngIf="currentView === 'overview'" class="overview-view">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon jobs">
-              <mat-icon>work</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatNumber(stats.totalJobs)}}</div>
-              <div class="stat-label">Total Jobs</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon completed">
-              <mat-icon>check_circle</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatNumber(stats.completedJobs)}}</div>
-              <div class="stat-label">Completed Jobs</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon pending">
-              <mat-icon>schedule</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatNumber(stats.pendingJobs)}}</div>
-              <div class="stat-label">Pending Jobs</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon earnings">
-              <mat-icon>payments</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{formatCurrency(stats.totalEarnings)}}</div>
-              <div class="stat-label">Total Earnings</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon rating">
-              <mat-icon>star</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{stats.averageRating}}/5</div>
-              <div class="stat-label">Average Rating</div>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon response">
-              <mat-icon>timer</mat-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{stats.responseRate}}%</div>
-              <div class="stat-label">Response Rate</div>
-            </div>
-          </div>
+      <div class="header-right">
+        <div class="header-actions">
+          <button class="notification-btn" (click)="viewNotifications()" 
+                  [class.has-notifications]="unreadNotificationsCount > 0"
+                  matTooltip="{{ unreadNotificationsCount > 0 ? unreadNotificationsCount + ' unread notifications' : 'No new notifications' }}"
+                  matTooltipPosition="below">
+            <mat-icon>notifications</mat-icon>
+            <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
+              {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
+            </span>
+          </button>
         </div>
 
-        <div class="quick-actions-section">
-          <h3>Quick Actions</h3>
-          <div class="actions-grid">
-            <button *ngFor="let action of quickActions" class="action-btn" (click)="action.action()">
-              <div class="action-icon" [style.background-color]="action.color">
-                <mat-icon>{{action.icon}}</mat-icon>
+        <div class="profile-section">
+          <div class="user-avatar-wrapper" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <div class="user-avatar">
+              <img *ngIf="profileImage" [src]="profileImage" alt="Business Logo" class="avatar-image">
+              <div *ngIf="!profileImage" class="avatar-placeholder">
+                <mat-icon>business</mat-icon>
               </div>
-              <span class="action-label">{{action.title}}</span>
-              <span class="action-description">{{action.description}}</span>
+            </div>
+          </div>
+
+          <div class="dropdown-trigger" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <mat-icon class="dropdown-chevron" [class.rotated]="isProfileMenuOpen">expand_more</mat-icon>
+          </div>
+
+          <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
+            <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Business Profile</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item logout-item" 
+                    (click)="logout(); $event.stopPropagation()"
+                    [disabled]="isLoggingOut">
+              <mat-icon>logout</mat-icon>
+              <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
             </button>
           </div>
         </div>
-
-        <div class="recent-activity">
-          <div class="activity-section">
-            <h3>Recent Job Requests</h3>
-            <div class="activity-list">
-              <div *ngFor="let job of getRecentJobs()" class="activity-item">
-                <div class="activity-icon" [class]="getPriorityClass(job.priority)">
-                  <mat-icon>work</mat-icon>
-                </div>
-                <div class="activity-content">
-                  <div class="activity-title">{{job.title}}</div>
-                  <div class="activity-details">
-                    <span class="tenant">{{job.tenantName}}</span> • 
-                    <span class="property">{{job.property}}</span>
-                  </div>
-                  <div class="activity-meta">
-                    <span class="amount">{{formatCurrency(job.quoteAmount)}}</span>
-                    <span class="status-badge" [class]="getStatusClass(job.status)">{{job.status}}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="activity-section">
-            <h3>Recent Reviews</h3>
-            <div class="activity-list">
-              <div *ngFor="let review of getRecentReviews()" class="activity-item">
-                <div class="activity-icon rating">
-                  <mat-icon>star</mat-icon>
-                </div>
-                <div class="activity-content">
-                  <div class="review-header">
-                    <span class="tenant">{{review.tenantName}}</span>
-                    <div class="rating-stars">
-                      <mat-icon *ngFor="let star of getRatingStars(review.rating)" 
-                               [class.filled]="star <= review.rating">
-                        {{star <= review.rating ? 'star' : 'star_border'}}
-                      </mat-icon>
-                    </div>
-                  </div>
-                  <div class="review-comment">{{review.comment}}</div>
-                  <div class="review-job">{{review.jobTitle}}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
-
-      <div *ngIf="currentView === 'jobs'" class="jobs-view">
-        <div class="view-header">
-          <h2>Job Management</h2>
-          <div class="view-stats">
-            <span class="stat-badge pending">{{getPendingJobsCount()}} Pending</span>
-            <span class="stat-badge progress">{{getInProgressJobsCount()}} In Progress</span>
-            <span class="stat-badge total">{{getTotalJobsCount()}} Total</span>
-          </div>
-        </div>
-
-        <div class="table-container">
-          <table mat-table [dataSource]="jobs" class="job-table">
-            <ng-container matColumnDef="title">
-              <th mat-header-cell *matHeaderCellDef>Job Title</th>
-              <td mat-cell *matCellDef="let job">{{job.title}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="category">
-              <th mat-header-cell *matHeaderCellDef>Category</th>
-              <td mat-cell *matCellDef="let job">{{job.category}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="priority">
-              <th mat-header-cell *matHeaderCellDef>Priority</th>
-              <td mat-cell *matCellDef="let job">
-                <span class="priority-badge" [class]="getPriorityClass(job.priority)">
-                  {{job.priority}}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Status</th>
-              <td mat-cell *matCellDef="let job">
-                <span class="status-badge" [class]="getStatusClass(job.status)">
-                  {{job.status}}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="tenantName">
-              <th mat-header-cell *matHeaderCellDef>Client</th>
-              <td mat-cell *matCellDef="let job">{{job.tenantName}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="quoteAmount">
-              <th mat-header-cell *matHeaderCellDef>Quote Amount</th>
-              <td mat-cell *matCellDef="let job">{{formatCurrency(job.quoteAmount)}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="scheduledDate">
-              <th mat-header-cell *matHeaderCellDef>Scheduled Date</th>
-              <td mat-cell *matCellDef="let job">{{job.scheduledDate}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let job">
-                <div class="action-buttons">
-                  <button *ngIf="job.status === 'pending'" class="btn-success" (click)="acceptJob(job)">
-                    Accept
-                  </button>
-                  <button *ngIf="job.status === 'accepted'" class="btn-primary" (click)="startJob(job)">
-                    Start
-                  </button>
-                  <button *ngIf="job.status === 'in-progress'" class="btn-success" (click)="completeJob(job)">
-                    Complete
-                  </button>
-                  <button *ngIf="job.status === 'pending'" class="btn-danger" (click)="rejectJob(job)">
-                    Reject
-                  </button>
-                  <button class="btn-secondary">
-                    Details
-                  </button>
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedJobColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedJobColumns;"></tr>
-          </table>
-        </div>
-      </div>
-
-      <div *ngIf="currentView === 'earnings'" class="earnings-view">
-        <div class="view-header">
-          <h2>Earnings & Payments</h2>
-          <div class="view-stats">
-            <span class="stat-badge total">{{formatCurrency(getTotalEarningsAmount())}} Total</span>
-            <span class="stat-badge pending">{{getPendingEarningsCount()}} Pending</span>
-          </div>
-        </div>
-
-        <div class="earnings-summary">
-          <div class="summary-card">
-            <div class="summary-icon">
-              <mat-icon>payments</mat-icon>
-            </div>
-            <div class="summary-info">
-              <div class="summary-value">{{formatCurrency(getTotalRevenue())}}</div>
-              <div class="summary-label">Total Revenue</div>
-            </div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-icon commission">
-              <mat-icon>account_balance</mat-icon>
-            </div>
-            <div class="summary-info">
-              <div class="summary-value">{{formatCurrency(getTotalCommission())}}</div>
-              <div class="summary-label">Total Commission</div>
-            </div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-icon net">
-              <mat-icon>savings</mat-icon>
-            </div>
-            <div class="summary-info">
-              <div class="summary-value">{{formatCurrency(getNetEarnings())}}</div>
-              <div class="summary-label">Net Earnings</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="table-container">
-          <table mat-table [dataSource]="earnings" class="earning-table">
-            <ng-container matColumnDef="jobTitle">
-              <th mat-header-cell *matHeaderCellDef>Job Title</th>
-              <td mat-cell *matCellDef="let earning">{{earning.jobTitle}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="amount">
-              <th mat-header-cell *matHeaderCellDef>Amount</th>
-              <td mat-cell *matCellDef="let earning">{{formatCurrency(earning.amount)}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="commission">
-              <th mat-header-cell *matHeaderCellDef>Commission</th>
-              <td mat-cell *matCellDef="let earning">{{formatCurrency(earning.commission)}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="netAmount">
-              <th mat-header-cell *matHeaderCellDef>Net Amount</th>
-              <td mat-cell *matCellDef="let earning">{{formatCurrency(earning.netAmount)}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="date">
-              <th mat-header-cell *matHeaderCellDef>Date</th>
-              <td mat-cell *matCellDef="let earning">{{earning.date}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Status</th>
-              <td mat-cell *matCellDef="let earning">
-                <span class="status-badge" [class]="getStatusClass(earning.status)">
-                  {{earning.status}}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-              <td mat-cell *matCellDef="let earning">
-                <div class="action-buttons">
-                  <button class="btn-secondary">
-                    Invoice
-                  </button>
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedEarningColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedEarningColumns;"></tr>
-          </table>
-        </div>
-      </div>
-
-      <div *ngIf="currentView === 'reviews'" class="reviews-view">
-        <div class="view-header">
-          <h2>Customer Reviews</h2>
-          <div class="view-stats">
-            <span class="stat-badge rating">{{getAverageRating()}}/5 Average</span>
-            <span class="stat-badge total">{{reviews.length}} Reviews</span>
-          </div>
-        </div>
-
-        <div class="rating-overview">
-          <div class="overall-rating">
-            <div class="rating-score">{{getAverageRating()}}</div>
-            <div class="rating-stars large">
-              <mat-icon *ngFor="let star of getRatingStars(5)" 
-                       [class.filled]="star <= getAverageRating()">
-                {{star <= getAverageRating() ? 'star' : 'star_border'}}
-              </mat-icon>
-            </div>
-            <div class="rating-count">{{reviews.length}} reviews</div>
-          </div>
-        </div>
-
-        <div class="table-container">
-          <table mat-table [dataSource]="reviews" class="review-table">
-            <ng-container matColumnDef="tenantName">
-              <th mat-header-cell *matHeaderCellDef>Customer</th>
-              <td mat-cell *matCellDef="let review">{{review.tenantName}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="rating">
-              <th mat-header-cell *matHeaderCellDef>Rating</th>
-              <td mat-cell *matCellDef="let review">
-                <div class="rating-stars">
-                  <mat-icon *ngFor="let star of getRatingStars(5)" 
-                           [class.filled]="star <= review.rating">
-                    {{star <= review.rating ? 'star' : 'star_border'}}
-                  </mat-icon>
-                </div>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="comment">
-              <th mat-header-cell *matHeaderCellDef>Comment</th>
-              <td mat-cell *matCellDef="let review">{{review.comment}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="jobTitle">
-              <th mat-header-cell *matHeaderCellDef>Job</th>
-              <td mat-cell *matCellDef="let review">{{review.jobTitle}}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="date">
-              <th mat-header-cell *matHeaderCellDef>Date</th>
-              <td mat-cell *matCellDef="let review">{{review.date}}</td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedReviewColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedReviewColumns;"></tr>
-          </table>
-        </div>
-      </div>
-
     </div>
-  </div>
+
+    <router-outlet></router-outlet>
+  </main>
 </div>

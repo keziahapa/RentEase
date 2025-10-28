@@ -49,8 +49,6 @@ export interface User {
   verified: boolean;
   emailVerified: boolean;
   profileImage?: string;
-  
-  // Role-specific properties
   propertiesCount?: number;
   tenantsCount?: number;
   managedPropertiesCount?: number;
@@ -91,7 +89,7 @@ export interface Property {
 }
 
 export interface Business {
-  id: string;
+  id: number;
   name: string;
   category: string;
   status: 'pending' | 'approved' | 'rejected' | 'suspended';
@@ -113,6 +111,13 @@ export interface Business {
   };
   licenseNumber?: string;
   taxId?: string;
+  businessName?: string;
+  businessRegistrationNumber?: string;
+  registrationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  licenseDocument?: string;
+  contactEmail?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Dispute {
@@ -251,4 +256,39 @@ export interface BulkOperationResult {
   successful: number;
   failed: number;
   errors: string[];
+}
+
+export interface Advertisement {
+  id: number;
+  title: string;
+  description: string;
+  mediaUrl: string;
+  mediaType: 'IMAGE' | 'VIDEO';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  businessId: number;
+  businessName?: string;
+  createdAt: string;
+  updatedAt: string;
+  rejectionReason?: string;
+  clicks?: number;
+  views?: number;
+}
+
+export interface RejectionRequest {
+  rejectionReason: string;
+}
+
+export interface ExternalBusiness {
+  id: number;
+  businessName: string;
+  businessRegistrationNumber: string;
+  registrationStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  licenseDocument?: string;
+  contactEmail?: string;
+  phoneNumber?: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  createdAt: string;
+  updatedAt: string;
+  rejectionReason?: string;
 }

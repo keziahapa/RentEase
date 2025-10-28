@@ -1,0 +1,93 @@
+<div class="business-registration-container">
+  <div class="header">
+    <h2>Complete Your Business Registration</h2>
+    <p>Please provide your business details to complete your registration</p>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-section">
+    <mat-progress-spinner diameter="40" mode="indeterminate"></mat-progress-spinner>
+    <p>Checking registration status...</p>
+  </div>
+
+  <div *ngIf="!isLoading">
+    <mat-card class="registration-card">
+      <mat-card-content>
+        <form (ngSubmit)="onSubmit()" #registrationForm="ngForm">
+          <div class="form-section">
+            <h3>Business Information</h3>
+            
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Business Name</mat-label>
+                <input
+                  matInput
+                  [(ngModel)]="registrationData.data.businessName"
+                  name="businessName"
+                  placeholder="Enter your official business name"
+                  required
+                  maxlength="100">
+                <mat-hint align="end">{{ registrationData.data.businessName.length }}/100</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Business Registration Number</mat-label>
+                <input
+                  matInput
+                  [(ngModel)]="registrationData.data.businessRegistrationNumber"
+                  name="businessRegistrationNumber"
+                  placeholder="Enter your business registration number"
+                  required
+                  maxlength="50">
+                <mat-hint>Official registration number from business registry</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>License Document URL</mat-label>
+                <input
+                  matInput
+                  [(ngModel)]="registrationData.licenseDocument"
+                  name="licenseDocument"
+                  placeholder="Enter URL to your business license document"
+                  required>
+                <mat-icon matSuffix>link</mat-icon>
+                <mat-hint>Provide a link to your business license or registration document</mat-hint>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="isSubmitting"
+              class="submit-button">
+              <mat-spinner diameter="20" *ngIf="isSubmitting"></mat-spinner>
+              <span *ngIf="!isSubmitting">Complete Registration</span>
+              <span *ngIf="isSubmitting">Submitting...</span>
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="info-section">
+      <mat-card>
+        <mat-card-content>
+          <h3>Why We Need This Information</h3>
+          <ul>
+            <li>To verify your business legitimacy</li>
+            <li>To comply with regulatory requirements</li>
+            <li>To ensure platform security and trust</li>
+            <li>To enable advertisement and business features</li>
+          </ul>
+          <p><strong>Note:</strong> Your registration will be reviewed by our admin team before full access is granted.</p>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

@@ -7,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../services/auth.service';
+import { BusinessService } from '../../../services/business.service';
 import { firstValueFrom, Subscription } from 'rxjs';
 import { OtpVerifyRequest, OtpRequest } from '../../../services/auth-interfaces';
 
@@ -49,6 +50,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
+  private businessService = inject(BusinessService);
   private snackBar = inject(MatSnackBar);
 
   ngOnInit() {
@@ -181,7 +183,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       const response = await firstValueFrom(this.authService.verifyOtp(verifyRequest));
 
       if (response.success) {
-        this.showMessage('Verification successful! Redirecting to dashboard...', 'success');
+        this.showMessage('Verification successful! Redirecting...', 'success');
         await this.handleSuccessfulVerification(response);
       } else {
         throw new Error(response.message || 'Verification failed');
@@ -208,6 +210,37 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const userRole = response.user?.role || this.userType || 'tenant';
+    
+    // SPECIAL HANDLING FOR BUSINESS USERS
+    if (userRole.toUpperCase() === 'BUSINESS') {
+      await this.handleBusinessUserVerification();
+    } else {
+      await this.handleRegularUserVerification(userRole);
+    }
+  }
+
+  private async handleBusinessUserVerification() {
+    try {
+      // Check if business has completed registration
+      const hasBusinessProfile = await firstValueFrom(this.businessService.hasBusinessProfile());
+      
+      if (hasBusinessProfile) {
+        // Business has completed registration, go to dashboard
+        await this.router.navigate(['/business-dashboard'], { replaceUrl: true });
+        console.log('Business user redirected to dashboard');
+      } else {
+        // Business needs to complete registration
+        await this.router.navigate(['/business-registration'], { replaceUrl: true });
+        console.log('Business user redirected to registration form');
+      }
+    } catch (error) {
+      console.error('Error checking business profile:', error);
+      // If there's an error, redirect to registration form to be safe
+      await this.router.navigate(['/business-registration'], { replaceUrl: true });
+    }
+  }
+
+  private async handleRegularUserVerification(userRole: string) {
     const dashboardRoute = this.getDashboardRoute(userRole);
     
     try {
@@ -221,6 +254,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         await this.router.navigate(['/tenant-dashboard'], { replaceUrl: true });
       }
     } catch (navigationError) {
+      console.error('Navigation error:', navigationError);
       window.location.href = '/tenant-dashboard';
     }
   }
@@ -232,7 +266,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       'LANDLORD': '/landlord-dashboard',
       'TENANT': '/tenant-dashboard',
       'CARETAKER': '/caretaker-dashboard',
-      'BUSINESS': '/business-dashboard',
+      'BUSINESS': '/business-dashboard', // This will be handled separately
       'ADMIN': '/admin-dashboard'
     };
     
@@ -250,10 +284,14 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     } else if (errorMsg.includes('not found') || errorMsg.includes('does not exist')) {
       this.showMessage('Account not found. Please check your email or register.', 'error');
     } else if (errorMsg.includes('already verified')) {
-      this.showMessage('Account already verified. Redirecting to dashboard...', 'info');
+      this.showMessage('Account already verified. Redirecting...', 'info');
       const userRole = this.userType || 'tenant';
-      const dashboardRoute = this.getDashboardRoute(userRole);
-      this.router.navigate([dashboardRoute]);
+      if (userRole.toUpperCase() === 'BUSINESS') {
+        this.handleBusinessUserVerification();
+      } else {
+        const dashboardRoute = this.getDashboardRoute(userRole);
+        this.router.navigate([dashboardRoute]);
+      }
     } else {
       this.showMessage(error.message || 'Verification failed. Please try again.', 'error');
     }

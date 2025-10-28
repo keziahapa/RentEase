@@ -27,7 +27,6 @@ import { PropertyUnitsComponent } from './components/dashboard/landlord/landlord
 import { LandlordDashboardHomeComponent } from './components/dashboard/landlord/landlord-dashboard/home/landlord-dashboard-home.component';
 import { ProfileViewComponent } from './shared/components/profile-view/profile-view.component';
 import { ProfileEditComponent } from './shared/components/profile-edit/profile-edit.component';
-
 import { LandlordProfileEditComponent } from './components/dashboard/landlord/landlord-dashboard/profile/landlord-profile-edit/landlord-profile-edit.component';
 import { ResetPasswordOtpComponent } from './components/auth/otp-verificationreset-password/otp-verificationreset-password.component';
 import { ResetPasswordComponent } from './components/auth/reset-password/reset-password.component';
@@ -37,14 +36,20 @@ import { AdminDashboardComponent } from './components/dashboard/admin/admin-dash
 import { CaretakerDashboardComponent } from './components/dashboard/caretaker/caretaker-dashboard.component';
 import { CaretakerOverviewComponent } from './components/dashboard/caretaker/components/caretaker-overview/caretaker-overview.component';
 import { BusinessDashboardComponent } from './components/dashboard/bussiness/business-dashboard.component';
-
-
 import { AllUnitsComponent } from './components/dashboard/caretaker/components/properties/all-units/all-units.component';
 import { PropertyDetailsComponent } from './components/dashboard/caretaker/components/properties/property-details/property-details.component';
 import { PropertyUnitsComponent as CaretakerPropertyUnitsComponent } from './components/dashboard/caretaker/components/properties/property-units/property-units.component';
 import { PropertiesListComponent } from './components/dashboard/caretaker/components/properties/properties-list/properties-list.component';
 import { LandlordProfileViewComponent } from './components/dashboard/landlord/landlord-dashboard/profile/landlord-profile-view/landlord-profile-view.component';
-
+import { PendingAdvertisementsComponent } from './components/dashboard/admin/admin-dashboard/components/pending-advertisements/pending-advertisements.component';
+import { AdvertisementListComponent } from './components/dashboard/admin/admin-dashboard/components/advertisement-list/advertisement-list.component';
+import { PendingBusinessesComponent } from './components/dashboard/admin/admin-dashboard/components/pending-businesses/pending-businesses.component';
+import { ApprovedAdvertisementsComponent } from './components/dashboard/bussiness/components/approved-advertisements/approved-advertisements.component';
+import { CreateAdvertisementComponent } from './components/dashboard/bussiness/components/create-advertisement/create-advertisement.component';
+import { MyAdvertisementsComponent } from './components/dashboard/bussiness/components/my-advertisements/my-advertisements.component';
+import { BusinessOverviewComponent } from './components/dashboard/bussiness/components/business-overview/business-overview.component';
+import { AdminOverviewComponent } from './components/dashboard/admin/admin-dashboard/components/admin-overview/admin-overview.component';
+import { BusinessListComponent } from './components/dashboard/admin/admin-dashboard/components/business-list/business-list.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent, pathMatch: 'full' },
@@ -112,8 +117,11 @@ export const routes: Routes = [
     path: 'business-dashboard',
     component: BusinessDashboardComponent,
     children: [
-      { path: '', redirectTo: 'overview', pathMatch: 'full' },
-      { path: 'overview', component: BusinessDashboardComponent },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'dashboard', component: BusinessOverviewComponent },
+      { path: 'ads', component: MyAdvertisementsComponent },
+      { path: 'ads/create', component: CreateAdvertisementComponent },
+      { path: 'ads/approved', component: ApprovedAdvertisementsComponent },
       { path: 'jobs', component: BusinessDashboardComponent },
       { path: 'earnings', component: BusinessDashboardComponent },
       { path: 'reviews', component: BusinessDashboardComponent },
@@ -129,43 +137,46 @@ export const routes: Routes = [
       }
     ]
   },
- {
-  path: 'caretaker-dashboard',
-  component: CaretakerDashboardComponent,
-  children: [
-    { path: '', redirectTo: 'overview', pathMatch: 'full' },
-    { path: 'overview', component: CaretakerOverviewComponent },
-    { path: 'maintenance', component: CaretakerOverviewComponent },
-    { path: 'inspections', component: CaretakerOverviewComponent },
-    { path: 'deposits', component: CaretakerOverviewComponent },
-    { 
-      path: 'properties',
-      children: [
-        { path: '', component: PropertiesListComponent },
-        { path: 'all-units', component: AllUnitsComponent },
-        { path: ':id', component: PropertyDetailsComponent },
-        { path: ':id/units', component: CaretakerPropertyUnitsComponent },
-      ]
-    },
-    { path: 'messages', component: CaretakerOverviewComponent },
-    { path: 'reports', component: CaretakerOverviewComponent },
-    { 
-      path: 'profile',
-      children: [
-        { path: 'view', component: ProfileViewComponent },
-        { path: 'edit', component: ProfileEditComponent }, 
-        { path: '', redirectTo: 'view', pathMatch: 'full' }
-      ]
-    }
-  ]
-},
+  {
+    path: 'caretaker-dashboard',
+    component: CaretakerDashboardComponent,
+    children: [
+      { path: '', redirectTo: 'overview', pathMatch: 'full' },
+      { path: 'overview', component: CaretakerOverviewComponent },
+      { path: 'maintenance', component: CaretakerOverviewComponent },
+      { path: 'inspections', component: CaretakerOverviewComponent },
+      { path: 'deposits', component: CaretakerOverviewComponent },
+      { 
+        path: 'properties',
+        children: [
+          { path: '', component: PropertiesListComponent },
+          { path: 'all-units', component: AllUnitsComponent },
+          { path: ':id', component: PropertyDetailsComponent },
+          { path: ':id/units', component: CaretakerPropertyUnitsComponent },
+        ]
+      },
+      { path: 'messages', component: CaretakerOverviewComponent },
+      { path: 'reports', component: CaretakerOverviewComponent },
+      { 
+        path: 'profile',
+        children: [
+          { path: 'view', component: ProfileViewComponent },
+          { path: 'edit', component: ProfileEditComponent }, 
+          { path: '', redirectTo: 'view', pathMatch: 'full' }
+        ]
+      }
+    ]
+  },
   {
     path: 'admin-dashboard',
     component: AdminDashboardComponent,
     children: [
       { path: '', redirectTo: 'overview', pathMatch: 'full' },
-      { path: 'overview', component: AdminDashboardComponent },
-      { path: 'businesses', component: AdminDashboardComponent },
+      { path: 'overview', component: AdminOverviewComponent },
+      { path: 'businesses', component: BusinessListComponent },
+      { path: 'businesses/pending', component: PendingBusinessesComponent },
+      { path: 'advertisements', component: AdvertisementListComponent },
+      { path: 'advertisements/pending', component: PendingAdvertisementsComponent },
       { path: 'users', component: AdminDashboardComponent },
       { path: 'disputes', component: AdminDashboardComponent },
       { path: 'transactions', component: AdminDashboardComponent },

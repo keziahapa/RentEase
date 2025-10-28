@@ -57,7 +57,8 @@ export class RegistrationComponent implements OnInit {
     { value: UserRole.TENANT, label: 'Tenant' },
     { value: UserRole.LANDLORD, label: 'Landlord' },
     { value: UserRole.CARETAKER, label: 'Caretaker' },
-    { value: UserRole.BUSINESS, label: 'Business' }
+    { value: UserRole.BUSINESS, label: 'Business' },
+    { value: UserRole.ADMIN, label: 'Administrator' }
   ];
 
   hidePassword = true;
@@ -177,7 +178,7 @@ export class RegistrationComponent implements OnInit {
   }
 
   showBusinessAccessCode(): boolean {
-    return this.formData.role === UserRole.BUSINESS;
+    return false;
   }
 
   validateForm(): boolean {
@@ -213,7 +214,6 @@ export class RegistrationComponent implements OnInit {
         this.fieldErrors.phoneNumber = 'Please enter a valid Kenyan phone number (e.g., 0712345678 or +254712345678)';
         isValid = false;
       } else {
-      
         this.formData.phoneNumber = this.formatPhoneNumber(cleanPhone);
       }
     }
@@ -242,23 +242,13 @@ export class RegistrationComponent implements OnInit {
       return false;
     }
 
-    if (this.formData.role === UserRole.BUSINESS && !this.formData.accessCode) {
-      this.fieldErrors.accessCode = 'Business access code is required';
-      isValid = false;
-    } else if (this.formData.role === UserRole.BUSINESS && this.formData.accessCode !== 'BUSINESS2024') {
-      this.fieldErrors.accessCode = 'Invalid business access code';
-      isValid = false;
-    }
-
     return isValid;
   }
 
   private formatPhoneNumber(phone: string): string {
-    
     if (phone.startsWith('0')) {
       return '+254' + phone.substring(1);
     }
-   
     if (phone.startsWith('254')) {
       return '+' + phone;
     }
@@ -280,8 +270,7 @@ export class RegistrationComponent implements OnInit {
       accessCode: this.formData.accessCode
     };
 
-    console.log('Registering user with phone:', registerRequest.phoneNumber);
-
+    console.log('Registering user with role:', registerRequest.role);
 
     const pendingUserData = {
       fullName: registerRequest.fullName,
@@ -293,7 +282,6 @@ export class RegistrationComponent implements OnInit {
     
     sessionStorage.setItem('pendingUser', JSON.stringify(pendingUserData));
     sessionStorage.setItem('pendingPhoneNumber', registerRequest.phoneNumber);
-    console.log('Stored pending user data with phone:', pendingUserData);
 
     this.authService.register(registerRequest).subscribe({
       next: (response: ApiResponse) => {
@@ -301,8 +289,7 @@ export class RegistrationComponent implements OnInit {
         if (response.success) {
           sessionStorage.setItem('pendingVerificationEmail', registerRequest.email);
           
-          console.log('Registration successful, navigating to verify-otp');
-          console.log('Phone number being passed:', registerRequest.phoneNumber);
+          console.log('Registration successful for role:', registerRequest.role);
           
           this.showSuccess(response.message || 'Registration successful! Please check your email for verification code');
         
@@ -394,11 +381,11 @@ export class RegistrationComponent implements OnInit {
         
       } else if (msg.includes('access code') || msg.includes('invalid code')) {
         this.fieldErrors.accessCode = 'Invalid access code';
-        errorMessage = 'The business access code you entered is incorrect';
+        errorMessage = 'The access code you entered is incorrect';
         showSnackbar = false;
       } else if (msg.includes('access code') && msg.includes('required')) {
         this.fieldErrors.accessCode = 'Access code required';
-        errorMessage = 'Business access code is required for business registration';
+        errorMessage = 'Access code is required for this role';
         showSnackbar = false;
         
       } else if (msg.includes('role') && msg.includes('required')) {
@@ -489,8 +476,7 @@ export class RegistrationComponent implements OnInit {
       /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(this.formData.password) &&
       this.formData.confirmPassword !== '' &&
       this.passwordsMatch() &&
-      this.agreedToTerms &&
-      (this.formData.role !== UserRole.BUSINESS || this.formData.accessCode === 'BUSINESS2024')
+      this.agreedToTerms
     );
   }
 }
