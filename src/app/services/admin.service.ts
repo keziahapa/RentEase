@@ -1,4 +1,3 @@
-// admin.service.ts - COMPLETE CORRECTED VERSION
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
@@ -34,7 +33,6 @@ export class AdminService {
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
 
-  // CORRECTED: Use base URL without /api/v1/admin
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
 
   constructor() {}
@@ -63,10 +61,11 @@ export class AdminService {
       if (error.error?.message) {
         errorMessage = error.error.message;
       } else if (error.status === 401) {
-        errorMessage = 'Unauthorized access. Please login again.';
-        this.authService.logoutSync();
+        errorMessage = 'Unauthorized access. Please check your permissions.';
+        // REMOVED: this.authService.logoutSync(); - Don't auto logout
       } else if (error.status === 403) {
         errorMessage = 'Access denied. Insufficient permissions.';
+        // REMOVED: this.authService.logoutSync(); - Don't auto logout
       } else if (error.status === 404) {
         errorMessage = 'Resource not found.';
       } else if (error.status === 409) {
@@ -87,12 +86,40 @@ export class AdminService {
     }));
   }
 
+  private handleStatsError(error: HttpErrorResponse): Observable<never> {
+    let errorMessage = 'Failed to load dashboard statistics';
+    
+    if (error.error instanceof ErrorEvent) {
+      errorMessage = error.error.message;
+    } else {
+      if (error.error?.message) {
+        errorMessage = error.error.message;
+      } else if (error.status === 401) {
+        errorMessage = 'Unable to load dashboard stats. Please check your permissions.';
+      } else if (error.status === 403) {
+        errorMessage = 'Insufficient permissions to view dashboard statistics.';
+      } else if (error.status === 404) {
+        errorMessage = 'Dashboard statistics endpoint not found.';
+      } else if (error.status >= 500) {
+        errorMessage = 'Server error while loading dashboard. Please try again later.';
+      }
+    }
+    
+    console.warn('Dashboard Stats Error:', error);
+    
+    return throwError(() => ({
+      status: error.status,
+      message: errorMessage,
+      error: error.error
+    }));
+  }
+
   // ==================== DASHBOARD STATISTICS ====================
   getDashboardStats(): Observable<ApiResponse<AdminStats>> {
     return this.http.get<ApiResponse<AdminStats>>(`${this.apiUrl}/api/v1/admin/dashboard/stats`, {
       headers: this.createHeaders()
     }).pipe(
-      catchError(this.handleError)
+      catchError(this.handleStatsError) // Use special handler that doesn't logout
     );
   }
 
@@ -103,7 +130,7 @@ export class AdminService {
       headers: this.createHeaders(),
       params
     }).pipe(
-      catchError(this.handleError)
+      catchError(this.handleStatsError) // Use special handler for analytics too
     );
   }
 
