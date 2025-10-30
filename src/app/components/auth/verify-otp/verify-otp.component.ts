@@ -76,8 +76,8 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         this.userType = params['userType'] || '';
         this.phoneNumber = params['phoneNumber'] || '';
 
-        console.log('OTP Component - Query Params:', params);
-        console.log('OTP Component - userType:', this.userType);
+        console.log('🔍 OTP Component - Query Params:', params);
+        console.log('🔍 OTP Component - userType:', this.userType);
 
         if (!this.email) {
           this.showMessage('No email found. Please restart the process.', 'error');
@@ -212,11 +212,17 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
   private async handleSuccessfulVerification(response: any) {
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    console.log('Verification Response:', response);
-    console.log('Query param userType:', this.userType);
+    console.log('🔍 Verification Response:', response);
+    console.log('🔍 Query param userType:', this.userType);
     
-    const userRole = this.userType || response.user?.role || 'tenant';
-    console.log('Final determined role for navigation:', userRole);
+    const userRole = this.userType || response.user?.role || '';
+    console.log('🔍 Final determined role for navigation:', userRole);
+
+    if (!userRole) {
+      this.showMessage('User role not found. Please contact support.', 'error');
+      await this.router.navigate(['/login'], { replaceUrl: true });
+      return;
+    }
 
     if (userRole.toUpperCase() === 'BUSINESS') {
       await this.handleBusinessUserVerification();
@@ -243,7 +249,12 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
   private async handleRegularUserVerification(userRole: string) {
     const dashboardRoute = this.getDashboardRoute(userRole);
     
-    console.log('Navigating to dashboard route:', dashboardRoute);
+    console.log('🔍 Navigating to dashboard route:', dashboardRoute);
+    
+    // If no valid route, it will redirect to login
+    if (dashboardRoute === '/login') {
+      return; // Error already shown, user will be at login
+    }
     
     try {
       const navigationSuccess = await this.router.navigate([dashboardRoute], { 
@@ -251,28 +262,41 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       });
       
       if (!navigationSuccess) {
-        console.warn('Primary navigation failed, falling back to tenant dashboard');
-        await this.router.navigate(['/tenant-dashboard'], { replaceUrl: true });
+        console.error('❌ Navigation failed for route:', dashboardRoute);
+        this.showMessage('Dashboard navigation failed. Please try logging in manually.', 'error');
+        await this.router.navigate(['/login'], { replaceUrl: true });
       }
     } catch (navigationError) {
       console.error('Navigation error:', navigationError);
-      window.location.href = '/tenant-dashboard';
+      this.showMessage('Navigation error. Please try logging in manually.', 'error');
+      await this.router.navigate(['/login'], { replaceUrl: true });
     }
   }
 
   private getDashboardRoute(role: string): string {
+    console.log('🔍 getDashboardRoute called with role:', role);
+    
     const normalizedRole = role.toUpperCase().trim();
+    console.log('🔍 Normalized role:', normalizedRole);
     
     const routeMap: { [key: string]: string } = {
       'LANDLORD': '/landlord-dashboard/home',
-      'TENANT': '/tenant-dashboard/dashboard',
-      'CARETAKER': '/caretaker-dashboard/dashboard',
-      'BUSINESS': '/business-dashboard/overview',
+      'TENANT': '/tenant-dashboard/dashboard', 
+      'CARETAKER': '/caretaker-dashboard/overview',
+      'BUSINESS': '/business-dashboard/dashboard',
       'ADMIN': '/admin-dashboard/overview'
     };
     
-    const finalRoute = routeMap[normalizedRole] || '/tenant-dashboard';
-    console.log('Dashboard route mapping:', { input: role, normalized: normalizedRole, finalRoute });
+    // NO FALLBACK - Each role must have specific route
+    if (!routeMap[normalizedRole]) {
+      console.error('❌ No dashboard route defined for role:', normalizedRole);
+      this.showMessage(`No dashboard configured for ${role} role. Please contact support.`, 'error');
+      return '/login'; // Redirect to login instead of wrong dashboard
+    }
+    
+    const finalRoute = routeMap[normalizedRole];
+    console.log('🔍 Final route:', finalRoute);
+    
     return finalRoute;
   }
 
@@ -288,12 +312,16 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       this.showMessage('Account not found. Please check your email or register.', 'error');
     } else if (errorMsg.includes('already verified')) {
       this.showMessage('Account already verified. Redirecting...', 'info');
-      const userRole = this.userType || 'tenant';
+      const userRole = this.userType || '';
       if (userRole.toUpperCase() === 'BUSINESS') {
         this.handleBusinessUserVerification();
-      } else {
+      } else if (userRole) {
         const dashboardRoute = this.getDashboardRoute(userRole);
-        this.router.navigate([dashboardRoute]);
+        if (dashboardRoute !== '/login') {
+          this.router.navigate([dashboardRoute]);
+        }
+      } else {
+        this.router.navigate(['/login']);
       }
     } else {
       this.showMessage(error.message || 'Verification failed. Please try again.', 'error');
