@@ -28,8 +28,7 @@ import { InviteDialogComponent } from '../../invite-dialog/invite-dialog.compone
     MatDialogModule
   ],
   templateUrl: './property-list.component.html',
-  styleUrls: ['./property-list.component.scss'],
-   providers: [InvitationService]
+  styleUrls: ['./property-list.component.scss']
 })
 export class PropertyListComponent implements OnInit {
   properties: Property[] = [];
@@ -131,14 +130,29 @@ export class PropertyListComponent implements OnInit {
   }
 
   private sendInvitation(type: 'caretaker', inviteData: any, propertyName: string) {
+    console.log('🔐 Current token:', this.authService.getToken());
+    console.log('👤 Current user:', this.authService.getCurrentUser());
+    console.log('📤 Sending invitation data:', inviteData);
+    
     this.invitationService.inviteCaretaker(inviteData).subscribe({
-      next: () => {
+      next: (response) => {
+        console.log('✅ Invitation successful:', response);
         this.snackBar.open('Caretaker invitation sent successfully!', 'Close', { duration: 4000 });
       },
       error: (error) => {
-        console.error('Error sending caretaker invitation:', error);
-        const errorMessage = error?.error?.message || 'Failed to send caretaker invitation';
-        this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
+        console.error('❌ Invitation failed:', error);
+        console.log('Error status:', error.status);
+        console.log('Error message:', error.message);
+        
+        // Show user-friendly error without logging out
+        let userMessage = 'Failed to send invitation';
+        if (error.status === 401) {
+          userMessage = 'You are not authorized to send invitations. Please check your permissions.';
+        } else if (error.error?.message) {
+          userMessage = error.error.message;
+        }
+        
+        this.snackBar.open(userMessage, 'Close', { duration: 5000 });
       }
     });
   }
@@ -196,5 +210,14 @@ export class PropertyListComponent implements OnInit {
       'MIXED': 'Mixed Use'
     };
     return typeMap[type ?? ''] ?? type ?? 'Property';
+  }
+
+  
+  testAuth() {
+    const token = this.authService.getToken();
+    console.log('🔐 Token exists:', !!token);
+    console.log('🔐 Token value:', token);
+    console.log('👤 User role:', this.authService.getCurrentUser()?.role);
+    console.log('✅ Is authenticated:', this.authService.isAuthenticated());
   }
 }

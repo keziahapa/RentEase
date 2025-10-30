@@ -32,16 +32,27 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(clonedReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !skipAuth) {
+      // Don't auto-logout for invitation errors
+      const isInvitationRequest = 
+        req.url.includes('/invite-tenant') || 
+        req.url.includes('/invite-caretaker');
+      
+      if (error.status === 401 && !skipAuth && !isInvitationRequest) {
+        console.warn('Authentication failed, logging out...');
         authService.clearCorruptedStorage();
         
         const currentUrl = router.url;
         if (!currentUrl.includes('/login')) {
           router.navigate(['/login'], {
-            queryParams: { returnUrl: currentUrl }
+            queryParams: { 
+              returnUrl: currentUrl,
+              message: 'Your session has expired. Please login again.'
+            }
           });
         }
       }
+      
+      // For invitation errors, just pass through the error without logging out
       return throwError(() => error);
     })
   );

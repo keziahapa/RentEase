@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import {
   InviteTenantRequest,
@@ -37,6 +37,7 @@ export class InvitationService {
     
     if (error.status === 401) {
       errorMessage = 'Please check your authentication';
+      // DON'T auto-logout here - let the component handle it gracefully
     } else if (error.status === 404) {
       errorMessage = 'Feature not available yet';
     } else if (error.error?.message) {
@@ -52,8 +53,10 @@ export class InvitationService {
     }));
   }
 
- 
   inviteTenant(inviteData: InviteTenantRequest): Observable<InvitationResponse> {
+    console.log('🔐 Sending tenant invitation with token:', !!this.authService.getToken());
+    console.log('📤 Invite data:', inviteData);
+    
     return this.http.post<InvitationResponse>(
       `${this.apiUrl}/landlord/invite-tenant`, 
       inviteData,
@@ -61,11 +64,16 @@ export class InvitationService {
         headers: this.createHeaders(),
         responseType: 'json'
       }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      tap(response => console.log('✅ Tenant invitation successful:', response)),
+      catchError(this.handleError)
+    );
   }
 
- 
   inviteCaretaker(inviteData: InviteCaretakerRequest): Observable<InvitationResponse> {
+    console.log('🔐 Sending caretaker invitation with token:', !!this.authService.getToken());
+    console.log('📤 Invite data:', inviteData);
+    
     return this.http.post<InvitationResponse>(
       `${this.apiUrl}/landlord/invite-caretaker`, 
       inviteData,
@@ -73,10 +81,12 @@ export class InvitationService {
         headers: this.createHeaders(),
         responseType: 'json'
       }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      tap(response => console.log('✅ Caretaker invitation successful:', response)),
+      catchError(this.handleError)
+    );
   }
 
- 
   acceptInvitation(token: string): Observable<AcceptInvitationResponse> {
     return this.http.post<AcceptInvitationResponse>(
       `${this.apiUrl}/accept-invitation`,
@@ -95,7 +105,6 @@ export class InvitationService {
     ).pipe(catchError(this.handleError));
   }
 
- 
   getReceivedInvitations(): Observable<InvitationListResponse> {
     return this.http.get<InvitationListResponse>(
       `${this.apiUrl}/invitations/received`,
