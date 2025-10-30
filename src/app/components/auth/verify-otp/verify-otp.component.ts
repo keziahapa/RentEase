@@ -264,11 +264,11 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     const normalizedRole = role.toUpperCase().trim();
     
     const routeMap: { [key: string]: string } = {
-      'LANDLORD': '/landlord-dashboard',
-      'TENANT': '/tenant-dashboard',
-      'CARETAKER': '/caretaker-dashboard',
-      'BUSINESS': '/business-dashboard',
-      'ADMIN': '/admin-dashboard'
+      'LANDLORD': '/landlord-dashboard/home',
+      'TENANT': '/tenant-dashboard/dashboard',
+      'CARETAKER': '/caretaker-dashboard/dashboard',
+      'BUSINESS': '/business-dashboard/overview',
+      'ADMIN': '/admin-dashboard/overview'
     };
     
     const finalRoute = routeMap[normalizedRole] || '/tenant-dashboard';
