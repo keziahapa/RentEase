@@ -280,7 +280,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     console.log('🔍 Normalized role:', normalizedRole);
     
     const routeMap: { [key: string]: string } = {
-      'LANDLORD': '/landlord-dashboard/home',
+      'LANDLORD': '/landlord-dashboard',
       'TENANT': '/tenant-dashboard/dashboard', 
       'CARETAKER': '/caretaker-dashboard/overview',
       'BUSINESS': '/business-dashboard/dashboard',
