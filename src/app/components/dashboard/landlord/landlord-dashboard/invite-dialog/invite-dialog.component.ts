@@ -1,39 +1,40 @@
-import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { MatOptionModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { InviteDialogData } from '../../../../../services/dashboard-interface';
+
+import { InvitationService } from '../../../../../services/invitation.service';
+import { InviteDialogData, AvailableUnit } from '../../../../../services/invitation-interfaces';
 
 @Component({
   selector: 'app-invite-dialog',
-  standalone: true,
+  templateUrl: './invite-dialog.component.html',
+  styleUrls: ['./invite-dialog.component.scss'],
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatDialogModule,
+    MatIconModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    MatButtonModule,
-    MatIconModule,
+    MatOptionModule,
     MatProgressSpinnerModule
-  ],
-  templateUrl: './invite-dialog.component.html',
-  styleUrls: ['./invite-dialog.component.scss']
+  ]
 })
-export class InviteDialogComponent implements OnInit, OnDestroy {
+export class InviteDialogComponent implements OnInit {
   inviteForm: FormGroup;
   loading = false;
-  showInviteDialog = true;
+  availableUnits: AvailableUnit[] = [];
 
   constructor(
     private fb: FormBuilder,
+    private invitationService: InvitationService,
     public dialogRef: MatDialogRef<InviteDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: InviteDialogData
   ) {
@@ -41,100 +42,120 @@ export class InviteDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    document.body.classList.add('dialog-open');
-    
-    if (this.data.type === 'tenant') {
-      this.inviteForm.get('unitId')?.setValidators(Validators.required);
-      this.inviteForm.get('unitId')?.updateValueAndValidity();
-    }
+    // Use available units passed in data, or empty array
+    this.availableUnits = this.data.availableUnits || [];
   }
 
-  ngOnDestroy() {
-    document.body.classList.remove('dialog-open');
-  }
-
-  private createForm(): FormGroup {
+  createForm(): FormGroup {
     const formConfig: any = {
       email: ['', [Validators.required, Validators.email]]
     };
 
-    if (this.data.type === 'tenant') {
+    if (this.data.type === 'tenant' && this.availableUnits.length > 0) {
       formConfig.unitId = ['', Validators.required];
     }
 
     return this.fb.group(formConfig);
   }
 
+  hasError(controlName: string, errorType: string): boolean {
+    const control = this.inviteForm.get(controlName);
+    return control ? control.hasError(errorType) && control.touched : false;
+  }
+
+  onCancel(): void {
+    this.dialogRef.close(false);
+  }
+
   onSend(): void {
     if (this.inviteForm.valid) {
       this.loading = true;
       
-      let formData: any;
+      const formData = this.inviteForm.value;
       
       if (this.data.type === 'tenant') {
-        formData = {
-          tenantEmail: this.inviteForm.value.email,
-          unitId: parseInt(this.inviteForm.value.unitId)
+        const selectedUnit = this.availableUnits.find(unit => unit.id === formData.unitId);
+        
+        const tenantData = {
+          tenantEmail: formData.email,
+          propertyId: this.data.propertyId,
+          unitId: formData.unitId,
+          unitNumber: selectedUnit?.unitNumber
         };
-      } else {
-        formData = {
-          caretakerEmail: this.inviteForm.value.email,
-          propertyId: parseInt(this.data.propertyId)
+
+        this.invitationService.inviteTenant(tenantData).subscribe({
+          next: (response) => {
+            this.loading = false;
+            this.dialogRef.close({
+              success: true,
+              invitationToken: response.invitationToken,
+              message: response.message
+            });
+          },
+          error: (error) => {
+            this.loading = false;
+            this.dialogRef.close({
+              success: false,
+              error: error.message
+            });
+          }
+        });
+
+      } else if (this.data.type === 'caretaker') {
+        
+        const caretakerData = {
+          caretakerEmail: formData.email,
+          propertyId: this.data.propertyId
         };
+
+        this.invitationService.inviteCaretaker(caretakerData).subscribe({
+          next: (response) => {
+            this.loading = false;
+            this.dialogRef.close({
+              success: true,
+              invitationToken: response.invitationToken,
+              message: response.message
+            });
+          },
+          error: (error) => {
+            this.loading = false;
+            this.dialogRef.close({
+              success: false,
+              error: error.message
+            });
+          }
+        });
       }
-      
-      this.dialogRef.close(formData);
     } else {
-      this.markFormGroupTouched(this.inviteForm);
+      // Mark all fields as touched to show validation errors
+      Object.keys(this.inviteForm.controls).forEach(key => {
+        this.inviteForm.get(key)?.markAsTouched();
+      });
     }
   }
 
-  onCancel(): void {
-    this.dialogRef.close();
-    document.body.classList.remove('dialog-open');
-  }
-
-  private markFormGroupTouched(formGroup: FormGroup) {
-    Object.keys(formGroup.controls).forEach(key => {
-      const control = formGroup.get(key);
-      if (control) {
-        control.markAsTouched();
-      }
-    });
-  }
-
-  getUnitTypeDisplay(type: string): string {
-    const typeMap: { [key: string]: string } = {
-      'SINGLE': 'Single Room',
-      'BEDSITTER': 'Bedsitter',
-      '1BR': '1 Bedroom',
-      '2BR': '2 Bedroom',
-      '3BR': '3 Bedroom',
-      'STUDIO': 'Studio',
-      'OFFICE': 'Office Space',
-      'RETAIL': 'Retail Shop',
-      'APARTMENT': 'Apartment',
-      'ONE_BEDROOM': '1 Bedroom',
-      'TWO_BEDROOM': '2 Bedroom',
-      'THREE_BEDROOM': '3 Bedroom',
-      'COMMERCIAL': 'Commercial',
-      'PENTHOUSE': 'Penthouse',
-      'SINGLE_ROOM': 'Single Room'
+  getUnitTypeDisplay(unitType: string): string {
+    const unitTypes: { [key: string]: string } = {
+      'studio': 'Studio',
+      '1bedroom': '1 Bedroom',
+      '2bedroom': '2 Bedrooms',
+      '3bedroom': '3 Bedrooms',
+      'apartment': 'Apartment',
+      'house': 'House',
+      'commercial': 'Commercial',
+      'office': 'Office'
     };
-    return typeMap[type] || type || 'Unit';
+    return unitTypes[unitType] || unitType;
   }
 
   formatCurrency(amount: number): string {
-    if (!amount && amount !== 0) return 'KES 0';
-    return new Intl.NumberFormat('en-KE', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'KES',
-      maximumFractionDigits: 0
-    }).format(amount);
+      currency: 'USD'
+    }).format(amount || 0);
   }
 
-  hasError(controlName: string, errorName: string): boolean {
-    const control = this.inviteForm.get(controlName);
-    return control ? control.hasError(errorName) && control.touched : false;
+  showUnitSelection(): boolean {
+    return this.data.type === 'tenant' && this.availableUnits.length > 0;
   }
 }

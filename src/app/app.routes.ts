@@ -1,3 +1,4 @@
+
 import { Routes } from '@angular/router';
 import { HomeComponent } from '../pages/home/home';
 import { RegistrationComponent } from './components/auth/registration/registration.component';
@@ -50,6 +51,10 @@ import { MyAdvertisementsComponent } from './components/dashboard/bussiness/comp
 import { BusinessOverviewComponent } from './components/dashboard/bussiness/components/business-overview/business-overview.component';
 import { AdminOverviewComponent } from './components/dashboard/admin/admin-dashboard/components/admin-overview/admin-overview.component';
 import { BusinessListComponent } from './components/dashboard/admin/admin-dashboard/components/business-list/business-list.component';
+import { AcceptInvitationComponent } from './components/dashboard/landlord/landlord-dashboard/invite-dialog/accept-invitation/accept-invitation.component';
+
+
+
 
 export const routes: Routes = [
   { path: '', component: HomeComponent, pathMatch: 'full' },
@@ -58,16 +63,13 @@ export const routes: Routes = [
   { path: 'otp-verificationreset-password', component: ResetPasswordOtpComponent },
   { path: 'verify-otp', component: VerifyOtpComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
-  { 
-    path: 'reset-password', 
-    component: ResetPasswordComponent,
-    canActivate: [resetPasswordGuard] 
-  },
+  { path: 'reset-password', component: ResetPasswordComponent, canActivate: [resetPasswordGuard] },
   { path: 'pricing', component: PricingComponent },
   { path: 'contact', component: ContactComponent },
   { path: 'about', component: AboutComponent },
   { path: 'terms', component: TermsComponent },
   { path: 'privacy', component: PrivacyComponent },
+  { path: 'accept-invitation/:token', component: AcceptInvitationComponent },
   {
     path: 'tenant-dashboard',
     component: TenantDashboardComponent,

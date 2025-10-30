@@ -3,7 +3,13 @@ import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { InviteTenantRequest, InviteCaretakerRequest } from '../services/invite-interfaces';
+import {
+  InviteTenantRequest,
+  InviteCaretakerRequest,
+  InvitationResponse,
+  InvitationListResponse,
+  AcceptInvitationResponse
+} from '../services/invitation-interfaces';
 
 @Injectable({
   providedIn: 'root'
@@ -31,7 +37,6 @@ export class InvitationService {
     
     if (error.status === 401) {
       errorMessage = 'Please check your authentication';
-
     } else if (error.status === 404) {
       errorMessage = 'Feature not available yet';
     } else if (error.error?.message) {
@@ -47,8 +52,9 @@ export class InvitationService {
     }));
   }
 
-  inviteTenant(inviteData: InviteTenantRequest): Observable<any> {
-    return this.http.post(
+ 
+  inviteTenant(inviteData: InviteTenantRequest): Observable<InvitationResponse> {
+    return this.http.post<InvitationResponse>(
       `${this.apiUrl}/landlord/invite-tenant`, 
       inviteData,
       { 
@@ -58,8 +64,9 @@ export class InvitationService {
     ).pipe(catchError(this.handleError));
   }
 
-  inviteCaretaker(inviteData: InviteCaretakerRequest): Observable<any> {
-    return this.http.post(
+ 
+  inviteCaretaker(inviteData: InviteCaretakerRequest): Observable<InvitationResponse> {
+    return this.http.post<InvitationResponse>(
       `${this.apiUrl}/landlord/invite-caretaker`, 
       inviteData,
       { 
@@ -69,18 +76,9 @@ export class InvitationService {
     ).pipe(catchError(this.handleError));
   }
 
-  getAvailableUnits(propertyId: string): Observable<any> {
-    return this.http.get(
-      `${this.apiUrl}/landlord/properties/${propertyId}/units?status=vacant`,
-      { 
-        headers: this.createHeaders(),
-        responseType: 'json'
-      }
-    ).pipe(catchError(this.handleError));
-  }
-
-  acceptInvitation(token: string): Observable<any> {
-    return this.http.post(
+ 
+  acceptInvitation(token: string): Observable<AcceptInvitationResponse> {
+    return this.http.post<AcceptInvitationResponse>(
       `${this.apiUrl}/accept-invitation`,
       { token: token },
       { 
@@ -90,15 +88,16 @@ export class InvitationService {
     ).pipe(catchError(this.handleError));
   }
 
-  getSentInvitations(): Observable<any> {
-    return this.http.get<any>(
+  getSentInvitations(): Observable<InvitationListResponse> {
+    return this.http.get<InvitationListResponse>(
       `${this.apiUrl}/invitations/sent`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(catchError(this.handleError));
   }
 
-  getReceivedInvitations(): Observable<any> {
-    return this.http.get<any>(
+ 
+  getReceivedInvitations(): Observable<InvitationListResponse> {
+    return this.http.get<InvitationListResponse>(
       `${this.apiUrl}/invitations/received`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(catchError(this.handleError));

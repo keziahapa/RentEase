@@ -45,6 +45,7 @@ export interface Invitation {
   createdAt: string;
   expiresAt: string;
   invitedBy: string;
+  invitationToken?: string;
 }
 
 export interface InvitationListResponse {
@@ -53,4 +54,19 @@ export interface InvitationListResponse {
   invitations: Invitation[];
   totalCount: number;
   pendingCount: number;
+}
+
+export interface AcceptInvitationResponse {
+  success: boolean;
+  message: string;
+  user?: any;
+  property?: any;
+}
+
+export interface InviteDialogData {
+  type: 'tenant' | 'caretaker';
+  propertyId: string;
+  propertyName: string;
+  availableUnits?: AvailableUnit[];
+  landlordName: string;
 }
