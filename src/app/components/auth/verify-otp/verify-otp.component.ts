@@ -281,7 +281,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     
     const routeMap: { [key: string]: string } = {
       'LANDLORD': '/landlord-dashboard',
-      'TENANT': '/tenant-dashboard/dashboard', 
+      'TENANT': '/tenant-dashboard', 
       'CARETAKER': '/caretaker-dashboard/overview',
       'BUSINESS': '/business-dashboard/dashboard',
       'ADMIN': '/admin-dashboard/overview'
