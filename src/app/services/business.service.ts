@@ -373,7 +373,7 @@ export class BusinessService {
     this.updateLocalAdvertisements(filteredAds);
   }
 
-  // Fixed method - handles user role update without calling updateLocalUserData
+
   private updateUserBusinessRole(): void {
     const currentUser = this.authService.getCurrentUser();
     if (currentUser) {
@@ -382,12 +382,11 @@ export class BusinessService {
         role: 'BUSINESS'
       };
       
-      // Update user data in storage directly
       const isPermanent = !!localStorage.getItem('userData');
       const storage = isPermanent ? localStorage : sessionStorage;
       storage.setItem('userData', JSON.stringify(updatedUser));
       
-      // Try to update AuthService's current user subject if it exists
+     
       try {
         if ((this.authService as any).currentUserSubject) {
           (this.authService as any).currentUserSubject.next(updatedUser);

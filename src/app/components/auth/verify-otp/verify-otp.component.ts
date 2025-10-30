@@ -76,6 +76,9 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         this.userType = params['userType'] || '';
         this.phoneNumber = params['phoneNumber'] || '';
 
+        console.log('OTP Component - Query Params:', params);
+        console.log('OTP Component - userType:', this.userType);
+
         if (!this.email) {
           this.showMessage('No email found. Please restart the process.', 'error');
           setTimeout(() => this.router.navigate(['/registration']), 3000);
@@ -209,9 +212,12 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
   private async handleSuccessfulVerification(response: any) {
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    const userRole = response.user?.role || this.userType || 'tenant';
+    console.log('Verification Response:', response);
+    console.log('Query param userType:', this.userType);
     
-    // SPECIAL HANDLING FOR BUSINESS USERS
+    const userRole = this.userType || response.user?.role || 'tenant';
+    console.log('Final determined role for navigation:', userRole);
+
     if (userRole.toUpperCase() === 'BUSINESS') {
       await this.handleBusinessUserVerification();
     } else {
@@ -221,21 +227,15 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
 
   private async handleBusinessUserVerification() {
     try {
-      // Check if business has completed registration
       const hasBusinessProfile = await firstValueFrom(this.businessService.hasBusinessProfile());
       
       if (hasBusinessProfile) {
-        // Business has completed registration, go to dashboard
         await this.router.navigate(['/business-dashboard'], { replaceUrl: true });
-        console.log('Business user redirected to dashboard');
       } else {
-        // Business needs to complete registration
         await this.router.navigate(['/business-registration'], { replaceUrl: true });
-        console.log('Business user redirected to registration form');
       }
     } catch (error) {
       console.error('Error checking business profile:', error);
-      // If there's an error, redirect to registration form to be safe
       await this.router.navigate(['/business-registration'], { replaceUrl: true });
     }
   }
@@ -243,14 +243,15 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
   private async handleRegularUserVerification(userRole: string) {
     const dashboardRoute = this.getDashboardRoute(userRole);
     
+    console.log('Navigating to dashboard route:', dashboardRoute);
+    
     try {
       const navigationSuccess = await this.router.navigate([dashboardRoute], { 
         replaceUrl: true 
       });
       
-      if (navigationSuccess) {
-        console.log('Navigation completed successfully');
-      } else {
+      if (!navigationSuccess) {
+        console.warn('Primary navigation failed, falling back to tenant dashboard');
         await this.router.navigate(['/tenant-dashboard'], { replaceUrl: true });
       }
     } catch (navigationError) {
@@ -266,11 +267,13 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       'LANDLORD': '/landlord-dashboard',
       'TENANT': '/tenant-dashboard',
       'CARETAKER': '/caretaker-dashboard',
-      'BUSINESS': '/business-dashboard', // This will be handled separately
+      'BUSINESS': '/business-dashboard',
       'ADMIN': '/admin-dashboard'
     };
     
-    return routeMap[normalizedRole] || '/tenant-dashboard';
+    const finalRoute = routeMap[normalizedRole] || '/tenant-dashboard';
+    console.log('Dashboard route mapping:', { input: role, normalized: normalizedRole, finalRoute });
+    return finalRoute;
   }
 
   private handleVerificationError(error: any) {
