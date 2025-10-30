@@ -1,16 +1,23 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatOptionModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatButtonModule } from '@angular/material/button';
 
 import { InvitationService } from '../../../../../services/invitation.service';
-import { InviteDialogData, AvailableUnit } from '../../../../../services/invitation-interfaces';
+import { 
+  InviteDialogData, 
+  AvailableUnit, 
+  InviteDialogResult,
+  InviteTenantRequest,
+  InviteCaretakerRequest 
+} from '../../../../../services/invitation-interfaces';
 
 @Component({
   selector: 'app-invite-dialog',
@@ -19,12 +26,14 @@ import { InviteDialogData, AvailableUnit } from '../../../../../services/invitat
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    MatDialogModule,
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
     MatOptionModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatButtonModule
   ]
 })
 export class InviteDialogComponent implements OnInit {
@@ -35,15 +44,17 @@ export class InviteDialogComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private invitationService: InvitationService,
-    public dialogRef: MatDialogRef<InviteDialogComponent>,
+    public dialogRef: MatDialogRef<InviteDialogComponent, InviteDialogResult>,
     @Inject(MAT_DIALOG_DATA) public data: InviteDialogData
   ) {
     this.inviteForm = this.createForm();
   }
 
   ngOnInit() {
-    // Use available units passed in data, or empty array
     this.availableUnits = this.data.availableUnits || [];
+    console.log('📋 Available units:', this.availableUnits);
+    console.log('🎯 Dialog type:', this.data.type);
+    console.log('🏠 Property ID:', this.data.propertyId);
   }
 
   createForm(): FormGroup {
@@ -64,10 +75,12 @@ export class InviteDialogComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.dialogRef.close({ 
+    const result: InviteDialogResult = { 
       success: false, 
-      cancelled: true 
-    });
+      cancelled: true,
+      email: ''
+    };
+    this.dialogRef.close(result);
   }
 
   onSend(): void {
@@ -78,81 +91,99 @@ export class InviteDialogComponent implements OnInit {
       console.log('📤 Form data:', formData);
       
       if (this.data.type === 'tenant') {
-        const selectedUnit = this.availableUnits.find(unit => unit.id === formData.unitId);
-        
-        const tenantData = {
-          tenantEmail: formData.email,
-          propertyId: this.data.propertyId,
-          unitId: formData.unitId,
-          unitNumber: selectedUnit?.unitNumber
-        };
-
-        console.log('📤 Sending tenant invitation:', tenantData);
-
-        this.invitationService.inviteTenant(tenantData).subscribe({
-          next: (response) => {
-            this.loading = false;
-            console.log('✅ Tenant invitation response:', response);
-            this.dialogRef.close({
-              success: true,
-              email: formData.email, // ✅ Include the email
-              unitId: formData.unitId,
-              invitationToken: response.invitationToken,
-              message: response.message,
-              response: response
-            });
-          },
-          error: (error) => {
-            this.loading = false;
-            console.error('❌ Tenant invitation error:', error);
-            this.dialogRef.close({
-              success: false,
-              email: formData.email, // ✅ Include the email even on error
-              unitId: formData.unitId,
-              error: error.message,
-              status: error.status
-            });
-          }
-        });
-
+        this.inviteTenant(formData);
       } else if (this.data.type === 'caretaker') {
-        const caretakerData = {
-          caretakerEmail: formData.email,
-          propertyId: this.data.propertyId
-        };
-
-        console.log('📤 Sending caretaker invitation:', caretakerData);
-
-        this.invitationService.inviteCaretaker(caretakerData).subscribe({
-          next: (response) => {
-            this.loading = false;
-            console.log('✅ Caretaker invitation response:', response);
-            this.dialogRef.close({
-              success: true,
-              email: formData.email, // ✅ Include the email
-              invitationToken: response.invitationToken,
-              message: response.message,
-              response: response
-            });
-          },
-          error: (error) => {
-            this.loading = false;
-            console.error('❌ Caretaker invitation error:', error);
-            this.dialogRef.close({
-              success: false,
-              email: formData.email, // ✅ Include the email even on error
-              error: error.message,
-              status: error.status
-            });
-          }
-        });
+        this.inviteCaretaker(formData);
       }
     } else {
-      // Mark all fields as touched to show validation errors
-      Object.keys(this.inviteForm.controls).forEach(key => {
-        this.inviteForm.get(key)?.markAsTouched();
-      });
+      this.markFormGroupTouched();
     }
+  }
+
+  private inviteTenant(formData: any): void {
+    const selectedUnit = this.availableUnits.find(unit => unit.id === formData.unitId);
+    
+    const tenantData: InviteTenantRequest = {
+      tenantEmail: formData.email,
+      propertyId: this.data.propertyId,
+      unitId: formData.unitId,
+      unitNumber: selectedUnit?.unitNumber
+    };
+
+    console.log('📤 Sending tenant invitation:', tenantData);
+
+    this.invitationService.inviteTenant(tenantData).subscribe({
+      next: (response) => {
+        this.loading = false;
+        console.log('✅ Tenant invitation response:', response);
+        
+        const result: InviteDialogResult = {
+          success: true,
+          email: formData.email,
+          unitId: formData.unitId,
+          invitationToken: response.invitationToken,
+          message: response.message,
+          response: response
+        };
+        this.dialogRef.close(result);
+      },
+      error: (error) => {
+        this.loading = false;
+        console.error('❌ Tenant invitation error:', error);
+        
+        const result: InviteDialogResult = {
+          success: false,
+          email: formData.email,
+          unitId: formData.unitId,
+          error: error.message,
+          status: error.status
+        };
+        this.dialogRef.close(result);
+      }
+    });
+  }
+
+  private inviteCaretaker(formData: any): void {
+    const caretakerData: InviteCaretakerRequest = {
+      caretakerEmail: formData.email,
+      propertyId: this.data.propertyId
+    };
+
+    console.log('📤 Sending caretaker invitation:', caretakerData);
+
+    this.invitationService.inviteCaretaker(caretakerData).subscribe({
+      next: (response) => {
+        this.loading = false;
+        console.log('✅ Caretaker invitation response:', response);
+        
+        const result: InviteDialogResult = {
+          success: true,
+          email: formData.email,
+          invitationToken: response.invitationToken,
+          message: response.message,
+          response: response
+        };
+        this.dialogRef.close(result);
+      },
+      error: (error) => {
+        this.loading = false;
+        console.error('❌ Caretaker invitation error:', error);
+        
+        const result: InviteDialogResult = {
+          success: false,
+          email: formData.email,
+          error: error.message,
+          status: error.status
+        };
+        this.dialogRef.close(result);
+      }
+    });
+  }
+
+  private markFormGroupTouched(): void {
+    Object.keys(this.inviteForm.controls).forEach(key => {
+      this.inviteForm.get(key)?.markAsTouched();
+    });
   }
 
   getUnitTypeDisplay(unitType: string): string {
@@ -178,5 +209,20 @@ export class InviteDialogComponent implements OnInit {
 
   showUnitSelection(): boolean {
     return this.data.type === 'tenant' && this.availableUnits.length > 0;
+  }
+
+  getDialogTitle(): string {
+    return this.data.type === 'tenant' ? 'Invite Tenant' : 'Invite Caretaker';
+  }
+
+  getDialogSubtitle(): string {
+    if (this.data.propertyName) {
+      return this.data.type === 'tenant' 
+        ? `Invite a tenant to ${this.data.propertyName}`
+        : `Invite a caretaker for ${this.data.propertyName}`;
+    }
+    return this.data.type === 'tenant' 
+      ? 'Invite a tenant to this property'
+      : 'Invite a caretaker for this property';
   }
 }

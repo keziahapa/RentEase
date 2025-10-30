@@ -1,72 +1,108 @@
-export interface InviteTenantRequest {
-  tenantEmail: string;
-  propertyId: string;
-  unitId?: string;
-  unitNumber?: string;
-  rentAmount?: number;
-  depositAmount?: number;
-  leaseStartDate?: string;
-  leaseEndDate?: string;
+// invitation-interfaces.ts
+
+// Dialog Data Interface
+export interface InviteDialogData {
+  type: 'tenant' | 'caretaker';
+  propertyId: number;
+  propertyName?: string;
+  availableUnits?: AvailableUnit[];
 }
 
-export interface InviteCaretakerRequest {
-  caretakerEmail: string;
-  propertyId: string;
-  responsibilities?: string[];
-  accessLevel?: 'basic' | 'full';
-}
-
-export interface InvitationResponse {
-  success: boolean;
-  message: string;
-  invitationId?: string;
-  invitationToken?: string;
-  expiresAt?: string;
-}
-
+// Unit Interface
 export interface AvailableUnit {
   id: string;
   unitNumber: string;
   unitType: string;
-  rentAmount: number;
-  status: 'vacant' | 'occupied';
-  propertyId: string;
+  rentAmount?: number;
+  isOccupied?: boolean;
+  squareFootage?: number;
+  bedrooms?: number;
+  bathrooms?: number;
 }
 
-export interface Invitation {
-  id: string;
-  email: string;
-  role: 'tenant' | 'caretaker';
-  propertyId: string;
-  propertyName?: string;
+// Request Interfaces
+export interface InviteTenantRequest {
+  tenantEmail: string;
+  propertyId: number;
   unitId?: string;
   unitNumber?: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'expired';
-  createdAt: string;
-  expiresAt: string;
-  invitedBy: string;
-  invitationToken?: string;
 }
 
-export interface InvitationListResponse {
+export interface InviteCaretakerRequest {
+  caretakerEmail: string;
+  propertyId: number;
+}
+
+// Response Interfaces
+export interface InvitationResponse {
   success: boolean;
   message: string;
-  invitations: Invitation[];
-  totalCount: number;
-  pendingCount: number;
+  data?: any;
+  invitationToken?: string;
 }
 
 export interface AcceptInvitationResponse {
   success: boolean;
   message: string;
-  user?: any;
-  property?: any;
+  data?: any;
 }
 
-export interface InviteDialogData {
-  type: 'tenant' | 'caretaker';
-  propertyId: string;
+export interface InvitationListResponse {
+  success: boolean;
+  message: string;
+  data?: any[];
+}
+
+// Invitation Interfaces
+export interface Invitation {
+  id: string;
+  email: string;
+  role: string;
+  status: 'pending' | 'accepted' | 'expired' | 'cancelled';
+  propertyId?: string;
+  propertyName?: string;
+  createdAt: string;
+  expiresAt: string;
+  inviterName?: string;
+  inviteeEmail?: string;
+  inviteeRole?: string;
+}
+
+export interface InvitationDetails {
+  id: string;
+  invitationToken: string;
+  inviteeEmail: string;
+  inviteeRole: string;
+  inviterName: string;
   propertyName: string;
-  availableUnits?: AvailableUnit[];
-  landlordName: string;
+  propertyId: string;
+  status: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+// Request Body Interfaces
+export interface AcceptInvitationRequest {
+  invitationToken: string;
+}
+
+export interface ResendInvitationRequest {
+  invitationId: string;
+}
+
+export interface CancelInvitationRequest {
+  invitationId: string;
+}
+
+// Dialog Result Interface
+export interface InviteDialogResult {
+  success: boolean;
+  email: string;
+  invitationToken?: string;
+  message?: string;
+  response?: any;
+  error?: string;
+  status?: number;
+  unitId?: string;
+  cancelled?: boolean;
 }

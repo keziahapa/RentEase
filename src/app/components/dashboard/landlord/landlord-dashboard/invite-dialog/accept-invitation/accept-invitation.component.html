@@ -1,64 +1,95 @@
 <div class="accept-invitation-container">
-  <div class="accept-card">
-  
-    <div *ngIf="processing" class="loading-state">
-      <div class="spinner"></div>
-      <h2>Accepting Invitation</h2>
-      <p>Please wait while we process your invitation...</p>
-    </div>
-
-   
-    <div *ngIf="error && !processing && !success" class="error-state">
-      <h2>Invitation Error</h2>
-      <p class="error-message">{{ error }}</p>
-      <div class="action-buttons">
-        <button class="btn primary-btn" (click)="navigateToHome()">
-          Go to Homepage
-        </button>
-        <button class="btn secondary-btn" (click)="navigateToLogin()">
-          Go to Login
-        </button>
-      </div>
-    </div>
-
-   
-    <div *ngIf="success" class="success-state">
-      <h2>Invitation Accepted!</h2>
-      <p>You have successfully accepted the invitation.</p>
-      <p>Redirecting you to login page...</p>
-      <div class="loading-bar">
-        <div class="loading-progress"></div>
-      </div>
-    </div>
-
-  
-    <div *ngIf="invitationToken && !processing && !success && !error" class="invitation-form">
-      <div class="header-section">
-      
-        <h2>Accept Invitation</h2>
-        <p class="subtitle">You've been invited to join a property</p>
-      </div>
-
-      <div class="invitation-info">
-        <p>Click the button below to accept this invitation and get started.</p>
-      </div>
-
-      <div class="action-section">
-        <button 
-          class="btn accept-btn" 
-          (click)="acceptInvitation()"
-          [disabled]="processing">
-          <span *ngIf="processing" class="btn-spinner"></span>
-          {{ processing ? 'Accepting...' : 'Accept Invitation' }}
-        </button>
-
-        <button 
-          class="btn decline-btn" 
-          (click)="navigateToHome()"
-          [disabled]="processing">
-          Decline
-        </button>
-      </div>
-    </div>
+  <div class="header">
+    <h1>🎯 Invitation</h1>
   </div>
+
+  <mat-card class="invitation-card">
+    <mat-card-content>
+      
+      <!-- Loading State -->
+      <div *ngIf="loading" class="loading-section">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p>Loading invitation details...</p>
+      </div>
+
+      <!-- Not Logged In State -->
+      <div *ngIf="needsAuthentication()" class="auth-required-section">
+        <div class="auth-icon">🔐</div>
+        <h3>Account Required</h3>
+        <p>You need to log in to accept this invitation</p>
+        
+        <div class="invitation-info" *ngIf="invitationDetails">
+          <p><strong>Role:</strong> {{ invitationDetails.inviteeRole }}</p>
+          <p><strong>Property:</strong> {{ invitationDetails.propertyName }}</p>
+          <p><strong>Invited by:</strong> {{ invitationDetails.inviterName }}</p>
+        </div>
+        
+        <div class="auth-actions">
+          <button mat-raised-button color="primary" (click)="navigateToLogin()" class="auth-btn">
+            <mat-icon>login</mat-icon>
+            Log In to Accept
+          </button>
+          
+          <button mat-stroked-button color="primary" (click)="navigateToRegister()" class="auth-btn">
+            <mat-icon>person_add</mat-icon>
+            Create Account
+          </button>
+        </div>
+        
+        <div class="auth-note">
+          <mat-icon>info</mat-icon>
+          <span>Use the same email address that received the invitation</span>
+        </div>
+      </div>
+
+      <!-- Processing State -->
+      <div *ngIf="processing" class="processing-section">
+        <mat-spinner diameter="40"></mat-spinner>
+        <h3>Accepting Invitation...</h3>
+        <p>Please wait while we process your invitation</p>
+      </div>
+
+      <!-- Success State -->
+      <div *ngIf="success" class="success-section">
+        <div class="success-icon">🎉</div>
+        <h3>Invitation Accepted!</h3>
+        <p>You have successfully accepted the invitation.</p>
+        
+        <div class="success-details" *ngIf="invitationDetails">
+          <p><strong>Role:</strong> {{ invitationDetails.inviteeRole }}</p>
+          <p><strong>Property:</strong> {{ invitationDetails.propertyName }}</p>
+        </div>
+        
+        <p class="redirect-message">Redirecting to dashboard...</p>
+        
+        <div class="success-actions">
+          <button mat-raised-button color="primary" (click)="router.navigate(['/dashboard'])">
+            Go to Dashboard Now
+          </button>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="error && !loading" class="error-section">
+        <div class="error-icon">⚠️</div>
+        <h3>Unable to Process Invitation</h3>
+        <p class="error-message">{{ error }}</p>
+        
+        <div class="error-actions">
+          <button *ngIf="error.includes('log in') || error.includes('session')" 
+                  mat-raised-button color="primary" 
+                  (click)="navigateToLogin()">
+            Log In
+          </button>
+          <button mat-button (click)="navigateToHome()">
+            Go Home
+          </button>
+          <button mat-button (click)="reloadPage()">
+            Try Again
+          </button>
+        </div>
+      </div>
+
+    </mat-card-content>
+  </mat-card>
 </div>

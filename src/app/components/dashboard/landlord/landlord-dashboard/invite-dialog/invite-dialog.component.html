@@ -42,7 +42,8 @@
               <mat-select formControlName="unitId">
                 <mat-option value="">-- Select Unit --</mat-option>
                 <mat-option *ngFor="let unit of availableUnits" [value]="unit.id">
-                  Unit {{ unit.unitNumber }} - {{ getUnitTypeDisplay(unit.unitType) }} - {{ formatCurrency(unit.rentAmount) }}
+                  Unit {{ unit.unitNumber }} - {{ getUnitTypeDisplay(unit.unitType) }} 
+                  <span *ngIf="unit.rentAmount">- {{ formatCurrency(unit.rentAmount) }}</span>
                 </mat-option>
               </mat-select>
               <mat-icon matSuffix>meeting_room</mat-icon>
