@@ -123,36 +123,23 @@ export class PropertyListComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.sendInvitation(type, result, property.name);
+      console.log('📩 Dialog closed with result:', result);
+      
+      if (result && result.cancelled) {
+        console.log('🚫 Invitation cancelled by user');
+        return;
       }
-    });
-  }
-
-  private sendInvitation(type: 'caretaker', inviteData: any, propertyName: string) {
-    console.log('🔐 Current token:', this.authService.getToken());
-    console.log('👤 Current user:', this.authService.getCurrentUser());
-    console.log('📤 Sending invitation data:', inviteData);
-    
-    this.invitationService.inviteCaretaker(inviteData).subscribe({
-      next: (response) => {
-        console.log('✅ Invitation successful:', response);
-        this.snackBar.open('Caretaker invitation sent successfully!', 'Close', { duration: 4000 });
-      },
-      error: (error) => {
-        console.error('❌ Invitation failed:', error);
-        console.log('Error status:', error.status);
-        console.log('Error message:', error.message);
-        
-        // Show user-friendly error without logging out
-        let userMessage = 'Failed to send invitation';
-        if (error.status === 401) {
-          userMessage = 'You are not authorized to send invitations. Please check your permissions.';
-        } else if (error.error?.message) {
-          userMessage = error.error.message;
-        }
-        
-        this.snackBar.open(userMessage, 'Close', { duration: 5000 });
+      
+      if (result && result.success) {
+        console.log('✅ Dialog returned success, showing success message');
+        // Show success message from the dialog response
+        const successMessage = result.message || `${type} invitation sent successfully!`;
+        this.snackBar.open(successMessage, 'Close', { duration: 4000 });
+      } else if (result && !result.success) {
+        console.log('❌ Dialog returned error:', result.error);
+        // Show error message from the dialog
+        const errorMessage = result.error || `Failed to send ${type} invitation`;
+        this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
       }
     });
   }
@@ -212,7 +199,7 @@ export class PropertyListComponent implements OnInit {
     return typeMap[type ?? ''] ?? type ?? 'Property';
   }
 
-  
+  // Debug method to check authentication status
   testAuth() {
     const token = this.authService.getToken();
     console.log('🔐 Token exists:', !!token);

@@ -64,7 +64,10 @@ export class InviteDialogComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.dialogRef.close(false);
+    this.dialogRef.close({ 
+      success: false, 
+      cancelled: true 
+    });
   }
 
   onSend(): void {
@@ -72,6 +75,7 @@ export class InviteDialogComponent implements OnInit {
       this.loading = true;
       
       const formData = this.inviteForm.value;
+      console.log('📤 Form data:', formData);
       
       if (this.data.type === 'tenant') {
         const selectedUnit = this.availableUnits.find(unit => unit.id === formData.unitId);
@@ -83,45 +87,62 @@ export class InviteDialogComponent implements OnInit {
           unitNumber: selectedUnit?.unitNumber
         };
 
+        console.log('📤 Sending tenant invitation:', tenantData);
+
         this.invitationService.inviteTenant(tenantData).subscribe({
           next: (response) => {
             this.loading = false;
+            console.log('✅ Tenant invitation response:', response);
             this.dialogRef.close({
               success: true,
+              email: formData.email, // ✅ Include the email
+              unitId: formData.unitId,
               invitationToken: response.invitationToken,
-              message: response.message
+              message: response.message,
+              response: response
             });
           },
           error: (error) => {
             this.loading = false;
+            console.error('❌ Tenant invitation error:', error);
             this.dialogRef.close({
               success: false,
-              error: error.message
+              email: formData.email, // ✅ Include the email even on error
+              unitId: formData.unitId,
+              error: error.message,
+              status: error.status
             });
           }
         });
 
       } else if (this.data.type === 'caretaker') {
-        
         const caretakerData = {
           caretakerEmail: formData.email,
           propertyId: this.data.propertyId
         };
 
+        console.log('📤 Sending caretaker invitation:', caretakerData);
+
         this.invitationService.inviteCaretaker(caretakerData).subscribe({
           next: (response) => {
             this.loading = false;
+            console.log('✅ Caretaker invitation response:', response);
             this.dialogRef.close({
               success: true,
+              email: formData.email, // ✅ Include the email
               invitationToken: response.invitationToken,
-              message: response.message
+              message: response.message,
+              response: response
             });
           },
           error: (error) => {
             this.loading = false;
+            console.error('❌ Caretaker invitation error:', error);
             this.dialogRef.close({
               success: false,
-              error: error.message
+              email: formData.email, // ✅ Include the email even on error
+              error: error.message,
+              status: error.status
             });
           }
         });

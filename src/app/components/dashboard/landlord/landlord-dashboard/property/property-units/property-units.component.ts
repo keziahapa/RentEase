@@ -48,8 +48,7 @@ import { catchError } from 'rxjs/operators';
     MatSelectModule
   ],
   templateUrl: './property-units.component.html',
-  styleUrls: ['./property-units.component.scss'],
-  providers: [InvitationService]
+  styleUrls: ['./property-units.component.scss']
 })
 export class PropertyUnitsComponent implements OnInit {
   propertyId!: string;
@@ -267,7 +266,7 @@ export class PropertyUnitsComponent implements OnInit {
     this.annualRevenue = this.monthlyRevenue * 12;
   }
 
-  // Existing methods from your original component
+  // Tenant Invitation Methods
   inviteTenantToProperty(event: Event) {
     event.preventDefault();
     event.stopPropagation();
@@ -294,9 +293,7 @@ export class PropertyUnitsComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.sendTenantInvitation(result);
-      }
+      this.handleTenantInvitationResult(result);
     });
   }
 
@@ -317,24 +314,28 @@ export class PropertyUnitsComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.sendTenantInvitation(result);
-      }
+      this.handleTenantInvitationResult(result);
     });
   }
 
-  private sendTenantInvitation(inviteData: any) {
-    this.invitationService.inviteTenant(inviteData).subscribe({
-      next: () => {
-        this.snackBar.open('Tenant invitation sent successfully!', 'Close', { duration: 4000 });
-        this.loadPropertyAndUnits();
-      },
-      error: (error) => {
-        console.error('Error sending tenant invitation:', error);
-        const errorMessage = error?.error?.message || 'Failed to send tenant invitation';
-        this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
-      }
-    });
+  private handleTenantInvitationResult(result: any) {
+    console.log('📩 Tenant invitation dialog result:', result);
+    
+    if (result && result.cancelled) {
+      console.log('🚫 Tenant invitation cancelled by user');
+      return;
+    }
+    
+    if (result && result.success) {
+      console.log('✅ Tenant invitation successful from dialog');
+      const successMessage = result.message || 'Tenant invitation sent successfully!';
+      this.snackBar.open(successMessage, 'Close', { duration: 4000 });
+      this.loadPropertyAndUnits(); // Refresh to show updated status
+    } else if (result && !result.success) {
+      console.log('❌ Tenant invitation failed from dialog:', result.error);
+      const errorMessage = result.error || 'Failed to send tenant invitation';
+      this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
+    }
   }
 
   private handleError(message: string, error: any) {
@@ -533,5 +534,17 @@ export class PropertyUnitsComponent implements OnInit {
       'MIXED': 'Mixed Use'
     };
     return typeMap[this.property?.propertyType || ''] || this.property?.propertyType || 'Property';
+  }
+
+  // Debug method to check authentication status
+  testAuth() {
+    const token = this.authService.getToken();
+    console.log('🔐 Token exists:', !!token);
+    console.log('🔐 Token value:', token);
+    console.log('👤 User role:', this.authService.getCurrentUser()?.role);
+    console.log('✅ Is authenticated:', this.authService.isAuthenticated());
+    console.log('🏠 Property ID:', this.propertyId);
+    console.log('🏠 Property:', this.property);
+    console.log('🚪 Units count:', this.units.length);
   }
 }
