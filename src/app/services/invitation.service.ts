@@ -21,14 +21,20 @@ export class InvitationService {
 
   private createHeaders(): HttpHeaders {
     const token = this.authService.getToken();
-    const headersConfig: any = {
-      'Content-Type': 'application/json'
-    };
+    console.log('🔐 InvitationService.createHeaders() called, token exists:', !!token);
     
-    if (token) {
-      headersConfig['Authorization'] = `Bearer ${token}`;
+    if (!token) {
+      console.error('❌ No authentication token found in InvitationService!');
+      console.error('❌ User might be logged out or token storage is corrupted');
+      throw new Error('Authentication required - please login again');
     }
     
+    const headersConfig: any = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+    
+    console.log('🔐 Headers created with Authorization bearer token');
     return new HttpHeaders(headersConfig);
   }
 
@@ -36,8 +42,9 @@ export class InvitationService {
     let errorMessage = 'Service temporarily unavailable';
     
     if (error.status === 401) {
-      errorMessage = 'Please check your authentication';
-      // DON'T auto-logout here - let the component handle it gracefully
+      errorMessage = 'Authentication failed. Your session may have expired. Please login again.';
+      console.error('❌ 401 Unauthorized - Token might be invalid or expired');
+      console.error('❌ Error details:', error);
     } else if (error.status === 404) {
       errorMessage = 'Feature not available yet';
     } else if (error.error?.message) {
@@ -54,8 +61,18 @@ export class InvitationService {
   }
 
   inviteTenant(inviteData: InviteTenantRequest): Observable<InvitationResponse> {
-    console.log('🔐 Sending tenant invitation with token:', !!this.authService.getToken());
+    const token = this.authService.getToken();
+    console.log('🔐 Sending tenant invitation with token:', !!token);
     console.log('📤 Invite data:', inviteData);
+    
+    if (!token) {
+      console.error('❌ Cannot send tenant invitation - no authentication token');
+      return throwError(() => ({
+        status: 401,
+        message: 'Authentication required',
+        error: null
+      }));
+    }
     
     return this.http.post<InvitationResponse>(
       `${this.apiUrl}/landlord/invite-tenant`, 
@@ -71,8 +88,18 @@ export class InvitationService {
   }
 
   inviteCaretaker(inviteData: InviteCaretakerRequest): Observable<InvitationResponse> {
-    console.log('🔐 Sending caretaker invitation with token:', !!this.authService.getToken());
+    const token = this.authService.getToken();
+    console.log('🔐 Sending caretaker invitation with token:', !!token);
     console.log('📤 Invite data:', inviteData);
+    
+    if (!token) {
+      console.error('❌ Cannot send caretaker invitation - no authentication token');
+      return throwError(() => ({
+        status: 401,
+        message: 'Authentication required',
+        error: null
+      }));
+    }
     
     return this.http.post<InvitationResponse>(
       `${this.apiUrl}/landlord/invite-caretaker`, 
