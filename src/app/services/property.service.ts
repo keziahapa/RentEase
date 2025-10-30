@@ -337,57 +337,6 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
-  inviteTenant(request: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/api/landlord/invite-tenant`, request, { 
-      headers: this.createHeaders(),
-      responseType: 'json'
-    }).pipe(catchError(this.handleError));
-  }
-
-  inviteCaretaker(request: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/api/landlord/invite-caretaker`, request, { 
-      headers: this.createHeaders(),
-      responseType: 'json'
-    }).pipe(catchError(this.handleError));
-  }
-
-  acceptInvitation(request: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/api/accept-invitation`, request, { 
-      headers: this.createHeaders(),
-      responseType: 'json'
-    }).pipe(catchError(this.handleError));
-  }
-
-  getSentInvitations(): Observable<any> {
-    return this.http.get<any>(
-      `${this.apiUrl}/api/invitations/sent`,
-      { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(
-      map(response => {
-        if (Array.isArray(response)) return response;
-        if (response?.data && Array.isArray(response.data)) return response.data;
-        if (response?.invitations && Array.isArray(response.invitations)) return response.invitations;
-        return [];
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  getReceivedInvitations(): Observable<any> {
-    return this.http.get<any>(
-      `${this.apiUrl}/api/invitations/received`,
-      { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(
-      map(response => {
-        if (Array.isArray(response)) return response;
-        if (response?.data && Array.isArray(response.data)) return response.data;
-        if (response?.invitations && Array.isArray(response.invitations)) return response.invitations;
-        return [];
-      }),
-      catchError(this.handleError)
-    );
-  }
-
   private extractImageUrl(response: any): string | undefined {
     return response.data || response.imageUrl || response.pictureUrl;
   }
