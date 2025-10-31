@@ -1,39 +1,30 @@
-// invitation.service.ts
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import {
-  InviteTenantRequest,
-  InviteCaretakerRequest,
-  InvitationResponse,
-  InvitationListResponse,
-  AcceptInvitationResponse,
-  InvitationDetails,
-  AcceptInvitationRequest
-} from './invitation-interfaces';
 
 @Injectable({
   providedIn: 'root'
 })
 export class InvitationService {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+  
   private apiUrl = 'https://rentease-3-sfgx.onrender.com/api';
-
-  constructor(private http: HttpClient, private authService: AuthService) {}
 
   private createHeaders(): HttpHeaders {
     const token = this.authService.getToken();
-    console.log('🔐 InvitationService.createHeaders() called, token exists:', !!token);
     
     if (!token) {
-      console.error('❌ No authentication token found in InvitationService!');
       throw new Error('Authentication required - please login again');
     }
     
+    const cleanToken = token.replace(/['"]/g, '').trim();
+    
     const headersConfig: any = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${cleanToken}`
     };
     
     return new HttpHeaders(headersConfig);
@@ -46,7 +37,8 @@ export class InvitationService {
     });
 
     if (token) {
-      headers = headers.set('Authorization', `Bearer ${token}`);
+      const cleanToken = token.replace(/['"]/g, '').trim();
+      headers = headers.set('Authorization', `Bearer ${cleanToken}`);
     }
 
     return headers;
@@ -57,13 +49,12 @@ export class InvitationService {
     
     if (error.status === 401) {
       errorMessage = 'Authentication failed. Your session may have expired. Please login again.';
+      this.authService.logoutSync();
     } else if (error.status === 404) {
       errorMessage = 'Feature not available yet';
     } else if (error.error?.message) {
       errorMessage = error.error.message;
     }
-
-    console.warn('Service error handled gracefully:', errorMessage);
     
     return throwError(() => ({
       status: error.status,
@@ -72,58 +63,10 @@ export class InvitationService {
     }));
   }
 
-  // Accept invitation with token string parameter
-  acceptInvitation(token: string): Observable<AcceptInvitationResponse> {
-    const authToken = this.authService.getToken();
-    console.log('🔐 Accepting invitation with invitationToken:', token);
-    console.log('🔐 User authenticated:', !!authToken);
-    
-    const headers = this.createAuthHeaders();
-
-    // Create the request body with invitationToken
-    const requestBody: AcceptInvitationRequest = {
-      invitationToken: token
-    };
-
-    return this.http.post<AcceptInvitationResponse>(
-      `${this.apiUrl}/accept-invitation`,
-      requestBody,
-      { 
-        headers: headers,
-        responseType: 'json'
-      }
-    ).pipe(
-      tap(response => console.log('✅ Invitation acceptance response:', response)),
-      catchError(this.handleError)
-    );
-  }
-
-  // Get invitation details by token
-  getInvitationDetails(token: string): Observable<InvitationResponse> {
-    return this.http.get<InvitationResponse>(
-      `${this.apiUrl}/invitations/details/${token}`,
-      { headers: this.createAuthHeaders(), responseType: 'json' }
-    ).pipe(
-      tap(response => console.log('📧 Invitation details:', response)),
-      catchError(this.handleError)
-    );
-  }
-
-  // Validate invitation token
-  validateInvitation(token: string): Observable<InvitationResponse> {
-    return this.http.post<InvitationResponse>(
-      `${this.apiUrl}/invitations/validate`,
-      { invitationToken: token },
-      { headers: this.createAuthHeaders(), responseType: 'json' }
-    ).pipe(catchError(this.handleError));
-  }
-
-  inviteTenant(inviteData: InviteTenantRequest): Observable<InvitationResponse> {
+  inviteTenant(inviteData: any): Observable<any> {
     const token = this.authService.getToken();
-    console.log('🔐 Sending tenant invitation with token:', !!token);
     
     if (!token) {
-      console.error('❌ Cannot send tenant invitation - no authentication token');
       return throwError(() => ({
         status: 401,
         message: 'Authentication required',
@@ -131,25 +74,39 @@ export class InvitationService {
       }));
     }
     
-    return this.http.post<InvitationResponse>(
+    return this.http.post<any>(
       `${this.apiUrl}/landlord/invite-tenant`, 
       inviteData,
       { 
         headers: this.createHeaders(),
         responseType: 'json'
       }
-    ).pipe(
-      tap(response => console.log('✅ Tenant invitation successful:', response)),
-      catchError(this.handleError)
-    );
+    ).pipe(catchError(this.handleError));
   }
 
-  inviteCaretaker(inviteData: InviteCaretakerRequest): Observable<InvitationResponse> {
+  acceptInvitation(token: string): Observable<any> {
+    const authToken = this.authService.getToken();
+    
+    const headers = this.createAuthHeaders();
+
+    const requestBody = {
+      invitationToken: token
+    };
+
+    return this.http.post<any>(
+      `${this.apiUrl}/accept-invitation`,
+      requestBody,
+      { 
+        headers: headers,
+        responseType: 'json'
+      }
+    ).pipe(catchError(this.handleError));
+  }
+
+  inviteCaretaker(inviteData: any): Observable<any> {
     const token = this.authService.getToken();
-    console.log('🔐 Sending caretaker invitation with token:', !!token);
     
     if (!token) {
-      console.error('❌ Cannot send caretaker invitation - no authentication token');
       return throwError(() => ({
         status: 401,
         message: 'Authentication required',
@@ -157,91 +114,85 @@ export class InvitationService {
       }));
     }
     
-    return this.http.post<InvitationResponse>(
+    return this.http.post<any>(
       `${this.apiUrl}/landlord/invite-caretaker`, 
       inviteData,
       { 
         headers: this.createHeaders(),
         responseType: 'json'
       }
-    ).pipe(
-      tap(response => console.log('✅ Caretaker invitation successful:', response)),
-      catchError(this.handleError)
-    );
+    ).pipe(catchError(this.handleError));
   }
 
-  getSentInvitations(): Observable<InvitationListResponse> {
-    return this.http.get<InvitationListResponse>(
+  getSentInvitations(): Observable<any> {
+    return this.http.get<any>(
       `${this.apiUrl}/invitations/sent`,
       { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(
-      tap(response => console.log('📨 Sent invitations response:', response)),
-      catchError(this.handleError)
-    );
+    ).pipe(catchError(this.handleError));
   }
 
-  getPendingInvitations(): Observable<InvitationListResponse> {
-    return this.http.get<InvitationListResponse>(
+  getPendingInvitations(): Observable<any> {
+    return this.http.get<any>(
       `${this.apiUrl}/invitations/pending`,
       { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(
-      tap(response => console.log('⏳ Pending invitations:', response)),
-      catchError(this.handleError)
-    );
+    ).pipe(catchError(this.handleError));
   }
 
-  getReceivedInvitations(): Observable<InvitationListResponse> {
-    return this.http.get<InvitationListResponse>(
+  getReceivedInvitations(): Observable<any> {
+    return this.http.get<any>(
       `${this.apiUrl}/invitations/received`,
       { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(
-      tap(response => console.log('📩 Received invitations:', response)),
-      catchError(this.handleError)
-    );
+    ).pipe(catchError(this.handleError));
   }
 
-  cancelInvitation(invitationId: string): Observable<InvitationResponse> {
-    return this.http.delete<InvitationResponse>(
+  cancelInvitation(invitationId: string): Observable<any> {
+    return this.http.delete<any>(
       `${this.apiUrl}/invitations/${invitationId}`,
       { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => console.log('✅ Invitation cancelled:', response)),
-      catchError(this.handleError)
-    );
+    ).pipe(catchError(this.handleError));
   }
 
-  resendInvitation(invitationId: string): Observable<InvitationResponse> {
-    return this.http.post<InvitationResponse>(
+  resendInvitation(invitationId: string): Observable<any> {
+    return this.http.post<any>(
       `${this.apiUrl}/invitations/${invitationId}/resend`,
       {},
       { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => console.log('✅ Invitation resent:', response)),
-      catchError(this.handleError)
-    );
+    ).pipe(catchError(this.handleError));
   }
 
-  // Get specific invitation by ID
-  getInvitationById(invitationId: string): Observable<InvitationResponse> {
-    return this.http.get<InvitationResponse>(
+  getInvitationById(invitationId: string): Observable<any> {
+    return this.http.get<any>(
       `${this.apiUrl}/invitations/${invitationId}`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(catchError(this.handleError));
   }
 
-  // Get invitations by property
-  getInvitationsByProperty(propertyId: string): Observable<InvitationListResponse> {
-    return this.http.get<InvitationListResponse>(
+  getInvitationsByProperty(propertyId: string): Observable<any> {
+    return this.http.get<any>(
       `${this.apiUrl}/invitations/property/${propertyId}`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(catchError(this.handleError));
   }
 
-  // Get invitations by status
-  getInvitationsByStatus(status: string): Observable<InvitationListResponse> {
-    return this.http.get<InvitationListResponse>(
+  getInvitationsByStatus(status: string): Observable<any> {
+    return this.http.get<any>(
       `${this.apiUrl}/invitations/status/${status}`,
       { headers: this.createHeaders(), responseType: 'json' }
+    ).pipe(catchError(this.handleError));
+  }
+
+  getInvitationDetails(token: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/invitations/details/${token}`,
+      { headers: this.createAuthHeaders(), responseType: 'json' }
+    ).pipe(catchError(this.handleError));
+  }
+
+  validateInvitation(token: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/invitations/validate`,
+      { invitationToken: token },
+      { headers: this.createAuthHeaders(), responseType: 'json' }
     ).pipe(catchError(this.handleError));
   }
 }
