@@ -1,4 +1,3 @@
-
 import { Routes } from '@angular/router';
 import { HomeComponent } from '../pages/home/home';
 import { RegistrationComponent } from './components/auth/registration/registration.component';
@@ -52,8 +51,7 @@ import { BusinessOverviewComponent } from './components/dashboard/bussiness/comp
 import { AdminOverviewComponent } from './components/dashboard/admin/admin-dashboard/components/admin-overview/admin-overview.component';
 import { BusinessListComponent } from './components/dashboard/admin/admin-dashboard/components/business-list/business-list.component';
 import { AcceptInvitationComponent } from './components/dashboard/landlord/landlord-dashboard/invite-dialog/accept-invitation/accept-invitation.component';
-
-
+import { WaitingLandlordComponent } from './components/auth/waiting-landlord/waiting-landlord.component';
 
 
 export const routes: Routes = [
@@ -70,6 +68,8 @@ export const routes: Routes = [
   { path: 'terms', component: TermsComponent },
   { path: 'privacy', component: PrivacyComponent },
   { path: 'accept-invitation/:token', component: AcceptInvitationComponent },
+  { path: 'waiting-landlord', component: WaitingLandlordComponent },
+ 
   {
     path: 'tenant-dashboard',
     component: TenantDashboardComponent,

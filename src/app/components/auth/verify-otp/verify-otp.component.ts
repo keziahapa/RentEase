@@ -224,13 +224,48 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       return;
     }
 
-    if (userRole.toUpperCase() === 'BUSINESS') {
-      await this.handleBusinessUserVerification();
+    // 🎯 UPDATED: Navigate to waiting pages instead of dashboards
+    await this.navigateToWaitingPage(userRole);
+  }
+
+  private async navigateToWaitingPage(userRole: string) {
+    const normalizedRole = userRole.toUpperCase().trim();
+    
+    console.log('🔍 Navigating to waiting page for role:', normalizedRole);
+    
+    // 🎯 NEW NAVIGATION LOGIC
+    if (normalizedRole === 'TENANT' || normalizedRole === 'CARETAKER') {
+      // Tenants & Caretakers go to waiting for landlord page
+      await this.router.navigate(['/waiting-landlord'], { 
+        replaceUrl: true,
+        state: { 
+          email: this.email,
+          userType: userRole,
+          phoneNumber: this.phoneNumber
+        }
+      });
+    } else if (normalizedRole === 'LANDLORD' || normalizedRole === 'BUSINESS') {
+      // Landlords & Businesses go to waiting for admin page
+      await this.router.navigate(['/waiting-admin'], { 
+        replaceUrl: true,
+        state: { 
+          email: this.email,
+          userType: userRole,
+          phoneNumber: this.phoneNumber
+        }
+      });
+    } else if (normalizedRole === 'ADMIN') {
+      // Admins go directly to dashboard (no waiting)
+      await this.router.navigate(['/admin-dashboard/overview'], { replaceUrl: true });
     } else {
-      await this.handleRegularUserVerification(userRole);
+      // Fallback for unknown roles
+      console.error('❌ Unknown role for navigation:', normalizedRole);
+      this.showMessage('Unknown user role. Please contact support.', 'error');
+      await this.router.navigate(['/login'], { replaceUrl: true });
     }
   }
 
+  // 🎯 KEEP existing business logic but update navigation
   private async handleBusinessUserVerification() {
     try {
       const hasBusinessProfile = await firstValueFrom(this.businessService.hasBusinessProfile());
@@ -243,33 +278,6 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     } catch (error) {
       console.error('Error checking business profile:', error);
       await this.router.navigate(['/business-registration'], { replaceUrl: true });
-    }
-  }
-
-  private async handleRegularUserVerification(userRole: string) {
-    const dashboardRoute = this.getDashboardRoute(userRole);
-    
-    console.log('🔍 Navigating to dashboard route:', dashboardRoute);
-    
-    // If no valid route, it will redirect to login
-    if (dashboardRoute === '/login') {
-      return; // Error already shown, user will be at login
-    }
-    
-    try {
-      const navigationSuccess = await this.router.navigate([dashboardRoute], { 
-        replaceUrl: true 
-      });
-      
-      if (!navigationSuccess) {
-        console.error('❌ Navigation failed for route:', dashboardRoute);
-        this.showMessage('Dashboard navigation failed. Please try logging in manually.', 'error');
-        await this.router.navigate(['/login'], { replaceUrl: true });
-      }
-    } catch (navigationError) {
-      console.error('Navigation error:', navigationError);
-      this.showMessage('Navigation error. Please try logging in manually.', 'error');
-      await this.router.navigate(['/login'], { replaceUrl: true });
     }
   }
 
@@ -287,11 +295,10 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       'ADMIN': '/admin-dashboard/overview'
     };
     
-    // NO FALLBACK - Each role must have specific route
     if (!routeMap[normalizedRole]) {
       console.error('❌ No dashboard route defined for role:', normalizedRole);
       this.showMessage(`No dashboard configured for ${role} role. Please contact support.`, 'error');
-      return '/login'; // Redirect to login instead of wrong dashboard
+      return '/login';
     }
     
     const finalRoute = routeMap[normalizedRole];
@@ -313,15 +320,12 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     } else if (errorMsg.includes('already verified')) {
       this.showMessage('Account already verified. Redirecting...', 'info');
       const userRole = this.userType || '';
+      
+      // 🎯 UPDATED: For already verified accounts, navigate to waiting pages
       if (userRole.toUpperCase() === 'BUSINESS') {
         this.handleBusinessUserVerification();
-      } else if (userRole) {
-        const dashboardRoute = this.getDashboardRoute(userRole);
-        if (dashboardRoute !== '/login') {
-          this.router.navigate([dashboardRoute]);
-        }
       } else {
-        this.router.navigate(['/login']);
+        this.navigateToWaitingPage(userRole);
       }
     } else {
       this.showMessage(error.message || 'Verification failed. Please try again.', 'error');
