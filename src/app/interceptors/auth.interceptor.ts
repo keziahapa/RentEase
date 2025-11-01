@@ -32,7 +32,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(clonedReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Don't auto-logout for invitation errors
+      
       const isInvitationRequest = 
         req.url.includes('/invite-tenant') || 
         req.url.includes('/invite-caretaker');
@@ -52,7 +52,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         }
       }
       
-      // For invitation errors, just pass through the error without logging out
+      
       return throwError(() => error);
     })
   );
