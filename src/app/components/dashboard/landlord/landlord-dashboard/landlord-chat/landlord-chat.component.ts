@@ -52,12 +52,17 @@ export class LandlordChatComponent implements OnInit {
 
   loadProperties(): void {
     this.propertyService.getProperties().subscribe({
-      next: (properties: any[]) => {
-        this.properties = properties;
+      next: (response: any) => {
+        if (response.success && response.data) {
+          this.properties = response.data;
+        } else {
+          this.properties = [];
+        }
       },
       error: (error: any) => {
         console.error('Failed to load properties:', error);
         this.showSnackbar('Failed to load properties', 'error');
+        this.properties = [];
       }
     });
   }
@@ -66,17 +71,20 @@ export class LandlordChatComponent implements OnInit {
     this.isLoading = true;
     this.chatService.getChatRooms().subscribe({
       next: (response: ChatRoomResponse) => {
-        if (response.success) {
+        if (response.success && response.data) {
           this.chatRooms = response.data.filter((room: ChatRoom) => 
-            room.type === 'TENANT_LANDLORD' || room.type === 'LANDLORD_CARETAKER'
+            room && (room.type === 'TENANT_LANDLORD' || room.type === 'LANDLORD_CARETAKER')
           );
           this.chatRooms = this.chatService.sortRoomsByLastMessage(this.chatRooms);
+        } else {
+          this.chatRooms = [];
         }
         this.isLoading = false;
       },
       error: (error: any) => {
         console.error('Failed to load chat rooms:', error);
         this.showSnackbar('Failed to load chat rooms', 'error');
+        this.chatRooms = [];
         this.isLoading = false;
       }
     });
@@ -110,11 +118,13 @@ export class LandlordChatComponent implements OnInit {
   startTenantChat(propertyId: number): void {
     this.chatService.createTenantLandlordRoom(propertyId).subscribe({
       next: (response: ApiResponse<ChatRoom>) => {
-        if (response.success) {
+        if (response.success && response.data) {
           this.chatRooms.unshift(response.data);
           this.selectRoom(response.data);
           this.closeNewChatModal();
           this.showSnackbar('Chat with tenant started successfully');
+        } else {
+          this.showSnackbar('Failed to start chat with tenant', 'error');
         }
       },
       error: (error: any) => {
@@ -127,11 +137,13 @@ export class LandlordChatComponent implements OnInit {
   startCaretakerChat(propertyId: number): void {
     this.chatService.createLandlordCaretakerRoom(propertyId).subscribe({
       next: (response: ApiResponse<ChatRoom>) => {
-        if (response.success) {
+        if (response.success && response.data) {
           this.chatRooms.unshift(response.data);
           this.selectRoom(response.data);
           this.closeNewChatModal();
           this.showSnackbar('Chat with caretaker started successfully');
+        } else {
+          this.showSnackbar('Failed to start chat with caretaker', 'error');
         }
       },
       error: (error: any) => {
@@ -142,6 +154,8 @@ export class LandlordChatComponent implements OnInit {
   }
 
   selectRoom(room: ChatRoom): void {
+    if (!room) return;
+    
     this.currentRoom = room;
     this.loadRoomMessages(room.id);
     this.markRoomAsRead(room.id);
@@ -150,13 +164,16 @@ export class LandlordChatComponent implements OnInit {
   loadRoomMessages(roomId: number): void {
     this.chatService.getRoomMessages(roomId).subscribe({
       next: (response: ChatMessageResponse) => {
-        if (response.success) {
+        if (response.success && response.data) {
           this.messages = response.data;
+        } else {
+          this.messages = [];
         }
       },
       error: (error: any) => {
         console.error('Failed to load messages:', error);
         this.showSnackbar('Failed to load messages', 'error');
+        this.messages = [];
       }
     });
   }
@@ -171,13 +188,16 @@ export class LandlordChatComponent implements OnInit {
 
     this.chatService.sendMessage(messageData).subscribe({
       next: (response: ApiResponse<ChatMessage>) => {
-        if (response.success) {
+        if (response.success && response.data) {
           this.messages.push(response.data);
           this.newMessage = '';
           
           if (this.currentRoom) {
             this.currentRoom.lastMessage = response.data;
           }
+          this.showSnackbar('Message sent successfully');
+        } else {
+          this.showSnackbar('Failed to send message', 'error');
         }
       },
       error: (error: any) => {
@@ -204,6 +224,8 @@ export class LandlordChatComponent implements OnInit {
   }
 
   getRoomDisplayName(room: ChatRoom): string {
+    if (!room || !room.participants) return 'Unknown User';
+    
     const currentUserId = this.getCurrentUserId();
     return this.chatService.generateRoomDisplayName(room, currentUserId);
   }
@@ -214,6 +236,10 @@ export class LandlordChatComponent implements OnInit {
   }
 
   getOtherParticipants(room: ChatRoom): any[] {
+    if (!room || !room.participants || !Array.isArray(room.participants)) {
+      return [];
+    }
+    
     const currentUserId = this.getCurrentUserId();
     return this.chatService.getOtherParticipants(room, currentUserId);
   }
