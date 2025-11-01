@@ -9,6 +9,8 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 import { CaretakerService } from '../../../services/caretaker.service';
 import { CaretakerOverviewComponent } from './components/caretaker-overview/caretaker-overview.component';
+import { CaretakerChatComponent } from './components/caretaker-chat/caretaker-chat.component';
+
 
 @Component({
   selector: 'app-caretaker-dashboard',
@@ -20,7 +22,8 @@ import { CaretakerOverviewComponent } from './components/caretaker-overview/care
     MatTooltipModule,
     MatProgressSpinnerModule,
     RouterOutlet,
-    CaretakerOverviewComponent
+    CaretakerOverviewComponent,
+    CaretakerChatComponent
   ],
   templateUrl: './caretaker-dashboard.component.html',
   styleUrls: ['./caretaker-dashboard.component.scss']
@@ -255,6 +258,12 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/caretaker-dashboard/profile/edit']);
   }
 
+  navigateToChat(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/caretaker-dashboard/chat']);
+  }
+
   private loadProfileImage(): void {
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
@@ -341,6 +350,7 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
       'deposits': ['/caretaker-dashboard/deposits'],
       'properties': ['/caretaker-dashboard/properties'],
       'messages': ['/caretaker-dashboard/messages'],
+      'chat': ['/caretaker-dashboard/chat'],
       'reports': ['/caretaker-dashboard/reports'],
       'profile': ['/caretaker-dashboard/profile/view']
     };
@@ -368,6 +378,8 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'properties';
     } else if (url.includes('/messages')) {
       this.currentSection = 'messages';
+    } else if (url.includes('/chat')) {
+      this.currentSection = 'chat';
     } else if (url.includes('/reports')) {
       this.currentSection = 'reports';
     } else {

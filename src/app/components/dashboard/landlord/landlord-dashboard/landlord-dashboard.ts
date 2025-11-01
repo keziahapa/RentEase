@@ -9,6 +9,8 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
 import { PropertyService } from '../../../../services/property.service';
 import { LandlordDashboardHomeComponent } from './home/landlord-dashboard-home.component';
+import { LandlordChatComponent } from './landlord-chat/landlord-chat.component';
+
 
 @Component({
   selector: 'app-landlord-dashboard',
@@ -20,7 +22,8 @@ import { LandlordDashboardHomeComponent } from './home/landlord-dashboard-home.c
     MatTooltipModule,
     MatProgressSpinnerModule,
     RouterOutlet,
-    LandlordDashboardHomeComponent
+    LandlordDashboardHomeComponent,
+    LandlordChatComponent
   ],
   templateUrl: './landlord-dashboard.html',
   styleUrls: ['./landlord-dashboard.scss']
@@ -249,6 +252,12 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/landlord-dashboard/profile/edit']);
   }
 
+  navigateToChat(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/landlord-dashboard/chat']);
+  }
+
   private loadProfileImage(): void {
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
@@ -335,6 +344,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       'financials': ['/landlord-dashboard/financials'],
       'maintenance': ['/landlord-dashboard/maintenance'],
       'messages': ['/landlord-dashboard/messages'],
+      'chat': ['/landlord-dashboard/chat'],
       'marketplace': ['/landlord-dashboard/marketplace'],
       'profile': ['/landlord-dashboard/profile/view']
     };
@@ -362,6 +372,8 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'maintenance';
     } else if (url.includes('/messages')) {
       this.currentSection = 'messages';
+    } else if (url.includes('/chat')) {
+      this.currentSection = 'chat';
     } else if (url.includes('/marketplace')) {
       this.currentSection = 'marketplace';
     } else {
