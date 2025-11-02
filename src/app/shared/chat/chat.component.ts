@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener } from '@angular/core';
+// src/app/shared/chat/chat.component.ts
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -47,51 +48,52 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   showMenu = false;
   
   private subscriptions: Subscription[] = [];
-  private menuClickOutsideListener!: (event: MouseEvent) => void;
 
-  constructor(
-    private chatService: ChatService,
-    private authService: AuthService,
-    private router: Router,
-    private route: ActivatedRoute
-  ) {}
+  private chatService = inject(ChatService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   ngOnInit(): void {
-    this.currentUserId = this.chatService.getCurrentUserId();
-    this.userRole = this.authService.getCurrentUser()?.role || '';
-    this.loadChatRooms();
-    
-    // Subscribe to real-time updates
-    this.subscriptions.push(
-      this.chatService.currentRoom$.subscribe(room => {
-        this.currentRoom = room;
-        if (room) {
-          this.selectedRoomId = room.id;
-          this.loadRoomMessages(room.id);
+    try {
+      this.currentUserId = this.chatService.getCurrentUserId();
+      this.userRole = this.authService.getCurrentUser()?.role || '';
+      this.loadChatRooms();
+      
+      // Subscribe to real-time updates
+      this.subscriptions.push(
+        this.chatService.currentRoom$.subscribe(room => {
+          this.currentRoom = room;
+          if (room) {
+            this.selectedRoomId = room.id;
+            this.loadRoomMessages(room.id);
+          }
+        }),
+        
+        this.chatService.messages$.subscribe(messages => {
+          this.messages = messages || [];
+          setTimeout(() => this.scrollToBottom(), 100);
+        }),
+        
+        this.chatService.typingUsers$.subscribe(users => {
+          this.typingUsers = users || [];
+        })
+      );
+
+      // Check for room ID in route
+      this.route.params.subscribe(params => {
+        if (params['roomId']) {
+          const roomId = parseInt(params['roomId'], 10);
+          if (!isNaN(roomId)) {
+            this.selectRoomById(roomId);
+          }
         }
-      }),
-      
-      this.chatService.messages$.subscribe(messages => {
-        this.messages = messages;
-        setTimeout(() => this.scrollToBottom(), 100);
-      }),
-      
-      this.chatService.typingUsers$.subscribe(users => {
-        this.typingUsers = users;
-      })
-    );
+      });
 
-    // Check for room ID in route
-    this.route.params.subscribe(params => {
-      if (params['roomId']) {
-        const roomId = parseInt(params['roomId'], 10);
-        this.selectRoomById(roomId);
-      }
-    });
-
-    // Add click outside listener for menu
-    this.menuClickOutsideListener = this.handleMenuClickOutside.bind(this);
-    document.addEventListener('click', this.menuClickOutsideListener);
+    } catch (error) {
+      console.error('Error initializing chat component:', error);
+      this.errorMessage = 'Failed to initialize chat';
+    }
   }
 
   ngAfterViewChecked(): void {
@@ -103,7 +105,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (this.typingTimeout) {
       clearTimeout(this.typingTimeout);
     }
-    document.removeEventListener('click', this.menuClickOutsideListener);
   }
 
   @HostListener('document:click', ['$event'])
@@ -122,14 +123,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   loadChatRooms(): void {
     this.loading = true;
+    this.errorMessage = '';
+
     this.chatService.getChatRooms().subscribe({
       next: (response: ChatRoomResponse) => {
         if (response.success) {
-          this.chatRooms = response.data;
+          this.chatRooms = response.data || [];
           // Auto-select first room if none selected and no route parameter
           if (this.chatRooms.length > 0 && !this.selectedRoomId && !this.route.snapshot.params['roomId']) {
             this.selectRoom(this.chatRooms[0]);
           }
+        } else {
+          this.errorMessage = response.message || 'Failed to load chat rooms';
         }
         this.loading = false;
       },
@@ -137,35 +142,46 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.errorMessage = error.message || 'Failed to load chat rooms';
         this.loading = false;
         console.error('Error loading chat rooms:', error);
+        this.chatRooms = [];
       }
     });
   }
 
   loadRoomMessages(roomId: number): void {
+    this.errorMessage = '';
+
     this.chatService.getRoomMessages(roomId).subscribe({
       next: (response: ChatMessageResponse) => {
         if (response.success) {
-          this.messages = response.data;
+          this.messages = response.data || [];
           this.markRoomAsRead(roomId);
+        } else {
+          this.errorMessage = response.message || 'Failed to load messages';
         }
       },
       error: (error: any) => {
         this.errorMessage = error.message || 'Failed to load messages';
         console.error('Error loading room messages:', error);
+        this.messages = [];
       }
     });
   }
 
   selectRoom(room: ChatRoom): void {
-    this.chatService.setCurrentRoom(room);
-    this.selectedRoomId = room.id;
-    this.showMenu = false; // Close menu when switching rooms
-    
-    // Update URL with room ID
-    this.router.navigate(['/chat', room.id]);
-    
-    // Mark as read
-    this.markRoomAsRead(room.id);
+    try {
+      this.chatService.setCurrentRoom(room);
+      this.selectedRoomId = room.id;
+      this.showMenu = false;
+      
+      // Update URL with room ID
+      this.router.navigate(['/chat', room.id]);
+      
+      // Mark as read
+      this.markRoomAsRead(room.id);
+    } catch (error) {
+      console.error('Error selecting room:', error);
+      this.errorMessage = 'Failed to select chat room';
+    }
   }
 
   selectRoomById(roomId: number): void {
@@ -173,7 +189,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (room) {
       this.selectRoom(room);
     } else {
-      // If room not found in current list, reload rooms
       console.log('Room not found in current list, reloading rooms...');
       this.loadChatRooms();
     }
@@ -191,8 +206,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       content: this.newMessage.trim(),
       messageType: 'TEXT'
     };
-
-    console.log('📤 Sending message:', messageData);
 
     this.chatService.sendMessage(messageData).subscribe({
       next: (response: ApiResponse<ChatMessage>) => {
@@ -272,14 +285,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   viewProfile(): void {
     this.showMenu = false;
     console.log('View profile clicked');
-    // Implement view profile logic
-    // this.router.navigate(['/profile', userId]);
   }
 
   muteChat(): void {
     this.showMenu = false;
     console.log('Mute chat clicked');
-    // Implement mute chat logic
   }
 
   clearChat(): void {
@@ -312,7 +322,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
             this.currentRoom = null;
             this.selectedRoomId = null;
             this.messages = [];
-            this.loadChatRooms(); // Reload rooms list
+            this.loadChatRooms();
             this.router.navigate(['/chat']);
           },
           error: (error: any) => {
@@ -335,11 +345,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   getRoomDisplayName(room: ChatRoom): string {
-    return this.chatService.generateRoomDisplayName(room, this.currentUserId);
+    return this.chatService.generateRoomDisplayName(room, this.currentUserId) || 'Unknown User';
   }
 
   getOtherParticipants(room: ChatRoom): User[] {
-    return this.chatService.getOtherParticipants(room, this.currentUserId);
+    return this.chatService.getOtherParticipants(room, this.currentUserId) || [];
   }
 
   isMyMessage(message: ChatMessage): boolean {
@@ -358,7 +368,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       
       if (diffInHours < 24) {
         return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      } else if (diffInHours < 168) { // 7 days
+      } else if (diffInHours < 168) {
         return date.toLocaleDateString('en-US', { weekday: 'short' });
       } else {
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -408,7 +418,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   getRoomTypeDisplay(room: ChatRoom): string {
     if (!room.participantType) return 'Chat';
     
-    const participantType = room.participantType as 'TENANT_LANDLORD' | 'TENANT_CARETAKER' | 'LANDLORD_CARETAKER' | string;
+    const participantType = room.participantType as string;
     
     switch(participantType) {
       case 'TENANT_LANDLORD': return 'Tenant ↔ Landlord';

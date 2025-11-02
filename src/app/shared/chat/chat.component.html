@@ -1,7 +1,7 @@
-
+<!-- src/app/shared/chat/chat.component.html -->
 <div class="chat-container">
   <div class="chat-layout">
-  
+    <!-- Sidebar -->
     <div class="sidebar" [class.sidebar-collapsed]="!isSidebarOpen">
       <div class="sidebar-header">
         <div class="sidebar-title">
@@ -30,10 +30,9 @@
              (click)="selectRoom(room)">
           <div class="room-avatar">
             <div class="avatar-placeholder">
-              {{ getRoomDisplayName(room).charAt(0) }}
+              {{ getRoomDisplayName(room)?.charAt(0) || 'U' }}
             </div>
-            <!-- Remove or comment out online indicator until interface is fixed -->
-            <!-- <div class="online-indicator" *ngIf="getOtherParticipants(room)[0]?.isOnline"></div> -->
+            <div class="online-indicator" *ngIf="getOtherParticipants(room)[0]?.isOnline"></div>
           </div>
           
           <div class="room-info">
@@ -62,15 +61,14 @@
         <div class="chat-user-info">
           <div class="user-avatar">
             <div class="avatar-placeholder">
-              {{ getRoomDisplayName(currentRoom).charAt(0) }}
+              {{ getRoomDisplayName(currentRoom)?.charAt(0) || 'U' }}
             </div>
           </div>
           <div class="user-details">
             <h3 class="user-name">{{ getRoomDisplayName(currentRoom) }}</h3>
             <div class="user-status">
-              <!-- Remove or comment out status dots until interface is fixed -->
-              <!-- <span class="status-dot online" *ngIf="getOtherParticipants(currentRoom)[0]?.isOnline">Online</span>
-              <span class="status-dot" *ngIf="!getOtherParticipants(currentRoom)[0]?.isOnline">Offline</span> -->
+              <span class="status-dot online" *ngIf="getOtherParticipants(currentRoom)[0]?.isOnline">Online</span>
+              <span class="status-dot" *ngIf="!getOtherParticipants(currentRoom)[0]?.isOnline">Offline</span>
               <span class="user-role">{{ getParticipantRole(getOtherParticipants(currentRoom)[0]) }}</span>
             </div>
           </div>
@@ -122,10 +120,9 @@
               <div class="message-footer">
                 <span class="message-time">{{ formatMessageTime(message.timestamp) }}</span>
                 
-                <!-- Remove or comment out message status until interface is fixed -->
-                <!-- <span *ngIf="message.status === 'SENT'" class="status-icon">✓</span>
+                <span *ngIf="message.status === 'SENT'" class="status-icon">✓</span>
                 <span *ngIf="message.status === 'DELIVERED'" class="status-icon">✓✓</span>
-                <span *ngIf="message.status === 'READ'" class="status-icon read">✓✓</span> -->
+                <span *ngIf="message.status === 'READ'" class="status-icon read">✓✓</span>
                 
                 <span *ngIf="isMyMessage(message)" class="message-actions">
                   <button class="action-btn" (click)="deleteMessage(message.id)" title="Delete message">
@@ -145,7 +142,7 @@
             <span></span>
           </div>
           <span class="typing-text">
-            {{ typingUsers[0].name }} is typing...
+            {{ typingUsers[0]?.name }} is typing...
           </span>
         </div>
       </div>

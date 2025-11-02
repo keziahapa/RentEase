@@ -1,11 +1,10 @@
-
 export interface User {
   id: number;
   name: string;
   email: string;
   role: string;
   avatar?: string;
-  isOnline?: boolean; 
+  isOnline?: boolean;
 }
 
 export interface ChatMessage {
@@ -17,9 +16,8 @@ export interface ChatMessage {
   timestamp: string;
   read: boolean;
   sender?: User;
-  status?: 'SENT' | 'DELIVERED' | 'READ'; 
+  status?: 'SENT' | 'DELIVERED' | 'READ';
 }
-
 
 export interface ChatRoom {
   id: number;
