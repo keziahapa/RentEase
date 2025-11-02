@@ -119,14 +119,11 @@ export const routes: Routes = [
       { path: 'financials', component: FinancialsComponent },
       { path: 'financials/invoices', component: InvoicesComponent },
       { path: 'financials/payments', component: PaymentComponent },
-<<<<<<< HEAD
       { path: 'maintenance', component: LandlordMaintenanceComponent },
       { path: 'tenants', component: LandlordTenantsComponent },
       { path: 'messages', component: LandlordMessagesComponent },
       { path: 'marketplace', component: LandlordMarketplaceComponent },
-=======
       { path: 'chat', component: LandlordChatComponent },
->>>>>>> 089b000034f1d0ee77e06018a018d362f2911660
       { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' }
     ]
   },

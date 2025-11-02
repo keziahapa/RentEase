@@ -8,12 +8,8 @@ import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 import { CaretakerService } from '../../../services/caretaker.service';
-<<<<<<< HEAD
-=======
 import { CaretakerOverviewComponent } from './components/caretaker-overview/caretaker-overview.component';
 import { CaretakerChatComponent } from './components/caretaker-chat/caretaker-chat.component';
-
->>>>>>> 089b000034f1d0ee77e06018a018d362f2911660
 
 @Component({
   selector: 'app-caretaker-dashboard',
@@ -24,13 +20,9 @@ import { CaretakerChatComponent } from './components/caretaker-chat/caretaker-ch
     MatDialogModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-<<<<<<< HEAD
-    RouterOutlet
-=======
     RouterOutlet,
     CaretakerOverviewComponent,
     CaretakerChatComponent
->>>>>>> 089b000034f1d0ee77e06018a018d362f2911660
   ],
   templateUrl: './caretaker-dashboard.component.html',
   styleUrls: ['./caretaker-dashboard.component.scss']

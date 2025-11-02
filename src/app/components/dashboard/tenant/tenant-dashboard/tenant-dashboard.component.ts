@@ -9,13 +9,9 @@ import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { TenantService } from '../../../../services/tenant.service';
-<<<<<<< HEAD
 import { CommunicationService } from '../../../../services/communication.service';
-=======
 import { DashboardOverviewComponent } from '../dashboard-overview/dashboard-overview.component';
 import { TenantChatComponent } from '../tenant-chat/tenant-chat.component';
->>>>>>> 089b000034f1d0ee77e06018a018d362f2911660
-
 
 @Component({
   selector: 'app-tenant-dashboard',
@@ -26,13 +22,9 @@ import { TenantChatComponent } from '../tenant-chat/tenant-chat.component';
     MatDialogModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-<<<<<<< HEAD
-    RouterOutlet
-=======
     RouterOutlet,
     DashboardOverviewComponent,
     TenantChatComponent
->>>>>>> 089b000034f1d0ee77e06018a018d362f2911660
   ],
   templateUrl: './tenant-dashboard.component.html',
   styleUrls: ['./tenant-dashboard.component.scss']

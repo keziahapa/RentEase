@@ -8,12 +8,8 @@ import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
 import { PropertyService } from '../../../../services/property.service';
-<<<<<<< HEAD
-=======
 import { LandlordDashboardHomeComponent } from './home/landlord-dashboard-home.component';
 import { LandlordChatComponent } from './landlord-chat/landlord-chat.component';
-
->>>>>>> 089b000034f1d0ee77e06018a018d362f2911660
 
 @Component({
   selector: 'app-landlord-dashboard',
@@ -24,13 +20,9 @@ import { LandlordChatComponent } from './landlord-chat/landlord-chat.component';
     MatDialogModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-<<<<<<< HEAD
-    RouterOutlet
-=======
     RouterOutlet,
     LandlordDashboardHomeComponent,
     LandlordChatComponent
->>>>>>> 089b000034f1d0ee77e06018a018d362f2911660
   ],
   templateUrl: './landlord-dashboard.html',
   styleUrls: ['./landlord-dashboard.scss']
