@@ -224,7 +224,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       return;
     }
 
-    // 🎯 UPDATED: Only landlords go directly to dashboard, others go to waiting pages
+    // 🎯 UPDATED: All user types go directly to their respective dashboards
     await this.navigateBasedOnUserRole(userRole);
   }
 
@@ -233,10 +233,19 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     
     console.log('🔍 Navigating based on role:', normalizedRole);
     
-    // 🎯 UPDATED LOGIC: Only landlords go directly to dashboard
-    if (normalizedRole === 'LANDLORD') {
-      // Landlords go directly to dashboard
-      await this.router.navigate(['/landlord-dashboard'], { 
+    // 🎯 UPDATED LOGIC: All users go directly to their dashboards
+    const routeMap: { [key: string]: string } = {
+      'LANDLORD': '/landlord-dashboard',
+      'TENANT': '/tenant-dashboard',
+      'CARETAKER': '/caretaker-dashboard',
+      'BUSINESS': '/business-dashboard',
+      'ADMIN': '/admin-dashboard/overview'
+    };
+
+    const targetRoute = routeMap[normalizedRole];
+
+    if (targetRoute) {
+      await this.router.navigate([targetRoute], { 
         replaceUrl: true,
         state: { 
           email: this.email,
@@ -244,29 +253,6 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
           phoneNumber: this.phoneNumber
         }
       });
-    } else if (normalizedRole === 'TENANT' || normalizedRole === 'CARETAKER') {
-      // Tenants & Caretakers go to waiting for landlord page
-      await this.router.navigate(['/waiting-landlord'], { 
-        replaceUrl: true,
-        state: { 
-          email: this.email,
-          userType: userRole,
-          phoneNumber: this.phoneNumber
-        }
-      });
-    } else if (normalizedRole === 'BUSINESS') {
-      // Businesses go to waiting for admin page
-      await this.router.navigate(['/waiting-admin'], { 
-        replaceUrl: true,
-        state: { 
-          email: this.email,
-          userType: userRole,
-          phoneNumber: this.phoneNumber
-        }
-      });
-    } else if (normalizedRole === 'ADMIN') {
-      // Admins go directly to dashboard (no waiting)
-      await this.router.navigate(['/admin-dashboard/overview'], { replaceUrl: true });
     } else {
       // Fallback for unknown roles
       console.error('❌ Unknown role for navigation:', normalizedRole);
@@ -289,7 +275,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       this.showMessage('Account already verified. Redirecting...', 'info');
       const userRole = this.userType || '';
       
-      // 🎯 UPDATED: For already verified accounts, use the same navigation logic
+      // 🎯 UPDATED: For already verified accounts, use the same direct navigation logic
       this.navigateBasedOnUserRole(userRole);
     } else {
       this.showMessage(error.message || 'Verification failed. Please try again.', 'error');
