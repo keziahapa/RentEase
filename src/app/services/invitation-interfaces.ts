@@ -78,6 +78,7 @@ export interface InvitationDetails {
   expiresAt: string;
   role?: string;
   unitNumber?: string;
+   invitedBy?: string;
 }
 
 

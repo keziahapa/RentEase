@@ -66,8 +66,9 @@
           <div class="detail-item">
             <strong>Role:</strong> {{ getRoleName() }}
           </div>
+          <!-- FIXED: Use inviterName instead of invitedBy -->
           <div class="detail-item">
-            <strong>Invited by:</strong> {{ invitationDetails.invitedBy }}
+            <strong>Invited by:</strong> {{ invitationDetails.inviterName }}
           </div>
         </div>
 
