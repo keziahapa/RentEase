@@ -9,7 +9,12 @@ import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { TenantService } from '../../../../services/tenant.service';
+<<<<<<< HEAD
 import { CommunicationService } from '../../../../services/communication.service';
+=======
+import { DashboardOverviewComponent } from '../dashboard-overview/dashboard-overview.component';
+import { TenantChatComponent } from '../tenant-chat/tenant-chat.component';
+>>>>>>> 089b000034f1d0ee77e06018a018d362f2911660
 
 
 @Component({
@@ -21,7 +26,13 @@ import { CommunicationService } from '../../../../services/communication.service
     MatDialogModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
+<<<<<<< HEAD
     RouterOutlet
+=======
+    RouterOutlet,
+    DashboardOverviewComponent,
+    TenantChatComponent
+>>>>>>> 089b000034f1d0ee77e06018a018d362f2911660
   ],
   templateUrl: './tenant-dashboard.component.html',
   styleUrls: ['./tenant-dashboard.component.scss']
@@ -239,6 +250,12 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/tenant-dashboard/profile/edit']);
   }
 
+  navigateToChat(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/tenant-dashboard/chat']);
+  }
+
   private loadProfileImage(): void {
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
@@ -325,6 +342,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
       'maintenance': ['/tenant-dashboard/maintenance'],
       'documents': ['/tenant-dashboard/documents'],
       'messages': ['/tenant-dashboard/messages'],
+      'chat': ['/tenant-dashboard/chat'],
       'deposit': ['/tenant-dashboard/deposit'],
       'profile': ['/tenant-dashboard/profile/view']
     };
@@ -352,6 +370,8 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'documents';
     } else if (url.includes('/messages')) {
       this.currentSection = 'messages';
+    } else if (url.includes('/chat')) {
+      this.currentSection = 'chat';
     } else if (url.includes('/deposit')) {
       this.currentSection = 'deposit';
     } else {

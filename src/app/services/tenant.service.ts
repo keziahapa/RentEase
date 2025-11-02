@@ -29,6 +29,20 @@ export class TenantService {
     );
   }
 
+  getCurrentProperty(): Observable<any> {
+    // Mock property data - replace with actual API when ready
+    const mockProperty = {
+      success: true,
+      data: {
+        id: 1,
+        name: 'Sunrise Apartments',
+        address: '123 Main Street, Nairobi',
+        landlordName: 'John Doe'
+      }
+    };
+    return of(mockProperty);
+  }
+
   submitMaintenanceRequest(request: any): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
@@ -77,12 +91,17 @@ export class TenantService {
 
   private getDefaultDashboardData(): any {
     return {
-      propertyAddress: '123 Main Street, Nairobi',
-      landlordName: 'John Doe',
-      depositAmount: 50000,
-      rentAmount: 25000,
-      nextRentDueDate: '2024-02-01',
-      unreadNotifications: 3
+      success: true,
+      data: {
+        propertyAddress: '123 Main Street, Nairobi',
+        landlordName: 'John Doe',
+        depositAmount: 50000,
+        currentRent: 25000,
+        paymentStatus: 'Current',
+        daysUntilDue: 15,
+        openMaintenance: 0,
+        leaseEndDays: 120
+      }
     };
   }
 

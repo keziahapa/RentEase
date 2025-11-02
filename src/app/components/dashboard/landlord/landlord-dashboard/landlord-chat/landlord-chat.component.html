@@ -1,0 +1,138 @@
+<div class="chat-container">
+  <div class="chat-sidebar">
+    <div class="sidebar-header">
+      <h3>Messages</h3>
+      <div class="chat-actions">
+        <button class="btn-primary" (click)="openNewChatModal('tenant')">
+          Chat with Tenant
+        </button>
+        <button class="btn-secondary" (click)="openNewChatModal('caretaker')">
+          Chat with Caretaker
+        </button>
+      </div>
+    </div>
+
+    <div class="rooms-list">
+      <div *ngIf="isLoading" class="loading">Loading chats...</div>
+      
+      <div *ngFor="let room of chatRooms" 
+           class="room-item" 
+           [class.active]="currentRoom?.id === room.id"
+           (click)="selectRoom(room)">
+        <div class="room-avatar">
+          <img [src]="getOtherParticipants(room)[0]?.avatar || 'assets/default-avatar.png'" 
+               [alt]="getRoomDisplayName(room)"
+               onerror="this.src='assets/default-avatar.png'">
+        </div>
+        <div class="room-info">
+          <div class="room-name">{{ getRoomDisplayName(room) }}</div>
+          <div class="last-message">{{ room.lastMessage?.content || 'No messages yet' }}</div>
+          <div class="room-type">{{ room.type.replace('_', ' ') }}</div>
+          <div class="property-name" *ngIf="room.propertyName">
+            {{ room.propertyName }}
+          </div>
+        </div>
+        <div class="room-meta">
+          <div class="timestamp" *ngIf="room.lastMessage">
+            {{ room.lastMessage.timestamp | date:'shortTime' }}
+          </div>
+          <div class="unread-count" *ngIf="room.unreadCount > 0">
+            {{ room.unreadCount }}
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoading && chatRooms.length === 0" class="no-chats">
+        No chats yet. Start a new conversation!
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-main">
+    <div *ngIf="!currentRoom" class="no-chat-selected">
+      <div class="placeholder">
+        <h3>Select a chat to start messaging</h3>
+        <p>Choose a conversation from the sidebar or start a new one</p>
+      </div>
+    </div>
+
+    <div *ngIf="currentRoom" class="chat-window">
+      <div class="chat-header">
+        <div class="chat-partner-info">
+          <div class="partner-avatar">
+            <img [src]="getOtherParticipants(currentRoom)[0]?.avatar || 'assets/default-avatar.png'" 
+                 [alt]="getRoomDisplayName(currentRoom)"
+                 onerror="this.src='assets/default-avatar.png'">
+          </div>
+          <div class="partner-details">
+            <h4>{{ getRoomDisplayName(currentRoom) }}</h4>
+            <span class="partner-role">{{ getOtherParticipants(currentRoom)[0]?.role }}</span>
+            <span class="property-badge" *ngIf="currentRoom.propertyName">
+              {{ currentRoom.propertyName }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="messages-container">
+        <div *ngIf="messages.length === 0" class="no-messages">
+          <p>No messages yet</p>
+          <p class="hint">Start the conversation by sending a message</p>
+        </div>
+        
+        <div *ngFor="let message of messages" 
+             class="message" 
+             [class.sent]="message.senderId === getCurrentUserId()"
+             [class.received]="message.senderId !== getCurrentUserId()">
+          <div class="message-content">
+            <div class="message-text">{{ message.content }}</div>
+            <div class="message-meta">
+              <span class="message-time">{{ message.timestamp | date:'shortTime' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="message-input">
+        <div class="input-container">
+          <input type="text" 
+                 [(ngModel)]="newMessage" 
+                 placeholder="Type your message..."
+                 (keyup.enter)="sendMessage()">
+          <button (click)="sendMessage()" [disabled]="!newMessage.trim()">
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Chat Modal -->
+  <div *ngIf="showNewChatModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Start New Chat</h3>
+        <button class="close-btn" (click)="closeNewChatModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Select Property:</label>
+          <select [(ngModel)]="selectedPropertyId" class="form-control">
+            <option [value]="null">Choose a property</option>
+            <option *ngFor="let property of properties" [value]="property.id">
+              {{ property.name }}
+            </option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-primary" 
+                  (click)="startNewChat()" 
+                  [disabled]="!selectedPropertyId">
+            Start {{ newChatType === 'tenant' ? 'Tenant' : 'Caretaker' }} Chat
+          </button>
+          <button class="btn-secondary" (click)="closeNewChatModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

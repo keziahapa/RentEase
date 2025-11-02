@@ -44,6 +44,14 @@
         <span>Maintenance</span>
       </div>
 
+      <!-- ADDED: Chat Navigation Item -->
+      <div class="nav-item" 
+           [class.active]="isNavActive('chat')" 
+           (click)="navigateToSection('chat')">
+        <mat-icon class="nav-icon">chat</mat-icon>
+        <span>Chat</span>
+      </div>
+
       <div class="nav-item" 
            [class.active]="isNavActive('messages')" 
            (click)="navigateToSection('messages')">

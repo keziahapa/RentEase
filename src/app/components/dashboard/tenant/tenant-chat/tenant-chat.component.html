@@ -1,0 +1,135 @@
+<div class="chat-container">
+  <div class="chat-sidebar">
+    <div class="sidebar-header">
+      <h3>Messages</h3>
+      <div class="property-info" *ngIf="currentProperty">
+        <small>Property: {{ getPropertyName() }}</small>
+      </div>
+      <div class="chat-actions">
+        <button class="btn-primary" 
+                (click)="startLandlordChat()" 
+                [disabled]="!canStartChat()"
+                title="Start chat with your landlord">
+          Chat with Landlord
+        </button>
+        <button class="btn-secondary" 
+                (click)="startCaretakerChat()" 
+                [disabled]="!canStartChat()"
+                title="Start chat with property caretaker">
+          Chat with Caretaker
+        </button>
+      </div>
+    </div>
+
+    <div class="rooms-list">
+      <div *ngIf="isLoading" class="loading">
+        <div class="spinner"></div>
+        Loading your chats...
+      </div>
+      
+      <div *ngFor="let room of chatRooms" 
+           class="room-item" 
+           [class.active]="currentRoom?.id === room.id"
+           [class.maintenance-request]="room.lastMessage && isMaintenanceRelated(room.lastMessage)"
+           [class.rent-reminder]="room.lastMessage && isRentRelated(room.lastMessage)"
+           (click)="selectRoom(room)">
+        <div class="room-avatar">
+          <img [src]="getOtherParticipants(room)[0]?.avatar || 'assets/default-avatar.png'" 
+               [alt]="getRoomDisplayName(room)"
+               onerror="this.src='assets/default-avatar.png'">
+        </div>
+        <div class="room-info">
+          <div class="room-name">{{ getRoomDisplayName(room) }}</div>
+          <div class="last-message" [title]="room.lastMessage?.content">
+            {{ room.lastMessage?.content || 'No messages yet' }}
+          </div>
+          <div class="room-type">{{ room.type.replace('_', ' ') }}</div>
+        </div>
+        <div class="room-meta">
+          <div class="timestamp" *ngIf="room.lastMessage" [title]="room.lastMessage.timestamp">
+            {{ formatMessageTime(room.lastMessage.timestamp) }}
+          </div>
+          <div class="unread-count" *ngIf="room.unreadCount > 0">
+            {{ room.unreadCount }}
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoading && chatRooms.length === 0" class="no-chats">
+        <div class="no-chats-icon">💬</div>
+        <p>No active chats yet</p>
+        <p class="hint">Start a conversation with your landlord or caretaker</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-main">
+    <div *ngIf="!currentRoom" class="no-chat-selected">
+      <div class="placeholder">
+        <div class="welcome-icon">👋</div>
+        <h3>Welcome to Messages</h3>
+        <p>Select a chat to start messaging or start a new conversation</p>
+        <div class="quick-actions" *ngIf="canStartChat()">
+          <button class="btn-primary" (click)="startLandlordChat()">
+            Message Landlord
+          </button>
+          <button class="btn-secondary" (click)="startCaretakerChat()">
+            Message Caretaker
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="currentRoom" class="chat-window">
+      <div class="chat-header">
+        <div class="chat-partner-info">
+          <div class="partner-avatar">
+            <img [src]="getOtherParticipants(currentRoom)[0]?.avatar || 'assets/default-avatar.png'" 
+                 [alt]="getRoomDisplayName(currentRoom)"
+                 onerror="this.src='assets/default-avatar.png'">
+          </div>
+          <div class="partner-details">
+            <h4>{{ getRoomDisplayName(currentRoom) }}</h4>
+            <span class="partner-role">{{ getOtherParticipants(currentRoom)[0]?.role }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="messages-container">
+        <div *ngIf="messages.length === 0" class="no-messages">
+          <p>No messages yet</p>
+          <p class="hint">Start the conversation by sending a message</p>
+        </div>
+        
+        <div *ngFor="let message of messages" 
+             class="message" 
+             [class.sent]="message.senderId === getCurrentUserId()"
+             [class.received]="message.senderId !== getCurrentUserId()"
+             [class.maintenance-message]="isMaintenanceRelated(message)"
+             [class.rent-message]="isRentRelated(message)">
+          <div class="message-content">
+            <div class="message-text">{{ message.content }}</div>
+            <div class="message-meta">
+              <span class="message-time">{{ formatMessageTime(message.timestamp) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="message-input">
+        <div class="input-container">
+          <input type="text" 
+                 [(ngModel)]="newMessage" 
+                 placeholder="Type your message about maintenance, rent, or other concerns..."
+                 (keyup.enter)="sendMessage()"
+                 [disabled]="!currentRoom">
+          <button (click)="sendMessage()" 
+                  [disabled]="!newMessage.trim() || !currentRoom"
+                  title="Send message">
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

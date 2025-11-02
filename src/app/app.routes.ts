@@ -56,7 +56,9 @@ import { AdminOverviewComponent } from './components/dashboard/admin/admin-dashb
 import { BusinessListComponent } from './components/dashboard/admin/admin-dashboard/components/business-list/business-list.component';
 import { AcceptInvitationComponent } from './components/dashboard/landlord/landlord-dashboard/invite-dialog/accept-invitation/accept-invitation.component';
 import { WaitingLandlordComponent } from './components/auth/waiting-landlord/waiting-landlord.component';
-
+import { LandlordChatComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-chat/landlord-chat.component';
+import { TenantChatComponent } from './components/dashboard/tenant/tenant-chat/tenant-chat.component';
+import { CaretakerChatComponent } from './components/dashboard/caretaker/components/caretaker-chat/caretaker-chat.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent, pathMatch: 'full' },
@@ -85,6 +87,7 @@ export const routes: Routes = [
       { path: 'maintenance', component: MaintenanceComponent },
       { path: 'documents', component: DocumentsComponent },
       { path: 'messages', component: MessagesComponent },
+      { path: 'chat', component: TenantChatComponent },
       { path: 'reviews', component: ReviewComponent },
       { path: 'settings', component: SettingsComponent },
       { 
@@ -116,10 +119,14 @@ export const routes: Routes = [
       { path: 'financials', component: FinancialsComponent },
       { path: 'financials/invoices', component: InvoicesComponent },
       { path: 'financials/payments', component: PaymentComponent },
+<<<<<<< HEAD
       { path: 'maintenance', component: LandlordMaintenanceComponent },
       { path: 'tenants', component: LandlordTenantsComponent },
       { path: 'messages', component: LandlordMessagesComponent },
       { path: 'marketplace', component: LandlordMarketplaceComponent },
+=======
+      { path: 'chat', component: LandlordChatComponent },
+>>>>>>> 089b000034f1d0ee77e06018a018d362f2911660
       { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' }
     ]
   },
@@ -166,6 +173,7 @@ export const routes: Routes = [
         ]
       },
       { path: 'messages', component: CaretakerOverviewComponent },
+      { path: 'chat', component: CaretakerChatComponent },
       { path: 'reports', component: CaretakerOverviewComponent },
       { 
         path: 'profile',
