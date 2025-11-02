@@ -1,6 +1,4 @@
-// invitation-interfaces.ts
 
-// Dialog Data Interface
 export interface InviteDialogData {
   type: 'tenant' | 'caretaker';
   propertyId: number;
@@ -8,7 +6,6 @@ export interface InviteDialogData {
   availableUnits?: AvailableUnit[];
 }
 
-// Unit Interface
 export interface AvailableUnit {
   id: string;
   unitNumber: string;
@@ -20,7 +17,7 @@ export interface AvailableUnit {
   bathrooms?: number;
 }
 
-// Request Interfaces
+
 export interface InviteTenantRequest {
   tenantEmail: string;
   propertyId: number;
@@ -33,7 +30,7 @@ export interface InviteCaretakerRequest {
   propertyId: number;
 }
 
-// Response Interfaces
+
 export interface InvitationResponse {
   success: boolean;
   message: string;
@@ -53,7 +50,7 @@ export interface InvitationListResponse {
   data?: any[];
 }
 
-// Invitation Interfaces
+
 export interface Invitation {
   id: string;
   email: string;
@@ -79,9 +76,11 @@ export interface InvitationDetails {
   status: string;
   createdAt: string;
   expiresAt: string;
+  role?: string;
+  unitNumber?: string;
 }
 
-// Request Body Interfaces
+
 export interface AcceptInvitationRequest {
   invitationToken: string;
 }
@@ -94,7 +93,7 @@ export interface CancelInvitationRequest {
   invitationId: string;
 }
 
-// Dialog Result Interface
+
 export interface InviteDialogResult {
   success: boolean;
   email: string;

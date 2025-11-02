@@ -9,7 +9,8 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 import { CaretakerService } from '../../../services/caretaker.service';
 import { CaretakerOverviewComponent } from './components/caretaker-overview/caretaker-overview.component';
-import { CaretakerChatComponent } from './components/caretaker-chat/caretaker-chat.component';
+import { ChatComponent } from '../../../shared/chat/chat.component';
+
 
 @Component({
   selector: 'app-caretaker-dashboard',
@@ -22,7 +23,7 @@ import { CaretakerChatComponent } from './components/caretaker-chat/caretaker-ch
     MatProgressSpinnerModule,
     RouterOutlet,
     CaretakerOverviewComponent,
-    CaretakerChatComponent
+    ChatComponent
   ],
   templateUrl: './caretaker-dashboard.component.html',
   styleUrls: ['./caretaker-dashboard.component.scss']

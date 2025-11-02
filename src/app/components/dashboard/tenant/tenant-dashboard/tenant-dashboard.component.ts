@@ -11,7 +11,8 @@ import { AuthService } from '../../../../services/auth.service';
 import { TenantService } from '../../../../services/tenant.service';
 import { CommunicationService } from '../../../../services/communication.service';
 import { DashboardOverviewComponent } from '../dashboard-overview/dashboard-overview.component';
-import { TenantChatComponent } from '../tenant-chat/tenant-chat.component';
+import { ChatComponent } from '../../../../shared/chat/chat.component';
+
 
 @Component({
   selector: 'app-tenant-dashboard',
@@ -24,7 +25,7 @@ import { TenantChatComponent } from '../tenant-chat/tenant-chat.component';
     MatProgressSpinnerModule,
     RouterOutlet,
     DashboardOverviewComponent,
-    TenantChatComponent
+    ChatComponent
   ],
   templateUrl: './tenant-dashboard.component.html',
   styleUrls: ['./tenant-dashboard.component.scss']

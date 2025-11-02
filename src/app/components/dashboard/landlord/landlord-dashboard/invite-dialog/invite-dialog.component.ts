@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -23,6 +23,7 @@ import {
   selector: 'app-invite-dialog',
   templateUrl: './invite-dialog.component.html',
   styleUrls: ['./invite-dialog.component.scss'],
+  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -41,12 +42,13 @@ export class InviteDialogComponent implements OnInit {
   loading = false;
   availableUnits: AvailableUnit[] = [];
 
-  constructor(
-    private fb: FormBuilder,
-    private invitationService: InvitationService,
-    public dialogRef: MatDialogRef<InviteDialogComponent, InviteDialogResult>,
-    @Inject(MAT_DIALOG_DATA) public data: InviteDialogData
-  ) {
+  // Use inject() function instead of constructor injection
+  private fb = inject(FormBuilder);
+  private invitationService = inject(InvitationService);
+  public dialogRef = inject(MatDialogRef<InviteDialogComponent, InviteDialogResult>);
+  public data = inject<InviteDialogData>(MAT_DIALOG_DATA);
+
+  constructor() {
     this.inviteForm = this.createForm();
   }
 

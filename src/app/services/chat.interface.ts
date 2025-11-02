@@ -1,77 +1,80 @@
-export interface ChatRoom {
-  id: number;
-  name: string;
-  type: 'TENANT_LANDLORD' | 'TENANT_CARETAKER' | 'LANDLORD_CARETAKER' | 'GROUP';
-  participants: ChatParticipant[];
-  lastMessage?: ChatMessage;
-  unreadCount: number;
-  createdAt: string;
-  updatedAt: string;
-  propertyId?: number;
-  propertyName?: string;
-}
-
+// chat.interface.ts
 export interface ChatParticipant {
   id: number;
   name: string;
   email: string;
   role: string;
-  avatar?: string;
-  isOnline: boolean;
+  profilePicture?: string;
+  isOnline?: boolean;
   lastSeen?: string;
 }
 
 export interface ChatMessage {
   id: number;
-  roomId: number;
-  senderId: number;
-  senderName: string;
-  senderRole: string;
-  senderAvatar?: string;
   content: string;
+  timestamp: string;
+  senderId: number;
+  chatRoomId: number;
   messageType: 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM';
+  status: 'SENT' | 'DELIVERED' | 'READ';
+  isEdited: boolean;
+  isDeleted: boolean;
+  replyTo?: number;
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;
-  isRead: boolean;
-  isDelivered: boolean;
-  timestamp: string;
-  reactions?: MessageReaction[];
-  replyTo?: number;
-  deleted: boolean;
 }
 
-export interface MessageReaction {
-  userId: number;
-  userName: string;
-  emoji: string;
-  timestamp: string;
+export interface ChatRoom {
+  id: number;
+  name?: string;
+  propertyId: number;
+  participantType: 'TENANT_LANDLORD' | 'TENANT_CARETAKER' | 'LANDLORD_CARETAKER';
+  participants: ChatParticipant[];
+  lastMessage?: ChatMessage;
+  unreadCount: number;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
 }
 
 export interface CreateMessageRequest {
-  content: string;
   chatRoomId: number;
+  content: string;
+  messageType: 'TEXT' | 'IMAGE' | 'FILE';
+  replyTo?: number;
+  file?: File;
 }
 
 export interface BatchDeleteRequest {
   messageIds: number[];
 }
 
-export interface ChatHealth {
-  status: string;
-  timestamp: string;
-  activeConnections: number;
-  version: string;
+export interface ChatRoomResponse {
+  success: boolean;
+  data: ChatRoom[];
+  message: string;
+}
+
+export interface ChatMessageResponse {
+  success: boolean;
+  data: ChatMessage[];
+  message: string;
+}
+
+export interface SingleChatRoomResponse {
+  success: boolean;
+  data: ChatRoom;
+  message: string;
+}
+
+export interface BasicResponse {
+  success: boolean;
+  message: string;
 }
 
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
-  message?: string;
+  message: string;
 }
-
-export interface ChatRoomResponse extends ApiResponse<ChatRoom[]> {}
-export interface ChatMessageResponse extends ApiResponse<ChatMessage[]> {}
-export interface SingleChatRoomResponse extends ApiResponse<ChatRoom> {}
-export interface ChatHealthResponse extends ApiResponse<ChatHealth> {}
-export interface BasicResponse extends ApiResponse<null> {}

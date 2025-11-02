@@ -1,233 +1,156 @@
-.accept-invitation-container {
-  max-width: 500px;
-  margin: 2rem auto;
-  padding: 0 1rem;
-
-  .header {
-    text-align: center;
-    margin-bottom: 2rem;
-    
-    h1 {
-      color: #1976d2;
-      margin-bottom: 0.5rem;
-      font-size: 2rem;
-    }
-  }
+.invitation-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .invitation-card {
-  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
   text-align: center;
-  
-  mat-card-content {
-    min-height: 300px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
+  padding: 40px 30px;
 }
 
-.loading-section {
-  padding: 2rem;
-  
-  p {
-    margin-top: 1rem;
-    color: #666;
-    font-size: 1.1rem;
-  }
+.loading-state, .processing-state, .success-state, .error-state, .invitation-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
 }
 
-.auth-required-section {
-  padding: 1rem;
+.error-icon, .success-icon, .invitation-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+}
+
+.error-icon {
+  color: #f44336;
+}
+
+.success-icon {
+  color: #4caf50;
+}
+
+.invitation-icon {
+  color: #2196f3;
+}
+
+.tenant-icon {
+  color: #4caf50; // Green for tenant
+}
+
+.caretaker-icon {
+  color: #ff9800; // Orange for caretaker
+}
+
+.invitation-description {
+  font-size: 16px;
+  line-height: 1.5;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.invitation-details {
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: left;
+  width: 100%;
   
-  .auth-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-  }
-  
-  h3 {
-    color: #1976d2;
-    margin-bottom: 0.5rem;
-  }
-  
-  p {
-    color: #666;
-    margin-bottom: 1.5rem;
-    font-size: 1.1rem;
-  }
-  
-  .invitation-info {
-    background: #f5f5f5;
-    padding: 1rem;
-    border-radius: 8px;
-    margin: 1.5rem 0;
-    text-align: left;
+  .detail-item {
+    margin: 12px 0;
+    padding: 8px 0;
+    border-bottom: 1px solid #e0e0e0;
     
-    p {
-      margin: 0.5rem 0;
-      color: #333;
+    &:last-child {
+      border-bottom: none;
     }
   }
   
-  .auth-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin: 2rem 0;
-    
-    .auth-btn {
-      padding: 0.8rem 1.5rem;
-      font-size: 1rem;
-      
-      mat-icon {
-        margin-right: 0.5rem;
-      }
-    }
-  }
-  
-  .auth-note {
-    background: #e3f2fd;
-    padding: 1rem;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    
-    mat-icon {
-      color: #1976d2;
-      font-size: 1.2rem;
-      width: 1.2rem;
-      height: 1.2rem;
-    }
-    
-    span {
-      color: #1976d2;
-      font-size: 0.9rem;
-    }
+  strong {
+    color: #333;
+    display: inline-block;
+    width: 100px;
   }
 }
 
-.processing-section {
-  padding: 2rem;
-  
-  h3 {
-    margin: 1rem 0 0.5rem 0;
-    color: #1976d2;
-  }
-  
-  p {
-    color: #666;
-  }
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  margin: 20px 0;
 }
 
-.success-section {
-  padding: 2rem;
-  
-  .success-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-  }
-  
-  h3 {
-    color: #2e7d32;
-    margin-bottom: 1rem;
-  }
-  
-  p {
-    color: #666;
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-  }
-  
-  .success-details {
-    background: #e8f5e8;
-    padding: 1rem;
-    border-radius: 8px;
-    margin: 1.5rem 0;
-    text-align: left;
-    
-    p {
-      margin: 0.5rem 0;
-      color: #2e7d32;
-    }
-  }
-  
-  .redirect-message {
-    color: #666;
-    font-style: italic;
-    margin: 1.5rem 0;
-  }
-  
-  .success-actions {
-    margin-top: 1.5rem;
-  }
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
 }
 
-.error-section {
-  padding: 1rem;
-  
-  .error-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-  }
-  
-  h3 {
-    color: #d32f2f;
-    margin-bottom: 1rem;
-  }
-  
-  .error-message {
-    color: #d32f2f;
-    background: #ffebee;
-    padding: 1rem;
-    border-radius: 4px;
-    margin: 1rem 0;
-    font-size: 1rem;
-  }
-  
-  .error-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-top: 1.5rem;
-    flex-wrap: wrap;
-  }
+.actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.secondary-actions {
+  margin-top: 20px;
+}
+
+// Role-specific styling
+.tenant-badge, .caretaker-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.tenant-badge {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.caretaker-badge {
+  background: #fff3e0;
+  color: #ef6c00;
 }
 
 // Responsive design
-@media (max-width: 768px) {
-  .accept-invitation-container {
-    margin: 1rem auto;
-    padding: 0 0.5rem;
+@media (max-width: 600px) {
+  .invitation-container {
+    padding: 10px;
   }
   
   .invitation-card {
-    padding: 1rem;
+    padding: 20px 15px;
   }
   
-  .auth-actions {
+  .actions {
     flex-direction: column;
-    
-    button {
-      width: 100%;
-    }
   }
   
-  .error-actions {
-    flex-direction: column;
-    
-    button {
-      width: 100%;
-    }
+  .invitation-details .detail-item strong {
+    width: 80px;
+    font-size: 14px;
   }
 }
 
-// Snackbar success style
+// Snackbar styles
 ::ng-deep .success-snackbar {
-  background: #2e7d32;
+  background: #4caf50;
   color: white;
   
   .mat-simple-snackbar-action {
-    color: #c8e6c9;
+    color: white;
   }
 }

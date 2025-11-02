@@ -56,9 +56,8 @@ import { AdminOverviewComponent } from './components/dashboard/admin/admin-dashb
 import { BusinessListComponent } from './components/dashboard/admin/admin-dashboard/components/business-list/business-list.component';
 import { AcceptInvitationComponent } from './components/dashboard/landlord/landlord-dashboard/invite-dialog/accept-invitation/accept-invitation.component';
 import { WaitingLandlordComponent } from './components/auth/waiting-landlord/waiting-landlord.component';
-import { LandlordChatComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-chat/landlord-chat.component';
-import { TenantChatComponent } from './components/dashboard/tenant/tenant-chat/tenant-chat.component';
-import { CaretakerChatComponent } from './components/dashboard/caretaker/components/caretaker-chat/caretaker-chat.component';
+import { ChatComponent } from './shared/chat/chat.component';
+
 
 export const routes: Routes = [
   { path: '', component: HomeComponent, pathMatch: 'full' },
@@ -75,7 +74,9 @@ export const routes: Routes = [
   { path: 'privacy', component: PrivacyComponent },
   { path: 'accept-invitation/:token', component: AcceptInvitationComponent },
   { path: 'waiting-landlord', component: WaitingLandlordComponent },
+  
  
+  
   {
     path: 'tenant-dashboard',
     component: TenantDashboardComponent,
@@ -87,7 +88,7 @@ export const routes: Routes = [
       { path: 'maintenance', component: MaintenanceComponent },
       { path: 'documents', component: DocumentsComponent },
       { path: 'messages', component: MessagesComponent },
-      { path: 'chat', component: TenantChatComponent },
+      { path: 'chat', component: ChatComponent }, 
       { path: 'reviews', component: ReviewComponent },
       { path: 'settings', component: SettingsComponent },
       { 
@@ -122,8 +123,8 @@ export const routes: Routes = [
       { path: 'maintenance', component: LandlordMaintenanceComponent },
       { path: 'tenants', component: LandlordTenantsComponent },
       { path: 'messages', component: LandlordMessagesComponent },
+      { path: 'chat', component: ChatComponent }, 
       { path: 'marketplace', component: LandlordMarketplaceComponent },
-      { path: 'chat', component: LandlordChatComponent },
       { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' }
     ]
   },
@@ -141,6 +142,7 @@ export const routes: Routes = [
       { path: 'reviews', component: BusinessDashboardComponent },
       { path: 'services', component: BusinessDashboardComponent },
       { path: 'messages', component: BusinessDashboardComponent },
+      { path: 'chat', component: ChatComponent },
       { 
         path: 'profile',
         children: [
@@ -170,7 +172,7 @@ export const routes: Routes = [
         ]
       },
       { path: 'messages', component: CaretakerOverviewComponent },
-      { path: 'chat', component: CaretakerChatComponent },
+      { path: 'chat', component: ChatComponent }, // ✅ ADDED: Caretaker chat
       { path: 'reports', component: CaretakerOverviewComponent },
       { 
         path: 'profile',
@@ -196,6 +198,7 @@ export const routes: Routes = [
       { path: 'disputes', component: AdminDashboardComponent },
       { path: 'transactions', component: AdminDashboardComponent },
       { path: 'reports', component: AdminDashboardComponent },
+      { path: 'chat', component: ChatComponent }, // ✅ ADDED: Admin chat
       { path: 'settings', component: AdminDashboardComponent },
       { 
         path: 'profile',

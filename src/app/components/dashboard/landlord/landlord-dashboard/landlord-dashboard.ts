@@ -9,7 +9,8 @@ import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
 import { PropertyService } from '../../../../services/property.service';
 import { LandlordDashboardHomeComponent } from './home/landlord-dashboard-home.component';
-import { LandlordChatComponent } from './landlord-chat/landlord-chat.component';
+import { ChatComponent } from '../../../../shared/chat/chat.component';
+
 
 @Component({
   selector: 'app-landlord-dashboard',
@@ -22,7 +23,7 @@ import { LandlordChatComponent } from './landlord-chat/landlord-chat.component';
     MatProgressSpinnerModule,
     RouterOutlet,
     LandlordDashboardHomeComponent,
-    LandlordChatComponent
+    ChatComponent
   ],
   templateUrl: './landlord-dashboard.html',
   styleUrls: ['./landlord-dashboard.scss']
