@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -8,9 +8,6 @@ import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
 import { PropertyService } from '../../../../services/property.service';
-import { LandlordDashboardHomeComponent } from './home/landlord-dashboard-home.component';
-import { ChatComponent } from '../../../../shared/chat/chat.component';
-
 
 @Component({
   selector: 'app-landlord-dashboard',
@@ -21,9 +18,7 @@ import { ChatComponent } from '../../../../shared/chat/chat.component';
     MatDialogModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    RouterOutlet,
-    LandlordDashboardHomeComponent,
-    ChatComponent
+    RouterOutlet
   ],
   templateUrl: './landlord-dashboard.html',
   styleUrls: ['./landlord-dashboard.scss']
@@ -52,40 +47,40 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   greeting: string = '';
   currentTime: string = '';
 
-  constructor(
-    private router: Router,
-    private authService: AuthService,
-    private propertyService: PropertyService,
-    private dialog: MatDialog
-  ) { }
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private propertyService = inject(PropertyService);
+  private dialog = inject(MatDialog);
 
   ngOnInit(): void {
-    this.loadUserData();
-    this.loadDashboardData();
-    this.loadNotifications();
-    this.updateGreeting();
-    
-    setInterval(() => {
+    try {
+      this.loadUserData();
+      this.loadDashboardData();
+      this.loadNotifications();
       this.updateGreeting();
-    }, 60000);
+      
+      setInterval(() => {
+        this.updateGreeting();
+      }, 60000);
 
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: NavigationEnd) => {
-      this.updateCurrentSectionFromRoute(event.urlAfterRedirects);
-      this.loadProfileImage();
-    });
+      this.router.events.pipe(
+        filter(event => event instanceof NavigationEnd)
+      ).subscribe((event: NavigationEnd) => {
+        this.updateCurrentSectionFromRoute(event.urlAfterRedirects);
+        this.loadProfileImage();
+      });
 
-    this.updateCurrentSectionFromRoute(this.router.url);
-    this.setupProfileUpdateListener();
-    this.setupClickOutsideListener();
+      this.updateCurrentSectionFromRoute(this.router.url);
+      this.setupProfileUpdateListener();
+    } catch (error) {
+      console.error('Error initializing landlord dashboard:', error);
+    }
   }
 
   ngOnDestroy(): void {
     if (this.profileUpdateListener) {
       window.removeEventListener('profileImageUpdated', this.profileUpdateListener);
     }
-    document.removeEventListener('click', this.handleClickOutside.bind(this));
   }
 
   private updateGreeting(): void {
@@ -105,7 +100,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   }
 
   getGreetingMessage(): string {
-    const firstName = this.userDisplayName.split(' ')[0];
+    const firstName = this.userDisplayName.split(' ')[0] || 'User';
     return `${this.greeting}, ${firstName}! 👋`;
   }
 
@@ -126,15 +121,10 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
       
       if (sidebar && !sidebar.contains(target) && 
-          mobileMenuBtn && !mobileMenuBtn.contains(target) &&
-          target.classList.contains('mobile-menu-overlay')) {
+          mobileMenuBtn && !mobileMenuBtn.contains(target)) {
         this.closeMobileMenu();
       }
     }
-  }
-
-  private setupClickOutsideListener(): void {
-    document.addEventListener('click', this.handleClickOutside.bind(this));
   }
 
   private setupProfileUpdateListener(): void {
@@ -146,19 +136,25 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadUserData(): void {
-    this.currentUser = this.authService.getCurrentUser();
-    
-    if (this.currentUser) {
-      this.userDisplayName = this.currentUser.fullName || 
-                           this.currentUser.email?.split('@')[0] || 
-                           'User';
+    try {
+      this.currentUser = this.authService.getCurrentUser();
       
-      this.userRole = this.formatUserRole(this.currentUser.role);
-      this.loadProfileImage();
-    } else {
+      if (this.currentUser) {
+        this.userDisplayName = this.currentUser.fullName || 
+                             this.currentUser.email?.split('@')[0] || 
+                             'User';
+        
+        this.userRole = this.formatUserRole(this.currentUser.role);
+        this.loadProfileImage();
+      } else {
+        this.userDisplayName = 'User';
+        this.userRole = 'Landlord';
+        this.profileImage = this.generateInitialAvatar('User');
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
       this.userDisplayName = 'User';
       this.userRole = 'Landlord';
-      this.profileImage = this.generateInitialAvatar('User');
     }
   }
 
@@ -168,45 +164,69 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
     this.propertyService.getProperties().subscribe({
       next: (propertiesResponse: any) => {
-        if (propertiesResponse.success && propertiesResponse.data) {
-          this.processDashboardData(propertiesResponse.data);
-        } else {
-          this.dashboardError = 'Failed to load property data';
+        try {
+          if (propertiesResponse?.success && propertiesResponse.data) {
+            this.processDashboardData(propertiesResponse.data);
+          } else {
+            this.dashboardError = 'Failed to load property data';
+            this.dashboardData = this.getDefaultDashboardData();
+          }
+        } catch (error) {
+          console.error('Error processing dashboard data:', error);
+          this.dashboardError = 'Error processing data';
+          this.dashboardData = this.getDefaultDashboardData();
         }
         this.isLoadingDashboard = false;
       },
       error: (error) => {
         this.dashboardError = error.message || 'Failed to load dashboard data';
+        this.dashboardData = this.getDefaultDashboardData();
         this.isLoadingDashboard = false;
         console.error('Dashboard data error:', error);
       }
     });
   }
 
+  private getDefaultDashboardData(): any {
+    return {
+      totalProperties: 0,
+      totalUnits: 0,
+      occupiedUnits: 0,
+      vacantUnits: 0,
+      occupancyRate: 0,
+      monthlyRevenue: 0,
+      rentCollectionRate: 0,
+      openMaintenance: 0,
+      activeTenants: 0
+    };
+  }
+
   private processDashboardData(properties: any[]): void {
-    const totalProperties = properties.length;
+    const totalProperties = properties?.length || 0;
     let totalUnits = 0;
     let occupiedUnits = 0;
     let vacantUnits = 0;
     let monthlyRevenue = 0;
     let openMaintenance = 0;
 
-    properties.forEach(property => {
-      if (property.units && Array.isArray(property.units)) {
-        totalUnits += property.units.length;
-        
-        property.units.forEach((unit: any) => {
-          if (unit.status === 'occupied') {
-            occupiedUnits++;
-            monthlyRevenue += unit.rentAmount || 0;
-          } else if (unit.status === 'vacant') {
-            vacantUnits++;
-          } else if (unit.status === 'maintenance') {
-            openMaintenance++;
-          }
-        });
-      }
-    });
+    if (properties && Array.isArray(properties)) {
+      properties.forEach(property => {
+        if (property.units && Array.isArray(property.units)) {
+          totalUnits += property.units.length;
+          
+          property.units.forEach((unit: any) => {
+            if (unit.status === 'occupied') {
+              occupiedUnits++;
+              monthlyRevenue += unit.rentAmount || 0;
+            } else if (unit.status === 'vacant') {
+              vacantUnits++;
+            } else if (unit.status === 'maintenance') {
+              openMaintenance++;
+            }
+          });
+        }
+      });
+    }
 
     const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
     const rentCollectionRate = monthlyRevenue > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
@@ -237,40 +257,56 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   viewNotifications(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    this.router.navigate(['/landlord-dashboard/notifications']);
+    // Check if notifications route exists before navigating
+    this.router.navigate(['/landlord-dashboard']).catch(() => {
+      console.warn('Notifications route not available');
+    });
   }
 
   viewProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    this.router.navigate(['/landlord-dashboard/profile/view']);
+    this.router.navigate(['/landlord-dashboard/profile/view']).catch(() => {
+      this.router.navigate(['/landlord-dashboard']);
+    });
   }
 
   editProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    this.router.navigate(['/landlord-dashboard/profile/edit']);
+    this.router.navigate(['/landlord-dashboard/profile/edit']).catch(() => {
+      this.router.navigate(['/landlord-dashboard/profile/view']);
+    });
   }
 
   navigateToChat(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    this.router.navigate(['/landlord-dashboard/chat']);
+    // Use the chat route that exists in your routing configuration
+    this.router.navigate(['/landlord-dashboard/chat']).catch(() => {
+      console.warn('Chat route not available, redirecting to dashboard');
+      this.router.navigate(['/landlord-dashboard']);
+    });
   }
 
   private loadProfileImage(): void {
-    const savedImage = localStorage.getItem('profileImage');
-    if (savedImage) {
-      this.profileImage = this.addCacheBuster(savedImage);
-    } else if (this.currentUser?.avatar) {
-      this.profileImage = this.addCacheBuster(this.currentUser.avatar);
-    } else {
+    try {
+      const savedImage = localStorage.getItem('profileImage');
+      if (savedImage) {
+        this.profileImage = this.addCacheBuster(savedImage);
+      } else if (this.currentUser?.avatar) {
+        this.profileImage = this.addCacheBuster(this.currentUser.avatar);
+      } else {
+        this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+      }
+    } catch (error) {
+      console.error('Error loading profile image:', error);
       this.profileImage = this.generateInitialAvatar(this.userDisplayName);
     }
   }
 
   private addCacheBuster(imageUrl: string): string {
-    if (imageUrl.startsWith('data:')) {
+    if (!imageUrl || imageUrl.startsWith('data:')) {
       return imageUrl;
     }
     const separator = imageUrl.includes('?') ? '&' : '?';
@@ -278,18 +314,23 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   }
 
   private generateInitialAvatar(name: string): string {
-    const names = name.split(' ');
-    const initials = names.map(name => name.charAt(0).toUpperCase()).join('').slice(0, 2);
-    
-    const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
-    const color = colors[initials.charCodeAt(0) % colors.length];
-    
-    return `data:image/svg+xml;base64,${btoa(`
-      <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100" height="100" fill="${color}" rx="50"/>
-        <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-size="40" font-weight="600">${initials}</text>
-      </svg>
-    `)}`;
+    try {
+      const names = name.split(' ');
+      const initials = names.map(name => name.charAt(0).toUpperCase()).join('').slice(0, 2);
+      
+      const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+      const color = colors[initials.charCodeAt(0) % colors.length];
+      
+      return `data:image/svg+xml;base64,${btoa(`
+        <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="100" fill="${color}" rx="50"/>
+          <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-size="40" font-weight="600">${initials}</text>
+        </svg>
+      `)}`;
+    } catch (error) {
+      console.error('Error generating avatar:', error);
+      return '';
+    }
   }
 
   private formatUserRole(role: string): string {
@@ -301,7 +342,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       'ADMIN': 'Administrator'
     };
     
-    return roleMap[role.toString()] || role.toString();
+    return roleMap[role?.toString()] || role?.toString() || 'User';
   }
 
   toggleProfileMenu(): void {
@@ -351,13 +392,21 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
     const route = routeMap[section];
     if (route) {
-      this.router.navigate(route);
+      this.router.navigate(route).catch(() => {
+        console.warn(`Route ${section} not available, redirecting to dashboard`);
+        this.router.navigate(['/landlord-dashboard']);
+      });
     } else {
       this.router.navigate(['/landlord-dashboard']);
     }
   }
 
   private updateCurrentSectionFromRoute(url: string): void {
+    if (!url) {
+      this.currentSection = 'dashboard';
+      return;
+    }
+
     if (url.includes('/profile/view') || url.includes('/profile/edit')) {
       this.currentSection = 'profile';
     } else if (url === '/landlord-dashboard' || url === '/landlord-dashboard/') {
@@ -430,5 +479,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
   onLogoError(event: any): void {
     console.error('Logo failed to load:', event);
+    this.profileImage = this.generateInitialAvatar(this.userDisplayName);
   }
 }

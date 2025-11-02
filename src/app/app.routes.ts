@@ -1,3 +1,4 @@
+// app.routes.ts
 import { Routes } from '@angular/router';
 import { HomeComponent } from '../pages/home/home';
 import { RegistrationComponent } from './components/auth/registration/registration.component';
@@ -58,8 +59,8 @@ import { AcceptInvitationComponent } from './components/dashboard/landlord/landl
 import { WaitingLandlordComponent } from './components/auth/waiting-landlord/waiting-landlord.component';
 import { ChatComponent } from './shared/chat/chat.component';
 
-
 export const routes: Routes = [
+  // Public Routes
   { path: '', component: HomeComponent, pathMatch: 'full' },
   { path: 'registration', component: RegistrationComponent },
   { path: 'login', component: LoginComponent },
@@ -75,14 +76,27 @@ export const routes: Routes = [
   { path: 'accept-invitation/:token', component: AcceptInvitationComponent },
   { path: 'waiting-landlord', component: WaitingLandlordComponent },
   
-  
+  // Business Registration
   { path: 'business/register', component: BusinessDashboardComponent },
   { path: 'business/registration-status', component: BusinessDashboardComponent },
   
+  // Standalone Chat Route
+  { 
+    path: 'chat', 
+    component: ChatComponent,
+    canActivate: [authGuard]
+  },
+  { 
+    path: 'chat/:roomId', 
+    component: ChatComponent,
+    canActivate: [authGuard]
+  },
+  
+  // Tenant Dashboard
   {
     path: 'tenant-dashboard',
     component: TenantDashboardComponent,
-    // canActivate: [authGuard],
+    canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: TenantDashboardComponent },
@@ -91,29 +105,31 @@ export const routes: Routes = [
       { path: 'maintenance', component: MaintenanceComponent },
       { path: 'documents', component: DocumentsComponent },
       { path: 'messages', component: MessagesComponent },
-      { path: 'chat', component: ChatComponent }, 
+      { path: 'chat', component: ChatComponent },
       { path: 'reviews', component: ReviewComponent },
       { path: 'settings', component: SettingsComponent },
       { 
         path: 'profile',
         children: [
           { path: 'view', component: ProfileViewComponent },
-          { path: 'edit', component: ProfileEditComponent }, 
+          { path: 'edit', component: ProfileEditComponent },
           { path: '', redirectTo: 'view', pathMatch: 'full' }
         ]
       }
     ]
   },
+  
+  // Landlord Dashboard
   {
     path: 'landlord-dashboard',
     component: LandlordDashboardComponent,
-    // canActivate: [authGuard],
+    canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'home', pathMatch: 'full' },
       { path: 'home', component: LandlordDashboardHomeComponent },
       { path: 'profile', redirectTo: 'profile/view', pathMatch: 'full' },
       { path: 'profile/view', component: LandlordProfileViewComponent },
-      { path: 'profile/edit', component: LandlordProfileEditComponent }, 
+      { path: 'profile/edit', component: LandlordProfileEditComponent },
       { path: 'property', redirectTo: 'property/list', pathMatch: 'full' },
       { path: 'property/create', component: PropertyCreateComponent },
       { path: 'property/list', component: PropertyListComponent },
@@ -126,28 +142,27 @@ export const routes: Routes = [
       { path: 'maintenance', component: LandlordMaintenanceComponent },
       { path: 'tenants', component: LandlordTenantsComponent },
       { path: 'messages', component: LandlordMessagesComponent },
-      { path: 'chat', component: ChatComponent }, 
+      { path: 'chat', component: ChatComponent },
       { path: 'marketplace', component: LandlordMarketplaceComponent },
       { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' }
     ]
   },
+  
+  // Business Dashboard
   {
     path: 'business-dashboard',
     component: BusinessDashboardComponent,
-    // canActivate: [authGuard],
+    canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: BusinessOverviewComponent },
       { path: 'ads', component: MyAdvertisementsComponent },
       { path: 'ads/create', component: CreateAdvertisementComponent },
       { path: 'ads/approved', component: ApprovedAdvertisementsComponent },
-      
-      // ✅ ADDED: Missing Business Dashboard Routes
       { path: 'analytics', component: BusinessOverviewComponent },
       { path: 'billing', component: BusinessOverviewComponent },
       { path: 'documents', component: BusinessOverviewComponent },
       { path: 'messages', component: BusinessOverviewComponent },
-      
       { path: 'jobs', component: BusinessDashboardComponent },
       { path: 'earnings', component: BusinessDashboardComponent },
       { path: 'reviews', component: BusinessDashboardComponent },
@@ -157,26 +172,25 @@ export const routes: Routes = [
         path: 'profile',
         children: [
           { path: 'view', component: ProfileViewComponent },
-          { path: 'edit', component: ProfileEditComponent }, 
+          { path: 'edit', component: ProfileEditComponent },
           { path: '', redirectTo: 'view', pathMatch: 'full' }
         ]
       }
     ]
   },
+  
+  // Caretaker Dashboard
   {
     path: 'caretaker-dashboard',
     component: CaretakerDashboardComponent,
-    // canActivate: [authGuard],
+    canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'overview', pathMatch: 'full' },
       { path: 'overview', component: CaretakerOverviewComponent },
-      
-      // ✅ ADDED: Missing Caretaker Dashboard Routes
       { path: 'maintenance', component: CaretakerOverviewComponent },
       { path: 'inspections', component: CaretakerOverviewComponent },
       { path: 'deposits', component: CaretakerOverviewComponent },
       { path: 'reports', component: CaretakerOverviewComponent },
-      
       { 
         path: 'properties',
         children: [
@@ -192,12 +206,14 @@ export const routes: Routes = [
         path: 'profile',
         children: [
           { path: 'view', component: ProfileViewComponent },
-          { path: 'edit', component: ProfileEditComponent }, 
+          { path: 'edit', component: ProfileEditComponent },
           { path: '', redirectTo: 'view', pathMatch: 'full' }
         ]
       }
     ]
   },
+  
+  // Admin Dashboard
   {
     path: 'admin-dashboard',
     component: AdminDashboardComponent,
@@ -209,29 +225,31 @@ export const routes: Routes = [
       { path: 'businesses/pending', component: PendingBusinessesComponent },
       { path: 'advertisements', component: AdvertisementListComponent },
       { path: 'advertisements/pending', component: PendingAdvertisementsComponent },
-      
       { path: 'users', component: AdminDashboardComponent },
       { path: 'disputes', component: AdminDashboardComponent },
       { path: 'transactions', component: AdminDashboardComponent },
       { path: 'reports', component: AdminDashboardComponent },
       { path: 'settings', component: AdminDashboardComponent },
-      
       { path: 'chat', component: ChatComponent },
       { 
         path: 'profile',
         children: [
           { path: 'view', component: ProfileViewComponent },
-          { path: 'edit', component: ProfileEditComponent }, 
+          { path: 'edit', component: ProfileEditComponent },
           { path: '', redirectTo: 'view', pathMatch: 'full' }
         ]
       }
     ]
   },
+  
+  // Redirects
   { path: 'landlord', redirectTo: '/landlord-dashboard' },
   { path: 'tenant', redirectTo: '/tenant-dashboard' },
   { path: 'business', redirectTo: '/business-dashboard' },
   { path: 'caretaker', redirectTo: '/caretaker-dashboard' },
   { path: 'admin', redirectTo: '/admin-dashboard' },
   { path: 'dashboard', redirectTo: '/tenant-dashboard', pathMatch: 'full' },
+  
+  // Wildcard Route
   { path: '**', redirectTo: '' }
 ];
