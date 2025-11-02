@@ -5,6 +5,26 @@ import { Observable, throwError, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 
+// Add these interfaces at the top
+export interface BusinessRegistration {
+  id: number;
+  businessName: string;
+  businessRegistrationNumber: string;
+  businessLicenseDocumentUrl: string;
+  verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  verifiedAt: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  userEmail: string;
+  userFullName: string;
+}
+
+export interface BusinessStatusResponse {
+  success: boolean;
+  message: string;
+  data: BusinessRegistration | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -27,6 +47,37 @@ export class BusinessService {
         }
       }),
       catchError(this.handleError)
+    );
+  }
+
+  // Get Registration Status - ADD THIS METHOD
+  getRegistrationStatus(): Observable<BusinessStatusResponse> {
+    return this.http.get<BusinessStatusResponse>(
+      `${this.apiUrl}/api/external-business/registration-status`,
+      { headers: this.createHeaders(), responseType: 'json' }
+    ).pipe(
+      tap(response => {
+        if (response.success && response.data) {
+          this.updateLocalBusinessData(response.data);
+          
+          // If approved, update user role
+          if (response.data.verificationStatus === 'APPROVED') {
+            this.updateUserBusinessRole();
+          }
+        }
+      }),
+      catchError(error => {
+        // Check if we have local business data as fallback
+        const localBusiness = this.getLocalBusinessData();
+        if (localBusiness) {
+          return of({
+            success: true,
+            message: 'Using local business data',
+            data: localBusiness
+          });
+        }
+        return throwError(() => error);
+      })
     );
   }
 
@@ -320,11 +371,11 @@ export class BusinessService {
     );
   }
 
-  // Check Registration Status
-  getRegistrationStatus(): Observable<string> {
-    return this.getBusinessProfile().pipe(
-      map(response => response.data?.registrationStatus || 'NOT_REGISTERED'),
-      catchError(() => of('NOT_REGISTERED'))
+  // Check if business is verified
+  isBusinessVerified(): Observable<boolean> {
+    return this.getRegistrationStatus().pipe(
+      map(response => response.data?.verificationStatus === 'APPROVED'),
+      catchError(() => of(false))
     );
   }
 
@@ -373,7 +424,6 @@ export class BusinessService {
     this.updateLocalAdvertisements(filteredAds);
   }
 
-
   private updateUserBusinessRole(): void {
     const currentUser = this.authService.getCurrentUser();
     if (currentUser) {
@@ -386,7 +436,6 @@ export class BusinessService {
       const storage = isPermanent ? localStorage : sessionStorage;
       storage.setItem('userData', JSON.stringify(updatedUser));
       
-     
       try {
         if ((this.authService as any).currentUserSubject) {
           (this.authService as any).currentUserSubject.next(updatedUser);
@@ -413,7 +462,7 @@ export class BusinessService {
         ? Math.round((localAds.filter(ad => ad.status === 'APPROVED').length / localAds.length) * 100) + '%'
         : '0%',
       businessName: localBusiness?.businessName || 'Your Business',
-      registrationStatus: localBusiness?.registrationStatus || 'PENDING'
+      registrationStatus: localBusiness?.verificationStatus || 'PENDING'
     };
   }
 

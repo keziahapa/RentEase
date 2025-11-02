@@ -4,23 +4,29 @@
   <div class="chat-sidebar" [class.collapsed]="!isSidebarOpen">
     <!-- Header -->
     <div class="sidebar-header">
-      <h3>Messages</h3>
-      <button class="btn-toggle" (click)="toggleSidebar()">
-        <i class="icon-chevron-left"></i>
-      </button>
+      <div class="header-content">
+        <h2>Messages</h2>
+        <button class="new-chat-btn" matTooltip="New conversation">
+          <span class="material-icons">add</span>
+        </button>
+      </div>
+      <div class="search-container">
+        <span class="search-icon material-icons">search</span>
+        <input type="text" placeholder="Search conversations..." class="search-input">
+      </div>
     </div>
 
     <!-- Rooms List -->
     <div class="rooms-list">
       <div *ngIf="loading" class="loading-state">
-        <div class="spinner"></div>
+        <div class="loading-spinner"></div>
         <span>Loading conversations...</span>
       </div>
 
       <div *ngIf="!loading && chatRooms.length === 0" class="empty-state">
-        <i class="icon-message"></i>
-        <p>No conversations yet</p>
-        <small>Start a new conversation from a property page</small>
+        <div class="empty-icon">💬</div>
+        <h3>No conversations</h3>
+        <p>Start a new conversation from a property</p>
       </div>
 
       <div *ngFor="let room of chatRooms" 
@@ -29,11 +35,12 @@
            (click)="selectRoom(room)">
         
         <div class="room-avatar">
-          <div class="avatar-placeholder">
-            {{ getRoomDisplayName(room).charAt(0) }}
+          <div class="avatar">
+            {{ getRoomDisplayName(room).charAt(0).toUpperCase() }}
           </div>
+          <div class="online-indicator" *ngIf="getOtherParticipants(room)[0]?.isOnline"></div>
           <div class="unread-badge" *ngIf="room.unreadCount > 0">
-            {{ room.unreadCount }}
+            {{ room.unreadCount > 99 ? '99+' : room.unreadCount }}
           </div>
         </div>
 
@@ -45,6 +52,9 @@
           
           <div class="room-preview">
             <span class="last-message">{{ getLastMessagePreview(room) }}</span>
+          </div>
+          
+          <div class="room-meta">
             <span class="room-type">{{ getRoomTypeDisplay(room) }}</span>
           </div>
         </div>
@@ -55,107 +65,180 @@
   <!-- Main Chat Area -->
   <div class="chat-main" [class.full-width]="!isSidebarOpen">
     
-    <!-- Chat Header -->
-    <div class="chat-header" *ngIf="currentRoom">
-      <div class="chat-partner-info">
-        <div class="partner-avatar">
-          {{ getRoomDisplayName(currentRoom).charAt(0) }}
-        </div>
-        <div class="partner-details">
-          <h4>{{ getRoomDisplayName(currentRoom) }}</h4>
-          <div class="participant-roles">
-            <span *ngFor="let participant of getOtherParticipants(currentRoom)" 
-                  class="role-badge">
-              {{ getParticipantRole(participant) }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div class="chat-actions">
-        <button class="btn-icon" title="User info">
-          <i class="icon-info"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- No Room Selected -->
+    <!-- No Chat Selected -->
     <div class="no-chat-selected" *ngIf="!currentRoom">
-      <div class="empty-chat-state">
-        <i class="icon-message-circle"></i>
-        <h3>Select a conversation</h3>
+      <div class="empty-chat">
+        <div class="empty-chat-icon">💭</div>
+        <h2>Select a conversation</h2>
         <p>Choose a chat from the sidebar to start messaging</p>
       </div>
     </div>
 
+    <!-- Chat Header -->
+    <div class="chat-header" *ngIf="currentRoom">
+      <div class="header-left">
+        <button class="sidebar-toggle" (click)="toggleSidebar()">
+          <span class="material-icons">menu</span>
+        </button>
+        
+        <div class="chat-partner">
+          <div class="partner-avatar">
+            {{ getRoomDisplayName(currentRoom).charAt(0).toUpperCase() }}
+          </div>
+          <div class="partner-info">
+            <h3>{{ getRoomDisplayName(currentRoom) }}</h3>
+            <div class="partner-status">
+              <span *ngFor="let participant of getOtherParticipants(currentRoom)" 
+                    class="role-tag {{participant.role?.toLowerCase()}}">
+                {{ getParticipantRole(participant) }}
+              </span>
+              <span class="status-dot online" *ngIf="getOtherParticipants(currentRoom)[0]?.isOnline">Online</span>
+              <span class="status-dot" *ngIf="!getOtherParticipants(currentRoom)[0]?.isOnline">Offline</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="header-btn" matTooltip="Video call">
+          <span class="material-icons">videocam</span>
+        </button>
+        <button class="header-btn" matTooltip="Voice call">
+          <span class="material-icons">call</span>
+        </button>
+        
+        <!-- Three Dots Menu -->
+        <div class="menu-container">
+          <button class="header-btn menu-trigger" 
+                  (click)="toggleMenu($event)"
+                  matTooltip="More options">
+            <span class="material-icons">more_vert</span>
+          </button>
+          
+          <div class="dropdown-menu" [class.show]="showMenu">
+            <div class="menu-item" (click)="viewProfile()">
+              <span class="material-icons">person</span>
+              View Profile
+            </div>
+            <div class="menu-item" (click)="muteChat()">
+              <span class="material-icons">notifications_off</span>
+              Mute Notifications
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-item danger" (click)="clearChat()">
+              <span class="material-icons">delete_sweep</span>
+              Clear Chat
+            </div>
+            <div class="menu-item danger" (click)="deleteChat()">
+              <span class="material-icons">delete</span>
+              Delete Chat
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Messages Area -->
-    <div class="chat-messages" #messagesContainer *ngIf="currentRoom">
-      
-      <!-- Messages List -->
+    <div class="messages-container" #messagesContainer *ngIf="currentRoom">
       <div class="messages-list">
         <div *ngFor="let message of messages" 
-             class="message" 
+             class="message-wrapper"
              [class.my-message]="isMyMessage(message)"
              [class.other-message]="!isMyMessage(message)">
           
-          <div class="message-avatar" *ngIf="!isMyMessage(message)">
-            {{ getRoomDisplayName(currentRoom).charAt(0) }}
-          </div>
-
-          <div class="message-content">
-            <div class="message-bubble">
-              <p class="message-text">{{ message.content }}</p>
-              <div class="message-meta">
-                <span class="message-time">{{ formatMessageTime(message.timestamp) }}</span>
-                <span class="message-status" *ngIf="isMyMessage(message)">
-                  <i class="icon-check" *ngIf="message.status === 'SENT'"></i>
-                  <i class="icon-check-double" *ngIf="message.status === 'DELIVERED'"></i>
-                  <i class="icon-check-double read" *ngIf="message.status === 'READ'"></i>
-                </span>
+          <div class="message">
+            <!-- Other person's message -->
+            <div *ngIf="!isMyMessage(message)" class="message-content other">
+              <div class="message-avatar">
+                {{ getRoomDisplayName(currentRoom).charAt(0).toUpperCase() }}
+              </div>
+              <div class="message-bubble-container">
+                <div class="message-bubble">
+                  <p class="message-text">{{ message.content }}</p>
+                  <div class="message-time">
+                    {{ formatMessageTime(message.timestamp) }}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="message-actions" *ngIf="isMyMessage(message)">
-              <button class="btn-action" (click)="deleteMessage(message.id)" title="Delete message">
-                <i class="icon-trash"></i>
-              </button>
+            <!-- My message -->
+            <div *ngIf="isMyMessage(message)" class="message-content mine">
+              <div class="message-bubble-container">
+                <div class="message-bubble">
+                  <p class="message-text">{{ message.content }}</p>
+                  <div class="message-meta">
+                    <span class="message-time">{{ formatMessageTime(message.timestamp) }}</span>
+                    <span class="message-status">
+                      <span *ngIf="message.status === 'SENT'" class="status-icon">✓</span>
+                      <span *ngIf="message.status === 'DELIVERED'" class="status-icon">✓✓</span>
+                      <span *ngIf="message.status === 'READ'" class="status-icon read">✓✓</span>
+                    </span>
+                  </div>
+                </div>
+                
+                <!-- Delete button - only show on hover for my messages -->
+                <div class="message-actions">
+                  <button class="action-btn delete-btn" 
+                          (click)="deleteMessage(message.id)"
+                          matTooltip="Delete message">
+                    <span class="material-icons">delete</span>
+                  </button>
+                </div>
+              </div>
+              <div class="message-avatar my-avatar">
+                You
+              </div>
             </div>
-          </div>
-
-          <div class="message-avatar my-avatar" *ngIf="isMyMessage(message)">
-            You
           </div>
         </div>
       </div>
 
       <!-- Typing Indicator -->
       <div class="typing-indicator" *ngIf="typingUsers.length > 0">
-        <div class="typing-dots">
-          <span></span>
-          <span></span>
-          <span></span>
+        <div class="typing-avatar">
+          {{ getRoomDisplayName(currentRoom).charAt(0).toUpperCase() }}
         </div>
-        <span class="typing-text">
-          {{ typingUsers[0].name }} is typing...
-        </span>
+        <div class="typing-bubble">
+          <div class="typing-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <span class="typing-text">{{ typingUsers[0].name }} is typing...</span>
+        </div>
       </div>
     </div>
 
     <!-- Message Input -->
-    <div class="chat-input-container" *ngIf="currentRoom">
+    <div class="message-input-container" *ngIf="currentRoom">
+      <div class="input-actions">
+        <button class="action-btn" matTooltip="Attach file">
+          <span class="material-icons">attach_file</span>
+        </button>
+        <button class="action-btn" matTooltip="Add emoji">
+          <span class="material-icons">emoji_emotions</span>
+        </button>
+      </div>
+      
       <div class="input-wrapper">
-        <input type="text" 
-               #messageInput
-               [(ngModel)]="newMessage"
-               (input)="onMessageInput()"
-               (keydown.enter)="sendMessage()"
-               placeholder="Type a message..."
-               class="message-input">
-        
+        <textarea #messageInput
+                  [(ngModel)]="newMessage"
+                  (input)="onMessageInput()"
+                  (keydown)="onKeyPress($event)"
+                  placeholder="Type a message..."
+                  class="message-input"
+                  rows="1">
+        </textarea>
+      </div>
+      
+      <div class="send-button-container">
         <button class="send-button" 
                 (click)="sendMessage()"
-                [disabled]="!newMessage.trim()">
-          <i class="icon-send"></i>
+                [disabled]="!newMessage.trim()"
+                [class.active]="newMessage.trim()"
+                matTooltip="Send message">
+          <span class="material-icons">send</span>
         </button>
       </div>
     </div>

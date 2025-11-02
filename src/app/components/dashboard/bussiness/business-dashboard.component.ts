@@ -1,5 +1,4 @@
-// business-dashboard.component.ts
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -9,6 +8,18 @@ import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 import { BusinessService } from '../../../services/business.service';
+
+interface DashboardStats {
+  totalAds: number;
+  activeAds: number;
+  pendingAds: number;
+  totalSpent: number;
+  totalClicks: number;
+  totalViews: number;
+  approvalRate: string;
+  businessName: string;
+  registrationStatus: string;
+}
 
 @Component({
   selector: 'app-business-dashboard',
@@ -34,7 +45,7 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
   userRole: string = 'Business';
   profileImage: string | null = null;
 
-  dashboardData: any = null;
+  dashboardData: DashboardStats | null = null;
   isLoadingDashboard: boolean = false;
   dashboardError: string | null = null;
 
@@ -47,12 +58,10 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
   greeting: string = '';
   currentTime: string = '';
 
-  constructor(
-    private router: Router,
-    private authService: AuthService,
-    private businessService: BusinessService,
-    private dialog: MatDialog
-  ) { }
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private businessService = inject(BusinessService);
+  private dialog = inject(MatDialog);
 
   ngOnInit(): void {
     this.loadUserData();
@@ -73,14 +82,12 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
 
     this.updateCurrentSectionFromRoute(this.router.url);
     this.setupProfileUpdateListener();
-    this.setupClickOutsideListener();
   }
 
   ngOnDestroy(): void {
     if (this.profileUpdateListener) {
       window.removeEventListener('profileImageUpdated', this.profileUpdateListener);
     }
-    document.removeEventListener('click', this.handleClickOutside.bind(this));
   }
 
   private updateGreeting(): void {
@@ -121,15 +128,10 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
       const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
       
       if (sidebar && !sidebar.contains(target) && 
-          mobileMenuBtn && !mobileMenuBtn.contains(target) &&
-          target.classList.contains('mobile-menu-overlay')) {
+          mobileMenuBtn && !mobileMenuBtn.contains(target)) {
         this.closeMobileMenu();
       }
     }
-  }
-
-  private setupClickOutsideListener(): void {
-    document.addEventListener('click', this.handleClickOutside.bind(this));
   }
 
   private setupProfileUpdateListener(): void {
@@ -163,9 +165,12 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
     this.dashboardError = null;
 
     this.businessService.getBusinessDashboardData().subscribe({
-      next: (businessData: any) => {
-        if (businessData.success && businessData.data) {
-          this.processDashboardData(businessData.data);
+      next: (response: any) => {
+        if (response.success && response.data) {
+          this.dashboardData = response.data;
+        } else if (response.data) {
+          // Handle case where response is the data directly
+          this.dashboardData = response.data;
         } else {
           this.dashboardError = 'Failed to load business data';
         }
@@ -179,24 +184,12 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  private processDashboardData(businessData: any): void {
-    this.dashboardData = {
-      totalAds: businessData.totalAds || 0,
-      activeAds: businessData.activeAds || 0,
-      pendingAds: businessData.pendingAds || 0,
-      totalSpent: businessData.totalSpent || 0,
-      totalClicks: businessData.totalClicks || 0,
-      approvalRate: businessData.approvalRate || '0%',
-      businessName: businessData.businessName || 'Your Business',
-      registrationStatus: businessData.registrationStatus || 'Verified'
-    };
-  }
-
   private loadNotifications(): void {
     this.isLoadingNotifications = true;
     
+    // Mock notifications - replace with actual API call
     setTimeout(() => {
-      this.unreadNotificationsCount = 2; // Mock data
+      this.unreadNotificationsCount = 2;
       this.isLoadingNotifications = false;
     }, 500);
   }
@@ -204,13 +197,14 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
   viewNotifications(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    this.router.navigate(['/business-dashboard/notifications']);
+    // Implement navigation to notifications
+    console.log('Navigate to notifications');
   }
 
   viewProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    this.router.navigate(['/business-dashboard/profile/view']);
+    this.router.navigate(['/business-dashboard/profile']);
   }
 
   editProfile(): void {
@@ -262,7 +256,7 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
       'ADMIN': 'Administrator'
     };
     
-    return roleMap[role.toString()] || role.toString();
+    return roleMap[role?.toString()] || role?.toString() || 'Business';
   }
 
   toggleProfileMenu(): void {
@@ -306,7 +300,7 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
       'billing': ['/business-dashboard/billing'],
       'documents': ['/business-dashboard/documents'],
       'messages': ['/business-dashboard/messages'],
-      'profile': ['/business-dashboard/profile/view']
+      'profile': ['/business-dashboard/profile']
     };
 
     const route = routeMap[section];
@@ -318,7 +312,7 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
   }
 
   private updateCurrentSectionFromRoute(url: string): void {
-    if (url.includes('/profile/view') || url.includes('/profile/edit')) {
+    if (url.includes('/profile')) {
       this.currentSection = 'profile';
     } else if (url === '/business-dashboard' || url === '/business-dashboard/') {
       this.currentSection = 'dashboard';
@@ -361,7 +355,7 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
         localStorage.removeItem('businessProfileImage');
         sessionStorage.clear();
         
-        this.router.navigate(['/business-login']);
+        this.router.navigate(['/login']);
       },
       error: (error) => {
         console.error('Logout error:', error);
@@ -369,7 +363,7 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
         
         localStorage.removeItem('businessProfileImage');
         sessionStorage.clear();
-        this.router.navigate(['/business-login']);
+        this.router.navigate(['/login']);
       }
     });
   }
@@ -388,5 +382,6 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
 
   onLogoError(event: any): void {
     console.error('Logo failed to load:', event);
+    this.profileImage = this.generateInitialAvatar(this.userDisplayName);
   }
 }

@@ -13,7 +13,8 @@ import {
   ChatMessageResponse,
   SingleChatRoomResponse,
   BasicResponse,
-  ApiResponse
+  ApiResponse,
+  User
 } from './chat.interface';
 
 @Injectable({
@@ -91,17 +92,90 @@ export class ChatService {
     );
   }
 
-  // Get chat room by property and participant type
-  getChatRoomByPropertyAndType(propertyId: number, participantType: string): Observable<SingleChatRoomResponse> {
-    return this.http.get<SingleChatRoomResponse>(
-      `${this.apiUrl}/rooms/property/${propertyId}/type/${participantType}`,
+  // Send message
+  sendMessage(messageData: CreateMessageRequest): Observable<ApiResponse<ChatMessage>> {
+    console.log('📤 Sending message:', messageData);
+    
+    return this.http.post<ApiResponse<ChatMessage>>(
+      `${this.apiUrl}/messages`,
+      messageData,
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Message sent response:', response);
+        if (response.success && response.data) {
+          const currentMessages = this.messagesSubject.value;
+          this.messagesSubject.next([...currentMessages, response.data]);
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Message send error:', error);
+        return this.handleError(error);
+      })
+    );
+  }
+
+  // Delete single message
+  deleteMessage(messageId: number): Observable<BasicResponse> {
+    return this.http.delete<BasicResponse>(
+      `${this.apiUrl}/messages/${messageId}`,
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success) {
+          const currentMessages = this.messagesSubject.value;
+          const updatedMessages = currentMessages.filter(msg => msg.id !== messageId);
+          this.messagesSubject.next(updatedMessages);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  // Clear all messages in a chat room
+  clearChat(roomId: number): Observable<BasicResponse> {
+    console.log('🗑️ Clearing chat for room:', roomId);
+    
+    return this.http.delete<BasicResponse>(
+      `${this.apiUrl}/rooms/${roomId}/messages`,
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap((response: BasicResponse) => {
+        console.log('✅ Chat cleared response:', response);
+        if (response.success) {
+          // Clear messages for the current room
+          this.messagesSubject.next([]);
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Clear chat error:', error);
+        return this.handleError(error);
+      })
+    );
+  }
+
+  // Delete entire chat room
+  deleteChatRoom(roomId: number): Observable<BasicResponse> {
+    return this.http.delete<BasicResponse>(
+      `${this.apiUrl}/rooms/${roomId}`,
       { headers: this.createHeaders() }
     ).pipe(
       catchError(this.handleError)
     );
   }
 
-  // Create or get existing chat room
+  // Mark messages as read
+  markRoomAsRead(chatRoomId: number): Observable<BasicResponse> {
+    return this.http.post<BasicResponse>(
+      `${this.apiUrl}/rooms/${chatRoomId}/mark-read`,
+      {},
+      { headers: this.createHeaders() }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  // Create chat rooms
   createTenantLandlordRoom(propertyId: number): Observable<SingleChatRoomResponse> {
     return this.http.post<SingleChatRoomResponse>(
       `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`,
@@ -147,105 +221,13 @@ export class ChatService {
     );
   }
 
-  // Real-time messaging
-  sendMessage(messageData: CreateMessageRequest): Observable<ApiResponse<ChatMessage>> {
-    return this.http.post<ApiResponse<ChatMessage>>(
-      `${this.apiUrl}/messages`,
-      messageData,
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success) {
-          const currentMessages = this.messagesSubject.value;
-          this.messagesSubject.next([...currentMessages, response.data]);
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  // Mark messages as read
-  markRoomAsRead(chatRoomId: number): Observable<BasicResponse> {
-    return this.http.post<BasicResponse>(
-      `${this.apiUrl}/rooms/${chatRoomId}/mark-read`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  markMessagesAsDelivered(chatRoomId: number): Observable<BasicResponse> {
-    return this.http.post<BasicResponse>(
-      `${this.apiUrl}/rooms/${chatRoomId}/mark-delivered`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // Delete functionality
-  deleteMessage(messageId: number): Observable<BasicResponse> {
-    return this.http.delete<BasicResponse>(
-      `${this.apiUrl}/messages/${messageId}`,
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success) {
-          const currentMessages = this.messagesSubject.value;
-          const updatedMessages = currentMessages.filter(msg => msg.id !== messageId);
-          this.messagesSubject.next(updatedMessages);
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  deleteMessagesBatch(messageIds: number[]): Observable<BasicResponse> {
-    return this.http.post<BasicResponse>(
-      `${this.apiUrl}/messages/batch-delete`,
-      { messageIds },
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success) {
-          const currentMessages = this.messagesSubject.value;
-          const updatedMessages = currentMessages.filter(msg => !messageIds.includes(msg.id));
-          this.messagesSubject.next(updatedMessages);
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  deleteChatRoom(roomId: number): Observable<BasicResponse> {
-    return this.http.delete<BasicResponse>(
-      `${this.apiUrl}/rooms/${roomId}`,
-      { headers: this.createHeaders() }
-    ).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // Get real user data for participants
-  getChatParticipants(roomId: number): Observable<any> {
-    return this.http.get<any>(
-      `${this.apiUrl}/rooms/${roomId}/participants`,
-      { headers: this.createHeaders() }
-    ).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // Get chat room details with real property data
-  getChatRoomWithDetails(roomId: number): Observable<any> {
-    return this.http.get<any>(
-      `${this.apiUrl}/rooms/${roomId}/details`,
-      { headers: this.createHeaders() }
-    ).pipe(
-      catchError(this.handleError)
-    );
+  // Set current room
+  setCurrentRoom(room: ChatRoom | null): void {
+    this.currentRoomSubject.next(room);
+    if (room) {
+      this.messagesSubject.next([]); // Clear messages when switching rooms
+      this.markRoomAsRead(room.id).subscribe();
+    }
   }
 
   // Utility Methods
@@ -261,42 +243,13 @@ export class ChatService {
     return otherParticipants.map(p => p.name.split(' ')[0]).join(', ');
   }
 
-  getOtherParticipants(room: ChatRoom, currentUserId: number): any[] {
+  getOtherParticipants(room: ChatRoom, currentUserId: number): User[] {
     return room.participants.filter(participant => participant.id !== currentUserId);
-  }
-
-  sortRoomsByLastMessage(rooms: ChatRoom[]): ChatRoom[] {
-    return rooms.sort((a, b) => {
-      const timeA = a.lastMessage ? new Date(a.lastMessage.timestamp).getTime() : new Date(a.updatedAt).getTime();
-      const timeB = b.lastMessage ? new Date(b.lastMessage.timestamp).getTime() : new Date(b.updatedAt).getTime();
-      return timeB - timeA;
-    });
   }
 
   getCurrentUserId(): number {
     const currentUser = this.authService.getCurrentUser();
     return currentUser?.id ? parseInt(currentUser.id, 10) : 0;
-  }
-
-  // Real-time connection methods
-  connectToChat(roomId: number): Observable<any> {
-    return this.http.post<any>(
-      `${this.apiUrl}/rooms/${roomId}/connect`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  disconnectFromChat(roomId: number): Observable<any> {
-    return this.http.post<any>(
-      `${this.apiUrl}/rooms/${roomId}/disconnect`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      catchError(this.handleError)
-    );
   }
 
   // Typing indicators
@@ -305,9 +258,7 @@ export class ChatService {
       `${this.apiUrl}/rooms/${roomId}/typing-start`,
       {},
       { headers: this.createHeaders() }
-    ).pipe(
-      catchError(this.handleError)
-    );
+    ).pipe(catchError(this.handleError));
   }
 
   stopTyping(roomId: number): Observable<any> {
@@ -315,17 +266,7 @@ export class ChatService {
       `${this.apiUrl}/rooms/${roomId}/typing-stop`,
       {},
       { headers: this.createHeaders() }
-    ).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // Set current room
-  setCurrentRoom(room: ChatRoom | null): void {
-    this.currentRoomSubject.next(room);
-    if (room) {
-      this.markRoomAsRead(room.id).subscribe();
-    }
+    ).pipe(catchError(this.handleError));
   }
 
   // Add message to current room (for real-time updates)
