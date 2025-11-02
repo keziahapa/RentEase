@@ -190,6 +190,16 @@
   gap: 16px;
 }
 
+.empty-state {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(55, 65, 81, 0.2);
+  text-align: center;
+  color: #6b7280;
+  font-style: italic;
+  background: rgba(249, 250, 251, 0.8);
+}
+
 .activity-item {
   display: flex;
   gap: 16px;
@@ -245,6 +255,18 @@
 
     &.type-routine {
       background: #17a2b8;
+    }
+
+    &.status-pending {
+      background: #f59e0b;
+    }
+
+    &.status-completed {
+      background: #22c55e;
+    }
+
+    &.status-disputed {
+      background: #ef4444;
     }
   }
 
@@ -312,6 +334,11 @@
   &.status-cancelled {
     background: #f8d7da;
     color: #721c24;
+  }
+
+  &.status-disputed {
+    background: #fde2e2;
+    color: #b91c1c;
   }
 }
 

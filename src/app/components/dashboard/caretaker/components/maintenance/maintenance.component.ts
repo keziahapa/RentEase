@@ -1,166 +1,281 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
-import { CaretakerService } from '../../../../../services/caretaker.service';
+import { SkeletonListComponent } from '../../../../../shared/components/skeleton/skeleton-list.component';
+import { Subscription } from 'rxjs';
+import {
+  MaintenanceService,
+  MaintenanceRequest,
+  MaintenanceStatus,
+  MaintenancePriority,
+  MaintenanceImage,
+  MaintenanceUpdate,
+  CaretakerMaintenanceUpdatePayload,
+  UrgencyLevel
+} from '../../../../../services/maintenance.service';
 
-export interface MaintenanceRequest {
+interface CaretakerMaintenanceRow {
   id: string;
   title: string;
   category: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'submitted' | 'in-progress' | 'completed' | 'cancelled';
+  priority: MaintenancePriority;
+  status: MaintenanceStatus;
+  urgencyLevel: UrgencyLevel;
   tenantName: string;
   property: string;
   description?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
+  location?: string;
+  images: MaintenanceImage[];
+  updates: MaintenanceUpdate[];
+  assignedTo?: MaintenanceRequest['assignedTo'];
+  scheduledDate?: string;
+  estimatedCost?: number;
+  actualCost?: number;
 }
 
 @Component({
   selector: 'app-maintenance',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatButtonModule, MatTableModule],
+  imports: [CommonModule, FormsModule, MatIconModule, MatButtonModule, MatTableModule, SkeletonListComponent],
   templateUrl: './maintenance.component.html',
   styleUrls: ['./maintenance.component.scss']
 })
-export class MaintenanceComponent implements OnInit {
-  maintenanceRequests: MaintenanceRequest[] = [];
+export class MaintenanceComponent implements OnInit, OnDestroy {
+  private maintenanceService = inject(MaintenanceService);
+  private subscriptions = new Subscription();
+
+  maintenanceRequests: CaretakerMaintenanceRow[] = [];
+  selectedRequest: CaretakerMaintenanceRow | null = null;
+  MaintenanceStatus = MaintenanceStatus;
+  isUpdatingRequest = false;
+  actionError: string | null = null;
+  updateMessages: Record<string, string> = {};
+  scheduleDates: Record<string, string> = {};
   displayedColumns: string[] = ['title', 'category', 'priority', 'status', 'tenantName', 'property', 'actions'];
-  
+
   stats = {
     pendingMaintenance: 0,
     total: 0
   };
 
-  constructor(private caretakerService: CaretakerService) {}
+  isLoading = false;
+  loadError: string | null = null;
 
   ngOnInit(): void {
+    this.subscribeToMaintenanceStream();
     this.loadMaintenanceRequests();
   }
 
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
   loadMaintenanceRequests(): void {
-    // For demo purposes - replace with actual service call
-    this.maintenanceRequests = [
-      {
-        id: '1',
-        title: 'Leaking Kitchen Faucet',
-        category: 'Plumbing',
-        priority: 'medium',
-        status: 'submitted',
-        tenantName: 'John Doe',
-        property: 'Apartment 4B',
-        description: 'Kitchen faucet has constant drip, wasting water',
-        createdAt: '2024-03-01T10:00:00',
-        updatedAt: '2024-03-01T10:00:00'
+    this.isLoading = true;
+    this.loadError = null;
+    const sub = this.maintenanceService.getCaretakerMaintenanceRequests().subscribe({
+      next: () => {
+        this.isLoading = false;
       },
-      {
-        id: '2',
-        title: 'Broken AC Unit',
-        category: 'HVAC',
-        priority: 'high',
-        status: 'in-progress',
-        tenantName: 'Sarah Smith',
-        property: 'Unit 2A',
-        description: 'AC not cooling properly, blowing warm air',
-        createdAt: '2024-02-28T14:30:00',
-        updatedAt: '2024-03-02T09:15:00'
-      },
-      {
-        id: '3',
-        title: 'Clogged Bathroom Drain',
-        category: 'Plumbing',
-        priority: 'urgent',
-        status: 'submitted',
-        tenantName: 'Mike Johnson',
-        property: 'Suite 5C',
-        description: 'Bathroom sink draining very slowly, almost completely blocked',
-        createdAt: '2024-03-02T08:45:00',
-        updatedAt: '2024-03-02T08:45:00'
-      },
-      {
-        id: '4',
-        title: 'Paint Touch-up',
-        category: 'Cosmetic',
-        priority: 'low',
-        status: 'completed',
-        tenantName: 'Emily Davis',
-        property: 'Unit 3B',
-        description: 'Wall scratches in living room need paint touch-up',
-        createdAt: '2024-02-25T11:20:00',
-        updatedAt: '2024-03-01T16:45:00'
-      },
-      {
-        id: '5',
-        title: 'Broken Window Lock',
-        category: 'Security',
-        priority: 'medium',
-        status: 'submitted',
-        tenantName: 'Robert Wilson',
-        property: 'Apartment 1D',
-        description: 'Bedroom window lock broken, cannot secure window',
-        createdAt: '2024-03-02T13:15:00',
-        updatedAt: '2024-03-02T13:15:00'
+      error: (error) => {
+        this.loadError = error?.message || 'Unable to load caretaker maintenance.';
+        this.isLoading = false;
       }
-    ];
-    this.updateStats();
-    
-    // Uncomment for actual service call:
-    // this.caretakerService.getMaintenanceRequests().subscribe(requests => {
-    //   this.maintenanceRequests = requests;
-    //   this.updateStats();
-    // });
+    });
+    this.subscriptions.add(sub);
   }
 
   updateStats(): void {
-    this.stats.pendingMaintenance = this.maintenanceRequests.filter(r => 
-      r.status === 'submitted' || r.status === 'in-progress'
+    this.stats.pendingMaintenance = this.maintenanceRequests.filter(request =>
+      request.status === MaintenanceStatus.SUBMITTED || request.status === MaintenanceStatus.IN_PROGRESS
     ).length;
     this.stats.total = this.maintenanceRequests.length;
   }
 
-  updateMaintenanceStatus(request: MaintenanceRequest, status: string): void {
-    // For demo purposes - replace with actual service call
-    const updatedRequest = {
-      ...request,
-      status: status as any,
-      updatedAt: new Date().toISOString()
-    };
-    
-    const index = this.maintenanceRequests.findIndex(r => r.id === request.id);
-    if (index !== -1) {
-      this.maintenanceRequests[index] = updatedRequest;
-      this.updateStats();
-    }
-    
-    // Uncomment for actual service call:
-    // this.caretakerService.updateMaintenanceStatus(request.id, status).subscribe(updatedRequest => {
-    //   const index = this.maintenanceRequests.findIndex(r => r.id === updatedRequest.id);
-    //   if (index !== -1) {
-    //     this.maintenanceRequests[index] = updatedRequest;
-    //     this.updateStats();
-    //   }
-    // });
+  acknowledgeRequest(request: CaretakerMaintenanceRow): void {
+    this.submitMaintenanceUpdate(request, { status: MaintenanceStatus.ACKNOWLEDGED });
   }
 
-  getPriorityClass(priority: string): string {
-    const priorityMap: any = {
-      'low': 'priority-low',
-      'medium': 'priority-medium',
-      'high': 'priority-high',
-      'urgent': 'priority-urgent'
+  startRequest(request: CaretakerMaintenanceRow): void {
+    this.submitMaintenanceUpdate(request, { status: MaintenanceStatus.IN_PROGRESS });
+  }
+
+  scheduleMaintenance(request: CaretakerMaintenanceRow): void {
+    const scheduledDate = this.scheduleDates[request.id]?.trim();
+
+    if (!scheduledDate) {
+      this.actionError = 'Select a visit date and time before scheduling.';
+      return;
+    }
+
+    this.submitMaintenanceUpdate(request, {
+      status: MaintenanceStatus.SCHEDULED,
+      scheduledDate
+    });
+  }
+
+  completeRequest(request: CaretakerMaintenanceRow): void {
+    this.submitMaintenanceUpdate(request, { status: MaintenanceStatus.COMPLETED });
+  }
+
+  getPriorityClass(priority: MaintenancePriority): string {
+    const priorityMap: Record<MaintenancePriority, string> = {
+      low: 'priority-low',
+      medium: 'priority-medium',
+      high: 'priority-high',
+      urgent: 'priority-urgent'
     };
     return priorityMap[priority] || 'priority-medium';
   }
 
-  getStatusClass(status: string): string {
-    const statusMap: any = {
-      'submitted': 'status-pending',
-      'in-progress': 'status-progress',
-      'completed': 'status-completed',
-      'cancelled': 'status-cancelled'
+  getStatusClass(status: MaintenanceStatus): string {
+    const statusMap: Record<MaintenanceStatus | string, string> = {
+      submitted: 'status-pending',
+      acknowledged: 'status-pending',
+      in_progress: 'status-progress',
+      pending_parts: 'status-progress',
+      scheduled: 'status-progress',
+      completed: 'status-completed',
+      cancelled: 'status-cancelled',
+      rejected: 'status-cancelled'
     };
     return statusMap[status] || 'status-pending';
+  }
+
+  formatStatus(status: MaintenanceStatus): string {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  private subscribeToMaintenanceStream(): void {
+    const sub = this.maintenanceService.maintenanceRequestsChanges$.subscribe((requests: MaintenanceRequest[]) => {
+      const mapped = requests.map(request => this.mapMaintenanceRequest(request));
+      this.maintenanceRequests = mapped;
+      if (this.selectedRequest) {
+        this.selectedRequest = mapped.find(item => item.id === this.selectedRequest!.id) ?? null;
+        if (this.selectedRequest) {
+          this.scheduleDates[this.selectedRequest.id] ??= this.selectedRequest.scheduledDate ?? '';
+        }
+      }
+      this.updateStats();
+    });
+
+    this.subscriptions.add(sub);
+  }
+
+  private mapMaintenanceRequest(request: MaintenanceRequest): CaretakerMaintenanceRow {
+    return {
+      id: request.id,
+      title: request.title,
+      category: request.category,
+      priority: request.priority,
+      status: request.status,
+      tenantName: request.tenantName || 'Current tenant',
+      property: request.propertyName || request.location,
+      description: request.description,
+      createdAt: request.dateSubmitted,
+      updatedAt: request.updates?.at(-1)?.updatedAt,
+      location: request.location,
+      images: request.images || [],
+      updates: request.updates || [],
+      assignedTo: request.assignedTo,
+      scheduledDate: request.scheduledDate,
+      urgencyLevel: request.urgencyLevel,
+      estimatedCost: request.estimatedCost,
+      actualCost: request.actualCost
+    };
+  }
+
+  canAcknowledge(request: CaretakerMaintenanceRow): boolean {
+    return request.status === MaintenanceStatus.SUBMITTED;
+  }
+
+  canStart(request: CaretakerMaintenanceRow): boolean {
+    return (
+      request.status === MaintenanceStatus.SUBMITTED ||
+      request.status === MaintenanceStatus.ACKNOWLEDGED ||
+      request.status === MaintenanceStatus.SCHEDULED ||
+      request.status === MaintenanceStatus.PENDING_PARTS
+    );
+  }
+
+  canSchedule(request: CaretakerMaintenanceRow): boolean {
+    return (
+      request.status === MaintenanceStatus.SUBMITTED ||
+      request.status === MaintenanceStatus.ACKNOWLEDGED ||
+      request.status === MaintenanceStatus.IN_PROGRESS
+    );
+  }
+
+  canComplete(request: CaretakerMaintenanceRow): boolean {
+    return (
+      request.status === MaintenanceStatus.IN_PROGRESS ||
+      request.status === MaintenanceStatus.SCHEDULED ||
+      request.status === MaintenanceStatus.PENDING_PARTS
+    );
+  }
+
+  selectRequest(request: CaretakerMaintenanceRow): void {
+    this.selectedRequest = request;
+    this.actionError = null;
+    this.scheduleDates[request.id] ??= request.scheduledDate ?? '';
+  }
+
+  closeDetails(): void {
+    this.selectedRequest = null;
+    this.actionError = null;
+  }
+
+  viewAttachment(image: MaintenanceImage): void {
+    if (image.url) {
+      window.open(image.url, '_blank');
+    }
+  }
+
+  trackByImageId(index: number, image: MaintenanceImage): string {
+    return image.id;
+  }
+
+  trackByUpdateId(index: number, update: MaintenanceUpdate): string {
+    return update.id;
+  }
+
+  private submitMaintenanceUpdate(
+    request: CaretakerMaintenanceRow,
+    update: CaretakerMaintenanceUpdatePayload
+  ): void {
+    if (!request) {
+      return;
+    }
+
+    const payload: CaretakerMaintenanceUpdatePayload = { ...update };
+    const message = this.updateMessages[request.id]?.trim();
+    if (message) {
+      payload.message = message;
+    }
+
+    this.isUpdatingRequest = true;
+    this.actionError = null;
+
+    const sub = this.maintenanceService
+      .updateCaretakerMaintenanceRequest(request.id, payload)
+      .subscribe({
+        next: () => {
+          this.isUpdatingRequest = false;
+          if (message) {
+            this.updateMessages[request.id] = '';
+          }
+        },
+        error: (error) => {
+          this.isUpdatingRequest = false;
+          this.actionError = error?.message || 'Failed to update maintenance request.';
+        }
+      });
+
+    this.subscriptions.add(sub);
   }
 }

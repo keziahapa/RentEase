@@ -1,7 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import {
+  FinancialService,
+  TenantPaymentRecord,
+  TenantScheduledPayment,
+  TenantPaymentSummary,
+  TenantPaymentPayload,
+  TenantPaymentSchedulePayload
+} from '../../../../services/financial.service';
+import { Subscription } from 'rxjs';
 
 interface Payment {
   id: string;
@@ -24,14 +33,6 @@ interface PaymentMethod {
   enabled: boolean;
 }
 
-interface ScheduledPayment {
-  id: string;
-  description: string;
-  amount: number;
-  method: string;
-  scheduleDate: string;
-}
-
 interface PaymentSort {
   field: 'date' | 'amount' | 'status';
   direction: 'asc' | 'desc';
@@ -44,7 +45,10 @@ interface PaymentSort {
   templateUrl: './payments.component.html',
   styleUrls: ['./payments.component.scss']
 })
-export class PaymentsComponent implements OnInit {
+export class PaymentsComponent implements OnInit, OnDestroy {
+  private financialService = inject(FinancialService);
+  private subscriptions = new Subscription();
+
   // Payment Summary Data
   nextPaymentAmount: number = 50000;
   nextPaymentDate: string = 'March 1, 2024';
@@ -66,13 +70,7 @@ export class PaymentsComponent implements OnInit {
   ];
 
   // Payment History
-  paymentHistory: Payment[] = [
-    { id: '1', date: new Date('2024-02-01'), type: 'Monthly Rent', amount: 50000, method: 'M-Pesa', methodDetails: '****7890', status: 'paid', reference: 'MPX123456789' },
-    { id: '2', date: new Date('2024-01-01'), type: 'Monthly Rent', amount: 50000, method: 'Bank Transfer', methodDetails: 'KCB Bank', status: 'paid', reference: 'BNK987654321' },
-    { id: '3', date: new Date('2023-12-01'), type: 'Monthly Rent', amount: 50000, method: 'M-Pesa', methodDetails: '****7890', status: 'paid', reference: 'MPX111222333', lateFee: 2500 },
-    { id: '4', date: new Date('2023-11-01'), type: 'Security Deposit', amount: 100000, method: 'Bank Transfer', methodDetails: 'KCB Bank', status: 'paid', reference: 'BNK444555666' },
-    { id: '5', date: new Date('2023-11-01'), type: 'Monthly Rent', amount: 50000, method: 'Credit Card', methodDetails: '****1234', status: 'paid', reference: 'CRD777888999' }
-  ];
+  paymentHistory: Payment[] = [];
 
   filteredPaymentHistory: Payment[] = [];
   currentPaymentPage = 1;
@@ -83,18 +81,76 @@ export class PaymentsComponent implements OnInit {
   paymentSort: PaymentSort = { field: 'date', direction: 'desc' };
 
   // Scheduled Payments
-  scheduledPayments: ScheduledPayment[] = [
-    { id: '1', description: 'Monthly Rent - March 2024', amount: 50000, method: 'M-Pesa', scheduleDate: 'March 1, 2024' }
-  ];
+  scheduledPayments: TenantScheduledPayment[] = [];
 
   // Insights
   earlyPaymentSavings = 7500;
   preferredPaymentDay = '1st';
   preferredPaymentMethod = 'M-Pesa';
 
+  // Loading & error state
+  summaryLoading = false;
+  summaryError: string | null = null;
+
+  historyLoading = false;
+  historyError: string | null = null;
+
+  scheduledLoading = false;
+  scheduledError: string | null = null;
+
+  isProcessingPayment = false;
+  paymentError: string | null = null;
+  paymentSuccess: string | null = null;
+
   ngOnInit(): void {
-    this.initializePaymentData();
-    this.filterPayments();
+    this.subscribeToStreams();
+    this.loadFinancialData();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  private loadFinancialData(): void {
+    this.summaryLoading = true;
+    this.summaryError = null;
+    const summaryFetch = this.financialService.getTenantPaymentSummary().subscribe({
+      next: () => {
+        this.summaryLoading = false;
+      },
+      error: (error) => {
+        this.summaryLoading = false;
+        this.summaryError = error?.message || 'Failed to load payment summary.';
+      }
+    });
+
+    this.historyLoading = true;
+    this.historyError = null;
+    const historyFetch = this.financialService.getTenantPaymentHistory().subscribe({
+      next: () => {
+        this.historyLoading = false;
+      },
+      error: (error) => {
+        this.historyLoading = false;
+        this.historyError = error?.message || 'Failed to load payment history.';
+      }
+    });
+
+    this.scheduledLoading = true;
+    this.scheduledError = null;
+    const scheduledFetch = this.financialService.getTenantScheduledPayments().subscribe({
+      next: () => {
+        this.scheduledLoading = false;
+      },
+      error: (error) => {
+        this.scheduledLoading = false;
+        this.scheduledError = error?.message || 'Failed to load scheduled payments.';
+      }
+    });
+
+    this.subscriptions.add(summaryFetch);
+    this.subscriptions.add(historyFetch);
+    this.subscriptions.add(scheduledFetch);
   }
 
   private initializePaymentData(): void {
@@ -124,15 +180,68 @@ export class PaymentsComponent implements OnInit {
   }
 
   processPayment(): void {
-    if (!this.isPaymentValid()) return;
-    alert(`Payment of KSH ${this.formatNumber(this.paymentAmount)} initiated successfully!`);
-    this.paymentAmount = 0;
-    this.selectedPaymentMethod = '';
+    if (!this.isPaymentValid() || this.isProcessingPayment) {
+      return;
+    }
+
+    this.isProcessingPayment = true;
+    this.paymentError = null;
+    this.paymentSuccess = null;
+
+    const payload: TenantPaymentPayload = {
+      amount: this.paymentAmount,
+      method: this.selectedPaymentMethod,
+      type: 'Rent Payment',
+      description: `Rent payment on ${new Date().toISOString()}`
+    };
+
+    const sub = this.financialService.initiateTenantPayment(payload).subscribe({
+      next: (record) => {
+        this.paymentSuccess = `Payment of KSH ${this.formatNumber(record.amount)} initiated successfully.`;
+        this.resetQuickPaymentForm();
+      },
+      error: (error) => {
+        this.paymentError = error?.message || 'Failed to process payment. Please try again.';
+      },
+      complete: () => {
+        this.isProcessingPayment = false;
+      }
+    });
+
+    this.subscriptions.add(sub);
   }
 
   schedulePayment(): void {
-    if (!this.isPaymentValid()) return;
-    alert(`Payment of KSH ${this.formatNumber(this.paymentAmount)} scheduled successfully!`);
+    if (!this.isPaymentValid() || this.isProcessingPayment) {
+      return;
+    }
+
+    this.isProcessingPayment = true;
+    this.paymentError = null;
+    this.paymentSuccess = null;
+
+    const payload: TenantPaymentSchedulePayload = {
+      amount: this.paymentAmount,
+      method: this.selectedPaymentMethod,
+      type: 'Scheduled Rent Payment',
+      description: `Scheduled rent payment`,
+      scheduleDate: new Date().toISOString()
+    };
+
+    const sub = this.financialService.scheduleTenantPayment(payload).subscribe({
+      next: () => {
+        this.paymentSuccess = `Payment of KSH ${this.formatNumber(this.paymentAmount)} scheduled successfully.`;
+        this.resetQuickPaymentForm();
+      },
+      error: (error) => {
+        this.paymentError = error?.message || 'Failed to schedule payment. Please try again.';
+      },
+      complete: () => {
+        this.isProcessingPayment = false;
+      }
+    });
+
+    this.subscriptions.add(sub);
   }
 
   // History
@@ -191,6 +300,18 @@ export class PaymentsComponent implements OnInit {
 
   getPaymentRangeEnd(): number {
     return Math.min(this.currentPaymentPage * this.itemsPerPage, this.totalPayments);
+  }
+
+  private applyPaymentSummary(summary: TenantPaymentSummary): void {
+    this.nextPaymentAmount = summary.nextPaymentAmount;
+    this.nextPaymentDate = summary.nextPaymentDate;
+    this.totalPaidThisYear = summary.totalPaidThisYear;
+    this.paymentsThisYear = summary.paymentsThisYear;
+    this.paymentStreak = summary.paymentStreak;
+    this.averagePaymentDays = summary.averagePaymentDays;
+    this.preferredPaymentDay = summary.preferredPaymentDay;
+    this.preferredPaymentMethod = summary.preferredPaymentMethod;
+    this.rentAmount = summary.nextPaymentAmount;
   }
 
   // Utilities
@@ -258,33 +379,70 @@ export class PaymentsComponent implements OnInit {
   }
 
   viewPaymentDetails(payment: Payment): void {
-    alert(`Payment Details:\nAmount: KSH ${this.formatNumber(payment.amount)}\nReference: ${payment.reference}\nStatus: ${payment.status}`);
+    this.paymentSuccess = `Payment ${payment.reference} • ${payment.status.toUpperCase()}`;
   }
 
   downloadReceipt(payment: Payment): void {
-    alert(`Downloading receipt for ${payment.reference}`);
+    this.paymentSuccess = `Receipt download started for ${payment.reference}`;
   }
 
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text);
+    this.paymentSuccess = 'Reference copied to clipboard.';
   }
 
   downloadPaymentHistory(): void {
-    alert('Downloading payment history...');
+    // Placeholder for actual export integration
+    this.paymentSuccess = 'Payment history export started.';
   }
 
-  editScheduledPayment(payment: ScheduledPayment): void {
-    alert(`Editing scheduled payment: ${payment.description}`);
+  editScheduledPayment(payment: TenantScheduledPayment): void {
+    this.paymentSuccess = `Editing scheduled payment: ${payment.description}`;
   }
 
-  cancelScheduledPayment(payment: ScheduledPayment): void {
+  cancelScheduledPayment(payment: TenantScheduledPayment): void {
     if (confirm(`Cancel scheduled payment for ${payment.description}?`)) {
       this.scheduledPayments = this.scheduledPayments.filter(p => p.id !== payment.id);
     }
   }
 
   getPaymentConsistency(): number {
+    if (this.paymentHistory.length === 0) {
+      return 0;
+    }
     const onTimePayments = this.paymentHistory.filter(p => !p.lateFee).length;
     return Math.round((onTimePayments / this.paymentHistory.length) * 100);
   }
+
+  private subscribeToStreams(): void {
+    const summarySub = this.financialService.watchPaymentSummary().subscribe(summary => {
+      this.applyPaymentSummary(summary);
+      this.summaryLoading = false;
+    });
+
+    const historySub = this.financialService.watchPaymentHistory().subscribe(records => {
+      this.paymentHistory = records.map(record => ({
+        ...record,
+        date: new Date(record.date)
+      }) as Payment);
+      this.initializePaymentData();
+      this.filterPayments();
+      this.historyLoading = false;
+    });
+
+    const scheduledSub = this.financialService.watchScheduledPayments().subscribe(scheduled => {
+      this.scheduledPayments = scheduled;
+      this.scheduledLoading = false;
+    });
+
+    this.subscriptions.add(summarySub);
+    this.subscriptions.add(historySub);
+    this.subscriptions.add(scheduledSub);
+  }
+
+  private resetQuickPaymentForm(): void {
+    this.paymentAmount = 0;
+    this.selectedPaymentMethod = '';
+  }
+
 }

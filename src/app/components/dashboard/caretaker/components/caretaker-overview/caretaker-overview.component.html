@@ -112,6 +112,27 @@
             <div class="activity-date">{{formatDate(inspection.date)}}</div>
           </div>
         </div>
+        <div *ngIf="inspections.length === 0" class="empty-state">No upcoming inspections scheduled.</div>
+      </div>
+    </div>
+
+    <div class="activity-section">
+      <h3>Verified Vacancy Status</h3>
+      <div class="activity-list">
+        <div *ngFor="let vacancy of vacancyEvents.slice(0, 3)" class="activity-item">
+          <div class="activity-icon vacancy-icon" [ngClass]="getVacancyStatusClass(vacancy.status)">
+            <mat-icon>verified_user</mat-icon>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">{{vacancy.property}} • {{vacancy.unit}}</div>
+            <div class="activity-details">
+              <span class="tenant">{{vacancy.tenantName}}</span> • 
+              <span class="status-badge" [class]="getVacancyStatusClass(vacancy.status)">{{vacancy.status | titlecase}}</span>
+            </div>
+            <div class="activity-date">Move-out: {{formatDate(vacancy.moveOutDate)}}</div>
+          </div>
+        </div>
+        <div *ngIf="vacancyEvents.length === 0" class="empty-state">No pending vacancy verifications.</div>
       </div>
     </div>
   </div>

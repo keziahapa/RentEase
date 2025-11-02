@@ -4,7 +4,6 @@ import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { PropertyService } from '../../../../../services/property.service';
@@ -12,6 +11,7 @@ import { AuthService } from '../../../../../services/auth.service';
 import { Subscription } from 'rxjs';
 import { PropertyCreateComponent } from '../property/property-create/property-create.component';
 import { DashboardData, QuickAction, RecentActivity } from '../../../../../services/dashboard-interface';
+import { SkeletonListComponent } from '../../../../../shared/components/skeleton/skeleton-list.component';
 
 @Component({
   selector: 'app-landlord-dashboard-home',
@@ -21,8 +21,8 @@ import { DashboardData, QuickAction, RecentActivity } from '../../../../../servi
     MatCardModule,
     MatIconModule,
     MatButtonModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    SkeletonListComponent
   ],
   templateUrl: './landlord-dashboard-home.component.html',
   styleUrls: ['./landlord-dashboard-home.component.scss']
@@ -140,42 +140,20 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     this.isLoadingDashboard = true;
     this.dashboardError = '';
 
-    const propertiesSub = this.propertyService.getProperties().subscribe({
-      next: (response: any) => {
-        let properties: any[] = [];
-        
-        if (Array.isArray(response)) {
-          properties = response;
-        } else if (response?.data && Array.isArray(response.data)) {
-          properties = response.data;
-        } else if (response?.properties && Array.isArray(response.properties)) {
-          properties = response.properties;
-        } else if (response?.content && Array.isArray(response.content)) {
-          properties = response.content;
-        } else if (response?.success && Array.isArray(response.data)) {
-          properties = response.data;
-        } else {
-          properties = [];
-        }
+    try {
+      const propertiesSub = this.propertyService.getProperties().subscribe({
+        next: (response: any) => {
+          const properties = this.normalizePropertiesResponse(response);
+          this.processDashboardData(properties);
+          this.isLoadingDashboard = false;
+        },
+        error: (error: any) => this.handleDashboardError(error)
+      });
 
-        this.processDashboardData(properties);
-        this.isLoadingDashboard = false;
-      },
-      error: (error: any) => {
-        this.isLoadingDashboard = false;
-        this.dashboardError = error?.message || 'Failed to load dashboard data';
-        this.snackBar.open(this.dashboardError, 'Close', { duration: 5000 });
-        
-        if (error.status === 401) {
-          setTimeout(() => {
-            this.authService.logout().subscribe();
-            this.router.navigate(['/login']);
-          }, 2000);
-        }
-      }
-    });
-
-    this.subscriptions.add(propertiesSub);
+      this.subscriptions.add(propertiesSub);
+    } catch (error) {
+      this.handleDashboardError(error);
+    }
   }
 
   private processDashboardData(properties: any[]): void {
@@ -210,6 +188,32 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
       rentCollectionRate,
       openMaintenance
     };
+  }
+
+  private normalizePropertiesResponse(response: any): any[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+    if (response?.data && Array.isArray(response.data)) {
+      return response.data;
+    }
+    if (response?.properties && Array.isArray(response.properties)) {
+      return response.properties;
+    }
+    if (response?.content && Array.isArray(response.content)) {
+      return response.content;
+    }
+    if (response?.success && Array.isArray(response.data)) {
+      return response.data;
+    }
+    return [];
+  }
+
+  private handleDashboardError(error: any): void {
+    this.isLoadingDashboard = false;
+    const message = error?.message || 'Failed to load dashboard data';
+    this.dashboardError = message;
+    this.snackBar.open(message, 'Close', { duration: 5000 });
   }
 
   navigateToSection(section: string) {

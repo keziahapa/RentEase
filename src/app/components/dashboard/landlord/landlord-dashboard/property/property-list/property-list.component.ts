@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -13,6 +12,7 @@ import { AuthService } from '../../../../../../services/auth.service';
 import { InvitationService } from '../../../../../../services/invitation.service';
 import { Property } from '../../../../../../services/dashboard-interface';
 import { InviteDialogComponent } from '../../invite-dialog/invite-dialog.component';
+import { SkeletonListComponent } from '../../../../../../shared/components/skeleton/skeleton-list.component';
 
 @Component({
   selector: 'app-property-list',
@@ -22,10 +22,10 @@ import { InviteDialogComponent } from '../../invite-dialog/invite-dialog.compone
     MatIconModule,
     MatButtonModule,
     MatCardModule,
-    MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
-    MatDialogModule
+    MatDialogModule,
+    SkeletonListComponent
   ],
   templateUrl: './property-list.component.html',
   styleUrls: ['./property-list.component.scss']
@@ -52,40 +52,17 @@ export class PropertyListComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
-    this.propertyService.getProperties().subscribe({
-      next: (response: any) => {
-        if (Array.isArray(response)) {
-          this.properties = response;
-        } else if (response?.data && Array.isArray(response.data)) {
-          this.properties = response.data;
-        } else if (response?.properties && Array.isArray(response.properties)) {
-          this.properties = response.properties;
-        } else if (response?.content && Array.isArray(response.content)) {
-          this.properties = response.content;
-        } else if (response?.success && Array.isArray(response.data)) {
-          this.properties = response.data;
-        } else {
-          this.properties = [];
-          console.warn('Unexpected response format from properties API:', response);
-        }
-        
-        this.loading = false;
-        console.log('Properties loaded successfully:', this.properties);
-      },
-      error: (error: any) => {
-        this.loading = false;
-        this.errorMessage = error?.message || 'Failed to load properties';
-        this.snackBar.open(this.errorMessage, 'Close', { duration: 5000 });
-        console.error('Error loading properties:', error);
-        
-        if (error.status === 401) {
-          setTimeout(() => {
-            this.authService.logout();
-            this.router.navigate(['/login']);
-          }, 2000);
-        }
-      }
-    });
+    try {
+      this.propertyService.getProperties().subscribe({
+        next: (response: any) => {
+          this.properties = this.normalizePropertiesResponse(response);
+          this.loading = false;
+        },
+        error: (error: any) => this.handlePropertiesError(error)
+      });
+    } catch (error) {
+      this.handlePropertiesError(error);
+    }
   }
 
   viewProperty(propertyId: string) {
@@ -197,6 +174,31 @@ export class PropertyListComponent implements OnInit {
       'MIXED': 'Mixed Use'
     };
     return typeMap[type ?? ''] ?? type ?? 'Property';
+  }
+
+  private normalizePropertiesResponse(response: any): Property[] {
+    if (Array.isArray(response)) {
+      return response as Property[];
+    }
+    if (response?.data && Array.isArray(response.data)) {
+      return response.data as Property[];
+    }
+    if (response?.properties && Array.isArray(response.properties)) {
+      return response.properties as Property[];
+    }
+    if (response?.content && Array.isArray(response.content)) {
+      return response.content as Property[];
+    }
+    console.warn('Unexpected response format from properties API:', response);
+    return [];
+  }
+
+  private handlePropertiesError(error: any): void {
+    this.loading = false;
+    const message = error?.message || 'Failed to load properties';
+    this.errorMessage = message;
+    this.snackBar.open(message, 'Close', { duration: 5000 });
+    console.error('Error loading properties:', error);
   }
 
   // Debug method to check authentication status

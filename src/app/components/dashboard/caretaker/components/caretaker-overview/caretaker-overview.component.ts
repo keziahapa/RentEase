@@ -1,9 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { CaretakerService } from '../../../../../services/caretaker.service';
+import { Subscription } from 'rxjs';
+import {
+  MaintenanceService,
+  MaintenanceRequest as TenantMaintenanceRequest,
+  MaintenanceStatus,
+  CaretakerInspection,
+  VacancyEvent
+} from '../../../../../services/maintenance.service';
 
 export interface QuickAction {
   id: string;
@@ -23,7 +30,7 @@ export interface Stats {
   tenantSatisfaction: number;
 }
 
-export interface MaintenanceRequest {
+export interface MaintenanceRequestSummary {
   id: string;
   title: string;
   category: string;
@@ -35,16 +42,6 @@ export interface MaintenanceRequest {
   property: string;
 }
 
-export interface Inspection {
-  id: string;
-  type: 'move-in' | 'move-out' | 'routine';
-  property: string;
-  tenantName: string;
-  date: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
-  depositAmount: number;
-}
-
 @Component({
   selector: 'app-caretaker-overview',
   standalone: true,
@@ -52,7 +49,10 @@ export interface Inspection {
   templateUrl: './caretaker-overview.component.html',
   styleUrls: ['./caretaker-overview.component.scss']
 })
-export class CaretakerOverviewComponent implements OnInit {
+export class CaretakerOverviewComponent implements OnInit, OnDestroy {
+  private maintenanceService = inject(MaintenanceService);
+  private subscriptions = new Subscription();
+
   stats: Stats = {
     pendingMaintenance: 0,
     scheduledInspections: 0,
@@ -62,71 +62,13 @@ export class CaretakerOverviewComponent implements OnInit {
     tenantSatisfaction: 4.5
   };
 
-  maintenanceRequests: MaintenanceRequest[] = [
-    { 
-      id: '1', 
-      title: 'Kitchen faucet leaking', 
-      category: 'Plumbing', 
-      priority: 'medium', 
-      description: 'Kitchen sink faucet has constant drip', 
-      status: 'submitted', 
-      dateSubmitted: '2024-03-01', 
-      tenantName: 'John Doe', 
-      property: 'Apartment 4B' 
-    },
-    { 
-      id: '2', 
-      title: 'Broken window lock', 
-      category: 'General Repairs', 
-      priority: 'low', 
-      description: 'Bedroom window lock not closing properly', 
-      status: 'in-progress', 
-      dateSubmitted: '2024-02-28', 
-      tenantName: 'Sarah Smith', 
-      property: 'House 12' 
-    },
-    { 
-      id: '3', 
-      title: 'AC not cooling', 
-      category: 'HVAC', 
-      priority: 'high', 
-      description: 'Air conditioning not cooling living room', 
-      status: 'submitted', 
-      dateSubmitted: '2024-03-02', 
-      tenantName: 'Mike Johnson', 
-      property: 'Apartment 7C' 
-    }
-  ];
-
-  inspections: Inspection[] = [
-    { 
-      id: '1', 
-      type: 'move-out', 
-      property: 'Apartment 3A', 
-      tenantName: 'David Wilson', 
-      date: '2024-03-05', 
-      status: 'scheduled', 
-      depositAmount: 50000 
-    },
-    { 
-      id: '2', 
-      type: 'move-in', 
-      property: 'House 15', 
-      tenantName: 'Emma Davis', 
-      date: '2024-03-06', 
-      status: 'scheduled', 
-      depositAmount: 75000 
-    },
-    { 
-      id: '3', 
-      type: 'routine', 
-      property: 'Apartment 2B', 
-      tenantName: 'James Miller', 
-      date: '2024-03-10', 
-      status: 'scheduled', 
-      depositAmount: 0 
-    }
-  ];
+  maintenanceRequests: MaintenanceRequestSummary[] = [];
+  inspections: CaretakerInspection[] = [];
+  vacancyEvents: VacancyEvent[] = [];
+  loadError: string | null = null;
+  isLoadingMaintenance = false;
+  isLoadingInspections = false;
+  isLoadingVacancy = false;
   
   quickActions: QuickAction[] = [
     { 
@@ -163,23 +105,106 @@ export class CaretakerOverviewComponent implements OnInit {
     }
   ];
 
-  constructor(private caretakerService: CaretakerService) {}
-
   ngOnInit(): void {
+    this.subscribeToStreams();
     this.loadData();
   }
 
-  loadData(): void {
-    this.updateStats();
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
-  updateStats(): void {
-    this.stats.pendingMaintenance = this.maintenanceRequests.filter(r => 
-      r.status === 'submitted' || r.status === 'in-progress'
-    ).length;
-    this.stats.completedJobs = this.maintenanceRequests.filter(r => r.status === 'completed').length;
+  loadData(): void {
+    this.loadMaintenanceRequests();
+    this.loadInspections();
+    this.loadVacancyEvents();
+    this.loadMaintenanceSummary();
+  }
+
+  private loadMaintenanceRequests(): void {
+    this.isLoadingMaintenance = true;
+    this.loadError = null;
+    const sub = this.maintenanceService.getCaretakerMaintenanceRequests().subscribe({
+      next: () => {
+        this.isLoadingMaintenance = false;
+      },
+      error: (error) => {
+        this.loadError = error?.message || 'Unable to load maintenance summary.';
+        this.isLoadingMaintenance = false;
+      }
+    });
+    this.subscriptions.add(sub);
+  }
+
+  private loadInspections(): void {
+    this.isLoadingInspections = true;
+    this.loadError = null;
+    const sub = this.maintenanceService.getCaretakerInspections().subscribe({
+      next: () => {
+        this.isLoadingInspections = false;
+      },
+      error: (error) => {
+        this.loadError = error?.message || 'Unable to load inspections.';
+        this.isLoadingInspections = false;
+      }
+    });
+    this.subscriptions.add(sub);
+  }
+
+  private loadVacancyEvents(): void {
+    this.isLoadingVacancy = true;
+    this.loadError = null;
+    const sub = this.maintenanceService.getVacancyEvents().subscribe({
+      next: () => {
+        this.isLoadingVacancy = false;
+      },
+      error: (error) => {
+        this.loadError = error?.message || 'Unable to load vacancy status.';
+        this.isLoadingVacancy = false;
+      }
+    });
+    this.subscriptions.add(sub);
+  }
+
+  private loadMaintenanceSummary(): void {
+    const sub = this.maintenanceService.getMaintenanceSummary().subscribe({
+      next: (summary) => {
+        this.stats.pendingMaintenance = summary.open + summary.inProgress;
+        this.stats.completedJobs = summary.completed;
+      },
+      error: () => {
+        // Ignore summary errors; fall back to derived stats
+      }
+    });
+    this.subscriptions.add(sub);
+  }
+
+  private refreshDerivedStats(): void {
     this.stats.scheduledInspections = this.inspections.filter(i => i.status === 'scheduled').length;
-    this.stats.activeDepositCases = this.inspections.filter(i => i.depositAmount > 0).length;
+    this.stats.activeDepositCases = this.vacancyEvents.filter(event => event.status !== 'confirmed').length;
+  }
+
+  private subscribeToStreams(): void {
+    const maintenanceSub = this.maintenanceService.maintenanceRequestsChanges$.subscribe(requests => {
+      this.maintenanceRequests = requests.map(req => this.mapMaintenanceRequest(req));
+      this.stats.pendingMaintenance = this.maintenanceRequests.filter(r => r.status === 'submitted' || r.status === 'in-progress').length;
+      this.stats.completedJobs = this.maintenanceRequests.filter(r => r.status === 'completed').length;
+      this.refreshDerivedStats();
+    });
+
+    const inspectionsSub = this.maintenanceService.caretakerInspectionsChanges$.subscribe(inspections => {
+      this.inspections = inspections;
+      this.refreshDerivedStats();
+    });
+
+    const vacancySub = this.maintenanceService.vacancyEventsChanges$.subscribe(events => {
+      this.vacancyEvents = events;
+      this.refreshDerivedStats();
+    });
+
+    this.subscriptions.add(maintenanceSub);
+    this.subscriptions.add(inspectionsSub);
+    this.subscriptions.add(vacancySub);
   }
 
   createMaintenance(): void {
@@ -196,6 +221,48 @@ export class CaretakerOverviewComponent implements OnInit {
 
   contactTenant(): void {
     console.log('Contacting tenant...');
+  }
+
+  getVacancyStatusClass(status: VacancyEvent['status']): string {
+    const statusMap: Record<VacancyEvent['status'], string> = {
+      pending: 'status-pending',
+      confirmed: 'status-completed',
+      disputed: 'status-disputed'
+    };
+    return statusMap[status] || 'status-pending';
+  }
+
+  private mapMaintenanceRequest(request: TenantMaintenanceRequest): MaintenanceRequestSummary {
+    return {
+      id: request.id,
+      title: request.title,
+      category: request.category,
+      priority: request.priority as MaintenanceRequestSummary['priority'],
+      description: request.description,
+      status: this.mapMaintenanceStatus(request.status),
+      dateSubmitted: request.dateSubmitted,
+      tenantName: request.tenantName || 'Current tenant',
+      property: request.propertyName || request.location
+    };
+  }
+
+  private mapMaintenanceStatus(status: MaintenanceStatus): MaintenanceRequestSummary['status'] {
+    switch (status) {
+      case MaintenanceStatus.SUBMITTED:
+      case MaintenanceStatus.ACKNOWLEDGED:
+        return 'submitted';
+      case MaintenanceStatus.IN_PROGRESS:
+      case MaintenanceStatus.SCHEDULED:
+      case MaintenanceStatus.PENDING_PARTS:
+        return 'in-progress';
+      case MaintenanceStatus.COMPLETED:
+        return 'completed';
+      case MaintenanceStatus.CANCELLED:
+      case MaintenanceStatus.REJECTED:
+        return 'cancelled';
+      default:
+        return 'submitted';
+    }
   }
 
   formatNumber(num: number): string {

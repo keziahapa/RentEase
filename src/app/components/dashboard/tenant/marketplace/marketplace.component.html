@@ -41,8 +41,8 @@
     </button>
   </div>
   <div class="card-content collapsible-content" [class.collapsed]="isSectionCollapsed('marketplace')">
-    <div class="marketplace-grid">
-      <div class="marketplace-card" *ngFor="let item of getMarketplaceItems()">
+    <div class="marketplace-grid" *ngIf="!isLoading && !loadError && visibleListings.length > 0">
+      <div class="marketplace-card" *ngFor="let item of visibleListings">
         <div class="marketplace-image">
           <div class="placeholder-image">
             <mat-icon>image</mat-icon>
@@ -65,6 +65,10 @@
             <mat-icon>person</mat-icon>
             Seller: {{item.seller}}
           </div>
+          <div class="marketplace-contact" *ngIf="item.contactPhone">
+            <mat-icon>phone</mat-icon>
+            {{item.contactPhone}}
+          </div>
         </div>
         <div class="marketplace-actions">
           <button class="btn btn-primary">
@@ -72,6 +76,30 @@
             Contact Seller
           </button>
         </div>
+      </div>
+    </div>
+    <div class="marketplace-grid empty" *ngIf="!isLoading && !loadError && visibleListings.length === 0">
+      <div class="empty-state">
+        <mat-icon>storefront</mat-icon>
+        <h3>No listings yet</h3>
+        <p>Check back soon or switch categories to see more offers.</p>
+      </div>
+    </div>
+    <div class="marketplace-grid loading" *ngIf="isLoading">
+      <div class="loading-state">
+        <mat-icon>hourglass_empty</mat-icon>
+        <p>Loading community listings...</p>
+      </div>
+    </div>
+    <div class="marketplace-grid error" *ngIf="!isLoading && loadError">
+      <div class="error-state">
+        <mat-icon>error_outline</mat-icon>
+        <h3>Unable to load listings</h3>
+        <p>{{loadError}}</p>
+        <button class="btn btn-secondary" (click)="$event.stopPropagation(); fetchMarketplaceListings();">
+          <mat-icon>refresh</mat-icon>
+          Try Again
+        </button>
       </div>
     </div>
   </div>

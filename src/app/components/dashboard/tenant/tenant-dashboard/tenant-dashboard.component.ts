@@ -6,9 +6,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { TenantService } from '../../../../services/tenant.service';
-import { DashboardOverviewComponent } from '../dashboard-overview/dashboard-overview.component';
+import { CommunicationService } from '../../../../services/communication.service';
 
 
 @Component({
@@ -20,8 +21,7 @@ import { DashboardOverviewComponent } from '../dashboard-overview/dashboard-over
     MatDialogModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    RouterOutlet,
-    DashboardOverviewComponent
+    RouterOutlet
   ],
   templateUrl: './tenant-dashboard.component.html',
   styleUrls: ['./tenant-dashboard.component.scss']
@@ -46,6 +46,8 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
 
   private profileUpdateListener: any;
   isLoggingOut: boolean = false;
+  private communicationSubscriptions = new Subscription();
+  private notificationSummarySubscription: Subscription | null = null;
 
   greeting: string = '';
   currentTime: string = '';
@@ -54,7 +56,8 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     private router: Router,
     private authService: AuthService,
     private tenantService: TenantService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private communicationService: CommunicationService
   ) { }
 
   ngOnInit(): void {
@@ -84,6 +87,8 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
       window.removeEventListener('profileImageUpdated', this.profileUpdateListener);
     }
     document.removeEventListener('click', this.handleClickOutside.bind(this));
+    this.notificationSummarySubscription?.unsubscribe();
+    this.communicationSubscriptions.unsubscribe();
   }
 
   private updateGreeting(): void {
@@ -196,12 +201,24 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
 
   private loadNotifications(): void {
     this.isLoadingNotifications = true;
-    
-    setTimeout(() => {
-      this.unreadNotificationsCount = 3; 
-      this.unreadMessagesCount = 2; 
-      this.isLoadingNotifications = false;
-    }, 500);
+    this.notificationSummarySubscription?.unsubscribe();
+
+    this.notificationSummarySubscription = this.communicationService.watchNotificationSummary().subscribe({
+      next: summary => {
+        this.unreadNotificationsCount = summary.unreadNotifications;
+        this.unreadMessagesCount = summary.unreadMessages;
+        this.isLoadingNotifications = false;
+      },
+      error: () => {
+        this.unreadNotificationsCount = 0;
+        this.unreadMessagesCount = 0;
+        this.isLoadingNotifications = false;
+      }
+    });
+
+    if (this.notificationSummarySubscription) {
+      this.communicationSubscriptions.add(this.notificationSummarySubscription);
+    }
   }
 
   viewNotifications(): void {

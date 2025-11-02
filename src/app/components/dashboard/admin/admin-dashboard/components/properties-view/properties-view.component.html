@@ -7,10 +7,24 @@
         <span class="stat-badge occupied">{{occupiedPropertiesCount}} Occupied</span>
         <span class="stat-badge vacant">{{vacantPropertiesCount}} Vacant</span>
       </div>
-      <button class="btn btn-primary" matTooltip="Export Properties">
+      <button
+        class="btn btn-primary"
+        matTooltip="Export Properties"
+        [matMenuTriggerFor]="propertiesExportMenu">
         <mat-icon>download</mat-icon>
         <span>Export</span>
+        <mat-icon class="menu-caret">expand_more</mat-icon>
       </button>
+      <mat-menu #propertiesExportMenu="matMenu">
+        <button mat-menu-item (click)="exportProperties('csv')" [disabled]="exportState.csv">
+          <mat-icon>grid_on</mat-icon>
+          <span>{{exportState.csv ? 'Exporting CSV...' : 'Export CSV'}}</span>
+        </button>
+        <button mat-menu-item (click)="exportProperties('pdf')" [disabled]="exportState.pdf">
+          <mat-icon>picture_as_pdf</mat-icon>
+          <span>{{exportState.pdf ? 'Exporting PDF...' : 'Export PDF'}}</span>
+        </button>
+      </mat-menu>
     </div>
   </div>
 

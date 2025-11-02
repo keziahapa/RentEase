@@ -1,0 +1,125 @@
+<div class="maintenance-page">
+  <header class="page-header">
+    <div>
+      <h1>Maintenance oversight</h1>
+      <p class="subtitle">Monitor open requests across your portfolio and follow up with caretakers.</p>
+    </div>
+    <div class="actions">
+      <button mat-stroked-button type="button" (click)="statusControl.setValue('all'); priorityControl.setValue('all');">
+        <mat-icon>filter_alt_off</mat-icon>
+        Clear filters
+      </button>
+      <button mat-flat-button color="primary" type="button" (click)="refresh()" [disabled]="isRefreshing">
+        <mat-icon>refresh</mat-icon>
+        {{ isRefreshing ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
+  </header>
+
+  <section class="summary-grid" *ngIf="!isLoading && !errorMessage">
+    <article class="summary-card">
+      <span class="label">Open tickets</span>
+      <span class="value">{{ summary.open }}</span>
+      <span class="meta">Submitted, acknowledged, or scheduled</span>
+    </article>
+
+    <article class="summary-card">
+      <span class="label">In progress</span>
+      <span class="value">{{ summary.inProgress }}</span>
+      <span class="meta">Caretaker or provider actively working</span>
+    </article>
+
+    <article class="summary-card">
+      <span class="label">Completed this cycle</span>
+      <span class="value">{{ summary.completed }}</span>
+      <span class="meta">Resolved and awaiting tenant feedback</span>
+    </article>
+
+    <article class="summary-card warning">
+      <span class="label">Priority attention</span>
+      <span class="value">{{ summary.overdue }}</span>
+      <span class="meta">High or urgent requests still pending</span>
+    </article>
+  </section>
+
+  <section class="filters">
+    <mat-chip-listbox [formControl]="statusControl" aria-label="Filter by status" class="filter-chip-list">
+      <mat-chip-option *ngFor="let status of statusFilters" [value]="status.id">
+        {{ status.label }}
+      </mat-chip-option>
+    </mat-chip-listbox>
+
+    <mat-chip-listbox [formControl]="priorityControl" aria-label="Filter by priority" class="filter-chip-list">
+      <mat-chip-option *ngFor="let priority of priorityFilters" [value]="priority.id">
+        {{ priority.label }}
+      </mat-chip-option>
+    </mat-chip-listbox>
+  </section>
+
+  <section class="content">
+    <div *ngIf="isLoading" class="skeleton-wrapper">
+      <app-skeleton-list variant="list" [count]="5" [lines]="4"></app-skeleton-list>
+    </div>
+
+    <div *ngIf="!isLoading && errorMessage" class="error-state">
+      <mat-icon>report_problem</mat-icon>
+      <h3>We couldn’t fetch maintenance requests</h3>
+      <p>{{ errorMessage }}</p>
+      <button mat-flat-button color="primary" type="button" (click)="refresh()">Try again</button>
+    </div>
+
+    <div *ngIf="!isLoading && !errorMessage && filteredRequests.length === 0" class="empty-state">
+      <mat-icon>handyman</mat-icon>
+      <h3>No maintenance requests match your filters</h3>
+      <p>Adjust the filters above or check back after tenants submit new issues.</p>
+    </div>
+
+    <div *ngIf="!isLoading && !errorMessage && filteredRequests.length" class="requests-list">
+      <article class="request-card" *ngFor="let request of filteredRequests; trackBy: trackByRequestId">
+        <header class="request-header">
+          <div>
+            <h2>{{ request.title }}</h2>
+            <p class="location" *ngIf="request.propertyName || request.location">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ request.propertyName || request.location }}</span>
+            </p>
+          </div>
+          <span class="status-chip" [ngClass]="statusClass(request.status)">{{ statusLabel(request.status) }}</span>
+        </header>
+
+        <div class="request-body">
+          <p class="description">{{ request.description }}</p>
+
+          <dl class="request-meta">
+            <div>
+              <dt>Priority</dt>
+              <dd>{{ priorityLabel(request.priority) }}</dd>
+            </div>
+            <div *ngIf="request.dateSubmitted">
+              <dt>Submitted</dt>
+              <dd>{{ request.dateSubmitted | date:'d MMM y' }}</dd>
+            </div>
+            <div *ngIf="request.tenantName">
+              <dt>Tenant</dt>
+              <dd>{{ request.tenantName }}</dd>
+            </div>
+            <div *ngIf="request.scheduledDate">
+              <dt>Scheduled</dt>
+              <dd>{{ request.scheduledDate | date:'d MMM, h:mm a' }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <footer class="request-footer" *ngIf="request.updates?.length">
+          <div class="update" *ngFor="let update of request.updates | slice:0:1">
+            <mat-icon>update</mat-icon>
+            <div>
+              <p class="update-message">{{ update.message }}</p>
+              <span class="update-meta">{{ update.updatedAt | date:'d MMM, h:mm a' }} • {{ update.updatedBy }}</span>
+            </div>
+          </div>
+        </footer>
+      </article>
+    </div>
+  </section>
+</div>

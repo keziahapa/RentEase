@@ -1,9 +1,10 @@
 <div class="dashboard-home">
   <div class="dashboard-content">
     
-    <div *ngIf="isLoadingDashboard" class="loading-state">
-      <mat-spinner diameter="50"></mat-spinner>
-      <p>Loading dashboard data...</p>
+    <div *ngIf="isLoadingDashboard" class="dashboard-skeleton">
+      <app-skeleton-list variant="stat" [count]="5"></app-skeleton-list>
+      <app-skeleton-list variant="card" [count]="4"></app-skeleton-list>
+      <app-skeleton-list variant="list" [count]="4"></app-skeleton-list>
     </div>
 
     <div *ngIf="!isLoadingDashboard">
@@ -28,7 +29,7 @@
               <mat-icon>apartment</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData?.totalProperties || 0 }}</div>
+          <div class="stat-value">{{ dashboardData.totalProperties || 0 }}</div>
         </div>
 
         <div class="stat-card">
@@ -38,7 +39,7 @@
               <mat-icon>bar_chart</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData?.occupancyRate || 0 }}%</div>
+          <div class="stat-value">{{ dashboardData.occupancyRate || 0 }}%</div>
         </div>
 
         <div class="stat-card">
@@ -48,7 +49,7 @@
               <mat-icon>attach_money</mat-icon>
             </div>
           </div>
-          <div class="stat-value">KES {{ (dashboardData?.monthlyRevenue || 0) | number }}</div>
+          <div class="stat-value">KES {{ (dashboardData.monthlyRevenue || 0) | number }}</div>
         </div>
 
         <div class="stat-card">
@@ -58,7 +59,7 @@
               <mat-icon>trending_up</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData?.rentCollectionRate || 0 }}%</div>
+          <div class="stat-value">{{ dashboardData.rentCollectionRate || 0 }}%</div>
         </div>
 
         <div class="stat-card">
@@ -68,7 +69,7 @@
               <mat-icon>handyman</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData?.openMaintenance || 0 }}</div>
+          <div class="stat-value">{{ dashboardData.openMaintenance || 0 }}</div>
         </div>
       </div>
 

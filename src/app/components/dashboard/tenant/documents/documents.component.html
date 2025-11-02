@@ -18,6 +18,28 @@
   </div>
 
   <!-- Document Statistics -->
+  <div class="action-error" *ngIf="loadError" role="alert">
+    <mat-icon>error</mat-icon>
+    <span>{{loadError}}</span>
+    <button type="button"
+            class="action-error-btn"
+            (click)="loadDocuments()"
+            title="Retry loading documents">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <div class="action-error" *ngIf="actionError" role="alert">
+    <mat-icon>error</mat-icon>
+    <span>{{actionError}}</span>
+    <button type="button"
+            class="action-error-btn"
+            (click)="dismissActionError()"
+            title="Dismiss">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
   <div class="document-stats">
     <div class="stat-card">
       <div class="stat-icon">
@@ -376,6 +398,10 @@
         <div class="upload-info">
           <p><strong>Supported formats:</strong> PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, ZIP</p>
           <p><strong>Maximum file size:</strong> 10MB per file</p>
+          <p class="upload-error" *ngIf="uploadError">
+            <mat-icon>error</mat-icon>
+            {{uploadError}}
+          </p>
         </div>
       </div>
     </div>

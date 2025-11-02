@@ -1,1 +1,94 @@
-<p>marketplace works!</p>
+<div class="marketplace-page">
+  <header class="page-header">
+    <div>
+      <h1>Community marketplace</h1>
+      <p>Browse services and listings shared across your managed properties.</p>
+    </div>
+    <button mat-flat-button color="primary" type="button" (click)="refresh()" [disabled]="isLoading">
+      <mat-icon>refresh</mat-icon>
+      {{ isLoading ? 'Refreshing…' : 'Refresh' }}
+    </button>
+  </header>
+
+  <section class="filters">
+    <mat-chip-listbox [formControl]="categoryControl" aria-label="Filter by category" class="category-filter">
+      <mat-chip-option value="all">All categories</mat-chip-option>
+      <mat-chip-option
+        *ngFor="let category of categories"
+        [value]="category.slug"
+      >
+        {{ category.name }}
+      </mat-chip-option>
+    </mat-chip-listbox>
+
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search listings</mat-label>
+      <input matInput [formControl]="searchControl" placeholder="Search by title, location, or seller" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="sort-field">
+      <mat-label>Sort</mat-label>
+      <mat-select [formControl]="sortControl">
+        <mat-option value="newest">Newest first</mat-option>
+        <mat-option value="price_asc">Price: Low to High</mat-option>
+        <mat-option value="price_desc">Price: High to Low</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </section>
+
+  <section class="content">
+    <div *ngIf="isLoading" class="skeleton-wrapper">
+      <app-skeleton-list variant="card" [count]="6"></app-skeleton-list>
+    </div>
+
+    <div *ngIf="!isLoading && errorMessage" class="error-state">
+      <mat-icon>warning</mat-icon>
+      <h3>Unable to fetch listings</h3>
+      <p>{{ errorMessage }}</p>
+      <button mat-flat-button color="primary" type="button" (click)="refresh()">
+        <mat-icon>refresh</mat-icon>
+        Try again
+      </button>
+    </div>
+
+    <div *ngIf="!isLoading && !errorMessage && filteredListings.length === 0" class="empty-state">
+      <mat-icon>store_mall_directory</mat-icon>
+      <h3>No listings match your filters</h3>
+      <p>Adjust the search or category filters to explore more community listings.</p>
+    </div>
+
+    <div *ngIf="!isLoading && !errorMessage && filteredListings.length" class="listing-grid">
+      <article class="listing-card" *ngFor="let listing of filteredListings">
+        <header>
+          <span class="category">{{ listing.category | titlecase }}</span>
+          <h2>{{ listing.title }}</h2>
+        </header>
+
+        <p class="description">{{ listing.description }}</p>
+
+        <ul class="meta">
+          <li>
+            <mat-icon>location_on</mat-icon>
+            {{ listing.location }}
+          </li>
+          <li>
+            <mat-icon>person</mat-icon>
+            {{ listing.seller }}
+          </li>
+          <li>
+            <mat-icon>calendar_month</mat-icon>
+            {{ listing.datePosted | date:'d MMM y' }}
+          </li>
+        </ul>
+
+        <footer>
+          <div class="price">{{ formatPrice(listing.price) }}</div>
+          <button mat-stroked-button color="primary" type="button">
+            <mat-icon>mail</mat-icon>
+            Contact
+          </button>
+        </footer>
+      </article>
+    </div>
+  </section>
+</div>

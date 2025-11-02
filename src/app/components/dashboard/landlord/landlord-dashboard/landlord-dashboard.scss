@@ -102,25 +102,25 @@
 }
 
 .logo-image {
-  width: 70px;
-  height: 70px;
+  width: 88px;
+  height: 88px;
   object-fit: contain;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+  filter: brightness(0) invert(1) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
   transition: all 0.3s ease;
 
   @media (max-width: 768px) {
-    width: 60px;
-    height: 60px;
+    width: 72px;
+    height: 72px;
   }
 
   @media (max-width: 480px) {
-    width: 50px;
-    height: 50px;
+    width: 62px;
+    height: 62px;
   }
 
   @media (max-width: 360px) {
-    width: 45px;
-    height: 45px;
+    width: 56px;
+    height: 56px;
   }
 }
 

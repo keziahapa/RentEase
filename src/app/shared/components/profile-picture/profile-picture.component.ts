@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { ProfilePictureService, UserProfile } from '../../../services/profile-picture.service';
+import { ProfilePictureService, UserProfile, UpdateProfileResponse, ProfilePictureResponse } from '../../../services/profile-picture.service';
 
 @Component({
   selector: 'app-profile-picture',
@@ -35,8 +35,10 @@ export class ProfilePictureComponent implements OnInit {
   loadUserProfile(): void {
     this.loading = true;
     this.profilePictureService.getCurrentUserProfile().subscribe({
-      next: (profile) => {
-        this.userProfile = profile;
+      next: (response: UpdateProfileResponse) => {
+        if (response?.success && response.user) {
+          this.userProfile = response.user;
+        }
         this.loadProfilePicture();
       },
       error: (error) => {
@@ -49,7 +51,7 @@ export class ProfilePictureComponent implements OnInit {
 
   loadProfilePicture(): void {
     this.profilePictureService.getProfilePicture().subscribe({
-      next: (response) => {
+      next: (response: ProfilePictureResponse) => {
         this.loading = false;
         const pictureUrl = response.data || response.pictureUrl;
         

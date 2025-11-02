@@ -1,0 +1,1017 @@
+openapi: 3.0.1
+info:
+  title: RentEase API Portal ✨
+  description: Rental management should be Efficient
+  version: '0.42'
+servers:
+- url: https://rentease-3-sfgx.onrender.com
+  description: Generated server url
+security:
+- bearerAuth: []
+paths:
+  /api/profile/update-picture:
+    put:
+      tags:
+      - profile-picture-controller
+      operationId: updateProfilePicture
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/update-phone:
+    put:
+      tags:
+      - profile-update-controller
+      operationId: updatePhone
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePhoneRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/update-password:
+    put:
+      tags:
+      - profile-update-controller
+      operationId: updatePassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/profile/upload-picture:
+    post:
+      tags:
+      - profile-picture-controller
+      operationId: uploadProfilePicture
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/landlord/properties:
+    get:
+      tags:
+      - property-controller
+      operationId: getLandlordProperties
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+    post:
+      tags:
+      - property-controller
+      operationId: createProperty
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropertyCreateRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/landlord/invite-caretaker:
+    post:
+      tags:
+      - invitation-controller
+      operationId: inviteCaretaker
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaretakerInvitationRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/external-business/register:
+    post:
+      tags:
+      - external-business-controller
+      operationId: registerBusiness
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - data
+              - licenseDocument
+              type: object
+              properties:
+                data:
+                  $ref: '#/components/schemas/ExternalBusinessRegistrationRequest'
+                licenseDocument:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/external-business/advertisements:
+    post:
+      tags:
+      - advertisement-controller
+      operationId: createAdvertisement
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdvertisementRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/landlord/properties/{propertyId}/units:
+    get:
+      tags:
+      - unit-controller
+      operationId: getUnitsByProperty
+      parameters:
+      - name: propertyId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+    post:
+      tags:
+      - unit-controller
+      operationId: createUnit
+      parameters:
+      - name: propertyId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnitCreateRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/caretaker/properties/{propertyId}/units:
+    get:
+      tags:
+      - unit-controller
+      operationId: getUnitsByProperty_1
+      parameters:
+      - name: propertyId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+    post:
+      tags:
+      - unit-controller
+      operationId: createUnit_1
+      parameters:
+      - name: propertyId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnitCreateRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/caretaker/invite-tenant:
+    post:
+      tags:
+      - invitation-controller
+      operationId: inviteTenant
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantInvitationRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/landlord/invite-tenant:
+    post:
+      tags:
+      - invitation-controller
+      operationId: inviteTenant_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantInvitationRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/verify-otp:
+    post:
+      tags:
+      - auth-controller
+      operationId: verifyOtp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpVerificationRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/signup:
+    post:
+      tags:
+      - auth-controller
+      operationId: registerUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/reset-password:
+    post:
+      tags:
+      - password-reset-controller
+      operationId: resetPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/resend-otp:
+    post:
+      tags:
+      - auth-controller
+      operationId: resendOtp
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpVerificationRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/logout:
+    post:
+      tags:
+      - auth-controller
+      operationId: logoutUser
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/login:
+    post:
+      tags:
+      - auth-controller
+      operationId: authenticateUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/forgot-password:
+    post:
+      tags:
+      - password-reset-controller
+      operationId: forgotPassword
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/admin/businesses/{businessId}/reject:
+    post:
+      tags:
+      - admin-controller
+      operationId: rejectBusiness
+      parameters:
+      - name: businessId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/admin/businesses/{businessId}/approve:
+    post:
+      tags:
+      - admin-controller
+      operationId: approveBusiness
+      parameters:
+      - name: businessId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/admin/advertisements/{advertisementId}/reject:
+    post:
+      tags:
+      - admin-controller
+      operationId: rejectAdvertisement
+      parameters:
+      - name: advertisementId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/admin/advertisements/{advertisementId}/approve:
+    post:
+      tags:
+      - admin-controller
+      operationId: approveAdvertisement
+      parameters:
+      - name: advertisementId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/accept-invitation:
+    post:
+      tags:
+      - invitation-controller
+      operationId: acceptInvitation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvitationAcceptRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/tenant/units:
+    get:
+      tags:
+      - unit-controller
+      operationId: getTenantUnits
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/profile/picture:
+    get:
+      tags:
+      - profile-picture-controller
+      operationId: getProfilePicture
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/landlord/units:
+    get:
+      tags:
+      - unit-controller
+      operationId: getLandlordUnits
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/landlord/properties/{propertyId}:
+    get:
+      tags:
+      - property-controller
+      operationId: getPropertyById
+      parameters:
+      - name: propertyId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/invitations/sent:
+    get:
+      tags:
+      - invitation-controller
+      operationId: getSentInvitations
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/invitations/received:
+    get:
+      tags:
+      - invitation-controller
+      operationId: getReceivedInvitations
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/external-business/my-business:
+    get:
+      tags:
+      - external-business-controller
+      operationId: getMyBusiness
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/external-business/advertisements/my-ads:
+    get:
+      tags:
+      - advertisement-controller
+      operationId: getMyAdvertisements
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/external-business/advertisements/approved:
+    get:
+      tags:
+      - advertisement-controller
+      operationId: getApprovedAdvertisements
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/caretaker/units:
+    get:
+      tags:
+      - unit-controller
+      operationId: getCaretakerUnits
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/caretaker/properties:
+    get:
+      tags:
+      - caretaker-property-controller
+      operationId: getCaretakerProperties
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/caretaker/properties/{propertyId}:
+    get:
+      tags:
+      - caretaker-property-controller
+      operationId: getPropertyById_1
+      parameters:
+      - name: propertyId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/signup-requirements/{role}:
+    get:
+      tags:
+      - auth-controller
+      operationId: getSignupRequirements
+      parameters:
+      - name: role
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/me:
+    get:
+      tags:
+      - auth-controller
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/auth/health:
+    get:
+      tags:
+      - auth-controller
+      operationId: healthCheck
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/admin/businesses:
+    get:
+      tags:
+      - admin-controller
+      operationId: getAllBusinesses
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/admin/businesses/pending:
+    get:
+      tags:
+      - admin-controller
+      operationId: getPendingBusinesses
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/admin/advertisements:
+    get:
+      tags:
+      - admin-controller
+      operationId: getAllAdvertisements
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/admin/advertisements/pending:
+    get:
+      tags:
+      - admin-controller
+      operationId: getPendingAdvertisements
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+  /api/unitdel/{unitid}:
+    delete:
+      tags:
+      - unit-controller
+      operationId: deleteunit
+      parameters:
+      - name: unitid
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/profile/delete-picture:
+    delete:
+      tags:
+      - profile-picture-controller
+      operationId: deleteProfilePicture
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: object
+components:
+  schemas:
+    UpdatePhoneRequest:
+      required:
+      - newPhoneNumber
+      type: object
+      properties:
+        newPhoneNumber:
+          type: string
+    UpdatePasswordRequest:
+      required:
+      - confirmNewPassword
+      - currentPassword
+      - newPassword
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+        confirmNewPassword:
+          type: string
+    PropertyCreateRequest:
+      required:
+      - location
+      - name
+      - propertyType
+      - totalUnits
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+        propertyType:
+          type: string
+        totalUnits:
+          minimum: 1
+          type: integer
+          format: int32
+        description:
+          type: string
+    CaretakerInvitationRequest:
+      required:
+      - caretakerEmail
+      - propertyId
+      type: object
+      properties:
+        caretakerEmail:
+          type: string
+        propertyId:
+          type: integer
+          format: int64
+    ExternalBusinessRegistrationRequest:
+      required:
+      - businessName
+      - businessRegistrationNumber
+      type: object
+      properties:
+        businessName:
+          type: string
+        businessRegistrationNumber:
+          type: string
+    AdvertisementRequest:
+      required:
+      - mediaType
+      - mediaUrl
+      - title
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        mediaUrl:
+          type: string
+        mediaType:
+          type: string
+          enum:
+          - IMAGE
+          - VIDEO
+    UnitCreateRequest:
+      required:
+      - unitNumber
+      - unitType
+      type: object
+      properties:
+        unitNumber:
+          type: string
+        unitType:
+          type: string
+        description:
+          type: string
+        deposit:
+          type: integer
+          format: int32
+        rentAmount:
+          type: integer
+          format: int32
+    TenantInvitationRequest:
+      required:
+      - tenantEmail
+      - unitId
+      type: object
+      properties:
+        tenantEmail:
+          type: string
+        unitId:
+          type: integer
+          format: int64
+    OtpVerificationRequest:
+      required:
+      - email
+      - otpCode
+      type: object
+      properties:
+        email:
+          type: string
+        otpCode:
+          type: string
+    SignupRequest:
+      required:
+      - confirmPassword
+      - email
+      - fullName
+      - password
+      - phoneNumber
+      - role
+      type: object
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        password:
+          type: string
+        confirmPassword:
+          type: string
+        role:
+          type: string
+          enum:
+          - TENANT
+          - CARETAKER
+          - LANDLORD
+          - ADMIN
+          - EXTERNAL_BUSINESS
+    ResetPasswordRequest:
+      required:
+      - email
+      - newPassword
+      - otpCode
+      type: object
+      properties:
+        email:
+          type: string
+        otpCode:
+          type: string
+        newPassword:
+          type: string
+    LoginRequest:
+      required:
+      - email
+      - password
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    ForgotPasswordRequest:
+      required:
+      - email
+      type: object
+      properties:
+        email:
+          type: string
+    VerificationRequest:
+      type: object
+      properties:
+        rejectionReason:
+          type: string
+    InvitationAcceptRequest:
+      required:
+      - invitationToken
+      type: object
+      properties:
+        invitationToken:
+          type: string
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: JWT bearer controller
+      in: header
+      scheme: bearer
+      bearerFormat: JWT

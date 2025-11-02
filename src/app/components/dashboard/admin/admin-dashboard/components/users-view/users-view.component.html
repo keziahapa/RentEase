@@ -8,10 +8,24 @@
         <span class="stat-badge landlords">{{getLandlordsCount()}} Landlords</span>
         <span class="stat-badge caretakers">{{getCaretakersCount()}} Caretakers</span>
       </div>
-      <button class="btn btn-primary" matTooltip="Export Users">
+      <button
+        class="btn btn-primary"
+        matTooltip="Export Users"
+        [matMenuTriggerFor]="usersExportMenu">
         <mat-icon>download</mat-icon>
         <span>Export</span>
+        <mat-icon class="menu-caret">expand_more</mat-icon>
       </button>
+      <mat-menu #usersExportMenu="matMenu">
+        <button mat-menu-item (click)="exportUsers('csv')" [disabled]="exportState.csv">
+          <mat-icon>grid_on</mat-icon>
+          <span>{{exportState.csv ? 'Exporting CSV...' : 'Export CSV'}}</span>
+        </button>
+        <button mat-menu-item (click)="exportUsers('pdf')" [disabled]="exportState.pdf">
+          <mat-icon>picture_as_pdf</mat-icon>
+          <span>{{exportState.pdf ? 'Exporting PDF...' : 'Export PDF'}}</span>
+        </button>
+      </mat-menu>
     </div>
   </div>
 

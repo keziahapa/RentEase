@@ -7,65 +7,244 @@
     </div>
   </div>
 
-  <div class="table-container">
-    <table mat-table [dataSource]="maintenanceRequests" class="maintenance-table">
-      <ng-container matColumnDef="title">
-        <th mat-header-cell *matHeaderCellDef>Title</th>
-        <td mat-cell *matCellDef="let request">{{request.title}}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="category">
-        <th mat-header-cell *matHeaderCellDef>Category</th>
-        <td mat-cell *matCellDef="let request">{{request.category}}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="priority">
-        <th mat-header-cell *matHeaderCellDef>Priority</th>
-        <td mat-cell *matCellDef="let request">
-          <span class="priority-badge" [class]="getPriorityClass(request.priority)">
-            {{request.priority}}
-          </span>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef>Status</th>
-        <td mat-cell *matCellDef="let request">
-          <span class="status-badge" [class]="getStatusClass(request.status)">
-            {{request.status}}
-          </span>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="tenantName">
-        <th mat-header-cell *matHeaderCellDef>Tenant</th>
-        <td mat-cell *matCellDef="let request">{{request.tenantName}}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="property">
-        <th mat-header-cell *matHeaderCellDef>Property</th>
-        <td mat-cell *matCellDef="let request">{{request.property}}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef>Actions</th>
-        <td mat-cell *matCellDef="let request">
-          <div class="action-buttons">
-            <button *ngIf="request.status === 'submitted'" class="btn-primary" (click)="updateMaintenanceStatus(request, 'in-progress')">
-              Start
-            </button>
-            <button *ngIf="request.status === 'in-progress'" class="btn-success" (click)="updateMaintenanceStatus(request, 'completed')">
-              Complete
-            </button>
-            <button class="btn-secondary">
-              Details
-            </button>
-          </div>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-    </table>
+  <div class="error-banner" *ngIf="loadError">
+    <mat-icon>error_outline</mat-icon>
+    {{loadError}}
   </div>
+
+  <ng-container *ngIf="isLoading; else caretakerLoaded">
+    <section class="maintenance-skeleton" aria-label="Loading caretaker maintenance queue">
+      <app-skeleton-list variant="table" [count]="4"></app-skeleton-list>
+      <app-skeleton-list variant="card" [count]="1"></app-skeleton-list>
+    </section>
+  </ng-container>
+
+  <ng-template #caretakerLoaded>
+  <div class="empty-state" *ngIf="!loadError && maintenanceRequests.length === 0">
+    <mat-icon>task_alt</mat-icon>
+    <h3>No maintenance tasks</h3>
+    <p>The caretaker queue is currently clear.</p>
+  </div>
+
+  <div class="maintenance-content" *ngIf="!loadError && maintenanceRequests.length > 0">
+    <div class="table-container">
+      <table mat-table [dataSource]="maintenanceRequests" class="maintenance-table">
+        <ng-container matColumnDef="title">
+          <th mat-header-cell *matHeaderCellDef>Title</th>
+          <td mat-cell *matCellDef="let request">{{request.title}}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="category">
+          <th mat-header-cell *matHeaderCellDef>Category</th>
+          <td mat-cell *matCellDef="let request">{{request.category}}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="priority">
+          <th mat-header-cell *matHeaderCellDef>Priority</th>
+          <td mat-cell *matCellDef="let request">
+            <span class="priority-badge" [class]="getPriorityClass(request.priority)">
+              {{request.priority}}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let request">
+            <span class="status-badge" [class]="getStatusClass(request.status)">
+              {{formatStatus(request.status)}}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="tenantName">
+          <th mat-header-cell *matHeaderCellDef>Tenant</th>
+          <td mat-cell *matCellDef="let request">{{request.tenantName}}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="property">
+          <th mat-header-cell *matHeaderCellDef>Property</th>
+          <td mat-cell *matCellDef="let request">{{request.property}}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let request">
+            <div class="action-buttons">
+              <button
+                *ngIf="canAcknowledge(request)"
+                class="btn-primary"
+                (click)="acknowledgeRequest(request)"
+                [disabled]="isUpdatingRequest">
+                Acknowledge
+              </button>
+              <button
+                *ngIf="canStart(request)"
+                class="btn-primary"
+                (click)="startRequest(request)"
+                [disabled]="isUpdatingRequest">
+                Start
+              </button>
+              <button
+                *ngIf="canComplete(request)"
+                class="btn-success"
+                (click)="completeRequest(request)"
+                [disabled]="isUpdatingRequest">
+                Complete
+              </button>
+              <button
+                class="btn-secondary"
+                [class.active]="selectedRequest?.id === request.id"
+                (click)="selectRequest(request)">
+                Details
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr
+          mat-header-row
+          *matHeaderRowDef="displayedColumns">
+        </tr>
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns;"
+          [class.selected-row]="selectedRequest?.id === row.id">
+        </tr>
+      </table>
+    </div>
+
+    <aside class="detail-panel" *ngIf="selectedRequest as detail">
+      <div class="detail-header">
+        <div class="detail-title">
+          <h3>{{detail.title}}</h3>
+          <p>{{detail.property}} • Submitted {{detail.createdAt}}</p>
+          <div class="detail-chips">
+            <span class="status-badge" [class]="getStatusClass(detail.status)">{{formatStatus(detail.status)}}</span>
+            <span class="priority-badge" [class]="getPriorityClass(detail.priority)">{{detail.priority}}</span>
+            <span class="urgency-chip">{{detail.urgencyLevel | titlecase}} Urgency</span>
+          </div>
+        </div>
+        <button type="button" class="close-btn" (click)="closeDetails()" aria-label="Close maintenance details">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="detail-section">
+        <h4>Description</h4>
+        <p>{{detail.description}}</p>
+      </div>
+
+      <div class="detail-section meta-grid">
+        <div>
+          <h5>Location</h5>
+          <p>{{detail.location}}</p>
+        </div>
+        <div>
+          <h5>Scheduled</h5>
+          <p>{{detail.scheduledDate || 'Not scheduled'}}</p>
+        </div>
+        <div>
+          <h5>Estimated Cost</h5>
+          <p>{{detail.estimatedCost ? ('KES ' + detail.estimatedCost) : 'TBD'}}</p>
+        </div>
+        <div>
+          <h5>Actual Cost</h5>
+          <p>{{detail.actualCost ? ('KES ' + detail.actualCost) : 'Pending'}}</p>
+        </div>
+      </div>
+
+      <div class="detail-section" *ngIf="detail.assignedTo as assignee">
+        <h4>Assigned Provider</h4>
+        <div class="assignee-card">
+          <strong>{{assignee.name}}</strong>
+          <span>{{assignee.company}}</span>
+          <div class="assignee-contact">
+            <span><mat-icon>call</mat-icon>{{assignee.phone}}</span>
+            <span><mat-icon>mail</mat-icon>{{assignee.email}}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section" *ngIf="detail.images?.length">
+        <h4>Attachments</h4>
+        <div class="attachment-grid">
+          <div class="attachment-card" *ngFor="let image of detail.images; trackBy: trackByImageId">
+            <img [src]="image.url" [alt]="image.caption || detail.title" />
+            <div class="attachment-footer">
+              <span>{{image.caption || 'Attachment'}}</span>
+              <button type="button" (click)="viewAttachment(image)">
+                <mat-icon>open_in_new</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section" *ngIf="detail.updates?.length">
+        <h4>Update Timeline</h4>
+        <ul class="timeline">
+          <li *ngFor="let update of detail.updates; trackBy: trackByUpdateId">
+            <div class="timeline-header">
+              <span class="status">{{formatStatus(update.status)}}</span>
+              <span class="meta">{{update.updatedAt}} • {{update.updatedBy}}</span>
+            </div>
+            <p>{{update.message}}</p>
+          </li>
+        </ul>
+      </div>
+
+      <div class="detail-section">
+        <h4>Maintenance Notes</h4>
+        <textarea
+          rows="3"
+          [(ngModel)]="updateMessages[detail.id]"
+          placeholder="Add an update for the tenant and landlord (optional)"></textarea>
+      </div>
+
+      <div class="detail-section" *ngIf="canSchedule(detail)">
+        <h4>Schedule Visit</h4>
+        <input
+          type="datetime-local"
+          [(ngModel)]="scheduleDates[detail.id]" />
+      </div>
+
+      <div class="action-error" *ngIf="actionError">
+        <mat-icon>error_outline</mat-icon>
+        {{actionError}}
+      </div>
+
+      <div class="detail-actions">
+        <button
+          class="btn-primary"
+          *ngIf="canAcknowledge(detail)"
+          (click)="acknowledgeRequest(detail)"
+          [disabled]="isUpdatingRequest">
+          Acknowledge
+        </button>
+        <button
+          class="btn-primary"
+          *ngIf="canStart(detail)"
+          (click)="startRequest(detail)"
+          [disabled]="isUpdatingRequest">
+          Start Work
+        </button>
+        <button
+          class="btn-secondary"
+          *ngIf="canSchedule(detail)"
+          (click)="scheduleMaintenance(detail)"
+          [disabled]="isUpdatingRequest || !scheduleDates[detail.id]">
+          Schedule Visit
+        </button>
+        <button
+          class="btn-success"
+          *ngIf="canComplete(detail)"
+          (click)="completeRequest(detail)"
+          [disabled]="isUpdatingRequest">
+          Mark Complete
+        </button>
+      </div>
+    </aside>
+  </div>
+  </ng-template>
 </div>

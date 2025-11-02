@@ -13,6 +13,16 @@
     </div>
   </div>
 
+  <div class="error-banner" *ngIf="loadError">
+    <mat-icon>error_outline</mat-icon>
+    {{loadError}}
+  </div>
+
+  <div class="loading-state" *ngIf="isLoading">
+    <mat-icon>hourglass_empty</mat-icon>
+    <p>Loading deposit details...</p>
+  </div>
+
   <!-- Status Overview -->
   <div class="status-overview">
     <div class="status-card">
@@ -20,7 +30,7 @@
         <mat-icon>{{getDepositStatus().icon}}</mat-icon>
       </div>
       <div class="status-content">
-        <h3>{{formatCurrency(depositAmount)}}</h3>
+        <h3>{{formatCurrency(depositAmount ?? depositSummary.totalAmount)}}</h3>
         <p>{{getDepositStatus().status}}</p>
         <div class="progress-indicator">
           <div class="progress-bar">
@@ -196,7 +206,7 @@
           <div class="timeline-container">
             <div class="timeline-list">
               <div class="timeline-item" 
-                   *ngFor="let event of depositTimeline; let i = index; trackBy: trackByTimelineId"
+                   *ngFor="let event of (depositTimeline ?? []); let i = index; trackBy: trackByTimelineId"
                    [class.completed]="event.completed"
                    [class.current]="!event.completed && i === 0">
                 <div class="timeline-indicator">
@@ -204,7 +214,7 @@
                     <mat-icon *ngIf="event.completed">check</mat-icon>
                     <mat-icon *ngIf="!event.completed">radio_button_unchecked</mat-icon>
                   </div>
-                  <div class="timeline-line" *ngIf="i < depositTimeline.length - 1"></div>
+                  <div class="timeline-line" *ngIf="depositTimeline && i < depositTimeline.length - 1"></div>
                 </div>
                 <div class="timeline-content">
                   <div class="timeline-header">

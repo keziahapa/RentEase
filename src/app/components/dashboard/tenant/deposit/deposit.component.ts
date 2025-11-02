@@ -1,6 +1,8 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { Subscription } from 'rxjs';
+import { FinancialService, DepositBreakdownItem, DepositSummaryResponse, DepositTimelineEvent } from '../../../../services/financial.service';
 
 export interface TimelineEvent {
   title: string;
@@ -42,12 +44,15 @@ export interface DepositBreakdown {
   templateUrl: './deposit.component.html',
   styleUrls: ['./deposit.component.scss']
 })
-export class DepositComponent implements OnInit, OnChanges {
+export class DepositComponent implements OnInit, OnChanges, OnDestroy {
+  private financialService = inject(FinancialService);
+  private subscriptions = new Subscription();
+
   // Input properties
-  @Input() depositAmount!: number;
-  @Input() depositTimeline!: TimelineEvent[];
-  @Input() collapsedSections!: Set<string>;
-  @Input() animatingSections!: Set<string>;
+  @Input() depositAmount: number | null = null;
+  @Input() depositTimeline: TimelineEvent[] | null = null;
+  @Input() collapsedSections: Set<string> = new Set();
+  @Input() animatingSections: Set<string> = new Set();
   
   // Output events
   @Output() backClick = new EventEmitter<void>();
@@ -56,6 +61,7 @@ export class DepositComponent implements OnInit, OnChanges {
   // Component state
   selectedTab: 'summary' | 'timeline' | 'breakdown' | 'protection' = 'summary';
   isLoading: boolean = false;
+  loadError: string | null = null;
   
   // Deposit details
   depositSummary: DepositSummary = {
@@ -154,10 +160,10 @@ export class DepositComponent implements OnInit, OnChanges {
   }
 
   private validateInputs(): void {
-    if (!this.depositAmount || this.depositAmount <= 0) {
+    if (this.depositAmount !== null && this.depositAmount <= 0) {
       console.warn('Invalid deposit amount provided to deposit component');
     }
-    if (!this.depositTimeline || this.depositTimeline.length === 0) {
+    if (this.depositTimeline && this.depositTimeline.length === 0) {
       console.warn('No deposit timeline provided to deposit component');
     }
   }
@@ -170,14 +176,66 @@ export class DepositComponent implements OnInit, OnChanges {
   }
 
   private loadDepositDetails(): void {
-    // In a real application, this would fetch from a service
     this.isLoading = true;
-    
-    // Simulate API call
-    setTimeout(() => {
-      this.processTimelineData();
-      this.isLoading = false;
-    }, 500);
+
+    const summarySub = this.financialService.getTenantDepositSummary().subscribe({
+      next: (summary: DepositSummaryResponse) => {
+        this.loadError = null;
+        this.depositSummary = { ...summary };
+
+        if (!this.depositAmount || this.depositAmount <= 0) {
+          this.depositAmount = summary.totalAmount;
+        }
+
+        this.syncDepositAmount();
+      },
+      error: (error) => {
+        this.handleError(error, 'Failed to load deposit summary');
+      }
+    });
+
+    const breakdownSub = this.financialService.getTenantDepositBreakdown().subscribe({
+      next: (items: DepositBreakdownItem[]) => {
+        this.loadError = null;
+        this.depositBreakdown = items.map(item => ({
+          description: item.description,
+          amount: item.amount,
+          type: item.type,
+          percentage: item.percentage
+        }));
+      },
+      error: (error) => {
+        this.handleError(error, 'Failed to load deposit breakdown');
+      }
+    });
+
+    const timelineSub = this.financialService.getTenantDepositTimeline().subscribe({
+      next: (events: DepositTimelineEvent[]) => {
+        this.loadError = null;
+        if (!this.depositTimeline || this.depositTimeline.length === 0) {
+          this.depositTimeline = events.map(event => ({
+            title: event.title,
+            date: event.date,
+            completed: event.status === 'completed',
+            description: event.description,
+            amount: event.amount,
+            reference: event.reference,
+            type: event.type === 'refund' ? 'payment' : event.type
+          }));
+        }
+
+        this.processTimelineData();
+        this.isLoading = false;
+      },
+      error: (error) => {
+        this.handleError(error, 'Failed to load deposit timeline');
+        this.isLoading = false;
+      }
+    });
+
+    this.subscriptions.add(summarySub);
+    this.subscriptions.add(breakdownSub);
+    this.subscriptions.add(timelineSub);
   }
 
   private processTimelineData(): void {
@@ -218,14 +276,20 @@ export class DepositComponent implements OnInit, OnChanges {
   }
 
   // Utility methods
-  formatNumber(num: number): string {
-    if (!num || isNaN(num)) return '0';
-    return new Intl.NumberFormat('en-KE').format(num);
+  formatNumber(value?: number | null): string {
+    const numericValue = value ?? 0;
+    if (!Number.isFinite(numericValue)) {
+      return '0';
+    }
+    return new Intl.NumberFormat('en-KE').format(numericValue);
   }
 
-  formatCurrency(amount: number): string {
-    if (!amount || isNaN(amount)) return 'KSH 0';
-    return `KSH ${this.formatNumber(amount)}`;
+  formatCurrency(amount?: number | null): string {
+    const numericValue = amount ?? 0;
+    if (!Number.isFinite(numericValue)) {
+      return 'KSH 0';
+    }
+    return `KSH ${this.formatNumber(numericValue)}`;
   }
 
   formatPercentage(value: number): string {
@@ -379,12 +443,6 @@ export class DepositComponent implements OnInit, OnChanges {
     return feature.title;
   }
 
-  // Error handling
-  handleError(error: any, context: string): void {
-    console.error(`Error in deposit component - ${context}:`, error);
-    // In a real application, you might show a toast notification
-  }
-
   // Accessibility
   getAriaLabel(sectionId: string): string {
     const collapsed = this.isSectionCollapsed(sectionId);
@@ -397,6 +455,11 @@ export class DepositComponent implements OnInit, OnChanges {
 
   // Component lifecycle
   ngOnDestroy(): void {
-    // Cleanup any subscriptions or timers
+    this.subscriptions.unsubscribe();
+  }
+
+  private handleError(error: any, fallbackMessage: string): void {
+    this.loadError = error?.message || fallbackMessage;
+    console.error('[DepositComponent]', fallbackMessage, error);
   }
 }

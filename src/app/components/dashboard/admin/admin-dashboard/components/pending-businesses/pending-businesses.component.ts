@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AdminService } from '../../../../../../services/admin.service';
+import { AdminDataService } from '../../../../../../services/admin-data.service';
 import { Business } from '../../../../../../services/admin-interfaces';
 
 @Component({
@@ -26,7 +26,7 @@ export class PendingBusinessesComponent implements OnInit {
   pendingBusinesses: Business[] = [];
   isLoading = false;
 
-  constructor(private adminService: AdminService) {}
+  constructor(private adminService: AdminDataService) {}
 
   ngOnInit(): void {
     this.loadPendingBusinesses();

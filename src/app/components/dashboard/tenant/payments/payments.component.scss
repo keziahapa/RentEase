@@ -146,6 +146,34 @@
   min-height: 200px;
 }
 
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: #4b5563;
+
+  mat-icon {
+    font-size: 28px;
+  }
+}
+
+.loading-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background-color: #f8fafc;
+  color: #475569;
+
+  mat-icon {
+    font-size: 20px;
+  }
+}
+
 .payments-table {
   width: 100%;
 
@@ -195,6 +223,48 @@
   font-weight: 500;
   background-color: rgba(158, 158, 158, 0.1);
   color: #9E9E9E;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  margin-bottom: 16px;
+
+  mat-icon {
+    font-size: 20px;
+  }
+}
+
+.payment-feedback {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .success-message,
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
+  .success-message {
+    background-color: #ecfdf5;
+    color: #047857;
+  }
+
+  .error-message {
+    background-color: #fee2e2;
+    color: #b91c1c;
+  }
 }
 
 /* Empty State */

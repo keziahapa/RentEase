@@ -1,98 +1,20 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-
-export interface MaintenanceRequest {
-  id: string;
-  title: string;
-  category: MaintenanceCategory;
-  priority: MaintenancePriority;
-  description: string;
-  status: MaintenanceStatus;
-  urgencyLevel: UrgencyLevel;
-  location: string;
-  dateSubmitted: string;
-  dateCompleted?: string;
-  estimatedCost?: number;
-  actualCost?: number;
-  assignedTo?: ServiceProvider;
-  images: MaintenanceImage[];
-  updates: MaintenanceUpdate[];
-  tenantRating?: number;
-  tenantFeedback?: string;
-  scheduledDate?: string;
-}
-
-export enum MaintenanceCategory {
-  PLUMBING = 'Plumbing',
-  ELECTRICAL = 'Electrical',
-  HVAC = 'HVAC',
-  APPLIANCES = 'Appliances',
-  SECURITY = 'Security',
-  PAINTING = 'Painting',
-  FLOORING = 'Flooring',
-  DOORS_WINDOWS = 'Doors & Windows',
-  PEST_CONTROL = 'Pest Control',
-  CLEANING = 'Cleaning',
-  LANDSCAPING = 'Landscaping',
-  OTHER = 'Other'
-}
-
-export enum MaintenancePriority {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  URGENT = 'urgent'
-}
-
-export enum MaintenanceStatus {
-  SUBMITTED = 'submitted',
-  ACKNOWLEDGED = 'acknowledged',
-  IN_PROGRESS = 'in_progress',
-  PENDING_PARTS = 'pending_parts',
-  SCHEDULED = 'scheduled',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-  REJECTED = 'rejected'
-}
-
-export enum UrgencyLevel {
-  EMERGENCY = 'emergency',
-  HIGH = 'high',
-  MEDIUM = 'medium',
-  LOW = 'low'
-}
-
-export interface ServiceProvider {
-  id: string;
-  name: string;
-  company?: string;
-  phone: string;
-  email: string;
-  specialties: MaintenanceCategory[];
-  rating: number;
-  verified: boolean;
-}
-
-export interface MaintenanceImage {
-  id: string;
-  url: string;
-  caption?: string;
-  uploadedAt: string;
-}
-
-export interface MaintenanceUpdate {
-  id: string;
-  message: string;
-  status: MaintenanceStatus;
-  updatedBy: string;
-  updatedByType: 'tenant' | 'landlord' | 'caretaker' | 'service_provider';
-  updatedAt: string;
-  images?: string[];
-  scheduledDate?: string;
-  estimatedCost?: number;
-}
+import { Subscription } from 'rxjs';
+import {
+  MaintenanceService,
+  MaintenanceRequest,
+  MaintenanceCategory,
+  MaintenancePriority,
+  MaintenanceStatus,
+  UrgencyLevel,
+  MaintenanceUpdate,
+  MaintenanceImage,
+  CreateMaintenanceRequestPayload
+} from '../../../../services/maintenance.service';
+import { SkeletonListComponent } from '../../../../shared/components/skeleton/skeleton-list.component';
 
 @Component({
   selector: 'app-maintenance',
@@ -101,12 +23,20 @@ export interface MaintenanceUpdate {
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatIconModule
+    MatIconModule,
+    SkeletonListComponent
   ],
   templateUrl: './maintenance.component.html',
   styleUrls: ['./maintenance.component.scss']
 })
 export class MaintenanceComponent implements OnInit, OnDestroy {
+  private fb = inject(FormBuilder);
+  private maintenanceService = inject(MaintenanceService);
+  private subscriptions = new Subscription();
+
+  filteredRequests: MaintenanceRequest[] = [];
+  selectedRequest: MaintenanceRequest | null = null;
+
   @Input() collapsedSections!: Set<string>;
   @Input() animatingSections!: Set<string>;
   
@@ -123,6 +53,8 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   filterCategory: string = '';
   sortBy: 'date' | 'priority' | 'status' = 'date';
   sortOrder: 'asc' | 'desc' = 'desc';
+  isLoadingRequests = false;
+  loadError: string | null = null;
 
   // Enums for template
   MaintenanceCategory = MaintenanceCategory;
@@ -133,109 +65,12 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   // Category options
   categoryOptions = Object.values(MaintenanceCategory);
   priorityOptions = Object.values(MaintenancePriority);
+  maintenanceStatusOptions = Object.values(MaintenanceStatus);
+  urgencyLevels = Object.values(UrgencyLevel);
 
   // Maintenance requests data
-  maintenanceRequests: MaintenanceRequest[] = [
-    {
-      id: '1',
-      title: 'Kitchen Faucet Leaking',
-      category: MaintenanceCategory.PLUMBING,
-      priority: MaintenancePriority.HIGH,
-      description: 'The kitchen faucet has been leaking for the past few days. Water is dripping constantly even when fully closed. The leak seems to be coming from the base of the faucet.',
-      status: MaintenanceStatus.IN_PROGRESS,
-      urgencyLevel: UrgencyLevel.HIGH,
-      location: 'Kitchen - Main Sink',
-      dateSubmitted: '2024-02-10',
-      estimatedCost: 150,
-      assignedTo: {
-        id: '1',
-        name: 'Mike Wilson',
-        company: 'Quick Fix Plumbing',
-        phone: '+254 700 123 456',
-        email: 'mike@quickfixplumbing.co.ke',
-        specialties: [MaintenanceCategory.PLUMBING],
-        rating: 4.8,
-        verified: true
-      },
-      images: [
-        {
-          id: '1',
-          url: '/assets/images/faucet-leak.jpg',
-          caption: 'Leaking faucet base',
-          uploadedAt: '2024-02-10'
-        }
-      ],
-      updates: [
-        {
-          id: '1',
-          message: 'Request received and assigned to Mike Wilson from Quick Fix Plumbing.',
-          status: MaintenanceStatus.ACKNOWLEDGED,
-          updatedBy: 'Property Manager',
-          updatedByType: 'landlord',
-          updatedAt: '2024-02-10 10:30 AM'
-        },
-        {
-          id: '2',
-          message: 'Technician will arrive tomorrow between 9-11 AM to assess and repair.',
-          status: MaintenanceStatus.SCHEDULED,
-          updatedBy: 'Mike Wilson',
-          updatedByType: 'service_provider',
-          updatedAt: '2024-02-10 2:15 PM',
-          scheduledDate: '2024-02-11'
-        }
-      ],
-      scheduledDate: '2024-02-11'
-    },
-    {
-      id: '2',
-      title: 'Bedroom Light Not Working',
-      category: MaintenanceCategory.ELECTRICAL,
-      priority: MaintenancePriority.MEDIUM,
-      description: 'The main bedroom ceiling light stopped working suddenly. I checked and the bulb is fine. Might be a wiring issue.',
-      status: MaintenanceStatus.COMPLETED,
-      urgencyLevel: UrgencyLevel.MEDIUM,
-      location: 'Master Bedroom',
-      dateSubmitted: '2024-01-28',
-      dateCompleted: '2024-02-01',
-      actualCost: 85,
-      assignedTo: {
-        id: '2',
-        name: 'Sarah Electric',
-        company: 'Power Pro Solutions',
-        phone: '+254 701 234 567',
-        email: 'sarah@powerpro.co.ke',
-        specialties: [MaintenanceCategory.ELECTRICAL],
-        rating: 4.9,
-        verified: true
-      },
-      images: [],
-      updates: [
-        {
-          id: '3',
-          message: 'Issue resolved. Replaced faulty wall switch.',
-          status: MaintenanceStatus.COMPLETED,
-          updatedBy: 'Sarah Electric',
-          updatedByType: 'service_provider',
-          updatedAt: '2024-02-01 11:45 AM'
-        }
-      ],
-      tenantRating: 5,
-      tenantFeedback: 'Quick and professional service. Fixed the issue perfectly.'
-    },
-    {
-      id: '3',
-      title: 'Air Conditioning Not Cooling',
-      category: MaintenanceCategory.HVAC,
-      priority: MaintenancePriority.URGENT,
-      description: 'The AC unit in the living room is running but not cooling the air. It has been like this for 2 days.',
-      status: MaintenanceStatus.SUBMITTED,
-      urgencyLevel: UrgencyLevel.HIGH,
-      location: 'Living Room',
-      dateSubmitted: '2024-02-12',
-      images: [],
-      updates: []
-    }
-  ];
+  maintenanceRequests: MaintenanceRequest[] = [];
+  feedbackDrafts: Record<string, string | undefined> = {};
 
   // Common maintenance issues for quick selection
   commonIssues = [
@@ -249,18 +84,53 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     { title: 'Window Won\'t Close', category: MaintenanceCategory.DOORS_WINDOWS, priority: MaintenancePriority.MEDIUM }
   ];
 
-  constructor(private formBuilder: FormBuilder) {}
-
   ngOnInit(): void {
+    this.subscribeToMaintenanceChanges();
     this.initializeForm();
+    this.loadMaintenanceRequests();
+  }
+
+  viewAttachment(image: MaintenanceImage): void {
+    if (image.url) {
+      window.open(image.url, '_blank');
+    }
+  }
+
+  downloadAttachment(image: MaintenanceImage): void {
+    if (!image.url) {
+      return;
+    }
+
+    const anchor = document.createElement('a');
+    anchor.href = image.url;
+    anchor.download = image.caption || 'attachment';
+    anchor.click();
+    anchor.remove();
+  }
+
+  private loadMaintenanceRequests(): void {
+    this.isLoadingRequests = true;
+    this.loadError = null;
+
+    const sub = this.maintenanceService.getTenantMaintenanceRequests().subscribe({
+      next: () => {
+        this.isLoadingRequests = false;
+      },
+      error: (error) => {
+        this.loadError = error?.message || 'Unable to load maintenance requests.';
+        this.isLoadingRequests = false;
+      }
+    });
+
+    this.subscriptions.add(sub);
   }
 
   ngOnDestroy(): void {
-    // Cleanup subscriptions if any
+    this.subscriptions.unsubscribe();
   }
 
   private initializeForm(): void {
-    this.maintenanceForm = this.formBuilder.group({
+    this.maintenanceForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(3)]],
       category: ['', Validators.required],
       priority: [MaintenancePriority.MEDIUM, Validators.required],
@@ -277,6 +147,7 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
 
   setActiveTab(tab: 'new' | 'active' | 'completed' | 'all'): void {
     this.selectedTab = tab;
+    this.applyFilters();
   }
 
   // Section management
@@ -313,40 +184,37 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   }
 
   submitMaintenanceRequest(): void {
-    if (this.maintenanceForm.valid) {
-      this.isSubmitting = true;
-      
-      const formData = this.maintenanceForm.value;
-      const newRequest: MaintenanceRequest = {
-        id: Date.now().toString(),
-        title: formData.title,
-        category: formData.category,
-        priority: formData.priority,
-        description: formData.description,
-        status: MaintenanceStatus.SUBMITTED,
-        urgencyLevel: formData.urgencyLevel,
-        location: formData.location,
-        dateSubmitted: new Date().toISOString().split('T')[0],
-        images: this.selectedImages.map((file, index) => ({
-          id: `${Date.now()}-${index}`,
-          url: URL.createObjectURL(file),
-          caption: file.name,
-          uploadedAt: new Date().toISOString()
-        })),
-        updates: []
-      };
+    if (this.maintenanceForm.invalid) {
+      this.markFormGroupTouched();
+      return;
+    }
 
-      // Simulate API call
-      setTimeout(() => {
-        this.maintenanceRequests.unshift(newRequest);
+    this.isSubmitting = true;
+    const formData = this.maintenanceForm.value;
+    const payload: CreateMaintenanceRequestPayload = {
+      title: formData.title.trim(),
+      category: formData.category,
+      priority: formData.priority,
+      description: formData.description.trim(),
+      urgencyLevel: formData.urgencyLevel,
+      location: formData.location.trim(),
+      attachments: this.selectedImages
+    };
+
+    const sub = this.maintenanceService.submitTenantMaintenanceRequest(payload).subscribe({
+      next: (newRequest: MaintenanceRequest) => {
         this.resetForm();
         this.isSubmitting = false;
         this.setActiveTab('all');
-        console.log('Maintenance request submitted:', newRequest);
-      }, 1500);
-    } else {
-      this.markFormGroupTouched();
-    }
+        this.selectedRequest = newRequest;
+      },
+      error: (error) => {
+        this.loadError = error?.message || 'Failed to submit maintenance request.';
+        this.isSubmitting = false;
+      }
+    });
+
+    this.subscriptions.add(sub);
   }
 
   private markFormGroupTouched(): void {
@@ -363,103 +231,65 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
     this.selectedImages = [];
   }
 
-  // Request management
-  get filteredRequests(): MaintenanceRequest[] {
-    let filtered = [...this.maintenanceRequests];
-
-    // Filter by tab
-    switch (this.selectedTab) {
-      case 'active':
-        filtered = filtered.filter(req => 
-          [MaintenanceStatus.SUBMITTED, MaintenanceStatus.ACKNOWLEDGED, 
-           MaintenanceStatus.IN_PROGRESS, MaintenanceStatus.SCHEDULED,
-           MaintenanceStatus.PENDING_PARTS].includes(req.status)
-        );
-        break;
-      case 'completed':
-        filtered = filtered.filter(req => req.status === MaintenanceStatus.COMPLETED);
-        break;
-      case 'all':
-        // No additional filtering
-        break;
-    }
-
-    // Apply additional filters
-    if (this.filterStatus) {
-      filtered = filtered.filter(req => req.status === this.filterStatus);
-    }
-
-    if (this.filterCategory) {
-      filtered = filtered.filter(req => req.category === this.filterCategory);
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
-
-      switch (this.sortBy) {
-        case 'date':
-          aValue = new Date(a.dateSubmitted);
-          bValue = new Date(b.dateSubmitted);
-          break;
-        case 'priority':
-          const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
-          aValue = priorityOrder[a.priority as keyof typeof priorityOrder];
-          bValue = priorityOrder[b.priority as keyof typeof priorityOrder];
-          break;
-        case 'status':
-          aValue = a.status;
-          bValue = b.status;
-          break;
-        default:
-          return 0;
-      }
-
-      if (aValue < bValue) return this.sortOrder === 'asc' ? -1 : 1;
-      if (aValue > bValue) return this.sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }
-
-  setSortBy(sortBy: 'date' | 'priority' | 'status'): void {
-    if (this.sortBy === sortBy) {
-      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.sortBy = sortBy;
-      this.sortOrder = 'desc';
-    }
-  }
-
   clearFilters(): void {
     this.filterStatus = '';
     this.filterCategory = '';
+    this.applyFilters();
   }
 
   // Request actions
   cancelRequest(request: MaintenanceRequest): void {
-    if (confirm(`Are you sure you want to cancel "${request.title}"?`)) {
-      request.status = MaintenanceStatus.CANCELLED;
-      request.updates.push({
-        id: Date.now().toString(),
-        message: 'Request cancelled by tenant',
-        status: MaintenanceStatus.CANCELLED,
-        updatedBy: 'You',
-        updatedByType: 'tenant',
-        updatedAt: new Date().toLocaleString()
-      });
+    if (!confirm(`Are you sure you want to cancel "${request.title}"?`)) {
+      return;
     }
+
+    const payload = {
+      status: MaintenanceStatus.CANCELLED,
+      message: 'Request cancelled by tenant'
+    };
+
+    const sub = this.maintenanceService.updateCaretakerMaintenanceRequest(request.id, payload).subscribe({
+      error: (error) => {
+        this.loadError = error?.message || 'Failed to cancel maintenance request.';
+      }
+    });
+
+    this.subscriptions.add(sub);
   }
 
   rateService(request: MaintenanceRequest, rating: number): void {
-    request.tenantRating = rating;
-    console.log(`Rated request ${request.id} with ${rating} stars`);
+    const payload = {
+      tenantRating: rating,
+      message: `Tenant rated the service ${rating} stars`,
+      status: request.status
+    };
+
+    const sub = this.maintenanceService.updateCaretakerMaintenanceRequest(request.id, payload).subscribe({
+      error: (error) => {
+        this.loadError = error?.message || 'Failed to submit rating.';
+      }
+    });
+
+    this.subscriptions.add(sub);
   }
 
   submitFeedback(request: MaintenanceRequest, feedback: string): void {
-    request.tenantFeedback = feedback;
-    console.log(`Feedback submitted for request ${request.id}`);
+    const payload = {
+      tenantFeedback: feedback,
+      message: `Tenant feedback: ${feedback}`,
+      status: request.status
+    };
+
+    const sub = this.maintenanceService.updateCaretakerMaintenanceRequest(request.id, payload).subscribe({
+      next: () => {
+        this.feedbackDrafts[request.id] = '';
+      },
+      error: (error) => {
+        this.loadError = error?.message || 'Failed to submit feedback.';
+      }
+    });
+
+    this.subscriptions.add(sub);
   }
 
   // Utility methods
@@ -539,6 +369,10 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
   }
 
   getRequestSummaryStats() {
+    if (!this.maintenanceRequests.length) {
+      return { total: 0, active: 0, completed: 0, urgent: 0 };
+    }
+
     const total = this.maintenanceRequests.length;
     const active = this.maintenanceRequests.filter(req => 
       [MaintenanceStatus.SUBMITTED, MaintenanceStatus.ACKNOWLEDGED, 
@@ -587,5 +421,149 @@ export class MaintenanceComponent implements OnInit, OnDestroy {
 
   trackByImageId(index: number, image: MaintenanceImage): string {
     return image.id;
+  }
+
+  onFilterStatusChange(status: string): void {
+    this.filterStatus = status;
+    this.applyFilters();
+  }
+
+  onFilterCategoryChange(category: string): void {
+    this.filterCategory = category;
+    this.applyFilters();
+  }
+
+  onSortFieldChange(field: 'date' | 'priority' | 'status'): void {
+    if (this.sortBy !== field) {
+      this.sortBy = field;
+      this.sortOrder = field === 'date' ? 'desc' : 'asc';
+    } else {
+      this.sortBy = field;
+    }
+    this.applyFilters();
+  }
+
+  toggleSortOrder(): void {
+    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    this.applyFilters();
+  }
+
+  isSelected(request: MaintenanceRequest): boolean {
+    return this.selectedRequest?.id === request.id;
+  }
+
+  toggleRequestDetails(request: MaintenanceRequest): void {
+    if (this.selectedRequest?.id === request.id) {
+      this.selectedRequest = null;
+    } else {
+      this.selectedRequest = request;
+    }
+  }
+
+  closeRequestDetails(): void {
+    this.selectedRequest = null;
+  }
+
+  getLatestUpdate(request: MaintenanceRequest): MaintenanceUpdate | undefined {
+    if (!request.updates?.length) {
+      return undefined;
+    }
+    return request.updates[request.updates.length - 1];
+  }
+
+  private subscribeToMaintenanceChanges(): void {
+    const sub = this.maintenanceService.maintenanceRequestsChanges$.subscribe(requests => {
+      this.maintenanceRequests = requests;
+      this.applyFilters();
+    });
+    this.subscriptions.add(sub);
+  }
+
+  private applyFilters(): void {
+    let filtered = [...this.maintenanceRequests];
+
+    switch (this.selectedTab) {
+      case 'active':
+        filtered = filtered.filter(req =>
+          [
+            MaintenanceStatus.SUBMITTED,
+            MaintenanceStatus.ACKNOWLEDGED,
+            MaintenanceStatus.IN_PROGRESS,
+            MaintenanceStatus.SCHEDULED,
+            MaintenanceStatus.PENDING_PARTS
+          ].includes(req.status)
+        );
+        break;
+      case 'completed':
+        filtered = filtered.filter(req => req.status === MaintenanceStatus.COMPLETED);
+        break;
+      case 'all':
+      case 'new':
+      default:
+        break;
+    }
+
+    if (this.filterStatus) {
+      filtered = filtered.filter(req => req.status === this.filterStatus);
+    }
+
+    if (this.filterCategory) {
+      filtered = filtered.filter(req => req.category === this.filterCategory);
+    }
+
+    filtered.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (this.sortBy) {
+        case 'date':
+          aValue = new Date(a.dateSubmitted).getTime();
+          bValue = new Date(b.dateSubmitted).getTime();
+          break;
+        case 'priority': {
+          const priorityOrder: Record<MaintenancePriority, number> = {
+            [MaintenancePriority.URGENT]: 4,
+            [MaintenancePriority.HIGH]: 3,
+            [MaintenancePriority.MEDIUM]: 2,
+            [MaintenancePriority.LOW]: 1
+          };
+          aValue = priorityOrder[a.priority];
+          bValue = priorityOrder[b.priority];
+          break;
+        }
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        default:
+          aValue = 0;
+          bValue = 0;
+      }
+
+      if (aValue < bValue) {
+        return this.sortOrder === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return this.sortOrder === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    this.filteredRequests = filtered;
+
+    if (!filtered.length) {
+      this.selectedRequest = null;
+      return;
+    }
+
+    if (this.selectedRequest) {
+      const existing = filtered.find(req => req.id === this.selectedRequest?.id);
+      if (existing) {
+        this.selectedRequest = existing;
+        return;
+      }
+    }
+
+    this.selectedRequest = filtered[0];
   }
 }

@@ -8,7 +8,6 @@ import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
 import { PropertyService } from '../../../../services/property.service';
-import { LandlordDashboardHomeComponent } from './home/landlord-dashboard-home.component';
 
 @Component({
   selector: 'app-landlord-dashboard',
@@ -19,8 +18,7 @@ import { LandlordDashboardHomeComponent } from './home/landlord-dashboard-home.c
     MatDialogModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    RouterOutlet,
-    LandlordDashboardHomeComponent
+    RouterOutlet
   ],
   templateUrl: './landlord-dashboard.html',
   styleUrls: ['./landlord-dashboard.scss']

@@ -17,9 +17,8 @@
   </div>
 
   <!-- Loading State -->
-  <div class="loading-spinner" *ngIf="loading">
-    <mat-spinner diameter="50"></mat-spinner>
-    <p>Loading your properties...</p>
+  <div class="loading-skeleton" *ngIf="loading">
+    <app-skeleton-list variant="card" [count]="3"></app-skeleton-list>
   </div>
 
   <!-- Error State -->

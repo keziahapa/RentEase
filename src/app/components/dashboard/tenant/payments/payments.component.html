@@ -6,61 +6,72 @@
       <p>View payment history, make payments, and manage your rent</p>
     </div>
   </div>
-  
+
   <!-- Payment Summary Cards -->
-  <div class="payment-summary-grid">
-    <div class="summary-card next-payment">
-      <div class="summary-icon">
-        <mat-icon>account_balance_wallet</mat-icon>
-      </div>
-      <div class="summary-content">
-        <div class="summary-value">KSH {{formatNumber(nextPaymentAmount)}}</div>
-        <div class="summary-label">Next Payment Due</div>
-        <div class="summary-date">{{nextPaymentDate}}</div>
-      </div>
-      <div class="summary-status" 
-     *ngIf="filteredPaymentHistory.length > 0"
-     [ngClass]="getPaymentStatusClass(filteredPaymentHistory[0].status)">
-  <mat-icon>{{ getPaymentStatusIcon(filteredPaymentHistory[0].status) }}</mat-icon>
-</div>
-
-
-      </div>
-    </div>
-    
-    <div class="summary-card">
-      <div class="summary-icon">
-        <mat-icon>payments</mat-icon>
-      </div>
-      <div class="summary-content">
-        <div class="summary-value">KSH {{formatNumber(totalPaidThisYear)}}</div>
-        <div class="summary-label">Paid This Year</div>
-        <div class="summary-date">{{paymentsThisYear}} payments</div>
-      </div>
-    </div>
-    
-    <div class="summary-card">
-      <div class="summary-icon">
-        <mat-icon>trending_up</mat-icon>
-      </div>
-      <div class="summary-content">
-        <div class="summary-value">{{paymentStreak}}</div>
-        <div class="summary-label">Payment Streak</div>
-        <div class="summary-date">Consecutive months</div>
-      </div>
-    </div>
-    
-    <div class="summary-card">
-      <div class="summary-icon">
-        <mat-icon>schedule</mat-icon>
-      </div>
-      <div class="summary-content">
-        <div class="summary-value">{{averagePaymentDays}}</div>
-        <div class="summary-label">Average Payment Time</div>
-        <div class="summary-date">Days before due</div>
-      </div>
-    </div>
+  <div class="error-banner" *ngIf="summaryError">
+    <mat-icon>error_outline</mat-icon>
+    {{summaryError}}
   </div>
+
+  <ng-container *ngIf="!summaryLoading; else summaryLoadingTpl">
+    <div class="payment-summary-grid">
+      <div class="summary-card next-payment">
+        <div class="summary-icon">
+          <mat-icon>account_balance_wallet</mat-icon>
+        </div>
+        <div class="summary-content">
+          <div class="summary-value">KSH {{formatNumber(nextPaymentAmount)}}</div>
+          <div class="summary-label">Next Payment Due</div>
+          <div class="summary-date">{{nextPaymentDate}}</div>
+        </div>
+        <div
+          class="summary-status"
+          *ngIf="filteredPaymentHistory.length > 0"
+          [ngClass]="getPaymentStatusClass(filteredPaymentHistory[0].status)">
+          <mat-icon>{{ getPaymentStatusIcon(filteredPaymentHistory[0].status) }}</mat-icon>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon">
+          <mat-icon>payments</mat-icon>
+        </div>
+        <div class="summary-content">
+          <div class="summary-value">KSH {{formatNumber(totalPaidThisYear)}}</div>
+          <div class="summary-label">Paid This Year</div>
+          <div class="summary-date">{{paymentsThisYear}} payments</div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon">
+          <mat-icon>trending_up</mat-icon>
+        </div>
+        <div class="summary-content">
+          <div class="summary-value">{{paymentStreak}}</div>
+          <div class="summary-label">Payment Streak</div>
+          <div class="summary-date">Consecutive months</div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon">
+          <mat-icon>schedule</mat-icon>
+        </div>
+        <div class="summary-content">
+          <div class="summary-value">{{averagePaymentDays}}</div>
+          <div class="summary-label">Average Payment Time</div>
+          <div class="summary-date">Days before due</div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+  <ng-template #summaryLoadingTpl>
+    <div class="card loading-card">
+      <mat-icon>hourglass_empty</mat-icon>
+      <span>Loading payment summary...</span>
+    </div>
+  </ng-template>
   
   <!-- Quick Payment Section -->
   <div class="card card-feature">
@@ -123,14 +134,24 @@
           <button 
             class="btn btn-primary btn-large" 
             (click)="processPayment()"
-            [disabled]="!isPaymentValid()">
+            [disabled]="!isPaymentValid() || isProcessingPayment">
             <mat-icon>send</mat-icon>
-            Pay KSH {{formatNumber(paymentAmount || 0)}}
+            {{isProcessingPayment ? 'Processing...' : ('Pay KSH ' + formatNumber(paymentAmount || 0))}}
           </button>
-          <button class="btn btn-secondary" (click)="schedulePayment()">
+          <button class="btn btn-secondary" (click)="schedulePayment()" [disabled]="!isPaymentValid() || isProcessingPayment">
             <mat-icon>schedule</mat-icon>
             Schedule Payment
           </button>
+        </div>
+        <div class="payment-feedback" *ngIf="paymentSuccess || paymentError">
+          <div class="success-message" *ngIf="paymentSuccess">
+            <mat-icon>check_circle</mat-icon>
+            {{paymentSuccess}}
+          </div>
+          <div class="error-message" *ngIf="paymentError">
+            <mat-icon>error</mat-icon>
+            {{paymentError}}
+          </div>
         </div>
       </div>
     </div>
@@ -157,6 +178,11 @@
       </div>
     </div>
     <div class="card-content">
+      <div class="error-banner" *ngIf="historyError">
+        <mat-icon>error_outline</mat-icon>
+        {{historyError}}
+      </div>
+      <ng-container *ngIf="!historyLoading; else historyLoadingTpl">
       <div class="table-container">
         <table class="modern-table">
           <thead>
@@ -275,11 +301,18 @@
           </button>
         </div>
       </div>
+      </ng-container>
+      <ng-template #historyLoadingTpl>
+        <div class="loading-state">
+          <mat-icon>hourglass_empty</mat-icon>
+          <p>Loading payment history...</p>
+        </div>
+      </ng-template>
     </div>
   </div>
   
   <!-- Scheduled Payments -->
-  <div class="card" *ngIf="scheduledPayments.length > 0">
+  <div class="card">
     <div class="card-header">
       <div class="card-title">
         <mat-icon class="card-icon">schedule</mat-icon>
@@ -287,7 +320,15 @@
       </div>
     </div>
     <div class="card-content">
-      <div class="scheduled-payment-list">
+      <div class="error-banner" *ngIf="scheduledError">
+        <mat-icon>error_outline</mat-icon>
+        {{scheduledError}}
+      </div>
+      <div class="loading-state" *ngIf="scheduledLoading">
+        <mat-icon>hourglass_empty</mat-icon>
+        <p>Loading scheduled payments...</p>
+      </div>
+      <div class="scheduled-payment-list" *ngIf="!scheduledLoading && scheduledPayments.length > 0">
         <div class="scheduled-payment-item" *ngFor="let payment of scheduledPayments">
           <div class="payment-info">
             <div class="payment-title">{{payment.description}}</div>
@@ -308,6 +349,10 @@
             </button>
           </div>
         </div>
+      </div>
+      <div class="empty-state" *ngIf="!scheduledLoading && scheduledPayments.length === 0">
+        <mat-icon>event_busy</mat-icon>
+        <p>No scheduled payments found.</p>
       </div>
     </div>
   </div>

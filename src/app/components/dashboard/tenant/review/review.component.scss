@@ -1,0 +1,241 @@
+.review-view {
+  display: grid;
+  gap: 2rem;
+}
+
+.review-summary .summary-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.score {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  .score-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .stars mat-icon {
+    color: #f59e0b;
+  }
+}
+
+.review-form,
+.review-list {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+
+  h3 {
+    margin-top: 0;
+    color: #1f2937;
+  }
+}
+
+.form-row {
+  margin-bottom: 1.25rem;
+
+  label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    border: 1px solid rgba(148, 163, 184, 0.6);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+  }
+}
+
+.subject-toggle {
+  display: inline-flex;
+  gap: 0.5rem;
+
+  button {
+    border: 1px solid rgba(79, 70, 229, 0.2);
+    background: #f9fafb;
+    color: #4f46e5;
+    padding: 0.4rem 0.9rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &.active {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: #fff;
+      border-color: transparent;
+    }
+  }
+}
+
+.rating-input {
+  display: inline-flex;
+  gap: 0.35rem;
+
+  button {
+    border: none;
+    background: none;
+    cursor: pointer;
+
+    mat-icon {
+      color: #d1d5db;
+      font-size: 1.75rem;
+    }
+
+    &.filled mat-icon {
+      color: #f59e0b;
+    }
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  .submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #fff;
+    border: none;
+    padding: 0.7rem 1.4rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.state {
+  text-align: center;
+  color: #6b7280;
+  padding: 2rem 0;
+
+  mat-icon {
+    display: block;
+    margin: 0 auto 0.75rem;
+    font-size: 2rem;
+    color: #6366f1;
+  }
+
+  button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    background: #eef2ff;
+    color: #4338ca;
+    font-weight: 600;
+    cursor: pointer;
+  }
+}
+
+.reviews-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.review-card {
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 0.85rem;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+
+    .subject-type {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.1);
+      color: #4f46e5;
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    h4 {
+      margin: 0.4rem 0 0;
+      color: #1f2937;
+    }
+
+    .review-rating mat-icon {
+      color: #f59e0b;
+    }
+  }
+
+  .comment {
+    margin: 1rem 0;
+    color: #374151;
+    line-height: 1.6;
+  }
+
+  footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .response {
+      border-radius: 0.75rem;
+      background: rgba(99, 102, 241, 0.08);
+      padding: 0.75rem 1rem;
+
+      strong {
+        display: block;
+        color: #4f46e5;
+        margin-bottom: 0.35rem;
+      }
+
+      p {
+        margin: 0;
+        color: #4338ca;
+      }
+
+      small {
+        display: block;
+        margin-top: 0.3rem;
+        color: #6366f1;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .review-summary .summary-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -9,7 +9,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatMenuModule } from '@angular/material/menu';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
-import { AdminService } from '../../../../services/admin.service';
+import { AdminDataService } from '../../../../services/admin-data.service';
 import { AdminOverviewComponent } from './components/admin-overview/admin-overview.component';
 
 @Component({
@@ -56,7 +56,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   constructor(
     public router: Router,
     private authService: AuthService,
-    private adminService: AdminService,
+    private adminService: AdminDataService,
     private dialog: MatDialog
   ) { }
 

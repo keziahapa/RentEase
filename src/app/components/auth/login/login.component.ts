@@ -43,6 +43,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   autoSubmitTimer: any;
   countdown: number = 0;
   showAutoLoginNotice: boolean = false;
+  private pendingAutoPassword: string | null = null;
   
   emailError: string = '';
   passwordError: string = '';
@@ -60,7 +61,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     
     if (emailFromReset && passwordFromReset) {
       this.loginData.email = emailFromReset;
-      this.loginData.password = passwordFromReset;
+      this.pendingAutoPassword = passwordFromReset;
       this.showAutoLoginNotice = true;
       this.startAutoSubmitCountdown();
     }
@@ -79,8 +80,11 @@ export class LoginComponent implements OnInit, OnDestroy {
       
       if (this.countdown <= 0) {
         this.stopAutoSubmit();
-        if (this.isFormValid && !this.isLoading) {
-          this.onSubmit();
+        if (!this.isLoading) {
+          const autoPassword = this.pendingAutoPassword ?? this.loginData.password;
+          if (this.validateForm(autoPassword)) {
+            this.onSubmit(autoPassword);
+          }
         }
       }
     }, 1000);
@@ -138,6 +142,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   onPasswordInput(): void {
     if (this.isLoading) return;
     this.passwordError = '';
+    this.pendingAutoPassword = null;
     this.stopAutoSubmit();
   }
 
@@ -149,41 +154,47 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
   }
 
-  validateForm(): boolean {
+  validateForm(passwordOverride?: string): boolean {
     this.emailError = '';
     this.passwordError = '';
-    
+
     const emailError = this.validateEmail(this.loginData.email);
     if (emailError) {
       this.emailError = emailError;
     }
-    
-    if (!this.loginData.password) {
+
+    const passwordToValidate = passwordOverride ?? this.loginData.password;
+
+    if (!passwordToValidate) {
       this.passwordError = 'Password is required';
-    } else if (this.loginData.password.length < 6) {
+    } else if (passwordToValidate.length < 6) {
       this.passwordError = 'Password must be at least 6 characters';
     }
 
     return !this.emailError && !this.passwordError;
   }
 
-  onSubmit(): void {
+  onSubmit(passwordOverride?: string): void {
     this.stopAutoSubmit();
     
     if (this.isLoading) return;
-    
-    if (!this.validateForm()) return;
+    const passwordToUse = passwordOverride ?? this.loginData.password;
+
+    if (!this.validateForm(passwordToUse)) return;
     
     this.isLoading = true;
    
     this.emailError = '';
     this.passwordError = '';
-    
+    this.pendingAutoPassword = null;
+
     const loginRequest: LoginRequest = {
       email: this.loginData.email.trim().toLowerCase(),
-      password: this.loginData.password,
+      password: passwordToUse,
       rememberMe: this.rememberMe
     };
+
+    this.loginData.password = '';
     
     this.authService.login(loginRequest).subscribe({
       next: (response: AuthResponse) => {
@@ -219,6 +230,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   private handleApiError(error: any): void {
     this.emailError = '';
     this.passwordError = '';
+    this.pendingAutoPassword = null;
     
     let errorMessage = 'Login failed. Please try again.';
     let showSnackbar = true;
@@ -301,12 +313,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       errorMessage = 'Access denied. Please contact support';
     }
     
-    if (this.passwordError || 
-        errorMessage.includes('password') || 
-        errorMessage.includes('incorrect') ||
-        errorMessage.includes('invalid credentials')) {
-      this.loginData.password = '';
-    }
+    this.loginData.password = '';
     
     if (showSnackbar) {
       this.showSnackbar(errorMessage, 'error');
@@ -360,10 +367,11 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   get isFormValid(): boolean {
+    const passwordValue = this.pendingAutoPassword ?? this.loginData.password;
     return (
       this.loginData.email.trim() !== '' &&
-      this.loginData.password !== '' &&
-      this.loginData.password.length >= 6 &&
+      passwordValue !== '' &&
+      passwordValue.length >= 6 &&
       !this.emailError
     );
   }

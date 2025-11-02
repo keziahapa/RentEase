@@ -1,5 +1,4 @@
 <div class="maintenance-page">
-  <!-- Page Header -->
   <div class="page-header">
     <button class="back-btn" (click)="goBack()" aria-label="Go back to dashboard">
       <mat-icon>arrow_back</mat-icon>
@@ -7,98 +6,95 @@
     </button>
     <div class="page-title">
       <h2>Maintenance Requests</h2>
-      <p>Submit and track maintenance issues for your property</p>
+      <p>Submit new issues and track their progress in real time</p>
     </div>
   </div>
 
-  <!-- Summary Statistics -->
-  <div class="summary-stats">
-    <div class="stat-card">
-      <div class="stat-icon total">
-        <mat-icon>assignment</mat-icon>
-      </div>
-      <div class="stat-content">
-        <span class="stat-value">{{getRequestSummaryStats().total}}</span>
-        <span class="stat-label">Total Requests</span>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon active">
-        <mat-icon>build</mat-icon>
-      </div>
-      <div class="stat-content">
-        <span class="stat-value">{{getRequestSummaryStats().active}}</span>
-        <span class="stat-label">Active Requests</span>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon completed">
-        <mat-icon>check_circle</mat-icon>
-      </div>
-      <div class="stat-content">
-        <span class="stat-value">{{getRequestSummaryStats().completed}}</span>
-        <span class="stat-label">Completed</span>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon urgent">
-        <mat-icon>warning</mat-icon>
-      </div>
-      <div class="stat-content">
-        <span class="stat-value">{{getRequestSummaryStats().urgent}}</span>
-        <span class="stat-label">Urgent</span>
-      </div>
-    </div>
+  <div class="error-banner" *ngIf="loadError">
+    <mat-icon>error_outline</mat-icon>
+    {{loadError}}
   </div>
 
-  <!-- Tab Navigation -->
-  <div class="tab-navigation">
-    <button class="tab-btn" 
-            [class.active]="selectedTab === 'new'"
-            (click)="setActiveTab('new')">
-      <mat-icon>add</mat-icon>
-      New Request
-    </button>
-    <button class="tab-btn" 
-            [class.active]="selectedTab === 'active'"
-            (click)="setActiveTab('active')">
-      <mat-icon>pending</mat-icon>
-      Active ({{getRequestSummaryStats().active}})
-    </button>
-    <button class="tab-btn" 
-            [class.active]="selectedTab === 'completed'"
-            (click)="setActiveTab('completed')">
-      <mat-icon>done_all</mat-icon>
-      Completed ({{getRequestSummaryStats().completed}})
-    </button>
-    <button class="tab-btn" 
-            [class.active]="selectedTab === 'all'"
-            (click)="setActiveTab('all')">
-      <mat-icon>list</mat-icon>
-      All Requests
-    </button>
-  </div>
+  <ng-container *ngIf="isLoadingRequests; else maintenanceLoaded">
+    <section class="maintenance-skeleton" aria-label="Loading maintenance requests">
+      <app-skeleton-list variant="stat" [count]="4"></app-skeleton-list>
+      <app-skeleton-list variant="card" [count]="3"></app-skeleton-list>
+    </section>
+  </ng-container>
 
-  <!-- Tab Content -->
-  <div class="tab-content">
-    
-    <!-- New Request Tab -->
-    <div class="tab-panel" *ngIf="selectedTab === 'new'">
-      <div class="content-grid">
-        <!-- Quick Issue Selection -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
+  <ng-template #maintenanceLoaded>
+    <div class="summary-stats">
+      <div class="stat-card">
+        <div class="stat-icon total">
+          <mat-icon>assignment</mat-icon>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{getRequestSummaryStats().total}}</span>
+          <span class="stat-label">Total Requests</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon active">
+          <mat-icon>build</mat-icon>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{getRequestSummaryStats().active}}</span>
+          <span class="stat-label">Active</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon completed">
+          <mat-icon>check_circle</mat-icon>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{getRequestSummaryStats().completed}}</span>
+          <span class="stat-label">Completed</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon urgent">
+          <mat-icon>warning</mat-icon>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{getRequestSummaryStats().urgent}}</span>
+          <span class="stat-label">Urgent</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-navigation">
+      <button class="tab-btn" [class.active]="selectedTab === 'new'" (click)="setActiveTab('new')">
+        <mat-icon>add</mat-icon>
+        New Request
+      </button>
+      <button class="tab-btn" [class.active]="selectedTab === 'active'" (click)="setActiveTab('active')">
+        <mat-icon>pending</mat-icon>
+        Active
+      </button>
+      <button class="tab-btn" [class.active]="selectedTab === 'completed'" (click)="setActiveTab('completed')">
+        <mat-icon>done_all</mat-icon>
+        Completed
+      </button>
+      <button class="tab-btn" [class.active]="selectedTab === 'all'" (click)="setActiveTab('all')">
+        <mat-icon>list</mat-icon>
+        All Requests
+      </button>
+    </div>
+
+    <div class="tab-content">
+      <section class="tab-panel" *ngIf="selectedTab === 'new'">
+        <div class="content-grid">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
               <mat-icon class="card-icon">flash_on</mat-icon>
               <h3>Common Issues</h3>
             </div>
           </div>
           <div class="card-content">
-            <p>Click on a common issue to pre-fill the form:</p>
+            <p>Select a common issue to pre-fill key details:</p>
             <div class="common-issues-grid">
-              <button class="common-issue-btn" 
-                      *ngFor="let issue of commonIssues"
-                      (click)="selectCommonIssue(issue)">
+              <button class="common-issue-btn" *ngFor="let issue of commonIssues" (click)="selectCommonIssue(issue)">
                 <mat-icon>{{getCategoryIcon(issue.category)}}</mat-icon>
                 <span>{{issue.title}}</span>
               </button>
@@ -106,95 +102,301 @@
           </div>
         </div>
 
-        <!-- New Request Form -->
-        <div class="card collapsible-card" 
-             [class.collapsed]="isSectionCollapsed('new-request')"
-             [class.animating]="isAnimating('new-request')">
-          <div class="card-header clickable-header" (click)="toggleSection('new-request')">
+        <div class="card">
+          <div class="card-header">
             <div class="card-title">
               <mat-icon class="card-icon">add_task</mat-icon>
               <h3>Submit New Request</h3>
             </div>
-            <button class="collapse-toggle" [attr.aria-label]="getAriaLabel('new-request')">
-              <mat-icon class="collapse-icon">expand_more</mat-icon>
-            </button>
           </div>
-          <div class="card-content collapsible-content" [class.collapsed]="isSectionCollapsed('new-request')">
+          <div class="card-content">
             <form [formGroup]="maintenanceForm" (ngSubmit)="submitMaintenanceRequest()" class="maintenance-form">
-              <!-- Title -->
               <div class="form-group">
                 <label for="title" class="form-label">
                   <mat-icon>title</mat-icon>
                   Issue Title *
                 </label>
-                <input type="text" 
-                       id="title" 
-                       formControlName="title"
-                       class="form-input" 
-                       [class.error]="isFieldInvalid('title')"
-                       placeholder="Brief description of the issue">
-                <div class="form-error" *ngIf="isFieldInvalid('title')">
-                  {{getFieldError('title')}}
-                </div>
+                <input id="title" type="text" formControlName="title" class="form-input" [class.error]="isFieldInvalid('title')" placeholder="Short summary of the issue">
+                <div class="form-error" *ngIf="isFieldInvalid('title')">{{getFieldError('title')}}</div>
               </div>
 
-              <!-- Category and Priority Row -->
               <div class="form-row">
                 <div class="form-group">
                   <label for="category" class="form-label">
                     <mat-icon>category</mat-icon>
                     Category *
                   </label>
-                  <select id="category" 
-                          formControlName="category"
-                          class="form-select"
-                          [class.error]="isFieldInvalid('category')">
+                  <select id="category" formControlName="category" class="form-select" [class.error]="isFieldInvalid('category')">
                     <option value="">Select category</option>
-                    <option *ngFor="let category of categoryOptions" [value]="category">
-                      {{category}}
-                    </option>
+                    <option *ngFor="let category of categoryOptions" [value]="category">{{category}}</option>
                   </select>
-                  <div class="form-error" *ngIf="isFieldInvalid('category')">
-                    {{getFieldError('category')}}
-                  </div>
+                  <div class="form-error" *ngIf="isFieldInvalid('category')">{{getFieldError('category')}}</div>
                 </div>
-
                 <div class="form-group">
                   <label for="priority" class="form-label">
                     <mat-icon>priority_high</mat-icon>
                     Priority *
                   </label>
-                  <select id="priority" 
-                          formControlName="priority"
-                          class="form-select">
-                    <option *ngFor="let priority of priorityOptions" [value]="priority">
-                      {{priority | titlecase}}
-                    </option>
+                  <select id="priority" formControlName="priority" class="form-select">
+                    <option *ngFor="let priority of priorityOptions" [value]="priority">{{priority | titlecase}}</option>
                   </select>
                 </div>
               </div>
 
-              <!-- Location -->
               <div class="form-group">
                 <label for="location" class="form-label">
                   <mat-icon>location_on</mat-icon>
                   Location *
                 </label>
-                <input type="text" 
-                       id="location" 
-                       formControlName="location"
-                       class="form-input"
-                       [class.error]="isFieldInvalid('location')"
-                       placeholder="Specific location (e.g., Kitchen sink, Master bedroom)">
-                <div class="form-error" *ngIf="isFieldInvalid('location')">
-                  {{getFieldError('location')}}
-                </div>
+                <input id="location" type="text" formControlName="location" class="form-input" [class.error]="isFieldInvalid('location')" placeholder="e.g. Kitchen sink, Master bathroom">
+                <div class="form-error" *ngIf="isFieldInvalid('location')">{{getFieldError('location')}}</div>
               </div>
 
-              <!-- Description -->
               <div class="form-group">
                 <label for="description" class="form-label">
                   <mat-icon>description</mat-icon>
                   Description *
                 </label>
-                
+                <textarea id="description" rows="4" formControlName="description" class="form-textarea" [class.error]="isFieldInvalid('description')" placeholder="Provide detailed information about the issue"></textarea>
+                <div class="form-error" *ngIf="isFieldInvalid('description')">{{getFieldError('description')}}</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <mat-icon>report_problem</mat-icon>
+                  Urgency Level
+                </label>
+                <div class="radio-group">
+                  <label *ngFor="let urgency of urgencyLevels">
+                    <input type="radio" [value]="urgency" formControlName="urgencyLevel" />
+                    {{urgency | titlecase}}
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  <mat-icon>attach_file</mat-icon>
+                  Attach Images
+                </label>
+                <input type="file" multiple (change)="onFileSelect($event)" accept="image/*" />
+                <div class="selected-images" *ngIf="selectedImages.length > 0">
+                  <div class="image-chip" *ngFor="let image of selectedImages; let i = index">
+                    <mat-icon>image</mat-icon>
+                    <span>{{image.name}}</span>
+                    <button type="button" (click)="removeImage(i)" aria-label="Remove image">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn-primary" [disabled]="isSubmitting">
+                  <mat-icon>send</mat-icon>
+                  {{isSubmitting ? 'Submitting...' : 'Submit Request'}}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" *ngIf="selectedTab !== 'new'">
+      <div class="request-toolbar" *ngIf="filteredRequests.length > 0">
+        <div class="filters">
+          <select [ngModel]="filterStatus" (ngModelChange)="onFilterStatusChange($event)">
+            <option value="">All Statuses</option>
+            <option *ngFor="let status of maintenanceStatusOptions" [value]="status">{{status | titlecase}}</option>
+          </select>
+          <select [ngModel]="filterCategory" (ngModelChange)="onFilterCategoryChange($event)">
+            <option value="">All Categories</option>
+            <option *ngFor="let category of categoryOptions" [value]="category">{{category}}</option>
+          </select>
+        </div>
+        <div class="sort-controls">
+          <select [ngModel]="sortBy" (ngModelChange)="onSortFieldChange($event)">
+            <option value="date">Sort by Date</option>
+            <option value="priority">Sort by Priority</option>
+            <option value="status">Sort by Status</option>
+          </select>
+          <button type="button" class="sort-order" (click)="toggleSortOrder()" [attr.aria-label]="sortOrder === 'asc' ? 'Sort ascending' : 'Sort descending'">
+            <mat-icon>{{sortOrder === 'asc' ? 'north' : 'south'}}</mat-icon>
+          </button>
+          <button class="btn-link" (click)="clearFilters()" *ngIf="filterStatus || filterCategory">Clear Filters</button>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!isLoadingRequests && filteredRequests.length === 0">
+        <mat-icon>fact_check</mat-icon>
+        <h3>No maintenance requests found</h3>
+        <p>Submit a new request or adjust your filters to see previous work orders.</p>
+      </div>
+
+      <div class="requests-layout" *ngIf="filteredRequests.length > 0">
+        <div class="requests-list">
+          <article
+            class="request-card"
+            *ngFor="let request of filteredRequests; trackBy: trackByRequestId"
+            [class.selected]="isSelected(request)"
+            (click)="toggleRequestDetails(request)"
+            tabindex="0"
+            role="button"
+            (keyup.enter)="toggleRequestDetails(request)"
+            (keyup.space)="toggleRequestDetails(request)"
+            [attr.aria-pressed]="isSelected(request)">
+            <header class="request-header">
+              <div class="status-group">
+                <span class="status-chip" [class]="getStatusClass(request.status)">{{request.status | titlecase}}</span>
+                <span class="priority-chip" [class]="getPriorityClass(request.priority)">{{request.priority | titlecase}}</span>
+                <span class="urgency-chip">{{request.urgencyLevel | titlecase}} Urgency</span>
+              </div>
+              <span class="submitted-date">Submitted {{formatDate(request.dateSubmitted)}}</span>
+            </header>
+
+            <div class="request-body">
+              <h4>{{request.title}}</h4>
+              <p class="request-meta">
+                <mat-icon>place</mat-icon>
+                {{request.location}}
+              </p>
+              <p class="request-description">{{request.description}}</p>
+            </div>
+
+            <footer class="request-footer">
+              <div class="footer-item">
+                <mat-icon>update</mat-icon>
+                <span>
+                  {{getLatestUpdate(request)?.status ? (getLatestUpdate(request)?.status | titlecase) : 'Awaiting update'}}
+                </span>
+              </div>
+              <div class="footer-item">
+                <mat-icon>attach_file</mat-icon>
+                <span>{{request.images?.length || 0}} attachments</span>
+              </div>
+              <button
+                type="button"
+                class="btn-link"
+                (click)="toggleRequestDetails(request); $event.stopPropagation()"
+                [attr.aria-expanded]="isSelected(request)">
+                {{isSelected(request) ? 'Hide details' : 'View details'}}
+              </button>
+            </footer>
+          </article>
+        </div>
+
+        <aside class="request-detail" *ngIf="selectedRequest as detail">
+          <div class="detail-header">
+            <div class="detail-title">
+              <div class="status-group">
+                <span class="status-chip" [class]="getStatusClass(detail.status)">{{detail.status | titlecase}}</span>
+                <span class="priority-chip" [class]="getPriorityClass(detail.priority)">{{detail.priority | titlecase}}</span>
+                <span class="urgency-chip">{{detail.urgencyLevel | titlecase}} Urgency</span>
+              </div>
+              <h3>{{detail.title}}</h3>
+              <p>{{detail.location}} • Submitted {{formatDate(detail.dateSubmitted)}}</p>
+            </div>
+            <button type="button" class="close-btn" (click)="closeRequestDetails()" aria-label="Close request details">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+
+          <div class="detail-section">
+            <h4>Description</h4>
+            <p>{{detail.description}}</p>
+          </div>
+
+          <div class="detail-section" *ngIf="detail.assignedTo as assignee">
+            <h4>Assigned To</h4>
+            <div class="assignee-card">
+              <strong>{{assignee.name}}</strong>
+              <span>{{assignee.company}}</span>
+              <div class="assignee-contact">
+                <span><mat-icon>call</mat-icon>{{assignee.phone}}</span>
+                <span><mat-icon>mail</mat-icon>{{assignee.email}}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section" *ngIf="detail.updates?.length">
+            <h4>Update Timeline</h4>
+            <ul class="update-timeline">
+              <li *ngFor="let update of detail.updates; trackBy: trackByUpdateId">
+                <div class="timeline-status">{{update.status | titlecase}}</div>
+                <div class="timeline-meta">
+                  <span>{{update.updatedAt}}</span>
+                  <span>by {{update.updatedBy}}</span>
+                </div>
+                <p>{{update.message}}</p>
+              </li>
+            </ul>
+          </div>
+
+          <div class="detail-section" *ngIf="detail.images?.length">
+            <h4>Attachments</h4>
+            <div class="attachment-grid">
+              <div class="attachment-card" *ngFor="let image of detail.images; trackBy: trackByImageId">
+                <img [src]="image.url" [alt]="image.caption || detail.title" (click)="viewAttachment(image)" />
+                <div class="attachment-footer">
+                  <span>{{image.caption || 'Attachment'}}</span>
+                  <div class="attachment-actions">
+                    <button type="button" (click)="viewAttachment(image)">
+                      <mat-icon>open_in_new</mat-icon>
+                    </button>
+                    <button type="button" (click)="downloadAttachment(image)">
+                      <mat-icon>download</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section" *ngIf="detail.status === MaintenanceStatus.COMPLETED && detail.tenantRating">
+            <h4>Your Rating</h4>
+            <div class="rating-display">
+              <mat-icon *ngFor="let star of [1,2,3,4,5]" [class.filled]="star <= detail.tenantRating">grade</mat-icon>
+            </div>
+          </div>
+
+          <div class="detail-section" *ngIf="detail.status === MaintenanceStatus.COMPLETED">
+            <h4>Rate the Service</h4>
+            <div class="rating-group">
+              <button *ngFor="let rating of [1,2,3,4,5]" (click)="rateService(detail, rating)" [class.active]="detail.tenantRating === rating">
+                {{rating}}
+              </button>
+            </div>
+          </div>
+
+          <div class="detail-section feedback-section" *ngIf="detail.status === MaintenanceStatus.COMPLETED">
+            <h4>Share Feedback</h4>
+            <textarea
+              rows="3"
+              placeholder="Let us know how the maintenance visit went"
+              [(ngModel)]="feedbackDrafts[detail.id]"></textarea>
+            <div class="feedback-actions">
+              <button
+                class="btn-secondary"
+                type="button"
+                (click)="submitFeedback(detail, feedbackDrafts[detail.id] ?? '')"
+                [disabled]="!feedbackDrafts[detail.id]?.trim()">
+                Submit Feedback
+              </button>
+            </div>
+            <p class="existing-feedback" *ngIf="detail.tenantFeedback">
+              <strong>Submitted feedback:</strong> {{detail.tenantFeedback}}
+            </p>
+          </div>
+
+          <div class="detail-actions">
+            <button class="btn-secondary" *ngIf="detail.status === MaintenanceStatus.SUBMITTED" (click)="cancelRequest(detail)">
+              Cancel Request
+            </button>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+</ng-template>
+</div>

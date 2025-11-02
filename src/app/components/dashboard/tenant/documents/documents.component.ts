@@ -1,63 +1,16 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-
-export interface Document {
-  id: string;
-  name: string;
-  originalName: string;
-  category: DocumentCategory;
-  type: DocumentType;
-  url: string;
-  size: string;
-  mimeType: string;
-  uploadedBy: string;
-  uploadedDate: string;
-  description?: string;
-  tags: string[];
-  isPublic: boolean;
-  expiryDate?: string;
-  version: number;
-  status: DocumentStatus;
-  downloadCount: number;
-  lastAccessed?: string;
-}
-
-export enum DocumentCategory {
-  LEGAL = 'Legal',
-  FINANCIAL = 'Financial',
-  MAINTENANCE = 'Maintenance',
-  INSPECTION = 'Inspection',
-  INSURANCE = 'Insurance',
-  IDENTITY = 'Identity',
-  CORRESPONDENCE = 'Correspondence',
-  OTHER = 'Other'
-}
-
-export enum DocumentType {
-  LEASE_AGREEMENT = 'lease_agreement',
-  ADDENDUM = 'addendum',
-  RECEIPT = 'receipt',
-  INVOICE = 'invoice',
-  INSPECTION_REPORT = 'inspection_report',
-  MAINTENANCE_REPORT = 'maintenance_report',
-  INSURANCE_POLICY = 'insurance_policy',
-  ID_COPY = 'id_copy',
-  BANK_STATEMENT = 'bank_statement',
-  EMPLOYMENT_LETTER = 'employment_letter',
-  REFERENCE_LETTER = 'reference_letter',
-  PHOTO = 'photo',
-  OTHER = 'other'
-}
-
-export enum DocumentStatus {
-  ACTIVE = 'active',
-  ARCHIVED = 'archived',
-  EXPIRED = 'expired',
-  PENDING_REVIEW = 'pending_review',
-  REJECTED = 'rejected'
-}
+import { Subscription } from 'rxjs';
+import {
+  DocumentService,
+  TenantDocument,
+  DocumentCategory,
+  DocumentType,
+  DocumentStatus,
+  UploadDocumentPayload
+} from '../../../../services/document.service';
 
 @Component({
   selector: 'app-documents',
@@ -71,6 +24,9 @@ export enum DocumentStatus {
   styleUrls: ['./documents.component.scss']
 })
 export class DocumentsComponent implements OnInit, OnDestroy {
+  private documentService = inject(DocumentService);
+  private subscriptions = new Subscription();
+
   @Input() collapsedSections!: Set<string>;
   @Input() animatingSections!: Set<string>;
   
@@ -91,124 +47,13 @@ export class DocumentsComponent implements OnInit, OnDestroy {
   dragOverActive: boolean = false;
   uploadProgress: number = 0;
   uploadingFiles: File[] = [];
+  uploadError: string | null = null;
+  private uploadEncounteredError = false;
+  loadError: string | null = null;
+  actionError: string | null = null;
 
   // Documents data
-  documents: Document[] = [
-    {
-      id: '1',
-      name: 'Lease Agreement - 2024',
-      originalName: 'lease_agreement_2024.pdf',
-      category: DocumentCategory.LEGAL,
-      type: DocumentType.LEASE_AGREEMENT,
-      url: '/assets/documents/lease_agreement_2024.pdf',
-      size: '2.4 MB',
-      mimeType: 'application/pdf',
-      uploadedBy: 'Sarah Johnson (Landlord)',
-      uploadedDate: 'Jan 15, 2024',
-      description: 'Main lease agreement for the property at 123 Main Street',
-      tags: ['lease', 'contract', '2024'],
-      isPublic: false,
-      version: 1,
-      status: DocumentStatus.ACTIVE,
-      downloadCount: 5,
-      lastAccessed: 'Feb 10, 2024'
-    },
-    {
-      id: '2',
-      name: 'Security Deposit Receipt',
-      originalName: 'deposit_receipt_001.pdf',
-      category: DocumentCategory.FINANCIAL,
-      type: DocumentType.RECEIPT,
-      url: '/assets/documents/deposit_receipt.pdf',
-      size: '856 KB',
-      mimeType: 'application/pdf',
-      uploadedBy: 'Property Management',
-      uploadedDate: 'Jan 15, 2024',
-      description: 'Receipt for security deposit payment',
-      tags: ['deposit', 'receipt', 'payment'],
-      isPublic: false,
-      version: 1,
-      status: DocumentStatus.ACTIVE,
-      downloadCount: 3,
-      lastAccessed: 'Jan 20, 2024'
-    },
-    {
-      id: '3',
-      name: 'Move-in Inspection Report',
-      originalName: 'inspection_report_movein.pdf',
-      category: DocumentCategory.INSPECTION,
-      type: DocumentType.INSPECTION_REPORT,
-      url: '/assets/documents/inspection_report.pdf',
-      size: '1.2 MB',
-      mimeType: 'application/pdf',
-      uploadedBy: 'David Kamau (Inspector)',
-      uploadedDate: 'Feb 1, 2024',
-      description: 'Property condition report at move-in',
-      tags: ['inspection', 'move-in', 'condition'],
-      isPublic: false,
-      version: 1,
-      status: DocumentStatus.ACTIVE,
-      downloadCount: 2,
-      lastAccessed: 'Feb 5, 2024'
-    },
-    {
-      id: '4',
-      name: 'Property Insurance Policy',
-      originalName: 'insurance_policy_2024.pdf',
-      category: DocumentCategory.INSURANCE,
-      type: DocumentType.INSURANCE_POLICY,
-      url: '/assets/documents/insurance_policy.pdf',
-      size: '950 KB',
-      mimeType: 'application/pdf',
-      uploadedBy: 'Insurance Company',
-      uploadedDate: 'Jan 20, 2024',
-      description: 'Property insurance coverage details',
-      tags: ['insurance', 'policy', 'coverage'],
-      isPublic: false,
-      expiryDate: 'Jan 20, 2025',
-      version: 1,
-      status: DocumentStatus.ACTIVE,
-      downloadCount: 1,
-      lastAccessed: 'Jan 25, 2024'
-    },
-    {
-      id: '5',
-      name: 'Rent Payment - February 2024',
-      originalName: 'rent_receipt_feb_2024.pdf',
-      category: DocumentCategory.FINANCIAL,
-      type: DocumentType.RECEIPT,
-      url: '/assets/documents/rent_receipt_feb.pdf',
-      size: '420 KB',
-      mimeType: 'application/pdf',
-      uploadedBy: 'Payment System',
-      uploadedDate: 'Feb 15, 2024',
-      description: 'Monthly rent payment receipt',
-      tags: ['rent', 'receipt', 'february'],
-      isPublic: false,
-      version: 1,
-      status: DocumentStatus.ACTIVE,
-      downloadCount: 1
-    },
-    {
-      id: '6',
-      name: 'Maintenance Request Photos',
-      originalName: 'maintenance_photos.zip',
-      category: DocumentCategory.MAINTENANCE,
-      type: DocumentType.PHOTO,
-      url: '/assets/documents/maintenance_photos.zip',
-      size: '3.1 MB',
-      mimeType: 'application/zip',
-      uploadedBy: 'John Doe (Tenant)',
-      uploadedDate: 'Feb 8, 2024',
-      description: 'Photos documenting plumbing issue in kitchen',
-      tags: ['maintenance', 'photos', 'plumbing'],
-      isPublic: false,
-      version: 1,
-      status: DocumentStatus.ACTIVE,
-      downloadCount: 4,
-      lastAccessed: 'Feb 12, 2024'
-    }
-  ];
+  documents: TenantDocument[] = [];
 
   // Category options
   categoryOptions = Object.values(DocumentCategory);
@@ -231,7 +76,7 @@ export class DocumentsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Clean up any subscriptions or timers
+    this.subscriptions.unsubscribe();
   }
 
   // Navigation methods
@@ -253,17 +98,28 @@ export class DocumentsComponent implements OnInit, OnDestroy {
   }
 
   // Data loading
-  private loadDocuments(): void {
+  loadDocuments(): void {
     this.isLoading = true;
-    
-    // Simulate API call
-    setTimeout(() => {
-      this.isLoading = false;
-    }, 500);
+    this.loadError = null;
+
+    const sub = this.documentService.getTenantDocuments().subscribe({
+      next: (docs) => {
+        this.documents = docs;
+        this.isLoading = false;
+        this.loadError = null;
+      },
+      error: (error) => {
+        this.loadError = error?.message || 'Failed to load documents.';
+        this.handleError(error, 'load documents');
+        this.isLoading = false;
+      }
+    });
+
+    this.subscriptions.add(sub);
   }
 
   // Filtering and searching
-  get filteredDocuments(): Document[] {
+  get filteredDocuments(): TenantDocument[] {
     let filtered = [...this.documents];
 
     // Apply category filter
@@ -352,17 +208,19 @@ export class DocumentsComponent implements OnInit, OnDestroy {
   }
 
   // Document actions
-  downloadDocument(doc: Document): void {
-    console.log('Downloading document:', doc.name);
-    
-    // Update download count
-    doc.downloadCount++;
-    doc.lastAccessed = new Date().toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+  downloadDocument(doc: TenantDocument): void {
+    const sub = this.documentService.markDocumentAccessed(doc.id).subscribe({
+      next: () => {
+        doc.downloadCount++;
+        doc.lastAccessed = this.formatDisplayDate(new Date());
+      },
+      error: (error) => {
+        this.actionError = error?.message || 'Unable to record document download.';
+        this.handleError(error, 'download document');
+      }
     });
-    
+    this.subscriptions.add(sub);
+
     // Create download link
     const link = document.createElement('a');
     link.href = doc.url;
@@ -370,21 +228,23 @@ export class DocumentsComponent implements OnInit, OnDestroy {
     link.click();
   }
 
-  previewDocument(doc: Document): void {
-    console.log('Previewing document:', doc.name);
-    
-    // Update last accessed
-    doc.lastAccessed = new Date().toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+  previewDocument(doc: TenantDocument): void {
+    const sub = this.documentService.markDocumentAccessed(doc.id).subscribe({
+      next: () => {
+        doc.lastAccessed = this.formatDisplayDate(new Date());
+      },
+      error: (error) => {
+        this.actionError = error?.message || 'Unable to record document preview.';
+        this.handleError(error, 'preview document');
+      }
     });
-    
+    this.subscriptions.add(sub);
+
     // Open in new tab for preview
     window.open(doc.url, '_blank');
   }
 
-  shareDocument(doc: Document): void {
+  shareDocument(doc: TenantDocument): void {
     console.log('Sharing document:', doc.name);
     
     if (navigator.share) {
@@ -402,10 +262,21 @@ export class DocumentsComponent implements OnInit, OnDestroy {
     }
   }
 
-  deleteDocument(doc: Document): void {
+  deleteDocument(doc: TenantDocument): void {
     if (confirm(`Are you sure you want to delete "${doc.name}"?`)) {
-      console.log('Deleting document:', doc.name);
-      this.documents = this.documents.filter(d => d.id !== doc.id);
+      const sub = this.documentService.deleteDocument(doc.id).subscribe({
+        next: (deleted) => {
+          if (deleted) {
+            this.documents = this.documents.filter(d => d.id !== doc.id);
+            this.selectedDocuments.delete(doc.id);
+          }
+        },
+        error: (error) => {
+          this.actionError = error?.message || 'Failed to delete document.';
+          this.handleError(error, 'delete document');
+        }
+      });
+      this.subscriptions.add(sub);
     }
   }
 
@@ -441,7 +312,21 @@ export class DocumentsComponent implements OnInit, OnDestroy {
   deleteSelected(): void {
     const count = this.selectedDocuments.size;
     if (confirm(`Are you sure you want to delete ${count} selected document${count > 1 ? 's' : ''}?`)) {
-      this.documents = this.documents.filter(doc => !this.selectedDocuments.has(doc.id));
+      const idsToDelete = Array.from(this.selectedDocuments);
+      idsToDelete.forEach(id => {
+        const sub = this.documentService.deleteDocument(id).subscribe({
+          next: (deleted) => {
+            if (deleted) {
+              this.documents = this.documents.filter(doc => doc.id !== id);
+            }
+          },
+          error: (error) => {
+            this.actionError = error?.message || 'Failed to delete selected documents.';
+            this.handleError(error, 'delete selected documents');
+          }
+        });
+        this.subscriptions.add(sub);
+      });
       this.selectedDocuments.clear();
     }
   }
@@ -455,6 +340,8 @@ export class DocumentsComponent implements OnInit, OnDestroy {
     this.showUploadModal = false;
     this.uploadingFiles = [];
     this.uploadProgress = 0;
+    this.uploadError = null;
+    this.uploadEncounteredError = false;
   }
 
   onFileSelect(event: Event): void {
@@ -484,51 +371,51 @@ export class DocumentsComponent implements OnInit, OnDestroy {
   }
 
   private handleFiles(files: File[]): void {
+    if (!files.length) {
+      return;
+    }
+
     this.uploadingFiles = files;
-    this.simulateUpload();
-  }
-
-  private simulateUpload(): void {
     this.uploadProgress = 0;
-    
-    const interval = setInterval(() => {
-      this.uploadProgress += 10;
-      
-      if (this.uploadProgress >= 100) {
-        clearInterval(interval);
-        this.completeUpload();
-      }
-    }, 200);
-  }
+    this.uploadError = null;
+    this.uploadEncounteredError = false;
 
-  private completeUpload(): void {
-    // Add uploaded files to documents list
-    this.uploadingFiles.forEach((file, index) => {
-      const newDoc: Document = {
-        id: Date.now().toString() + index,
-        name: file.name.split('.')[0],
-        originalName: file.name,
+    const total = files.length;
+    let processed = 0;
+
+    files.forEach(file => {
+      const payload: UploadDocumentPayload = {
+        file,
         category: DocumentCategory.OTHER,
         type: DocumentType.OTHER,
-        url: URL.createObjectURL(file),
-        size: this.formatFileSize(file.size),
-        mimeType: file.type,
-        uploadedBy: 'You',
-        uploadedDate: new Date().toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric'
-        }),
         tags: [],
-        isPublic: false,
-        version: 1,
-        status: DocumentStatus.ACTIVE,
-        downloadCount: 0
+        isPublic: false
       };
-      
-      this.documents.unshift(newDoc);
+
+      const sub = this.documentService.uploadDocument(payload).subscribe({
+        next: (newDoc) => {
+          this.documents = [newDoc, ...this.documents];
+          processed++;
+          this.uploadProgress = Math.round((processed / total) * 100);
+          if (processed === total && !this.uploadEncounteredError) {
+            this.resetUploadState();
+          }
+        },
+        error: (error) => {
+          this.uploadError = error?.message || 'Failed to upload document.';
+          this.uploadEncounteredError = true;
+          processed++;
+          this.uploadProgress = Math.round((processed / total) * 100);
+          this.handleError(error, 'upload document');
+          // keep modal open to show error
+        }
+      });
+
+      this.subscriptions.add(sub);
     });
-    
+  }
+
+  private resetUploadState(): void {
     this.closeUploadModal();
   }
 
@@ -573,7 +460,7 @@ export class DocumentsComponent implements OnInit, OnDestroy {
     return colorMap[category] || '#64748b';
   }
 
-  isExpiringSoon(doc: Document): boolean {
+  isExpiringSoon(doc: TenantDocument): boolean {
     if (!doc.expiryDate) return false;
     
     const expiryDate = new Date(doc.expiryDate);
@@ -583,7 +470,7 @@ export class DocumentsComponent implements OnInit, OnDestroy {
     return daysUntilExpiry <= 30 && daysUntilExpiry > 0;
   }
 
-  isExpired(doc: Document): boolean {
+  isExpired(doc: TenantDocument): boolean {
     if (!doc.expiryDate) return false;
     
     const expiryDate = new Date(doc.expiryDate);
@@ -630,11 +517,23 @@ export class DocumentsComponent implements OnInit, OnDestroy {
   }
 
   // Track by functions for performance
-  trackByDocumentId(index: number, doc: Document): string {
+  trackByDocumentId(index: number, doc: TenantDocument): string {
     return doc.id;
   }
 
   trackByCategoryId(index: number, category: string): string {
     return category;
+  }
+
+  private formatDisplayDate(date: Date): string {
+    return date.toLocaleDateString('en-KE', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  }
+
+  dismissActionError(): void {
+    this.actionError = null;
   }
 }

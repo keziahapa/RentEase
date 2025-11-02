@@ -130,4 +130,9 @@ export class PropertyCreateComponent implements OnInit {
   get formControls() {
     return this.propertyForm.controls;
   }
+
+  getControlValueLength(controlName: string): number {
+    const value = this.propertyForm.get(controlName)?.value;
+    return typeof value === 'string' ? value.length : 0;
+  }
 }

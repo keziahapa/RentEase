@@ -54,7 +54,7 @@
     }
   }
 
-  .loading-spinner, .error-message, .empty-state {
+  .loading-skeleton, .error-message, .empty-state {
     text-align: center;
     padding: 80px 20px;
     
@@ -79,9 +79,9 @@
     }
   }
 
-  .loading-spinner {
-    mat-spinner {
-      margin: 0 auto 24px;
+  .loading-skeleton {
+    app-skeleton-list {
+      display: block;
     }
 
     p {

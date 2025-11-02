@@ -1,84 +1,88 @@
-// import { Component, Input, Output, EventEmitter } from '@angular/core';
-// import { MarketplaceItem } from '../../../../models/tenant.models';
-// import { CommonModule } from '@angular/common';
-// import { MatIconModule } from '@angular/material/icon';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { Subscription } from 'rxjs';
+import { MarketplaceService, MarketplaceListing, MarketplaceCategory } from '../../../../services/marketplace.service';
 
-// @Component({
-//   selector: 'app-marketplace',
-//   imports: [
-//     CommonModule,
-//     MatIconModule
-//   ],
-//   templateUrl: './marketplace.component.html',
-//   styleUrls: ['./marketplace.component.scss']
-// })
-// export class MarketplaceComponent {
-//   @Input() collapsedSections!: Set<string>;
-//   @Input() animatingSections!: Set<string>;
-  
-//   @Output() backClick = new EventEmitter<void>();
-//   @Output() sectionToggle = new EventEmitter<string>();
+@Component({
+  selector: 'app-marketplace',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatIconModule
+  ],
+  templateUrl: './marketplace.component.html',
+  styleUrls: ['./marketplace.component.scss']
+})
+export class MarketplaceComponent implements OnInit, OnDestroy {
+  private marketplaceService = inject(MarketplaceService);
+  private subscriptions = new Subscription();
 
-//   activeMarketplaceTab: 'items' | 'services' | 'housing' = 'items';
+  @Input() collapsedSections: Set<string> = new Set();
+  @Input() animatingSections: Set<string> = new Set();
 
-//   marketplaceItems: MarketplaceItem[] = [
-//     {
-//       id: '1',
-//       title: 'Sofa Set - 3 Seater',
-//       description: 'Comfortable leather sofa in excellent condition',
-//       price: 35000,
-//       location: 'Westlands',
-//       seller: 'Mary Wanjiku',
-//       category: 'items',
-//       datePosted: '2024-02-10'
-//     },
-//     {
-//       id: '2',
-//       title: 'House Cleaning Service',
-//       description: 'Professional cleaning service for apartments',
-//       price: 2500,
-//       location: 'Nairobi CBD',
-//       seller: 'Clean Pro Services',
-//       category: 'services',
-//       datePosted: '2024-02-12'
-//     },
-//     {
-//       id: '3',
-//       title: '2BR Apartment for Rent',
-//       description: 'Modern 2-bedroom apartment with parking',
-//       price: 45000,
-//       location: 'Karen',
-//       seller: 'Prime Properties',
-//       category: 'housing',
-//       datePosted: '2024-02-08'
-//     }
-//   ];
+  @Output() backClick = new EventEmitter<void>();
+  @Output() sectionToggle = new EventEmitter<string>();
 
-//   formatNumber(num: number): string {
-//     return new Intl.NumberFormat('en-KE').format(num);
-//   }
+  activeMarketplaceTab: MarketplaceCategory = 'items';
+  listings: MarketplaceListing[] = [];
+  isLoading = false;
+  loadError: string | null = null;
 
-//   isSectionCollapsed(sectionId: string): boolean {
-//     return this.collapsedSections.has(sectionId);
-//   }
+  ngOnInit(): void {
+    this.fetchMarketplaceListings();
+  }
 
-//   isAnimating(sectionId: string): boolean {
-//     return this.animatingSections.has(sectionId);
-//   }
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
 
-//   toggleSection(sectionId: string): void {
-//     this.sectionToggle.emit(sectionId);
-//   }
+  fetchMarketplaceListings(): void {
+    this.isLoading = true;
+    this.loadError = null;
 
-//   goBack(): void {
-//     this.backClick.emit();
-//   }
+    const sub = this.marketplaceService.getTenantMarketplaceListings().subscribe({
+      next: listings => {
+        this.listings = listings;
+        this.isLoading = false;
+      },
+      error: error => {
+        this.loadError = error?.message || 'Unable to load marketplace listings.';
+        this.isLoading = false;
+      }
+    });
 
-//   setActiveMarketplaceTab(tab: 'items' | 'services' | 'housing'): void {
-//     this.activeMarketplaceTab = tab;
-//   }
+    this.subscriptions.add(sub);
+  }
 
-//   getMarketplaceItems(): MarketplaceItem[] {
-//     return this.marketplaceItems.filter(item => item.category === this.activeMarketplaceTab);
-//   }
-// }
+  formatNumber(num: number): string {
+    return new Intl.NumberFormat('en-KE').format(num);
+  }
+
+  isSectionCollapsed(sectionId: string): boolean {
+    return this.collapsedSections?.has(sectionId) || false;
+  }
+
+  isAnimating(sectionId: string): boolean {
+    return this.animatingSections?.has(sectionId) || false;
+  }
+
+  toggleSection(sectionId: string): void {
+    this.sectionToggle.emit(sectionId);
+  }
+
+  goBack(): void {
+    this.backClick.emit();
+  }
+
+  setActiveMarketplaceTab(tab: MarketplaceCategory): void {
+    if (this.activeMarketplaceTab === tab) {
+      return;
+    }
+    this.activeMarketplaceTab = tab;
+  }
+
+  get visibleListings(): MarketplaceListing[] {
+    return this.listings.filter(item => item.category === this.activeMarketplaceTab);
+  }
+}

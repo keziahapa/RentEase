@@ -4,12 +4,11 @@ import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { Subscription } from 'rxjs';
-import { AdminService } from '../../../../../../services/admin.service';
-import { AuthService } from '../../../../../../services/auth.service';
+import { AdminDataService } from '../../../../../../services/admin-data.service';
+import { SkeletonListComponent } from '../../../../../../shared/components/skeleton/skeleton-list.component';
 
 export interface DashboardData {
   totalUsers: number;
@@ -50,8 +49,8 @@ export interface RecentActivity {
     MatCardModule,
     MatIconModule,
     MatButtonModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    SkeletonListComponent
   ],
   templateUrl: './admin-overview.component.html',
   styleUrls: ['./admin-overview.component.scss']
@@ -150,8 +149,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
   private subscriptions = new Subscription();
 
   constructor(
-    private adminService: AdminService,
-    private authService: AuthService,
+    private adminService: AdminDataService,
     private router: Router,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
@@ -197,12 +195,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
         this.dashboardError = error?.message || 'Failed to load dashboard data';
         this.snackBar.open(this.dashboardError, 'Close', { duration: 5000 });
         
-        if (error.status === 401) {
-          setTimeout(() => {
-            this.authService.logout().subscribe();
-            this.router.navigate(['/login']);
-          }, 2000);
-        }
+        // In a live integration, handle auth errors and redirect accordingly
       }
     });
 

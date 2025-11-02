@@ -2,13 +2,13 @@
   <div class="view-header">
     <h2>Reports & Analytics</h2>
     <div class="view-actions">
-      <button class="btn btn-primary" (click)="exportPdf.emit()">
+      <button class="btn btn-primary" (click)="exportPdf()" [disabled]="isExportingPdf">
         <mat-icon>picture_as_pdf</mat-icon>
-        <span>Export PDF</span>
+        <span>{{isExportingPdf ? 'Exporting...' : 'Export PDF'}}</span>
       </button>
-      <button class="btn btn-secondary" (click)="exportExcel.emit()">
+      <button class="btn btn-secondary" (click)="exportExcel()" [disabled]="isExportingCsv">
         <mat-icon>table_chart</mat-icon>
-        <span>Export Excel</span>
+        <span>{{isExportingCsv ? 'Exporting...' : 'Export Excel'}}</span>
       </button>
     </div>
   </div>

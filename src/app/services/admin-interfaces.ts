@@ -19,6 +19,7 @@ export interface AdminStats {
   totalUsers: number;
   totalProperties: number;
   activeBusinesses: number;
+  totalBusinesses: number;
   monthlyRevenue: number;
   commissionRevenue: number;
   pendingApprovals: number;
@@ -35,6 +36,14 @@ export interface AdminStats {
   monthlyActiveUsers: number;
   totalTransactions: number;
   averageRating: number;
+  newUsersToday?: number;
+  newPropertiesThisWeek?: number;
+  occupancyRate?: number;
+  rentCollectionRate?: number;
+  maintenanceCompletionRate?: number;
+  disputeResolutionRate?: number;
+  reportedIssuesThisWeek?: number;
+  topPerformingZones?: string[];
 }
 
 export interface User {
@@ -103,6 +112,7 @@ export interface Business {
   description?: string;
   documents?: string[];
   rejectionReason?: string;
+  suspensionReason?: string;
   services?: string[];
   businessHours?: {
     open: string;
@@ -228,7 +238,7 @@ export interface Notification {
 
 export interface ApiResponse<T> {
   success: boolean;
-  message: string;
+  message?: string;
   data: T;
   pagination?: {
     total: number;

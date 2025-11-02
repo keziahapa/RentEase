@@ -1,0 +1,104 @@
+.tenant-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  padding: 1rem 0 3rem;
+
+  mat-divider {
+    margin: 1rem 0;
+  }
+}
+
+.settings-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.75rem;
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+
+    h2 {
+      font-size: 1.375rem;
+      font-weight: 600;
+      margin: 0;
+      color: #111827;
+    }
+
+    p {
+      margin: 0.25rem 0 0;
+      color: #6b7280;
+      font-size: 0.95rem;
+    }
+
+    mat-icon {
+      font-size: 2rem;
+      width: 2.5rem;
+      height: 2.5rem;
+      padding: 0.5rem;
+      border-radius: 0.75rem;
+      background: #eef2ff;
+      color: #4338ca;
+    }
+  }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+
+  .actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 220px;
+    }
+  }
+}
+
+.security-form {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.notification-grid {
+  display: grid;
+  gap: 1rem;
+
+  mat-slide-toggle {
+    font-size: 0.95rem;
+    color: #374151;
+  }
+
+  .actions {
+    margin-top: 1.25rem;
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-card {
+    padding: 1.25rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

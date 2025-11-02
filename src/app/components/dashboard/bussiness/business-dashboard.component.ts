@@ -9,7 +9,6 @@ import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 import { BusinessService } from '../../../services/business.service';
-import { BusinessOverviewComponent } from '../bussiness/components/business-overview/business-overview.component';
 
 @Component({
   selector: 'app-business-dashboard',
@@ -20,8 +19,7 @@ import { BusinessOverviewComponent } from '../bussiness/components/business-over
     MatDialogModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    RouterOutlet,
-    BusinessOverviewComponent
+    RouterOutlet
   ],
   templateUrl: './business-dashboard.component.html',
   styleUrls: ['./business-dashboard.component.scss']

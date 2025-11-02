@@ -5,10 +5,24 @@
       <div class="view-stats">
         <span class="stat-badge pending">{{activeDisputes}} Active</span>
       </div>
-      <button class="btn btn-primary" matTooltip="Export Disputes">
+      <button
+        class="btn btn-primary"
+        matTooltip="Export Disputes"
+        [matMenuTriggerFor]="disputesExportMenu">
         <mat-icon>download</mat-icon>
         <span>Export</span>
+        <mat-icon class="menu-caret">expand_more</mat-icon>
       </button>
+      <mat-menu #disputesExportMenu="matMenu">
+        <button mat-menu-item (click)="exportDisputes('csv')" [disabled]="exportState.csv">
+          <mat-icon>grid_on</mat-icon>
+          <span>{{exportState.csv ? 'Exporting CSV...' : 'Export CSV'}}</span>
+        </button>
+        <button mat-menu-item (click)="exportDisputes('pdf')" [disabled]="exportState.pdf">
+          <mat-icon>picture_as_pdf</mat-icon>
+          <span>{{exportState.pdf ? 'Exporting PDF...' : 'Export PDF'}}</span>
+        </button>
+      </mat-menu>
     </div>
   </div>
 

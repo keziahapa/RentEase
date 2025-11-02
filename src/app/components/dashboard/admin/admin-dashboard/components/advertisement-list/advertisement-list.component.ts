@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { AdminService } from '../../../../../../services/admin.service';
+import { AdminDataService } from '../../../../../../services/admin-data.service';
 import { Advertisement } from '../../../../../../services/admin-interfaces';
 
 @Component({
@@ -29,7 +29,7 @@ export class AdvertisementListComponent implements OnInit {
   isLoading = false;
 
   constructor(
-    private adminService: AdminService,
+    private adminService: AdminDataService,
     private snackBar: MatSnackBar
   ) {}
 

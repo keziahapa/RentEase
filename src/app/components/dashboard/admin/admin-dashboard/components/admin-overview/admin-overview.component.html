@@ -1,12 +1,15 @@
 <div class="admin-dashboard-home">
   <div class="dashboard-content">
     
-    <div *ngIf="isLoadingDashboard" class="loading-state">
-      <mat-spinner diameter="50"></mat-spinner>
-      <p>Loading admin dashboard data...</p>
-    </div>
+    <ng-container *ngIf="isLoadingDashboard; else adminOverviewLoaded">
+      <section class="overview-skeleton" aria-label="Loading admin dashboard overview">
+        <app-skeleton-list variant="stat" [count]="4"></app-skeleton-list>
+        <app-skeleton-list variant="quick" [count]="3"></app-skeleton-list>
+        <app-skeleton-list variant="list" [count]="4"></app-skeleton-list>
+      </section>
+    </ng-container>
 
-    <div *ngIf="!isLoadingDashboard">
+    <ng-template #adminOverviewLoaded>
       <!-- Header Section -->
       <div class="header-section">
         <div class="header-content">
@@ -29,15 +32,15 @@
               <mat-icon>people</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData?.totalUsers || 0 }}</div>
-          <div class="stat-growth" [class]="getGrowthClass(dashboardData?.userGrowth || 0)">
-            <mat-icon>{{ getGrowthIcon(dashboardData?.userGrowth || 0) }}</mat-icon>
-            <span>{{ dashboardData?.userGrowth || 0 }}%</span>
+          <div class="stat-value">{{ dashboardData.totalUsers || 0 }}</div>
+          <div class="stat-growth" [class]="getGrowthClass(dashboardData.userGrowth || 0)">
+            <mat-icon>{{ getGrowthIcon(dashboardData.userGrowth || 0) }}</mat-icon>
+            <span>{{ dashboardData.userGrowth || 0 }}%</span>
           </div>
           <div class="stat-breakdown">
-            <span>{{ dashboardData?.totalLandlords || 0 }} Landlords</span>
-            <span>{{ dashboardData?.totalTenants || 0 }} Tenants</span>
-            <span>{{ dashboardData?.totalCaretakers || 0 }} Caretakers</span>
+            <span>{{ dashboardData.totalLandlords || 0 }} Landlords</span>
+            <span>{{ dashboardData.totalTenants || 0 }} Tenants</span>
+            <span>{{ dashboardData.totalCaretakers || 0 }} Caretakers</span>
           </div>
         </div>
 
@@ -49,10 +52,10 @@
               <mat-icon>apartment</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData?.totalProperties || 0 }}</div>
-          <div class="stat-growth" [class]="getGrowthClass(dashboardData?.propertiesGrowth || 0)">
-            <mat-icon>{{ getGrowthIcon(dashboardData?.propertiesGrowth || 0) }}</mat-icon>
-            <span>{{ dashboardData?.propertiesGrowth || 0 }}%</span>
+          <div class="stat-value">{{ dashboardData.totalProperties || 0 }}</div>
+          <div class="stat-growth" [class]="getGrowthClass(dashboardData.propertiesGrowth || 0)">
+            <mat-icon>{{ getGrowthIcon(dashboardData.propertiesGrowth || 0) }}</mat-icon>
+            <span>{{ dashboardData.propertiesGrowth || 0 }}%</span>
           </div>
         </div>
 
@@ -64,10 +67,10 @@
               <mat-icon>business</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData?.activeBusinesses || 0 }}</div>
+          <div class="stat-value">{{ dashboardData.activeBusinesses || 0 }}</div>
           <div class="stat-meta">
             <mat-icon>pending_actions</mat-icon>
-            <span>{{ dashboardData?.pendingApprovals || 0 }} pending approvals</span>
+            <span>{{ dashboardData.pendingApprovals || 0 }} pending approvals</span>
           </div>
         </div>
 
@@ -79,10 +82,10 @@
               <mat-icon>attach_money</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ formatCurrency(dashboardData?.monthlyRevenue || 0) }}</div>
-          <div class="stat-growth" [class]="getGrowthClass(dashboardData?.revenueGrowth || 0)">
-            <mat-icon>{{ getGrowthIcon(dashboardData?.revenueGrowth || 0) }}</mat-icon>
-            <span>{{ dashboardData?.revenueGrowth || 0 }}%</span>
+          <div class="stat-value">{{ formatCurrency(dashboardData.monthlyRevenue || 0) }}</div>
+          <div class="stat-growth" [class]="getGrowthClass(dashboardData.revenueGrowth || 0)">
+            <mat-icon>{{ getGrowthIcon(dashboardData.revenueGrowth || 0) }}</mat-icon>
+            <span>{{ dashboardData.revenueGrowth || 0 }}%</span>
           </div>
         </div>
 
@@ -94,7 +97,7 @@
               <mat-icon>trending_up</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ formatCurrency(dashboardData?.commissionRevenue || 0) }}</div>
+          <div class="stat-value">{{ formatCurrency(dashboardData.commissionRevenue || 0) }}</div>
         </div>
 
         <!-- Pending Approvals Card -->
@@ -105,7 +108,7 @@
               <mat-icon>pending_actions</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData?.pendingApprovals || 0 }}</div>
+          <div class="stat-value">{{ dashboardData.pendingApprovals || 0 }}</div>
           <div class="stat-alert">Requires attention</div>
         </div>
 
@@ -117,7 +120,7 @@
               <mat-icon>warning</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData?.activeDisputes || 0 }}</div>
+          <div class="stat-value">{{ dashboardData.activeDisputes || 0 }}</div>
           <div class="stat-alert">Action needed</div>
         </div>
       </div>
@@ -167,7 +170,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </ng-template>
 
     <div *ngIf="dashboardError" class="error-state">
       <mat-icon>error_outline</mat-icon>

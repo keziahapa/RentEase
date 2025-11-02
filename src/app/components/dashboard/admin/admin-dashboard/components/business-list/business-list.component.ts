@@ -8,7 +8,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
-import { AdminService } from '../../../../../../services/admin.service';
+import { AdminDataService } from '../../../../../../services/admin-data.service';
 import { Business } from '../../../../../../services/admin-interfaces';
 
 @Component({
@@ -32,7 +32,7 @@ export class BusinessListComponent implements OnInit {
   businesses: Business[] = [];
   isLoading = false;
 
-  constructor(private adminService: AdminService) {}
+  constructor(private adminService: AdminDataService) {}
 
   ngOnInit(): void {
     this.loadBusinesses();

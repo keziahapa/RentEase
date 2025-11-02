@@ -6,10 +6,24 @@
         <span class="stat-badge total">{{getTotalTransactions()}} Total Transactions</span>
         <span class="stat-badge completed">{{getCompletedTransactions()}} Completed</span>
       </div>
-      <button class="btn btn-primary" matTooltip="Export Transactions">
+      <button
+        class="btn btn-primary"
+        matTooltip="Export Transactions"
+        [matMenuTriggerFor]="transactionsExportMenu">
         <mat-icon>download</mat-icon>
         <span>Export</span>
+        <mat-icon class="menu-caret">expand_more</mat-icon>
       </button>
+      <mat-menu #transactionsExportMenu="matMenu">
+        <button mat-menu-item (click)="exportTransactions('csv')" [disabled]="exportState.csv">
+          <mat-icon>grid_on</mat-icon>
+          <span>{{exportState.csv ? 'Exporting CSV...' : 'Export CSV'}}</span>
+        </button>
+        <button mat-menu-item (click)="exportTransactions('pdf')" [disabled]="exportState.pdf">
+          <mat-icon>picture_as_pdf</mat-icon>
+          <span>{{exportState.pdf ? 'Exporting PDF...' : 'Export PDF'}}</span>
+        </button>
+      </mat-menu>
     </div>
   </div>
 

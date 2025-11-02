@@ -41,6 +41,10 @@ import { PropertyDetailsComponent } from './components/dashboard/caretaker/compo
 import { PropertyUnitsComponent as CaretakerPropertyUnitsComponent } from './components/dashboard/caretaker/components/properties/property-units/property-units.component';
 import { PropertiesListComponent } from './components/dashboard/caretaker/components/properties/properties-list/properties-list.component';
 import { LandlordProfileViewComponent } from './components/dashboard/landlord/landlord-dashboard/profile/landlord-profile-view/landlord-profile-view.component';
+import { LandlordTenantsComponent } from './components/dashboard/landlord/landlord-dashboard/tenants/tenants.component';
+import { LandlordMaintenanceComponent } from './components/dashboard/landlord/landlord-dashboard/maintenance/maintenance.component';
+import { LandlordMessagesComponent } from './components/dashboard/landlord/landlord-dashboard/messages/messages.component';
+import { LandlordMarketplaceComponent } from './components/dashboard/landlord/landlord-dashboard/marketplace/marketplace';
 import { PendingAdvertisementsComponent } from './components/dashboard/admin/admin-dashboard/components/pending-advertisements/pending-advertisements.component';
 import { AdvertisementListComponent } from './components/dashboard/admin/admin-dashboard/components/advertisement-list/advertisement-list.component';
 import { PendingBusinessesComponent } from './components/dashboard/admin/admin-dashboard/components/pending-businesses/pending-businesses.component';
@@ -112,6 +116,10 @@ export const routes: Routes = [
       { path: 'financials', component: FinancialsComponent },
       { path: 'financials/invoices', component: InvoicesComponent },
       { path: 'financials/payments', component: PaymentComponent },
+      { path: 'maintenance', component: LandlordMaintenanceComponent },
+      { path: 'tenants', component: LandlordTenantsComponent },
+      { path: 'messages', component: LandlordMessagesComponent },
+      { path: 'marketplace', component: LandlordMarketplaceComponent },
       { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' }
     ]
   },
