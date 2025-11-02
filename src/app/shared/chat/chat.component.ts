@@ -1,4 +1,3 @@
-// chat.component.ts
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -111,7 +110,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   handleMenuClickOutside(event: MouseEvent): void {
     if (this.showMenu) {
       const target = event.target as HTMLElement;
-      if (!target.closest('.menu-container') && !target.closest('.menu-trigger')) {
+      
+      // Check if click is outside menu container, menu trigger, AND chat container
+      if (!target.closest('.menu-container') && 
+          !target.closest('.menu-trigger') &&
+          !target.closest('.chat-container')) {
         this.showMenu = false;
       }
     }
@@ -402,15 +405,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
- getRoomTypeDisplay(room: ChatRoom): string {
-  if (!room.participantType) return 'Chat';
-  
-  const participantType = room.participantType as 'TENANT_LANDLORD' | 'TENANT_CARETAKER' | 'LANDLORD_CARETAKER' | string;
-  
-  switch(participantType) {
-    case 'TENANT_LANDLORD': return 'Tenant ↔ Landlord';
-    case 'TENANT_CARETAKER': return 'Tenant ↔ Caretaker';
-    case 'LANDLORD_CARETAKER': return 'Landlord ↔ Caretaker';
-    default: return participantType.replace('_', ' ↔ ');
+  getRoomTypeDisplay(room: ChatRoom): string {
+    if (!room.participantType) return 'Chat';
+    
+    const participantType = room.participantType as 'TENANT_LANDLORD' | 'TENANT_CARETAKER' | 'LANDLORD_CARETAKER' | string;
+    
+    switch(participantType) {
+      case 'TENANT_LANDLORD': return 'Tenant ↔ Landlord';
+      case 'TENANT_CARETAKER': return 'Tenant ↔ Caretaker';
+      case 'LANDLORD_CARETAKER': return 'Landlord ↔ Caretaker';
+      default: return participantType.replace('_', ' ↔ ');
+    }
   }
-}}
+}
