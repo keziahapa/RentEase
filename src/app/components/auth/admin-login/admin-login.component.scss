@@ -251,21 +251,6 @@
   }
 }
 
-// Snackbar Styles
-::ng-deep .snackbar-success {
-  background-color: #10b981 !important;
-  color: #ffffff !important;
-  font-weight: 500;
-  font-size: 15px;
-}
-
-::ng-deep .snackbar-error {
-  background-color: #ef4444 !important;
-  color: #ffffff !important;
-  font-weight: 500;
-  font-size: 15px;
-}
-
 // Responsive Design
 @media (max-width: 600px) {
   .admin-login-page {
@@ -324,10 +309,4 @@
     flex-direction: column;
     gap: 12px !important;
   }
-}
-
-// Loading Animation
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
