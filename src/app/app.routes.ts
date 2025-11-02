@@ -58,12 +58,14 @@ import { BusinessListComponent } from './components/dashboard/admin/admin-dashbo
 import { AcceptInvitationComponent } from './components/dashboard/landlord/landlord-dashboard/invite-dialog/accept-invitation/accept-invitation.component';
 import { WaitingLandlordComponent } from './components/auth/waiting-landlord/waiting-landlord.component';
 import { ChatComponent } from './shared/chat/chat.component';
+import { AdminLoginComponent } from './components/auth/admin-login/admin-login.component';
 
 export const routes: Routes = [
-  // Public Routes
+ 
   { path: '', component: HomeComponent, pathMatch: 'full' },
   { path: 'registration', component: RegistrationComponent },
   { path: 'login', component: LoginComponent },
+  { path: 'admin/login', component: AdminLoginComponent },
   { path: 'otp-verificationreset-password', component: ResetPasswordOtpComponent },
   { path: 'verify-otp', component: VerifyOtpComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
@@ -76,11 +78,11 @@ export const routes: Routes = [
   { path: 'accept-invitation/:token', component: AcceptInvitationComponent },
   { path: 'waiting-landlord', component: WaitingLandlordComponent },
   
-  // Business Registration
+
   { path: 'business/register', component: BusinessDashboardComponent },
   { path: 'business/registration-status', component: BusinessDashboardComponent },
   
-  // Standalone Chat Route
+
   { 
     path: 'chat', 
     component: ChatComponent,
@@ -92,7 +94,7 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   
-  // Tenant Dashboard
+
   {
     path: 'tenant-dashboard',
     component: TenantDashboardComponent,
@@ -119,7 +121,7 @@ export const routes: Routes = [
     ]
   },
   
-  // Landlord Dashboard
+  
   {
     path: 'landlord-dashboard',
     component: LandlordDashboardComponent,
@@ -148,7 +150,7 @@ export const routes: Routes = [
     ]
   },
   
-  // Business Dashboard
+ 
   {
     path: 'business-dashboard',
     component: BusinessDashboardComponent,
@@ -179,7 +181,7 @@ export const routes: Routes = [
     ]
   },
   
-  // Caretaker Dashboard
+ 
   {
     path: 'caretaker-dashboard',
     component: CaretakerDashboardComponent,
@@ -213,7 +215,7 @@ export const routes: Routes = [
     ]
   },
   
-  // Admin Dashboard
+
   {
     path: 'admin-dashboard',
     component: AdminDashboardComponent,
@@ -242,7 +244,6 @@ export const routes: Routes = [
     ]
   },
   
-  // Redirects
   { path: 'landlord', redirectTo: '/landlord-dashboard' },
   { path: 'tenant', redirectTo: '/tenant-dashboard' },
   { path: 'business', redirectTo: '/business-dashboard' },
@@ -250,6 +251,6 @@ export const routes: Routes = [
   { path: 'admin', redirectTo: '/admin-dashboard' },
   { path: 'dashboard', redirectTo: '/tenant-dashboard', pathMatch: 'full' },
   
-  // Wildcard Route
+ 
   { path: '**', redirectTo: '' }
 ];

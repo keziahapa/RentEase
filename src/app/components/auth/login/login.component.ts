@@ -328,7 +328,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       'TENANT': '/tenant-dashboard/dashboard',
       'BUSINESS': '/business-dashboard',
       'CARETAKER': '/caretaker-dashboard/overview',
-      'ADMIN': '/admin-dashboard'
+     
     };
 
     const dashboardRoute = roleMap[normalizedRole] || '/tenant-dashboard/home';

@@ -58,7 +58,7 @@ export class RegistrationComponent implements OnInit {
     { value: UserRole.LANDLORD, label: 'Landlord' },
     { value: UserRole.CARETAKER, label: 'Caretaker' },
     { value: UserRole.BUSINESS, label: 'Business' },
-    { value: UserRole.ADMIN, label: 'Administrator' }
+  
   ];
 
   hidePassword = true;

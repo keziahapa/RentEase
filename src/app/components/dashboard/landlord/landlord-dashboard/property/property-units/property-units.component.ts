@@ -1,6 +1,6 @@
-import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, inject,PLATFORM_ID  } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { CommonModule, isPlatformBrowser} from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -87,17 +87,18 @@ export class PropertyUnitsComponent implements OnInit {
     { value: 'RETAIL', label: 'Retail Shop' }
   ];
 
-  constructor(
-    private router: Router,
-    private route: ActivatedRoute,
-    private propertyService: PropertyService,
-    private authService: AuthService,
-    private invitationService: InvitationService,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog,
-    private fb: FormBuilder,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {
+  // Use inject() function for all dependencies
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private propertyService = inject(PropertyService);
+  private authService = inject(AuthService);
+  private invitationService = inject(InvitationService);
+  private snackBar = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
+  private fb = inject(FormBuilder);
+  private platformId = inject(PLATFORM_ID);
+
+  constructor() {
     this.unitForm = this.fb.group({
       unitNumber: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(20)]],
       unitType: ['', Validators.required],
