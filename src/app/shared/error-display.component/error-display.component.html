@@ -1,0 +1,35 @@
+<div class="error-container">
+  <div *ngFor="let error of errors" 
+       class="error-toast"
+       [class.error-info]="error.severity === 'info'"
+       [class.error-warning]="error.severity === 'warning'"
+       [class.error-error]="error.severity === 'error'"
+       [class.error-critical]="error.severity === 'critical'"
+       [@slideIn]>
+    
+    <div class="error-icon">
+      <span class="material-icons">
+        {{ getIcon(error.severity) }}
+      </span>
+    </div>
+
+    <div class="error-content">
+      <div class="error-message">{{ error.message }}</div>
+      <div class="error-context" *ngIf="error.context">{{ error.context }}</div>
+    </div>
+
+    <div class="error-actions">
+      <button *ngIf="error.action" 
+              class="error-action-btn"
+              (click)="handleAction(error)">
+        {{ error.action.label }}
+      </button>
+      
+      <button *ngIf="error.dismissible"
+              class="error-close-btn"
+              (click)="dismiss(error.id)">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+  </div>
+</div>

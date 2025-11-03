@@ -1,0 +1,158 @@
+.error-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 420px;
+  width: calc(100% - 40px);
+}
+
+.error-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  background: white;
+  border-left: 5px solid;
+  animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+.error-toast.removing {
+  animation: slideOut 0.3s ease-out forwards;
+}
+
+.error-info {
+  border-left-color: #0084ff;
+  background: #e6f3ff;
+  color: #0084ff;
+}
+
+.error-warning {
+  border-left-color: #ff9500;
+  background: #fff3e0;
+  color: #ff9500;
+}
+
+.error-error {
+  border-left-color: #ff3b30;
+  background: #ffebee;
+  color: #ff3b30;
+}
+
+.error-critical {
+  border-left-color: #d70015;
+  background: #ffcdd2;
+  color: #d70015;
+}
+
+.error-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-icon .material-icons {
+  font-size: 28px;
+}
+
+.error-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-message {
+  font-size: 15px;
+  font-weight: 600;
+  color: #050505;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.error-context {
+  font-size: 13px;
+  color: #65676b;
+  margin-top: 4px;
+}
+
+.error-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.error-action-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+}
+
+.error-action-btn:hover {
+  background: rgba(0, 0, 0, 0.15);
+  transform: scale(1.05);
+}
+
+.error-close-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: #65676b;
+}
+
+.error-close-btn:hover {
+  background: rgba(0, 0, 0, 0.15);
+  transform: rotate(90deg);
+}
+
+.error-close-btn .material-icons {
+  font-size: 18px;
+}
+
+@media (max-width: 640px) {
+  .error-container {
+    top: 10px;
+    right: 10px;
+    width: calc(100% - 20px);
+  }
+}
