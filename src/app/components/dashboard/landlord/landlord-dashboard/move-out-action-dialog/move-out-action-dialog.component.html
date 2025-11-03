@@ -1,0 +1,34 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>{{ data.title }}</h2>
+  
+  <mat-dialog-content>
+    <div class="notice-info">
+      <p><strong>Tenant:</strong> {{ data.notice.tenant?.fullName }}</p>
+      <p><strong>Property:</strong> {{ data.notice.property?.name }}</p>
+      <p><strong>Unit:</strong> {{ data.notice.unit?.unitNumber }}</p>
+      <p><strong>Move Out Date:</strong> {{ formatDate(data.notice.moveOutDate) }}</p>
+      <p><strong>Reason:</strong> {{ getReasonDisplay(data.notice.reason) }}</p>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Notes (Optional)</mat-label>
+      <textarea
+        matInput
+        [(ngModel)]="notes"
+        placeholder="Add any notes or instructions for the tenant..."
+        rows="4"
+      ></textarea>
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()">Cancel</button>
+    <button 
+      mat-raised-button 
+      [color]="data.action === 'approve' ? 'primary' : 'warn'"
+      (click)="onConfirm()"
+    >
+      {{ data.action === 'approve' ? 'Approve' : 'Reject' }}
+    </button>
+  </mat-dialog-actions>
+</div>

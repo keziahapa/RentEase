@@ -13,7 +13,6 @@ import { CommunicationService } from '../../../../services/communication.service
 import { DashboardOverviewComponent } from '../dashboard-overview/dashboard-overview.component';
 import { ChatComponent } from '../../../../shared/chat/chat.component';
 
-
 @Component({
   selector: 'app-tenant-dashboard',
   standalone: true,
@@ -249,6 +248,12 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/tenant-dashboard/chat']);
   }
 
+  navigateToMoveOutNotices(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/tenant-dashboard/move-out-notices']);
+  }
+
   private loadProfileImage(): void {
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
@@ -337,6 +342,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
       'messages': ['/tenant-dashboard/messages'],
       'chat': ['/tenant-dashboard/chat'],
       'deposit': ['/tenant-dashboard/deposit'],
+      'move-out': ['/tenant-dashboard/move-out-notices'],
       'profile': ['/tenant-dashboard/profile/view']
     };
 
@@ -367,6 +373,8 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'chat';
     } else if (url.includes('/deposit')) {
       this.currentSection = 'deposit';
+    } else if (url.includes('/move-out-notices')) {
+      this.currentSection = 'move-out';
     } else {
       this.currentSection = 'dashboard';
     }

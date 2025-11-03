@@ -29,7 +29,7 @@
               <mat-icon>apartment</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData.totalProperties || 0 }}</div>
+          <div class="stat-value">{{ getTotalProperties() }}</div>
         </div>
 
         <div class="stat-card">
@@ -39,7 +39,7 @@
               <mat-icon>bar_chart</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData.occupancyRate || 0 }}%</div>
+          <div class="stat-value">{{ getOccupancyRate() }}%</div>
         </div>
 
         <div class="stat-card">
@@ -49,7 +49,7 @@
               <mat-icon>attach_money</mat-icon>
             </div>
           </div>
-          <div class="stat-value">KES {{ (dashboardData.monthlyRevenue || 0) | number }}</div>
+          <div class="stat-value">KES {{ getMonthlyRevenue() | number }}</div>
         </div>
 
         <div class="stat-card">
@@ -59,7 +59,7 @@
               <mat-icon>trending_up</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData.rentCollectionRate || 0 }}%</div>
+          <div class="stat-value">{{ getRentCollectionRate() }}%</div>
         </div>
 
         <div class="stat-card">
@@ -69,7 +69,38 @@
               <mat-icon>handyman</mat-icon>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData.openMaintenance || 0 }}</div>
+          <div class="stat-value">{{ getOpenMaintenance() }}</div>
+        </div>
+
+        <!-- Move Out Stats Cards -->
+        <div class="stat-card" *ngIf="hasPendingMoveOuts()">
+          <div class="stat-header">
+            <span class="stat-title">Pending Move Outs</span>
+            <div class="stat-icon">
+              <mat-icon>exit_to_app</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getPendingMoveOutNotices() }}</div>
+        </div>
+
+        <div class="stat-card" *ngIf="hasUpcomingMoveOuts()">
+          <div class="stat-header">
+            <span class="stat-title">Upcoming Move Outs</span>
+            <div class="stat-icon">
+              <mat-icon>schedule</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getUpcomingMoveOuts() }}</div>
+        </div>
+
+        <div class="stat-card" *ngIf="getApprovedMoveOutNotices() > 0">
+          <div class="stat-header">
+            <span class="stat-title">Approved Move Outs</span>
+            <div class="stat-icon">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getApprovedMoveOutNotices() }}</div>
         </div>
       </div>
 

@@ -4,7 +4,7 @@
   <nav class="sidebar" [class.mobile-open]="isMobileMenuOpen">
     <div class="sidebar-header">
       <div class="logo" (click)="navigateToSection('dashboard')">
-        <img src="/images/logo.png" alt="RentEase Logo" class="logo-image">
+        <img src="/images/logo.png" alt="RentEase Logo" class="logo-image" (error)="onLogoError($event)">
       </div>
     </div>
 
@@ -44,7 +44,13 @@
         <span>Documents</span>
       </div>
 
-      <!-- ADDED: Chat Navigation Item -->
+      <div class="nav-item" 
+           [class.active]="isNavActive('move-out')" 
+           (click)="navigateToMoveOutNotices()">
+        <mat-icon class="nav-icon">exit_to_app</mat-icon>
+        <span>Move Out</span>
+      </div>
+
       <div class="nav-item" 
            [class.active]="isNavActive('chat')" 
            (click)="navigateToSection('chat')">
@@ -115,6 +121,10 @@
           </div>
 
           <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
+            <button class="dropdown-item" (click)="viewProfile(); $event.stopPropagation()">
+              <mat-icon>account_circle</mat-icon>
+              <span>View Profile</span>
+            </button>
             <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
               <mat-icon>edit</mat-icon>
               <span>Edit Profile</span>

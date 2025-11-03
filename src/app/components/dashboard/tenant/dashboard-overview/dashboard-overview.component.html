@@ -13,10 +13,16 @@
           <h1 class="dashboard-title">Tenant Dashboard</h1>
           <p class="dashboard-subtitle">Welcome back! Here's your rental summary.</p>
         </div>
-        <button class="add-property-btn" (click)="openMaintenanceRequest()">
-          <mat-icon>build</mat-icon>
-          <span>Request Maintenance</span>
-        </button>
+        <div class="header-actions">
+          <button class="add-property-btn" (click)="openMaintenanceRequest()">
+            <mat-icon>build</mat-icon>
+            <span>Request Maintenance</span>
+          </button>
+          <button class="add-property-btn move-out-btn" (click)="submitMoveOutNotice()">
+            <mat-icon>exit_to_app</mat-icon>
+            <span>Move Out Notice</span>
+          </button>
+        </div>
       </div>
 
       <!-- Stats Grid -->
@@ -69,6 +75,22 @@
             </div>
           </div>
           <div class="stat-value">{{ dashboardData?.leaseEndDays || 0 }} days</div>
+        </div>
+
+        <!-- Move Out Notice Stat Card -->
+        <div class="stat-card move-out-stat" 
+             *ngIf="getPendingMoveOutNotices() > 0"
+             (click)="viewMoveOutNotices()">
+          <div class="stat-header">
+            <span class="stat-title">Move Out Notices</span>
+            <div class="stat-icon move-out-icon">
+              <mat-icon>exit_to_app</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getPendingMoveOutNotices() }}</div>
+          <div class="stat-subtitle" *ngIf="hasUpcomingMoveOut()">
+            Next: {{ getUpcomingMoveOutDate() }}
+          </div>
         </div>
       </div>
 

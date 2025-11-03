@@ -1,4 +1,3 @@
-
 import { Routes } from '@angular/router';
 import { HomeComponent } from '../pages/home/home';
 import { RegistrationComponent } from './components/auth/registration/registration.component';
@@ -18,7 +17,7 @@ import { DocumentsComponent } from './components/dashboard/tenant/documents/docu
 import { MessagesComponent } from './components/dashboard/tenant/messages/messages.component';
 import { ReviewComponent } from './components/dashboard/tenant/review/review.component';
 import { SettingsComponent } from './components/dashboard/tenant/settings/settings.component';
-import { LandlordDashboardComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-dashboard';
+
 import { FinancialsComponent } from './components/dashboard/landlord/landlord-dashboard/financials/financials';
 import { InvoicesComponent } from './components/dashboard/landlord/landlord-dashboard/financials/invoices/invoices';
 import { PaymentComponent } from './components/dashboard/landlord/landlord-dashboard/financials/payment/payment';
@@ -59,6 +58,11 @@ import { AdminLoginComponent } from './components/auth/admin-login/admin-login.c
 import { BusinessManagementComponent } from './components/dashboard/admin/admin-dashboard/components/business-management/business-management.component';
 import { AdvertisementManagementComponent } from './components/dashboard/admin/admin-dashboard/components/advertisement-management/advertisement-management.component';
 import { ExternalBusinessManagementComponent } from './components/dashboard/admin/admin-dashboard/components/external-business-management/external-business-management.component';
+import { MoveOutNoticeListComponent } from './components/dashboard/tenant/move-out-notice-list/move-out-notice-list.component';
+import { LandlordMoveOutNoticeListComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-move-out-notice-list/landlord-move-out-notice-list.component';
+import { MoveOutActionDialogComponent } from './components/dashboard/landlord/landlord-dashboard/move-out-action-dialog/move-out-action-dialog.component';
+import { LandlordDashboardComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-dashboard.component';
+
 
 export const routes: Routes = [
  
@@ -110,6 +114,7 @@ export const routes: Routes = [
       { path: 'chat', component: ChatComponent },
       { path: 'reviews', component: ReviewComponent },
       { path: 'settings', component: SettingsComponent },
+      { path: 'move-out-notices', component: MoveOutNoticeListComponent },
       { 
         path: 'profile',
         children: [
@@ -146,6 +151,8 @@ export const routes: Routes = [
       { path: 'messages', component: LandlordMessagesComponent },
       { path: 'chat', component: ChatComponent },
       { path: 'marketplace', component: LandlordMarketplaceComponent },
+      { path: 'move-out-notices', component: LandlordMoveOutNoticeListComponent },
+      { path: 'move-out-action/:id', component: MoveOutActionDialogComponent },
       { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' }
     ]
   },

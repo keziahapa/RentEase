@@ -1,0 +1,93 @@
+<div class="move-out-notices-container">
+  <div class="header-section">
+    <div class="header-content">
+      <h1 class="page-title">Move Out Notices</h1>
+      <p class="page-subtitle">Manage your move-out requests and track their status</p>
+    </div>
+    <button class="create-notice-btn" (click)="createNewNotice()">
+      <mat-icon>add</mat-icon>
+      <span>New Move Out Notice</span>
+    </button>
+  </div>
+
+  <div class="content-section">
+    <div *ngIf="isLoading" class="loading-state">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Loading move-out notices...</p>
+    </div>
+
+    <div *ngIf="!isLoading">
+      <div *ngIf="moveOutNotices.length === 0" class="empty-state">
+        <mat-icon>exit_to_app</mat-icon>
+        <h3>No Move Out Notices</h3>
+        <p>You haven't submitted any move-out notices yet.</p>
+        <button class="create-notice-btn" (click)="createNewNotice()">
+          <mat-icon>add</mat-icon>
+          <span>Create Your First Notice</span>
+        </button>
+      </div>
+
+      <div *ngIf="moveOutNotices.length > 0" class="notices-grid">
+        <div *ngFor="let notice of moveOutNotices" class="notice-card">
+          <div class="notice-header">
+            <div class="notice-info">
+              <h3 class="notice-title">Move Out Notice</h3>
+              <p class="notice-date">Move Out Date: {{ formatDate(notice.moveOutDate) }}</p>
+            </div>
+            <div class="notice-status" [style.background]="getStatusColor(notice.status)">
+              <mat-icon>{{ getStatusIcon(notice.status) }}</mat-icon>
+              <span>{{ notice.status }}</span>
+            </div>
+          </div>
+
+          <div class="notice-content">
+            <div class="notice-details">
+              <div class="detail-item">
+                <span class="detail-label">Reason:</span>
+                <span class="detail-value">{{ notice.reason }}</span>
+              </div>
+              <div class="detail-item" *ngIf="notice.notes">
+                <span class="detail-label">Notes:</span>
+                <span class="detail-value">{{ notice.notes }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Submitted:</span>
+                <span class="detail-value">{{ formatDate(notice.submittedAt || '') }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="notice-actions">
+            <button class="action-btn view-btn" (click)="viewNotice(notice)">
+              <mat-icon>visibility</mat-icon>
+              <span>View Details</span>
+            </button>
+            <button *ngIf="canCancel(notice)" 
+                    class="action-btn cancel-btn" 
+                    (click)="cancelNotice(notice)">
+              <mat-icon>cancel</mat-icon>
+              <span>Cancel</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div *ngIf="moveOutNotices.length > 0" class="pagination-section">
+        <button class="pagination-btn" (click)="prevPage()" [disabled]="!hasPrev">
+          <mat-icon>chevron_left</mat-icon>
+          <span>Previous</span>
+        </button>
+        
+        <span class="pagination-info">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+        
+        <button class="pagination-btn" (click)="nextPage()" [disabled]="!hasNext">
+          <span>Next</span>
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

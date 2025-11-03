@@ -38,7 +38,6 @@ export interface RegisterRequest {
   fullName: string;
   phoneNumber: string;
   role: UserRole | string;
-  accessCode?: string;
 }
 
 export interface AuthResponse {
@@ -111,7 +110,9 @@ export interface UpdatePhoneRequest {
   newPhoneNumber: string;
 }
 
-export interface UpdatePhoneResponse extends ApiResponse {
+export interface UpdatePhoneResponse {
+  success: boolean;
+  message: string;
   updatedPhoneNumber?: string;
 }
 
@@ -148,7 +149,6 @@ export interface RegistrationFormData {
   phoneNumber: string;
   password: string;
   confirmPassword: string;
-  accessCode?: string;
 }
 
 export interface RegistrationFieldErrors {
@@ -158,5 +158,4 @@ export interface RegistrationFieldErrors {
   phoneNumber: string;
   password: string;
   confirmPassword: string;
-  accessCode: string;
 }

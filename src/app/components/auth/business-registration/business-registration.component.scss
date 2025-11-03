@@ -78,6 +78,13 @@ h1 {
   }
 }
 
+.upload-label {
+  display: block;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
 .upload-placeholder {
   display: flex;
   flex-direction: column;
@@ -175,9 +182,8 @@ h1 {
   }
 }
 
-// File size pipe (add this to your pipes or use a custom one)
+// Custom styles for material components
 :host ::ng-deep {
-  // Custom styles for material components
   .mat-card {
     box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
     border-radius: 12px !important;
@@ -186,4 +192,13 @@ h1 {
   .mat-form-field {
     font-size: 1rem;
   }
+
+  .mat-progress-spinner {
+    margin-right: 8px;
+  }
+}
+
+// File size display fallback
+.file-size {
+  font-family: monospace;
 }

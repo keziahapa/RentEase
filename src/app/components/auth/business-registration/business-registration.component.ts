@@ -11,6 +11,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { BusinessService } from '../../../services/business.service';
 import { AuthService } from '../../../services/auth.service';
+import { FileSizePipe } from '../../../pipes/file-size.pipe'; 
 
 @Component({
   selector: 'app-business-registration',
@@ -24,7 +25,8 @@ import { AuthService } from '../../../services/auth.service';
     MatInputModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatIconModule
+    MatIconModule,
+     FileSizePipe 
   ],
   templateUrl: './business-registration.component.html',
   styleUrls: ['./business-registration.component.scss']
@@ -70,7 +72,7 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Validate file size (5MB max)
+      // Validate file size
       const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
         this.showMessage('File size must be less than 5MB', 'error');
@@ -101,24 +103,34 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
     this.isLoading = true;
 
     try {
+     
+      const businessData = {
+        businessName: this.businessForm.get('businessName')?.value,
+        businessRegistrationNumber: this.businessForm.get('businessRegistrationNumber')?.value
+      };
+
+      const businessDataJson = JSON.stringify(businessData);
+
       const formData = new FormData();
-      formData.append('businessName', this.businessForm.get('businessName')?.value);
-      formData.append('businessRegistrationNumber', this.businessForm.get('businessRegistrationNumber')?.value);
+    
+      formData.append('data', businessDataJson);
+   
       formData.append('licenseDocument', this.selectedFile);
+
+      console.log('Sending business registration data:', businessData);
+      console.log('File:', this.selectedFile.name);
 
       const response = await this.businessService.registerBusiness(formData).toPromise();
 
       if (response?.success) {
         this.showMessage('Business registration submitted for verification!', 'success');
-        
-        // Store business registration data
+      
         sessionStorage.setItem('pendingBusinessRegistration', JSON.stringify({
           businessId: response.data.id,
           businessName: response.data.businessName,
           status: response.data.verificationStatus
         }));
 
-        // Navigate to status page
         setTimeout(() => {
           this.router.navigate(['/business/registration-status']);
         }, 2000);
@@ -151,7 +163,7 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Getters for form validation
+  
   get businessName() { return this.businessForm.get('businessName'); }
   get businessRegistrationNumber() { return this.businessForm.get('businessRegistrationNumber'); }
 }

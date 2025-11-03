@@ -20,8 +20,8 @@ import { PropertyService } from '../../../../services/property.service';
     MatProgressSpinnerModule,
     RouterOutlet
   ],
-  templateUrl: './landlord-dashboard.html',
-  styleUrls: ['./landlord-dashboard.scss']
+  templateUrl: './landlord-dashboard.component.html',
+  styleUrls: ['./landlord-dashboard.component.scss']
 })
 export class LandlordDashboardComponent implements OnInit, OnDestroy {
   isMobileMenuOpen = false;
@@ -39,6 +39,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
 
   unreadNotificationsCount: number = 0;
   unreadMessagesCount: number = 0;
+  unreadMoveOutCount: number = 0;
   isLoadingNotifications: boolean = false;
 
   private profileUpdateListener: any;
@@ -197,7 +198,9 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       monthlyRevenue: 0,
       rentCollectionRate: 0,
       openMaintenance: 0,
-      activeTenants: 0
+      activeTenants: 0,
+      pendingMoveOutNotices: 0,
+      upcomingMoveOuts: 0
     };
   }
 
@@ -240,16 +243,35 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       monthlyRevenue,
       rentCollectionRate,
       openMaintenance,
-      activeTenants: occupiedUnits
+      activeTenants: occupiedUnits,
+      pendingMoveOutNotices: 0,
+      upcomingMoveOuts: 0
     };
+
+    this.loadMoveOutData();
+  }
+
+  private loadMoveOutData(): void {
+    this.propertyService.getLandlordMoveOutNotices(1, 10, 'PENDING').subscribe({
+      next: (response: any) => {
+        if (response.success) {
+          const pendingNotices = Array.isArray(response.data) ? response.data.length : 0;
+          this.dashboardData.pendingMoveOutNotices = pendingNotices;
+          this.unreadMoveOutCount = pendingNotices;
+        }
+      },
+      error: (error) => {
+        console.error('Error loading move-out data:', error);
+      }
+    });
   }
 
   private loadNotifications(): void {
     this.isLoadingNotifications = true;
     
     setTimeout(() => {
-      this.unreadNotificationsCount = 0;
-      this.unreadMessagesCount = 0;
+      this.unreadNotificationsCount = 3;
+      this.unreadMessagesCount = 2;
       this.isLoadingNotifications = false;
     }, 500);
   }
@@ -257,9 +279,16 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   viewNotifications(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    // Check if notifications route exists before navigating
     this.router.navigate(['/landlord-dashboard']).catch(() => {
       console.warn('Notifications route not available');
+    });
+  }
+
+  viewMoveOutNotices(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/landlord-dashboard/move-out-notices']).catch(() => {
+      this.router.navigate(['/landlord-dashboard']);
     });
   }
 
@@ -282,7 +311,6 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   navigateToChat(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    // Use the chat route that exists in your routing configuration
     this.router.navigate(['/landlord-dashboard/chat']).catch(() => {
       console.warn('Chat route not available, redirecting to dashboard');
       this.router.navigate(['/landlord-dashboard']);
@@ -387,6 +415,7 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       'messages': ['/landlord-dashboard/messages'],
       'chat': ['/landlord-dashboard/chat'],
       'marketplace': ['/landlord-dashboard/marketplace'],
+      'move-out': ['/landlord-dashboard/move-out-notices'],
       'profile': ['/landlord-dashboard/profile/view']
     };
 
@@ -425,6 +454,8 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'chat';
     } else if (url.includes('/marketplace')) {
       this.currentSection = 'marketplace';
+    } else if (url.includes('/move-out-notices')) {
+      this.currentSection = 'move-out';
     } else {
       this.currentSection = 'dashboard';
     }
@@ -480,5 +511,9 @@ export class LandlordDashboardComponent implements OnInit, OnDestroy {
   onLogoError(event: any): void {
     console.error('Logo failed to load:', event);
     this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+  }
+
+  hasPendingMoveOuts(): boolean {
+    return this.unreadMoveOutCount > 0;
   }
 }

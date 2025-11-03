@@ -10,7 +10,15 @@ import { PropertyService } from '../../../../../services/property.service';
 import { AuthService } from '../../../../../services/auth.service';
 import { Subscription } from 'rxjs';
 import { PropertyCreateComponent } from '../property/property-create/property-create.component';
-import { DashboardData, QuickAction, RecentActivity } from '../../../../../services/dashboard-interface';
+import { MoveOutActionDialogComponent } from '../move-out-action-dialog/move-out-action-dialog.component';
+import { 
+  DashboardData, 
+  QuickAction, 
+  RecentActivity, 
+  LandlordMoveOutNotice,
+  LandlordMoveOutNoticeResponse,
+  MoveOutStats 
+} from '../../../../../services/dashboard-interface';
 import { SkeletonListComponent } from '../../../../../shared/components/skeleton/skeleton-list.component';
 
 @Component({
@@ -33,7 +41,22 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     occupancyRate: 0,
     monthlyRevenue: 0,
     rentCollectionRate: 0,
-    openMaintenance: 0
+    openMaintenance: 0,
+    pendingMoveOutNotices: 0,
+    approvedMoveOutNotices: 0,
+    upcomingMoveOuts: 0
+  };
+
+  moveOutStats: MoveOutStats = {
+    totalNotices: 0,
+    pendingNotices: 0,
+    approvedNotices: 0,
+    rejectedNotices: 0,
+    cancelledNotices: 0,
+    upcomingMoveOuts: 0,
+    averageProcessingTime: 0,
+    monthlyTrend: [],
+    reasonBreakdown: []
   };
 
   quickActions: QuickAction[] = [
@@ -59,6 +82,13 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
       color: '#f59e0b'
     },
     {
+      icon: 'exit_to_app',
+      label: 'Move Out Requests',
+      description: 'Review tenant move-out notices',
+      route: ['/landlord-dashboard/move-out-notices'],
+      color: '#ef4444'
+    },
+    {
       icon: 'assessment',
       label: 'Reports',
       description: 'View financial and property reports',
@@ -79,7 +109,6 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
       route: ['/landlord-dashboard/messages'],
       color: '#06b6d4'
     },
-    // FIXED: Added profile edit quick action
     {
       icon: 'edit',
       label: 'Edit Profile',
@@ -145,7 +174,7 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
         next: (response: any) => {
           const properties = this.normalizePropertiesResponse(response);
           this.processDashboardData(properties);
-          this.isLoadingDashboard = false;
+          this.loadMoveOutData();
         },
         error: (error: any) => this.handleDashboardError(error)
       });
@@ -154,6 +183,88 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     } catch (error) {
       this.handleDashboardError(error);
     }
+  }
+
+  private loadMoveOutData(): void {
+    const moveOutNoticesSub = this.propertyService.getLandlordMoveOutNotices(1, 5).subscribe({
+      next: (response: LandlordMoveOutNoticeResponse) => {
+        if (response.success) {
+          const notices = Array.isArray(response.data) ? response.data : [];
+          this.processMoveOutDashboardData(notices);
+        }
+        this.loadMoveOutStats();
+      },
+      error: (error: any) => {
+        this.loadMoveOutStats();
+      }
+    });
+
+    this.subscriptions.add(moveOutNoticesSub);
+  }
+
+  private loadMoveOutStats(): void {
+    const moveOutStatsSub = this.propertyService.getMoveOutStats().subscribe({
+      next: (stats: MoveOutStats) => {
+        this.moveOutStats = stats;
+        this.updateDashboardWithMoveOutData();
+        this.isLoadingDashboard = false;
+      },
+      error: (error: any) => {
+        this.updateDashboardWithMoveOutData();
+        this.isLoadingDashboard = false;
+      }
+    });
+
+    this.subscriptions.add(moveOutStatsSub);
+  }
+
+  private processMoveOutDashboardData(notices: LandlordMoveOutNotice[]): void {
+    const pendingNotices = notices.filter(notice => notice.status === 'PENDING').length;
+    const approvedNotices = notices.filter(notice => notice.status === 'APPROVED').length;
+    
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+    
+    const upcomingMoveOuts = notices.filter(notice => {
+      if (notice.status !== 'APPROVED') return false;
+      const moveOutDate = new Date(notice.moveOutDate);
+      return moveOutDate >= today && moveOutDate <= thirtyDaysFromNow;
+    }).length;
+
+    this.dashboardData.pendingMoveOutNotices = pendingNotices;
+    this.dashboardData.approvedMoveOutNotices = approvedNotices;
+    this.dashboardData.upcomingMoveOuts = upcomingMoveOuts;
+
+    this.addMoveOutActivities(notices);
+  }
+
+  private addMoveOutActivities(notices: LandlordMoveOutNotice[]): void {
+    const recentMoveOutNotices = notices
+      .filter(notice => notice.status === 'PENDING')
+      .slice(0, 2);
+
+    recentMoveOutNotices.forEach(notice => {
+      const tenantName = notice.tenant?.fullName || 'Tenant';
+      const propertyName = notice.property?.name || 'Property';
+      
+      this.recentActivities.unshift({
+        type: 'Move Out Request',
+        message: `New move-out request from ${tenantName} - ${propertyName}`,
+        time: 'Recently',
+        icon: 'exit_to_app'
+      });
+    });
+
+    if (this.recentActivities.length > 6) {
+      this.recentActivities = this.recentActivities.slice(0, 6);
+    }
+  }
+
+  private updateDashboardWithMoveOutData(): void {
+    this.dashboardData.pendingMoveOutNotices = this.moveOutStats.pendingNotices;
+    this.dashboardData.approvedMoveOutNotices = this.moveOutStats.approvedNotices;
+    this.dashboardData.upcomingMoveOuts = this.moveOutStats.upcomingMoveOuts;
   }
 
   private processDashboardData(properties: any[]): void {
@@ -182,6 +293,7 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     const rentCollectionRate = monthlyRevenue > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
 
     this.dashboardData = {
+      ...this.dashboardData,
       totalProperties,
       occupancyRate,
       monthlyRevenue,
@@ -225,6 +337,7 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
       'reports': ['/landlord-dashboard/reports'],
       'documents': ['/landlord-dashboard/documents'],
       'messages': ['/landlord-dashboard/messages'],
+      'move-out': ['/landlord-dashboard/move-out-notices'],
       'profile': ['/landlord-dashboard/profile/view']
     };
 
@@ -254,7 +367,10 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     this.router.navigate(action.route);
   }
 
-  // FIXED: Added direct profile navigation methods
+  navigateToMoveOutNotices() {
+    this.router.navigate(['/landlord-dashboard/move-out-notices']);
+  }
+
   navigateToProfileView() {
     this.router.navigate(['/landlord-dashboard/profile/view']);
   }
@@ -266,5 +382,80 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
   refreshDashboard(): void {
     this.loadDashboardData();
     this.snackBar.open('Refreshing dashboard...', 'Close', { duration: 2000 });
+  }
+
+  // Add method to open move-out action dialog
+  openMoveOutActionDialog(notice: LandlordMoveOutNotice, action: 'approve' | 'reject'): void {
+    const title = action === 'approve' 
+      ? 'Approve Move Out Request' 
+      : 'Reject Move Out Request';
+
+    const dialogRef = this.dialog.open(MoveOutActionDialogComponent, {
+      width: '500px',
+      data: {
+        title,
+        action,
+        notice
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // Handle the action result
+        this.snackBar.open(
+          `Move out request ${action === 'approve' ? 'approved' : 'rejected'} successfully!`,
+          'Close',
+          { duration: 3000 }
+        );
+        this.loadDashboardData();
+      }
+    });
+  }
+
+  hasPendingMoveOuts(): boolean {
+    return this.dashboardData.pendingMoveOutNotices > 0;
+  }
+
+  hasUpcomingMoveOuts(): boolean {
+    return this.dashboardData.upcomingMoveOuts > 0;
+  }
+
+  getMoveOutUrgency(): string {
+    if (this.dashboardData.pendingMoveOutNotices > 5) return 'high';
+    if (this.dashboardData.pendingMoveOutNotices > 2) return 'medium';
+    return 'low';
+  }
+
+  // ADD THE MISSING METHODS THAT THE TEMPLATE IS CALLING:
+  getTotalProperties(): number {
+    return this.dashboardData.totalProperties;
+  }
+
+  getOccupancyRate(): number {
+    return this.dashboardData.occupancyRate;
+  }
+
+  getMonthlyRevenue(): number {
+    return this.dashboardData.monthlyRevenue;
+  }
+
+  getRentCollectionRate(): number {
+    return this.dashboardData.rentCollectionRate;
+  }
+
+  getOpenMaintenance(): number {
+    return this.dashboardData.openMaintenance;
+  }
+
+  getPendingMoveOutNotices(): number {
+    return this.dashboardData.pendingMoveOutNotices;
+  }
+
+  getUpcomingMoveOuts(): number {
+    return this.dashboardData.upcomingMoveOuts;
+  }
+
+  getApprovedMoveOutNotices(): number {
+    return this.dashboardData.approvedMoveOutNotices;
   }
 }

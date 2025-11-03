@@ -147,25 +147,6 @@
         </mat-error>
       </mat-form-field>
 
-      <mat-form-field *ngIf="showBusinessAccessCode()" appearance="outline" class="full-width">
-        <mat-label>Business Access Code</mat-label>
-        <input 
-          matInput 
-          type="password" 
-          [(ngModel)]="formData.accessCode" 
-          name="accessCode" 
-          [disabled]="isLoading" 
-          required
-          (input)="clearFieldError('accessCode')"
-          #accessCodeControl="ngModel" />
-        <mat-error *ngIf="fieldErrors.accessCode">
-          {{ fieldErrors.accessCode }}
-        </mat-error>
-        <mat-error *ngIf="accessCodeControl?.invalid && accessCodeControl?.touched && !fieldErrors.accessCode">
-          Business access code is required
-        </mat-error>
-      </mat-form-field>
-
       <div class="terms-container">
         <mat-checkbox 
           [(ngModel)]="agreedToTerms" 

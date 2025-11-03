@@ -44,7 +44,6 @@
         <span>Maintenance</span>
       </div>
 
-      <!-- ADDED: Chat Navigation Item -->
       <div class="nav-item" 
            [class.active]="isNavActive('chat')" 
            (click)="navigateToSection('chat')">
@@ -64,6 +63,16 @@
            (click)="navigateToSection('marketplace')">
         <mat-icon class="nav-icon">store</mat-icon>
         <span>Marketplace</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('move-out')" 
+           (click)="viewMoveOutNotices()">
+        <mat-icon class="nav-icon">exit_to_app</mat-icon>
+        <span>Move Out Requests</span>
+        <span class="notification-badge" *ngIf="hasPendingMoveOuts()">
+          {{ unreadMoveOutCount > 99 ? '99+' : unreadMoveOutCount }}
+        </span>
       </div>
 
       <div class="nav-item" 
@@ -103,7 +112,7 @@
         <div class="profile-section">
           <div class="user-avatar-wrapper" (click)="toggleProfileMenu(); $event.stopPropagation()">
             <div class="user-avatar">
-              <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image">
+              <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image" (error)="onLogoError($event)">
               <div *ngIf="!profileImage" class="avatar-placeholder">
                 <mat-icon>account_circle</mat-icon>
               </div>

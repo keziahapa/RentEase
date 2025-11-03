@@ -224,7 +224,6 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       return;
     }
 
-    // 🎯 UPDATED: All user types go directly to their respective dashboards
     await this.navigateBasedOnUserRole(userRole);
   }
 
@@ -233,13 +232,12 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     
     console.log('🔍 Navigating based on role:', normalizedRole);
     
-    // 🎯 UPDATED LOGIC: All users go directly to their dashboards
     const routeMap: { [key: string]: string } = {
       'LANDLORD': '/landlord-dashboard',
       'TENANT': '/tenant-dashboard',
       'CARETAKER': '/caretaker-dashboard',
-      'BUSINESS': '/business-dashboard',
-      'ADMIN': '/admin-dashboard/overview'
+      'BUSINESS': '/bussiness/register', // Fixed to match "bussiness" spelling
+      'ADMIN': '/admin-dashboard'
     };
 
     const targetRoute = routeMap[normalizedRole];
@@ -254,7 +252,6 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         }
       });
     } else {
-      // Fallback for unknown roles
       console.error('❌ Unknown role for navigation:', normalizedRole);
       this.showMessage('Unknown user role. Please contact support.', 'error');
       await this.router.navigate(['/login'], { replaceUrl: true });
@@ -275,7 +272,6 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       this.showMessage('Account already verified. Redirecting...', 'info');
       const userRole = this.userType || '';
       
-      // 🎯 UPDATED: For already verified accounts, use the same direct navigation logic
       this.navigateBasedOnUserRole(userRole);
     } else {
       this.showMessage(error.message || 'Verification failed. Please try again.', 'error');

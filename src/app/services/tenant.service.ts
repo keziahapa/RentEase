@@ -3,6 +3,8 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+import { PropertyService } from './property.service';
+import { TenantDashboardData, MoveOutNoticeRequest } from './dashboard-interface';
 
 @Injectable({
   providedIn: 'root'
@@ -12,9 +14,11 @@ export class TenantService {
 
   constructor(
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private propertyService: PropertyService // Use PropertyService for move-out methods
   ) {}
 
+  // Tenant-specific methods (non-move-out)
   getTenantDashboardData(): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
@@ -30,7 +34,6 @@ export class TenantService {
   }
 
   getCurrentProperty(): Observable<any> {
-    // Mock property data - replace with actual API when ready
     const mockProperty = {
       success: true,
       data: {
@@ -89,6 +92,7 @@ export class TenantService {
     );
   }
 
+  
   private getDefaultDashboardData(): any {
     return {
       success: true,

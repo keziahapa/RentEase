@@ -49,16 +49,14 @@ export class RegistrationComponent implements OnInit {
     email: '',
     phoneNumber: '',
     password: '',
-    confirmPassword: '',
-    accessCode: ''
+    confirmPassword: ''
   };
 
   availableRoles = [
     { value: UserRole.TENANT, label: 'Tenant' },
     { value: UserRole.LANDLORD, label: 'Landlord' },
     { value: UserRole.CARETAKER, label: 'Caretaker' },
-    { value: UserRole.BUSINESS, label: 'Business' },
-  
+    { value: UserRole.BUSINESS, label: 'Business' }
   ];
 
   hidePassword = true;
@@ -72,8 +70,7 @@ export class RegistrationComponent implements OnInit {
     email: '',
     phoneNumber: '',
     password: '',
-    confirmPassword: '',
-    accessCode: ''
+    confirmPassword: ''
   };
 
   ngOnInit(): void {
@@ -87,8 +84,7 @@ export class RegistrationComponent implements OnInit {
       email: '',
       phoneNumber: '',
       password: '',
-      confirmPassword: '',
-      accessCode: ''
+      confirmPassword: ''
     };
     this.agreedToTerms = false;
     this.clearAllErrors();
@@ -177,10 +173,6 @@ export class RegistrationComponent implements OnInit {
     return this.formData.password === this.formData.confirmPassword && this.formData.confirmPassword !== '';
   }
 
-  showBusinessAccessCode(): boolean {
-    return false;
-  }
-
   validateForm(): boolean {
     this.clearAllErrors();
     let isValid = true;
@@ -266,8 +258,7 @@ export class RegistrationComponent implements OnInit {
       phoneNumber: this.formData.phoneNumber.replace(/\s/g, ''),
       password: this.formData.password,
       confirmPassword: this.formData.confirmPassword,
-      role: this.formData.role as UserRole,
-      accessCode: this.formData.accessCode
+      role: this.formData.role as UserRole
     };
 
     console.log('Registering user with role:', registerRequest.role);
@@ -276,8 +267,7 @@ export class RegistrationComponent implements OnInit {
       fullName: registerRequest.fullName,
       email: registerRequest.email,
       phoneNumber: registerRequest.phoneNumber,
-      role: registerRequest.role,
-      accessCode: registerRequest.accessCode
+      role: registerRequest.role
     };
     
     sessionStorage.setItem('pendingUser', JSON.stringify(pendingUserData));
@@ -378,15 +368,7 @@ export class RegistrationComponent implements OnInit {
         this.fieldErrors.confirmPassword = 'Passwords do not match';
         errorMessage = 'The passwords you entered do not match';
         showSnackbar = false;
-        
-      } else if (msg.includes('access code') || msg.includes('invalid code')) {
-        this.fieldErrors.accessCode = 'Invalid access code';
-        errorMessage = 'The access code you entered is incorrect';
-        showSnackbar = false;
-      } else if (msg.includes('access code') && msg.includes('required')) {
-        this.fieldErrors.accessCode = 'Access code required';
-        errorMessage = 'Access code is required for this role';
-        showSnackbar = false;
+      
         
       } else if (msg.includes('role') && msg.includes('required')) {
         this.fieldErrors.role = 'Please select a role';

@@ -1,9 +1,17 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { ProfilePictureService, UpdateProfileResponse, ProfilePictureResponse } from './profile-picture.service';
+import { 
+  LandlordMoveOutNotice, 
+  LandlordMoveOutNoticeResponse, 
+  MoveOutActionRequest,
+  TenantMoveOutNoticeResponse,
+  MoveOutNoticeRequest,
+  MoveOutStats
+} from './dashboard-interface';
 
 @Injectable({
   providedIn: 'root'
@@ -110,6 +118,10 @@ export class PropertyService {
     private profileService: ProfilePictureService
   ) {}
 
+  // ============================================================================
+  // PROFILE METHODS
+  // ============================================================================
+
   getCurrentUserProfile(): Observable<UpdateProfileResponse> {
     return this.profileService.getCurrentUserProfile();
   }
@@ -133,6 +145,10 @@ export class PropertyService {
   deleteProfilePicture(): Observable<ProfilePictureResponse> {
     return this.profileService.deleteProfilePicture();
   }
+
+  // ============================================================================
+  // PROPERTY METHODS
+  // ============================================================================
 
   createProperty(request: any): Observable<any> {
     const backendRequest = {
@@ -275,6 +291,214 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
+  // ============================================================================
+  // MOVE-OUT NOTICE METHODS - LANDLORD
+  // ============================================================================
+
+  getLandlordMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<LandlordMoveOutNoticeResponse> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return of(this.getDefaultLandlordMoveOutNotices());
+    }
+
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('limit', limit.toString());
+
+    if (status) {
+      params = params.set('status', status);
+    }
+
+    return this.http.get<LandlordMoveOutNoticeResponse>(
+      `${this.apiUrl}/api/landlord/move-out-notices`,
+      { 
+        headers: this.createHeaders(),
+        params 
+      }
+    ).pipe(
+      catchError(() => of(this.getDefaultLandlordMoveOutNotices()))
+    );
+  }
+
+  approveMoveOutNotice(noticeId: number, request?: MoveOutActionRequest): Observable<LandlordMoveOutNoticeResponse> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return of({ 
+        success: false, 
+        message: 'No authentication token',
+        data: {} as LandlordMoveOutNotice
+      });
+    }
+
+    return this.http.post<LandlordMoveOutNoticeResponse>(
+      `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}/approve`,
+      request || {},
+      { headers: this.createHeaders() }
+    ).pipe(
+      catchError(error => of({ 
+        success: false, 
+        message: error.message || 'Failed to approve move-out notice',
+        data: {} as LandlordMoveOutNotice
+      }))
+    );
+  }
+
+  rejectMoveOutNotice(noticeId: number, request?: MoveOutActionRequest): Observable<LandlordMoveOutNoticeResponse> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return of({ 
+        success: false, 
+        message: 'No authentication token',
+        data: {} as LandlordMoveOutNotice
+      });
+    }
+
+    return this.http.post<LandlordMoveOutNoticeResponse>(
+      `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}/reject`,
+      request || {},
+      { headers: this.createHeaders() }
+    ).pipe(
+      catchError(error => of({ 
+        success: false, 
+        message: error.message || 'Failed to reject move-out notice',
+        data: {} as LandlordMoveOutNotice
+      }))
+    );
+  }
+
+  getLandlordMoveOutNoticeById(noticeId: number): Observable<LandlordMoveOutNoticeResponse> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return of({ 
+        success: false, 
+        message: 'No authentication token',
+        data: {} as LandlordMoveOutNotice
+      });
+    }
+
+    return this.http.get<LandlordMoveOutNoticeResponse>(
+      `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}`,
+      { headers: this.createHeaders() }
+    ).pipe(
+      catchError(error => of({ 
+        success: false, 
+        message: error.message || 'Failed to fetch move-out notice',
+        data: {} as LandlordMoveOutNotice
+      }))
+    );
+  }
+
+  getMoveOutStats(): Observable<MoveOutStats> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return of(this.getDefaultMoveOutStats());
+    }
+
+    return this.http.get<MoveOutStats>(
+      `${this.apiUrl}/api/landlord/move-out-notices/stats`,
+      { headers: this.createHeaders() }
+    ).pipe(
+      catchError(() => of(this.getDefaultMoveOutStats()))
+    );
+  }
+
+  // ============================================================================
+  // MOVE-OUT NOTICE METHODS - TENANT
+  // ============================================================================
+
+  getTenantMoveOutNotices(page: number = 1, limit: number = 10): Observable<TenantMoveOutNoticeResponse> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return of(this.getDefaultTenantMoveOutNotices());
+    }
+
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('limit', limit.toString());
+
+    return this.http.get<TenantMoveOutNoticeResponse>(
+      `${this.apiUrl}/api/tenant/move-out-notices`,
+      { 
+        headers: this.createHeaders(),
+        params 
+      }
+    ).pipe(
+      catchError(() => of(this.getDefaultTenantMoveOutNotices()))
+    );
+  }
+
+  submitMoveOutNotice(request: MoveOutNoticeRequest): Observable<TenantMoveOutNoticeResponse> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return of({ 
+        success: false, 
+        message: 'No authentication token',
+        data: {} as any
+      });
+    }
+
+    return this.http.post<TenantMoveOutNoticeResponse>(
+      `${this.apiUrl}/api/tenant/move-out-notices`,
+      request,
+      { headers: this.createHeaders() }
+    ).pipe(
+      catchError(error => of({ 
+        success: false, 
+        message: error.message || 'Failed to submit move-out notice',
+        data: {} as any
+      }))
+    );
+  }
+
+  cancelMoveOutNotice(noticeId: number): Observable<TenantMoveOutNoticeResponse> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return of({ 
+        success: false, 
+        message: 'No authentication token',
+        data: {} as any
+      });
+    }
+
+    return this.http.patch<TenantMoveOutNoticeResponse>(
+      `${this.apiUrl}/api/tenant/move-out-notices/${noticeId}/cancel`,
+      {},
+      { headers: this.createHeaders() }
+    ).pipe(
+      catchError(error => of({ 
+        success: false, 
+        message: error.message || 'Failed to cancel move-out notice',
+        data: {} as any
+      }))
+    );
+  }
+
+  getTenantMoveOutNoticeById(noticeId: number): Observable<TenantMoveOutNoticeResponse> {
+    const token = this.authService.getToken();
+    if (!token) {
+      return of({ 
+        success: false, 
+        message: 'No authentication token',
+        data: {} as any
+      });
+    }
+
+    return this.http.get<TenantMoveOutNoticeResponse>(
+      `${this.apiUrl}/api/tenant/move-out-notices/${noticeId}`,
+      { headers: this.createHeaders() }
+    ).pipe(
+      catchError(error => of({ 
+        success: false, 
+        message: error.message || 'Failed to fetch move-out notice',
+        data: {} as any
+      }))
+    );
+  }
+
+  // ============================================================================
+  // PRIVATE HELPER METHODS
+  // ============================================================================
+
   private normalizePropertiesResponse(response: any): any[] {
     if (Array.isArray(response)) {
       return response;
@@ -367,7 +591,6 @@ export class PropertyService {
   }
 
   private logFallback(context: string, error: unknown): void {
-    // eslint-disable-next-line no-console
     console.warn(`[PropertyService] Falling back for ${context}:`, error);
   }
 
@@ -397,4 +620,51 @@ export class PropertyService {
     }));
   };
 
+  // ============================================================================
+  // DEFAULT MOVE-OUT NOTICE DATA
+  // ============================================================================
+
+  private getDefaultLandlordMoveOutNotices(): LandlordMoveOutNoticeResponse {
+    return {
+      success: true,
+      data: [],
+      message: 'Using mock data',
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        hasNext: false,
+        hasPrev: false
+      }
+    };
+  }
+
+  private getDefaultTenantMoveOutNotices(): TenantMoveOutNoticeResponse {
+    return {
+      success: true,
+      data: [],
+      message: 'Using mock data',
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        hasNext: false,
+        hasPrev: false
+      }
+    };
+  }
+
+  private getDefaultMoveOutStats(): MoveOutStats {
+    return {
+      totalNotices: 0,
+      pendingNotices: 0,
+      approvedNotices: 0,
+      rejectedNotices: 0,
+      cancelledNotices: 0,
+      upcomingMoveOuts: 0,
+      averageProcessingTime: 0,
+      monthlyTrend: [],
+      reasonBreakdown: []
+    };
+  }
 }

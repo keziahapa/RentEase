@@ -4,9 +4,11 @@
       <mat-card-header>
         <div class="header-content">
           <mat-icon class="header-icon">business</mat-icon>
-          <h1>Business Registration</h1>
+          <div>
+            <h1>Business Registration</h1>
+            <p class="subtitle">Register your business to start using Rentease Business Services</p>
+          </div>
         </div>
-        <p class="subtitle">Register your business to start using Rentease Business Services</p>
       </mat-card-header>
 
       <mat-card-content>
@@ -52,25 +54,26 @@
                      accept=".jpg,.jpeg,.png,.pdf" 
                      hidden>
               
-              <div *ngIf="!selectedFile" class="upload-placeholder">
-                <mat-icon class="upload-icon">cloud_upload</mat-icon>
-                <p>Click to upload business license</p>
-                <button type="button" mat-stroked-button color="primary" 
-                        (click)="document.getElementById('licenseDocument').click()">
-                  Choose File
-                </button>
-              </div>
-
-              <div *ngIf="selectedFile" class="file-preview">
-                <mat-icon class="file-icon">description</mat-icon>
-                <div class="file-info">
-                  <span class="file-name">{{ fileName }}</span>
-                  <span class="file-size">{{ selectedFile.size | fileSize }}</span>
+              <label for="licenseDocument" class="upload-label">
+                <div *ngIf="!selectedFile" class="upload-placeholder">
+                  <mat-icon class="upload-icon">cloud_upload</mat-icon>
+                  <p>Click to upload business license</p>
+                  <button type="button" mat-stroked-button color="primary">
+                    Choose File
+                  </button>
                 </div>
-                <button type="button" mat-icon-button color="warn" (click)="removeFile()">
-                  <mat-icon>delete</mat-icon>
-                </button>
-              </div>
+
+                <div *ngIf="selectedFile" class="file-preview">
+                  <mat-icon class="file-icon">description</mat-icon>
+                  <div class="file-info">
+                    <span class="file-name">{{ fileName }}</span>
+                    <span class="file-size">{{ selectedFile.size | fileSize }}</span>
+                  </div>
+                  <button type="button" mat-icon-button color="warn" (click)="removeFile($event)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </label>
             </div>
           </div>
 
