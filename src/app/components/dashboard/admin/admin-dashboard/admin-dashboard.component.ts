@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+
+import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,8 +10,11 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatMenuModule } from '@angular/material/menu';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
-import { AdminDataService } from '../../../../services/admin-data.service';
+import { AdminService } from '../../../../services/admin.service';
 import { AdminOverviewComponent } from './components/admin-overview/admin-overview.component';
+import { BusinessManagementComponent } from './components/business-management/business-management.component';
+import { AdvertisementManagementComponent } from './components/advertisement-management/advertisement-management.component';
+import { ExternalBusinessManagementComponent } from './components/external-business-management/external-business-management.component';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -24,7 +28,10 @@ import { AdminOverviewComponent } from './components/admin-overview/admin-overvi
     MatBadgeModule,
     MatMenuModule,
     RouterOutlet,
-    AdminOverviewComponent
+    AdminOverviewComponent,
+    BusinessManagementComponent,
+    AdvertisementManagementComponent,
+    ExternalBusinessManagementComponent
   ],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.scss']
@@ -43,7 +50,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   isLoadingDashboard: boolean = false;
   dashboardError: string | null = null;
 
-  unreadNotificationsCount: number = 3;
+  unreadNotificationsCount: number = 0;
   unreadMessagesCount: number = 0;
   isLoadingNotifications: boolean = false;
 
@@ -53,79 +60,40 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   greeting: string = '';
   currentTime: string = '';
 
-  constructor(
-    public router: Router,
-    private authService: AuthService,
-    private adminService: AdminDataService,
-    private dialog: MatDialog
-  ) { }
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private adminService = inject(AdminService);
+  private dialog = inject(MatDialog);
 
   ngOnInit(): void {
-    console.log('🔄 AdminDashboardComponent ngOnInit started');
-    
-   
-    this.createTemporaryAdminUser();
-    
-    this.loadDashboardData();
-    this.loadNotifications();
-    this.updateGreeting();
-    
-    setInterval(() => {
+    try {
+      this.loadUserData();
+      this.loadDashboardData();
+      this.loadNotifications();
       this.updateGreeting();
-    }, 60000);
+      
+      setInterval(() => {
+        this.updateGreeting();
+      }, 60000);
 
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: NavigationEnd) => {
-      console.log(' Navigation ended:', event.urlAfterRedirects);
-      this.updateCurrentSectionFromRoute(event.urlAfterRedirects);
-      this.loadProfileImage();
-    });
+      this.router.events.pipe(
+        filter(event => event instanceof NavigationEnd)
+      ).subscribe((event: NavigationEnd) => {
+        this.updateCurrentSectionFromRoute(event.urlAfterRedirects);
+        this.loadProfileImage();
+      });
 
-    this.updateCurrentSectionFromRoute(this.router.url);
-    this.setupProfileUpdateListener();
-    this.setupClickOutsideListener();
-    
-    console.log('AdminDashboardComponent fully initialized');
+      this.updateCurrentSectionFromRoute(this.router.url);
+      this.setupProfileUpdateListener();
+    } catch (error) {
+      console.error('Error initializing admin dashboard:', error);
+    }
   }
 
   ngOnDestroy(): void {
     if (this.profileUpdateListener) {
       window.removeEventListener('profileImageUpdated', this.profileUpdateListener);
     }
-    document.removeEventListener('click', this.handleClickOutside.bind(this));
-  }
-
-  private createTemporaryAdminUser(): void {
-    console.warn('TEMPORARY: Creating mock admin user for development');
-    
-  
-    this.currentUser = {
-      id: 'temp-admin-1',
-      email: 'admin@rentease.com',
-      fullName: 'System Administrator',
-      role: 'ADMIN',
-      status: 'active',
-      verified: true,
-      emailVerified: true,
-      phoneNumber: '+254700000000',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString()
-    };
-
-   
-    this.userDisplayName = this.currentUser.fullName;
-    this.userRole = 'Administrator';
-    this.profileImage = this.generateInitialAvatar(this.userDisplayName);
-
-   
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('userData', JSON.stringify(this.currentUser));
-      sessionStorage.setItem('authToken', 'temp-admin-token-' + Date.now());
-      localStorage.setItem('adminProfileImage', this.profileImage);
-    }
-
-    console.log(' Temporary admin user created:', this.currentUser);
   }
 
   private updateGreeting(): void {
@@ -145,7 +113,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   getGreetingMessage(): string {
-    return `${this.greeting}, Admin! 👋`;
+    const firstName = this.userDisplayName.split(' ')[0] || 'Admin';
+    return `${this.greeting}, ${firstName}! 👋`;
   }
 
   @HostListener('document:click', ['$event'])
@@ -165,15 +134,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
       
       if (sidebar && !sidebar.contains(target) && 
-          mobileMenuBtn && !mobileMenuBtn.contains(target) &&
-          target.classList.contains('mobile-menu-overlay')) {
+          mobileMenuBtn && !mobileMenuBtn.contains(target)) {
         this.closeMobileMenu();
       }
     }
-  }
-
-  private setupClickOutsideListener(): void {
-    document.addEventListener('click', this.handleClickOutside.bind(this));
   }
 
   private setupProfileUpdateListener(): void {
@@ -184,100 +148,122 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     window.addEventListener('profileImageUpdated', this.profileUpdateListener);
   }
 
+  private loadUserData(): void {
+    try {
+      this.currentUser = this.authService.getCurrentUser();
+      
+      if (this.currentUser) {
+        this.userDisplayName = this.currentUser.fullName || 
+                             this.currentUser.email?.split('@')[0] || 
+                             'Admin';
+        
+        this.userRole = this.formatUserRole(this.currentUser.role);
+        this.loadProfileImage();
+      } else {
+        this.userDisplayName = 'Admin';
+        this.userRole = 'Administrator';
+        this.profileImage = this.generateInitialAvatar('Admin');
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      this.userDisplayName = 'Admin';
+      this.userRole = 'Administrator';
+    }
+  }
+
   loadDashboardData(): void {
     this.isLoadingDashboard = true;
     this.dashboardError = null;
 
     this.adminService.getDashboardStats().subscribe({
       next: (response: any) => {
-        if (response.success) {
-          this.dashboardData = response.data;
-          console.log(' Dashboard data loaded:', this.dashboardData);
-        } else {
-          this.dashboardError = 'Failed to load dashboard data';
-          console.error(' Dashboard error:', this.dashboardError);
+        try {
+          if (response?.success && response.data) {
+            this.dashboardData = response.data;
+          } else {
+            this.dashboardError = 'Failed to load dashboard data';
+            this.dashboardData = this.getDefaultDashboardData();
+          }
+        } catch (error) {
+          console.error('Error processing dashboard data:', error);
+          this.dashboardError = 'Error processing data';
+          this.dashboardData = this.getDefaultDashboardData();
         }
         this.isLoadingDashboard = false;
       },
       error: (error) => {
         this.dashboardError = error.message || 'Failed to load dashboard data';
+        this.dashboardData = this.getDefaultDashboardData();
         this.isLoadingDashboard = false;
         console.error('Dashboard data error:', error);
-        
-      
-        this.createMockDashboardData();
       }
     });
   }
 
-  private createMockDashboardData(): void {
-    console.warn('🚧 TEMPORARY: Creating mock dashboard data');
-    this.dashboardData = {
-      totalUsers: 1250,
-      totalProperties: 89,
-      activeBusinesses: 45,
-      monthlyRevenue: 4250000,
-      commissionRevenue: 425000,
-      pendingApprovals: 12,
-      activeDisputes: 8,
-      userGrowth: 12.5,
-      revenueGrowth: 18.3,
-      propertiesGrowth: 8.7,
-      totalLandlords: 56,
-      totalTenants: 980,
-      totalCaretakers: 24,
-      totalAdmins: 5,
-      platformEarnings: 1250000,
-      systemHealth: 'excellent'
+  private getDefaultDashboardData(): any {
+    return {
+      totalUsers: 0,
+      totalProperties: 0,
+      activeBusinesses: 0,
+      monthlyRevenue: 0,
+      commissionRevenue: 0,
+      pendingApprovals: 0,
+      activeDisputes: 0
     };
-    this.isLoadingDashboard = false;
   }
 
   private loadNotifications(): void {
     this.isLoadingNotifications = true;
     
     setTimeout(() => {
-      this.unreadNotificationsCount = 3;
+      this.unreadNotificationsCount = 0;
       this.unreadMessagesCount = 0;
       this.isLoadingNotifications = false;
-      console.log(' Notifications loaded');
     }, 500);
   }
 
   viewNotifications(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    console.log(' Navigating to notifications');
-    this.router.navigate(['/admin-dashboard/notifications']);
+    this.router.navigate(['/admin-dashboard']).catch(() => {
+      console.warn('Notifications route not available');
+    });
   }
 
   viewProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    console.log(' Navigating to profile view');
-    this.router.navigate(['/admin-dashboard/profile/view']);
+    this.router.navigate(['/admin-dashboard/profile/view']).catch(() => {
+      this.router.navigate(['/admin-dashboard']);
+    });
   }
 
   editProfile(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    console.log(' Navigating to profile edit');
-    this.router.navigate(['/admin-dashboard/profile/edit']);
+    this.router.navigate(['/admin-dashboard/profile/edit']).catch(() => {
+      this.router.navigate(['/admin-dashboard/profile/view']);
+    });
   }
 
   private loadProfileImage(): void {
-    const savedImage = localStorage.getItem('adminProfileImage');
-    if (savedImage) {
-      this.profileImage = this.addCacheBuster(savedImage);
-    } else if (this.currentUser?.avatar) {
-      this.profileImage = this.addCacheBuster(this.currentUser.avatar);
-    } else {
+    try {
+      const savedImage = localStorage.getItem('profileImage');
+      if (savedImage) {
+        this.profileImage = this.addCacheBuster(savedImage);
+      } else if (this.currentUser?.avatar) {
+        this.profileImage = this.addCacheBuster(this.currentUser.avatar);
+      } else {
+        this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+      }
+    } catch (error) {
+      console.error('Error loading profile image:', error);
       this.profileImage = this.generateInitialAvatar(this.userDisplayName);
     }
   }
 
   private addCacheBuster(imageUrl: string): string {
-    if (imageUrl.startsWith('data:')) {
+    if (!imageUrl || imageUrl.startsWith('data:')) {
       return imageUrl;
     }
     const separator = imageUrl.includes('?') ? '&' : '?';
@@ -285,18 +271,23 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   private generateInitialAvatar(name: string): string {
-    const names = name.split(' ');
-    const initials = names.map(name => name.charAt(0).toUpperCase()).join('').slice(0, 2);
-    
-    const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
-    const color = colors[initials.charCodeAt(0) % colors.length];
-    
-    return `data:image/svg+xml;base64,${btoa(`
-      <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100" height="100" fill="${color}" rx="50"/>
-        <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-size="40" font-weight="600">${initials}</text>
-      </svg>
-    `)}`;
+    try {
+      const names = name.split(' ');
+      const initials = names.map(name => name.charAt(0).toUpperCase()).join('').slice(0, 2);
+      
+      const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+      const color = colors[initials.charCodeAt(0) % colors.length];
+      
+      return `data:image/svg+xml;base64,${btoa(`
+        <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="100" fill="${color}" rx="50"/>
+          <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-size="40" font-weight="600">${initials}</text>
+        </svg>
+      `)}`;
+    } catch (error) {
+      console.error('Error generating avatar:', error);
+      return '';
+    }
   }
 
   private formatUserRole(role: string): string {
@@ -308,7 +299,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       'BUSINESS': 'Business Owner'
     };
     
-    return roleMap[role.toString()] || role.toString();
+    return roleMap[role?.toString()] || role?.toString() || 'Administrator';
   }
 
   toggleProfileMenu(): void {
@@ -316,7 +307,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     if (this.isProfileMenuOpen) {
       this.isMobileMenuOpen = false;
     }
-    console.log(' Profile menu toggled:', this.isProfileMenuOpen);
   }
 
   toggleMobileMenu(): void {
@@ -328,7 +318,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     } else {
       document.body.style.overflow = '';
     }
-    console.log('Mobile menu toggled:', this.isMobileMenuOpen);
   }
 
   closeMobileMenu(): void {
@@ -351,6 +340,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       'users': ['/admin-dashboard/users'],
       'properties': ['/admin-dashboard/properties'],
       'businesses': ['/admin-dashboard/businesses'],
+      'advertisements': ['/admin-dashboard/advertisements'],
+      'external-businesses': ['/admin-dashboard/external-businesses'],
       'disputes': ['/admin-dashboard/disputes'],
       'transactions': ['/admin-dashboard/transactions'],
       'reports': ['/admin-dashboard/reports'],
@@ -360,14 +351,21 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
     const route = routeMap[section];
     if (route) {
-      console.log(' Navigating to section:', section, route);
-      this.router.navigate(route);
+      this.router.navigate(route).catch(() => {
+        console.warn(`Route ${section} not available, redirecting to dashboard`);
+        this.router.navigate(['/admin-dashboard']);
+      });
     } else {
       this.router.navigate(['/admin-dashboard']);
     }
   }
 
   private updateCurrentSectionFromRoute(url: string): void {
+    if (!url) {
+      this.currentSection = 'overview';
+      return;
+    }
+
     if (url.includes('/profile/view') || url.includes('/profile/edit')) {
       this.currentSection = 'profile';
     } else if (url === '/admin-dashboard' || url === '/admin-dashboard/') {
@@ -378,6 +376,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'properties';
     } else if (url.includes('/businesses')) {
       this.currentSection = 'businesses';
+    } else if (url.includes('/advertisements')) {
+      this.currentSection = 'advertisements';
+    } else if (url.includes('/external-businesses')) {
+      this.currentSection = 'external-businesses';
     } else if (url.includes('/disputes')) {
       this.currentSection = 'disputes';
     } else if (url.includes('/transactions')) {
@@ -389,7 +391,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     } else {
       this.currentSection = 'overview';
     }
-    console.log('Current section updated:', this.currentSection);
   }
 
   isNavActive(section: string): boolean {
@@ -406,13 +407,25 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.closeProfileMenu();
     this.closeMobileMenu();
 
-    console.log(' Admin logout initiated');
-    
-    
-    this.isLoggingOut = false;
-    localStorage.removeItem('adminProfileImage');
-    sessionStorage.clear();
-    this.router.navigate(['/']);
+    this.authService.logout().subscribe({
+      next: (response: any) => {
+        console.log('Logout successful:', response.message);
+        this.isLoggingOut = false;
+        
+        localStorage.removeItem('profileImage');
+        sessionStorage.clear();
+        
+        this.router.navigate(['/login']);
+      },
+      error: (error) => {
+        console.error('Logout error:', error);
+        this.isLoggingOut = false;
+        
+        localStorage.removeItem('profileImage');
+        sessionStorage.clear();
+        this.router.navigate(['/login']);
+      }
+    });
   }
 
   @HostListener('window:resize', ['$event'])
@@ -423,13 +436,13 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   refreshDashboard(): void {
-    console.log(' Refreshing dashboard data');
     this.loadDashboardData();
     this.loadNotifications();
   }
 
   onLogoError(event: any): void {
-    console.error(' Logo failed to load:', event);
+    console.error('Logo failed to load:', event);
+    this.profileImage = this.generateInitialAvatar(this.userDisplayName);
   }
 
   isOverviewPage(): boolean {

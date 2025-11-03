@@ -1,3 +1,4 @@
+
 <div class="dashboard-container">
   <div class="mobile-menu-overlay" [class.active]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
   
@@ -30,11 +31,30 @@
         <span>Properties</span>
       </div>
 
-      <div class="nav-item" 
-           [class.active]="isNavActive('businesses')" 
-           (click)="navigateToSection('businesses')">
-        <mat-icon class="nav-icon">business</mat-icon>
-        <span>Businesses</span>
+      <!-- New Business Management Section -->
+      <div class="nav-section">
+        <div class="nav-section-label">Business Management</div>
+        
+        <div class="nav-item" 
+             [class.active]="isNavActive('businesses')" 
+             (click)="navigateToSection('businesses')">
+          <mat-icon class="nav-icon">business_center</mat-icon>
+          <span>Businesses</span>
+        </div>
+
+        <div class="nav-item" 
+             [class.active]="isNavActive('advertisements')" 
+             (click)="navigateToSection('advertisements')">
+          <mat-icon class="nav-icon">campaign</mat-icon>
+          <span>Advertisements</span>
+        </div>
+
+        <div class="nav-item" 
+             [class.active]="isNavActive('external-businesses')" 
+             (click)="navigateToSection('external-businesses')">
+          <mat-icon class="nav-icon">store</mat-icon>
+          <span>External Businesses</span>
+        </div>
       </div>
 
       <div class="nav-item" 
@@ -149,9 +169,10 @@
       </div>
     </div>
 
+  
     <router-outlet></router-outlet>
     
-    <!-- Default overview content when no route is active -->
+ 
     <div *ngIf="isOverviewPage()">
       <app-admin-overview></app-admin-overview>
     </div>

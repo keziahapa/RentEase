@@ -1,4 +1,4 @@
-// app.routes.ts
+
 import { Routes } from '@angular/router';
 import { HomeComponent } from '../pages/home/home';
 import { RegistrationComponent } from './components/auth/registration/registration.component';
@@ -46,19 +46,19 @@ import { LandlordTenantsComponent } from './components/dashboard/landlord/landlo
 import { LandlordMaintenanceComponent } from './components/dashboard/landlord/landlord-dashboard/maintenance/maintenance.component';
 import { LandlordMessagesComponent } from './components/dashboard/landlord/landlord-dashboard/messages/messages.component';
 import { LandlordMarketplaceComponent } from './components/dashboard/landlord/landlord-dashboard/marketplace/marketplace';
-import { PendingAdvertisementsComponent } from './components/dashboard/admin/admin-dashboard/components/pending-advertisements/pending-advertisements.component';
-import { AdvertisementListComponent } from './components/dashboard/admin/admin-dashboard/components/advertisement-list/advertisement-list.component';
-import { PendingBusinessesComponent } from './components/dashboard/admin/admin-dashboard/components/pending-businesses/pending-businesses.component';
+
 import { ApprovedAdvertisementsComponent } from './components/dashboard/bussiness/components/approved-advertisements/approved-advertisements.component';
 import { CreateAdvertisementComponent } from './components/dashboard/bussiness/components/create-advertisement/create-advertisement.component';
 import { MyAdvertisementsComponent } from './components/dashboard/bussiness/components/my-advertisements/my-advertisements.component';
 import { BusinessOverviewComponent } from './components/dashboard/bussiness/components/business-overview/business-overview.component';
 import { AdminOverviewComponent } from './components/dashboard/admin/admin-dashboard/components/admin-overview/admin-overview.component';
-import { BusinessListComponent } from './components/dashboard/admin/admin-dashboard/components/business-list/business-list.component';
 import { AcceptInvitationComponent } from './components/dashboard/landlord/landlord-dashboard/invite-dialog/accept-invitation/accept-invitation.component';
 import { WaitingLandlordComponent } from './components/auth/waiting-landlord/waiting-landlord.component';
 import { ChatComponent } from './shared/chat/chat.component';
 import { AdminLoginComponent } from './components/auth/admin-login/admin-login.component';
+import { BusinessManagementComponent } from './components/dashboard/admin/admin-dashboard/components/business-management/business-management.component';
+import { AdvertisementManagementComponent } from './components/dashboard/admin/admin-dashboard/components/advertisement-management/advertisement-management.component';
+import { ExternalBusinessManagementComponent } from './components/dashboard/admin/admin-dashboard/components/external-business-management/external-business-management.component';
 
 export const routes: Routes = [
  
@@ -98,7 +98,7 @@ export const routes: Routes = [
   {
     path: 'tenant-dashboard',
     component: TenantDashboardComponent,
-    canActivate: [authGuard],
+     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', component: TenantDashboardComponent },
@@ -223,10 +223,9 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'overview', pathMatch: 'full' },
       { path: 'overview', component: AdminOverviewComponent },
-      { path: 'businesses', component: BusinessListComponent },
-      { path: 'businesses/pending', component: PendingBusinessesComponent },
-      { path: 'advertisements', component: AdvertisementListComponent },
-      { path: 'advertisements/pending', component: PendingAdvertisementsComponent },
+      { path: 'businesses', component: BusinessManagementComponent },
+      { path: 'advertisements', component: AdvertisementManagementComponent },
+      { path: 'external-businesses', component: ExternalBusinessManagementComponent },
       { path: 'users', component: AdminDashboardComponent },
       { path: 'disputes', component: AdminDashboardComponent },
       { path: 'transactions', component: AdminDashboardComponent },

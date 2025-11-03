@@ -1,12 +1,13 @@
+<!-- skeleton-list.component.html -->
 <div class="skeleton-list" [ngClass]="variant">
   <ng-container *ngFor="let _ of placeholders">
-    <div *ngIf="variant === 'card'" class="skeleton-card">
+    <div *ngIf="variant === 'card'" class="skeleton-card" [style]="getSkeletonStyles()">
       <div class="skeleton-line w-60"></div>
       <div class="skeleton-line w-80"></div>
       <div class="skeleton-line w-40"></div>
     </div>
 
-    <div *ngIf="variant === 'stat'" class="skeleton-stat">
+    <div *ngIf="variant === 'stat'" class="skeleton-stat" [style]="getSkeletonStyles()">
       <div class="skeleton-circle"></div>
       <div class="stat-lines">
         <div class="skeleton-line w-50"></div>
@@ -14,7 +15,7 @@
       </div>
     </div>
 
-    <div *ngIf="variant === 'quick'" class="skeleton-quick">
+    <div *ngIf="variant === 'quick'" class="skeleton-quick" [style]="getSkeletonStyles()">
       <div class="skeleton-circle sm"></div>
       <div class="quick-lines">
         <div class="skeleton-line w-70"></div>
@@ -23,7 +24,7 @@
       <div class="skeleton-line arrow"></div>
     </div>
 
-    <div *ngIf="variant === 'table'" class="skeleton-table-row">
+    <div *ngIf="variant === 'table'" class="skeleton-table-row" [style]="getSkeletonStyles()">
       <div class="skeleton-cell w-20"></div>
       <div class="skeleton-cell w-30"></div>
       <div class="skeleton-cell w-25"></div>
@@ -31,7 +32,7 @@
       <div class="skeleton-cell w-10"></div>
     </div>
 
-    <div *ngIf="variant === 'list'" class="skeleton-list-row">
+    <div *ngIf="variant === 'list'" class="skeleton-list-row" [style]="getSkeletonStyles()">
       <div class="skeleton-circle sm"></div>
       <div class="list-lines">
         <div class="skeleton-line w-80"></div>

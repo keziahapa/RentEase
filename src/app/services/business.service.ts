@@ -4,26 +4,21 @@ import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-
-// Add these interfaces at the top
-export interface BusinessRegistration {
-  id: number;
-  businessName: string;
-  businessRegistrationNumber: string;
-  businessLicenseDocumentUrl: string;
-  verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
-  verifiedAt: string | null;
-  rejectionReason: string | null;
-  createdAt: string;
-  userEmail: string;
-  userFullName: string;
-}
-
-export interface BusinessStatusResponse {
-  success: boolean;
-  message: string;
-  data: BusinessRegistration | null;
-}
+import {
+  BusinessRegistration,
+  BusinessStatusResponse,
+  ExternalBusinessRegistration,
+  ExternalBusiness,
+  Advertisement,
+  CreateAdvertisementRequest,
+  BusinessDashboardData,
+  ApiResponse,
+  AdvertisementAnalytics,
+  BusinessAnalytics,
+  BillingRecord,
+  UploadResponse,
+  ErrorResponse
+} from '../services/business-interface';
 
 @Injectable({
   providedIn: 'root'
@@ -34,8 +29,8 @@ export class BusinessService {
   constructor(private http: HttpClient, private authService: AuthService) {}
 
   // Business Registration
-  registerBusiness(registrationData: any): Observable<any> {
-    return this.http.post<any>(
+  registerBusiness(registrationData: any): Observable<ApiResponse<BusinessRegistration>> {
+    return this.http.post<ApiResponse<BusinessRegistration>>(
       `${this.apiUrl}/api/external-business/register`,
       registrationData,
       { headers: this.createHeaders(), responseType: 'json' }
@@ -50,7 +45,7 @@ export class BusinessService {
     );
   }
 
-  // Get Registration Status - ADD THIS METHOD
+  // Get Registration Status
   getRegistrationStatus(): Observable<BusinessStatusResponse> {
     return this.http.get<BusinessStatusResponse>(
       `${this.apiUrl}/api/external-business/registration-status`,
@@ -74,7 +69,7 @@ export class BusinessService {
             success: true,
             message: 'Using local business data',
             data: localBusiness
-          });
+          } as BusinessStatusResponse);
         }
         return throwError(() => error);
       })
@@ -82,8 +77,8 @@ export class BusinessService {
   }
 
   // Get Business Profile
-  getBusinessProfile(): Observable<any> {
-    return this.http.get<any>(
+  getBusinessProfile(): Observable<ApiResponse<ExternalBusiness>> {
+    return this.http.get<ApiResponse<ExternalBusiness>>(
       `${this.apiUrl}/api/external-business/my-business`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
@@ -99,17 +94,17 @@ export class BusinessService {
             success: true,
             message: 'Using local business data',
             data: localBusiness
-          });
+          } as ApiResponse<ExternalBusiness>);
         }
         return throwError(() => error);
       })
     );
   }
 
-  // Check if user has business profile
+  // Check if user has business profile - FIXED
   hasBusinessProfile(): Observable<boolean> {
     return this.getBusinessProfile().pipe(
-      map(response => response.success && response.data),
+      map(response => !!response.data), // Fixed: properly extract boolean from response
       catchError(() => {
         const localBusiness = this.getLocalBusinessData();
         return of(!!localBusiness);
@@ -118,7 +113,7 @@ export class BusinessService {
   }
 
   // Advertisement Management
-  createAdvertisement(advertisement: any): Observable<any> {
+  createAdvertisement(advertisement: CreateAdvertisementRequest): Observable<ApiResponse<Advertisement>> {
     const adData = {
       title: advertisement.title.trim(),
       description: advertisement.description.trim(),
@@ -126,7 +121,7 @@ export class BusinessService {
       mediaType: advertisement.mediaType
     };
 
-    return this.http.post<any>(
+    return this.http.post<ApiResponse<Advertisement>>(
       `${this.apiUrl}/api/external-business/advertisements`,
       adData,
       { headers: this.createHeaders(), responseType: 'json' }
@@ -141,7 +136,7 @@ export class BusinessService {
   }
 
   // Get My Advertisements
-  getMyAdvertisements(): Observable<any[]> {
+  getMyAdvertisements(): Observable<Advertisement[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/advertisements/my-ads`,
       { headers: this.createHeaders(), responseType: 'json' }
@@ -173,7 +168,7 @@ export class BusinessService {
   }
 
   // Get Approved Advertisements
-  getApprovedAdvertisements(): Observable<any[]> {
+  getApprovedAdvertisements(): Observable<Advertisement[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/advertisements/approved`,
       { headers: this.createHeaders(), responseType: 'json' }
@@ -182,9 +177,9 @@ export class BusinessService {
         if (Array.isArray(response)) {
           return response.filter(ad => ad.status === 'APPROVED');
         } else if (response?.data && Array.isArray(response.data)) {
-          return response.data.filter((ad: any) => ad.status === 'APPROVED');
+          return response.data.filter((ad: Advertisement) => ad.status === 'APPROVED');
         } else if (response?.advertisements && Array.isArray(response.advertisements)) {
-          return response.advertisements.filter((ad: any) => ad.status === 'APPROVED');
+          return response.advertisements.filter((ad: Advertisement) => ad.status === 'APPROVED');
         }
         return [];
       }),
@@ -193,7 +188,7 @@ export class BusinessService {
   }
 
   // Update Advertisement
-  updateAdvertisement(advertisementId: string, advertisement: any): Observable<any> {
+  updateAdvertisement(advertisementId: string, advertisement: CreateAdvertisementRequest): Observable<ApiResponse<Advertisement>> {
     const adData = {
       title: advertisement.title.trim(),
       description: advertisement.description.trim(),
@@ -201,7 +196,7 @@ export class BusinessService {
       mediaType: advertisement.mediaType
     };
 
-    return this.http.put<any>(
+    return this.http.put<ApiResponse<Advertisement>>(
       `${this.apiUrl}/api/external-business/advertisements/${advertisementId}`,
       adData,
       { headers: this.createHeaders(), responseType: 'json' }
@@ -216,8 +211,8 @@ export class BusinessService {
   }
 
   // Delete Advertisement
-  deleteAdvertisement(advertisementId: string): Observable<any> {
-    return this.http.delete<any>(
+  deleteAdvertisement(advertisementId: string): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(
       `${this.apiUrl}/api/external-business/advertisements/${advertisementId}`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
@@ -231,8 +226,8 @@ export class BusinessService {
   }
 
   // Get Advertisement by ID
-  getAdvertisementById(advertisementId: string): Observable<any> {
-    return this.http.get<any>(
+  getAdvertisementById(advertisementId: string): Observable<ApiResponse<Advertisement>> {
+    return this.http.get<ApiResponse<Advertisement>>(
       `${this.apiUrl}/api/external-business/advertisements/${advertisementId}`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
@@ -240,8 +235,8 @@ export class BusinessService {
     );
   }
 
-  // Business Dashboard Data
-  getBusinessDashboardData(): Observable<any> {
+  // Business Dashboard Data - FIXED
+  getBusinessDashboardData(): Observable<BusinessDashboardData> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/dashboard`,
       { headers: this.createHeaders(), responseType: 'json' }
@@ -255,23 +250,19 @@ export class BusinessService {
         return this.generateMockDashboardData();
       }),
       catchError(error => {
-        return of({
-          success: true,
-          data: this.generateMockDashboardData(),
-          message: 'Using mock dashboard data'
-        });
+        return of(this.generateMockDashboardData());
       })
     );
   }
 
   // Upload Advertisement Media
-  uploadAdvertisementMedia(file: File): Observable<any> {
+  uploadAdvertisementMedia(file: File): Observable<UploadResponse> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => ({ 
         status: 401, 
         message: 'No authentication token found' 
-      }));
+      } as ErrorResponse));
     }
 
     const formData = new FormData();
@@ -281,7 +272,7 @@ export class BusinessService {
       'Authorization': `Bearer ${token}`
     });
 
-    return this.http.post<any>(
+    return this.http.post<UploadResponse>(
       `${this.apiUrl}/api/external-business/upload-media`,
       formData,
       { headers, responseType: 'json' }
@@ -291,7 +282,7 @@ export class BusinessService {
   }
 
   // Analytics and Performance
-  getAdvertisementAnalytics(advertisementId?: string): Observable<any> {
+  getAdvertisementAnalytics(advertisementId?: string): Observable<AdvertisementAnalytics | BusinessAnalytics> {
     const url = advertisementId 
       ? `${this.apiUrl}/api/external-business/analytics/ads/${advertisementId}`
       : `${this.apiUrl}/api/external-business/analytics`;
@@ -309,17 +300,13 @@ export class BusinessService {
         return this.generateMockAnalyticsData(advertisementId);
       }),
       catchError(error => {
-        return of({
-          success: true,
-          data: this.generateMockAnalyticsData(advertisementId),
-          message: 'Using mock analytics data'
-        });
+        return of(this.generateMockAnalyticsData(advertisementId));
       })
     );
   }
 
   // Billing and Payments
-  getBillingHistory(): Observable<any[]> {
+  getBillingHistory(): Observable<BillingRecord[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/billing/history`,
       { headers: this.createHeaders(), responseType: 'json' }
@@ -341,8 +328,8 @@ export class BusinessService {
   }
 
   // Update Business Profile
-  updateBusinessProfile(profileData: any): Observable<any> {
-    return this.http.put<any>(
+  updateBusinessProfile(profileData: any): Observable<ApiResponse<ExternalBusiness>> {
+    return this.http.put<ApiResponse<ExternalBusiness>>(
       `${this.apiUrl}/api/external-business/my-business`,
       profileData,
       { headers: this.createHeaders(), responseType: 'json' }
@@ -357,8 +344,8 @@ export class BusinessService {
   }
 
   // Delete Business Account
-  deleteBusinessAccount(): Observable<any> {
-    return this.http.delete<any>(
+  deleteBusinessAccount(): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(
       `${this.apiUrl}/api/external-business/my-business`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
@@ -394,24 +381,24 @@ export class BusinessService {
     localStorage.removeItem('businessAdvertisements');
   }
 
-  private updateLocalAdvertisements(ads: any[]): void {
+  private updateLocalAdvertisements(ads: Advertisement[]): void {
     localStorage.setItem('businessAdvertisements', JSON.stringify(ads));
   }
 
-  private getLocalAdvertisements(): any[] {
+  private getLocalAdvertisements(): Advertisement[] {
     const ads = localStorage.getItem('businessAdvertisements');
     return ads ? JSON.parse(ads) : [];
   }
 
-  private addAdvertisementToLocal(ad: any): void {
+  private addAdvertisementToLocal(ad: Advertisement): void {
     const currentAds = this.getLocalAdvertisements();
     currentAds.push(ad);
     this.updateLocalAdvertisements(currentAds);
   }
 
-  private updateLocalAdvertisement(adId: string, updatedAd: any): void {
+  private updateLocalAdvertisement(adId: string, updatedAd: Advertisement): void {
     const currentAds = this.getLocalAdvertisements();
-    const index = currentAds.findIndex(ad => ad.id === adId);
+    const index = currentAds.findIndex(ad => ad.id.toString() === adId);
     if (index !== -1) {
       currentAds[index] = updatedAd;
       this.updateLocalAdvertisements(currentAds);
@@ -420,7 +407,7 @@ export class BusinessService {
 
   private removeLocalAdvertisement(adId: string): void {
     const currentAds = this.getLocalAdvertisements();
-    const filteredAds = currentAds.filter(ad => ad.id !== adId);
+    const filteredAds = currentAds.filter(ad => ad.id.toString() !== adId);
     this.updateLocalAdvertisements(filteredAds);
   }
 
@@ -446,8 +433,8 @@ export class BusinessService {
     }
   }
 
-  // Mock data generators
-  private generateMockDashboardData(): any {
+  // Mock data generators - FIXED
+  private generateMockDashboardData(): BusinessDashboardData {
     const localAds = this.getLocalAdvertisements();
     const localBusiness = this.getLocalBusinessData();
     
@@ -457,7 +444,7 @@ export class BusinessService {
       pendingAds: localAds.filter(ad => ad.status === 'PENDING').length,
       totalSpent: localAds.length * 500,
       totalClicks: localAds.reduce((sum, ad) => sum + (ad.clicks || 0), 0),
-      totalViews: localAds.reduce((sum, ad) => sum + (ad.views || 0), 0),
+      totalViews: localAds.reduce((sum, ad) => sum + (ad.views || 0), 0), // Added missing property
       approvalRate: localAds.length > 0 
         ? Math.round((localAds.filter(ad => ad.status === 'APPROVED').length / localAds.length) * 100) + '%'
         : '0%',
@@ -466,7 +453,7 @@ export class BusinessService {
     };
   }
 
-  private generateMockAnalyticsData(advertisementId?: string): any {
+  private generateMockAnalyticsData(advertisementId?: string): AdvertisementAnalytics | BusinessAnalytics {
     if (advertisementId) {
       return {
         views: Math.floor(Math.random() * 1000),
@@ -474,7 +461,7 @@ export class BusinessService {
         engagement: Math.floor(Math.random() * 100),
         ctr: (Math.random() * 10).toFixed(2) + '%',
         impressions: Math.floor(Math.random() * 5000)
-      };
+      } as AdvertisementAnalytics;
     }
 
     return {
@@ -483,10 +470,10 @@ export class BusinessService {
       averageCTR: (Math.random() * 8).toFixed(2) + '%',
       totalSpent: Math.floor(Math.random() * 5000),
       topPerformingAd: 'Summer Sale Campaign'
-    };
+    } as BusinessAnalytics;
   }
 
-  private generateMockBillingHistory(): any[] {
+  private generateMockBillingHistory(): BillingRecord[] {
     return [
       {
         id: '1',
@@ -542,6 +529,6 @@ export class BusinessService {
       status: error.status,
       message: errorMessage,
       error: error.error
-    }));
+    } as ErrorResponse));
   };
 }

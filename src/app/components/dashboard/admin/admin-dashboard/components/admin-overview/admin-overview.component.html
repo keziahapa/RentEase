@@ -1,185 +1,278 @@
-<div class="admin-dashboard-home">
-  <div class="dashboard-content">
+<!-- admin-overview.component.html -->
+<div class="admin-overview">
+  <div class="overview-header">
+    <div class="header-content">
+      <h1 class="page-title">Admin Dashboard</h1>
+      <p class="page-subtitle">Platform overview and quick actions</p>
+    </div>
+    <button class="refresh-btn" (click)="refreshDashboard()" matTooltip="Refresh Data">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoadingDashboard" class="loading-section">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading dashboard data...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="dashboardError && !isLoadingDashboard" class="error-section">
+    <div class="error-message">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ dashboardError }}</p>
+      <button class="retry-btn" (click)="loadDashboardData()">Retry</button>
+    </div>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!isLoadingDashboard && !dashboardError" class="dashboard-content">
     
-    <ng-container *ngIf="isLoadingDashboard; else adminOverviewLoaded">
-      <section class="overview-skeleton" aria-label="Loading admin dashboard overview">
-        <app-skeleton-list variant="stat" [count]="4"></app-skeleton-list>
-        <app-skeleton-list variant="quick" [count]="3"></app-skeleton-list>
-        <app-skeleton-list variant="list" [count]="4"></app-skeleton-list>
-      </section>
-    </ng-container>
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <!-- Skeleton for stats -->
+      <app-skeleton-list 
+        *ngIf="!hasData()"
+        [count]="6"
+        type="card"
+        [height]="'120px'">
+      </app-skeleton-list>
 
-    <ng-template #adminOverviewLoaded>
-      <!-- Header Section -->
-      <div class="header-section">
-        <div class="header-content">
-          <h1 class="dashboard-title">Admin Dashboard Overview</h1>
-          <p class="dashboard-subtitle">Platform management and monitoring dashboard</p>
-        </div>
-        <button class="refresh-btn" (click)="refreshDashboard()">
-          <mat-icon>refresh</mat-icon>
-          <span>Refresh Data</span>
-        </button>
-      </div>
-
-      <!-- Stats Grid -->
-      <div class="stats-grid">
-        <!-- Users Card -->
-        <div class="stat-card" (click)="navigateToUsers()">
-          <div class="stat-header">
-            <span class="stat-title">Total Users</span>
-            <div class="stat-icon">
+      <!-- Actual stats data -->
+      <ng-container *ngIf="hasData()">
+        <mat-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon" style="background: #3b82f6;">
               <mat-icon>people</mat-icon>
             </div>
+            <div class="stat-info">
+              <h3 class="stat-value">{{ dashboardData!.totalUsers?.toLocaleString() || '0' }}</h3>
+              <p class="stat-label">Total Users</p>
+              <div class="stat-growth" [class]="getGrowthClass(dashboardData!.userGrowth)">
+                <mat-icon>{{ getGrowthIcon(dashboardData!.userGrowth) }}</mat-icon>
+                <span>{{ dashboardData!.userGrowth || 0 }}%</span>
+              </div>
+            </div>
           </div>
-          <div class="stat-value">{{ dashboardData.totalUsers || 0 }}</div>
-          <div class="stat-growth" [class]="getGrowthClass(dashboardData.userGrowth || 0)">
-            <mat-icon>{{ getGrowthIcon(dashboardData.userGrowth || 0) }}</mat-icon>
-            <span>{{ dashboardData.userGrowth || 0 }}%</span>
-          </div>
-          <div class="stat-breakdown">
-            <span>{{ dashboardData.totalLandlords || 0 }} Landlords</span>
-            <span>{{ dashboardData.totalTenants || 0 }} Tenants</span>
-            <span>{{ dashboardData.totalCaretakers || 0 }} Caretakers</span>
-          </div>
-        </div>
+        </mat-card>
 
-        <!-- Properties Card -->
-        <div class="stat-card" (click)="navigateToProperties()">
-          <div class="stat-header">
-            <span class="stat-title">Total Properties</span>
-            <div class="stat-icon">
+        <mat-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon" style="background: #10b981;">
               <mat-icon>apartment</mat-icon>
             </div>
+            <div class="stat-info">
+              <h3 class="stat-value">{{ dashboardData!.totalProperties?.toLocaleString() || '0' }}</h3>
+              <p class="stat-label">Properties</p>
+              <div class="stat-growth" [class]="getGrowthClass(dashboardData!.propertiesGrowth)">
+                <mat-icon>{{ getGrowthIcon(dashboardData!.propertiesGrowth) }}</mat-icon>
+                <span>{{ dashboardData!.propertiesGrowth || 0 }}%</span>
+              </div>
+            </div>
           </div>
-          <div class="stat-value">{{ dashboardData.totalProperties || 0 }}</div>
-          <div class="stat-growth" [class]="getGrowthClass(dashboardData.propertiesGrowth || 0)">
-            <mat-icon>{{ getGrowthIcon(dashboardData.propertiesGrowth || 0) }}</mat-icon>
-            <span>{{ dashboardData.propertiesGrowth || 0 }}%</span>
-          </div>
-        </div>
+        </mat-card>
 
-        <!-- Businesses Card -->
-        <div class="stat-card" (click)="navigateToBusinesses()">
-          <div class="stat-header">
-            <span class="stat-title">Active Businesses</span>
-            <div class="stat-icon">
+        <mat-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon" style="background: #f59e0b;">
               <mat-icon>business</mat-icon>
             </div>
-          </div>
-          <div class="stat-value">{{ dashboardData.activeBusinesses || 0 }}</div>
-          <div class="stat-meta">
-            <mat-icon>pending_actions</mat-icon>
-            <span>{{ dashboardData.pendingApprovals || 0 }} pending approvals</span>
-          </div>
-        </div>
-
-        <!-- Revenue Card -->
-        <div class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">Monthly Revenue</span>
-            <div class="stat-icon">
-              <mat-icon>attach_money</mat-icon>
+            <div class="stat-info">
+              <h3 class="stat-value">{{ dashboardData!.activeBusinesses?.toLocaleString() || '0' }}</h3>
+              <p class="stat-label">Active Businesses</p>
+              <div class="stat-growth positive">
+                <mat-icon>trending_up</mat-icon>
+                <span>Active</span>
+              </div>
             </div>
           </div>
-          <div class="stat-value">{{ formatCurrency(dashboardData.monthlyRevenue || 0) }}</div>
-          <div class="stat-growth" [class]="getGrowthClass(dashboardData.revenueGrowth || 0)">
-            <mat-icon>{{ getGrowthIcon(dashboardData.revenueGrowth || 0) }}</mat-icon>
-            <span>{{ dashboardData.revenueGrowth || 0 }}%</span>
-          </div>
-        </div>
+        </mat-card>
 
-        <!-- Commission Card -->
-        <div class="stat-card">
-          <div class="stat-header">
-            <span class="stat-title">Commission Revenue</span>
-            <div class="stat-icon">
-              <mat-icon>trending_up</mat-icon>
+        <mat-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon" style="background: #ef4444;">
+              <mat-icon>gavel</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h3 class="stat-value">{{ dashboardData!.activeDisputes?.toLocaleString() || '0' }}</h3>
+              <p class="stat-label">Active Disputes</p>
+              <div class="stat-tag warning">Needs Attention</div>
             </div>
           </div>
-          <div class="stat-value">{{ formatCurrency(dashboardData.commissionRevenue || 0) }}</div>
-        </div>
+        </mat-card>
 
-        <!-- Pending Approvals Card -->
-        <div class="stat-card alert-card" (click)="navigateToBusinesses()">
-          <div class="stat-header">
-            <span class="stat-title">Pending Approvals</span>
-            <div class="stat-icon">
+        <mat-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon" style="background: #8b5cf6;">
+              <mat-icon>payments</mat-icon>
+            </div>
+            <div class="stat-info">
+              <h3 class="stat-value">{{ formatCurrency(dashboardData!.monthlyRevenue || 0) }}</h3>
+              <p class="stat-label">Monthly Revenue</p>
+              <div class="stat-growth" [class]="getGrowthClass(dashboardData!.revenueGrowth)">
+                <mat-icon>{{ getGrowthIcon(dashboardData!.revenueGrowth) }}</mat-icon>
+                <span>{{ dashboardData!.revenueGrowth || 0 }}%</span>
+              </div>
+            </div>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon" style="background: #06b6d4;">
               <mat-icon>pending_actions</mat-icon>
             </div>
-          </div>
-          <div class="stat-value">{{ dashboardData.pendingApprovals || 0 }}</div>
-          <div class="stat-alert">Requires attention</div>
-        </div>
-
-        <!-- Active Disputes Card -->
-        <div class="stat-card alert-card" (click)="navigateToDisputes()">
-          <div class="stat-header">
-            <span class="stat-title">Active Disputes</span>
-            <div class="stat-icon">
-              <mat-icon>warning</mat-icon>
+            <div class="stat-info">
+              <h3 class="stat-value">{{ getPendingItemsCount() }}</h3>
+              <p class="stat-label">Pending Approvals</p>
+              <div class="stat-tag info">Review Required</div>
             </div>
           </div>
-          <div class="stat-value">{{ dashboardData.activeDisputes || 0 }}</div>
-          <div class="stat-alert">Action needed</div>
-        </div>
-      </div>
+        </mat-card>
+      </ng-container>
+    </div>
 
-      <!-- Quick Actions Section -->
-      <div class="quick-actions-section">
-        <div class="section-header">
-          <h2>Quick Actions</h2>
-          <p>Frequently used administrative tasks</p>
+    <!-- Quick Actions & Recent Activity -->
+    <div class="content-grid">
+      <!-- Quick Actions -->
+      <mat-card class="actions-card">
+        <div class="card-header">
+          <h3>Quick Actions</h3>
+          <p>Frequently used admin tasks</p>
         </div>
-        <div class="quick-actions-grid">
-          <div *ngFor="let action of quickActions" 
-               class="quick-action-card" 
-               (click)="onQuickAction(action)">
-            <div class="action-icon" [style.background]="action.color">
+        <div class="actions-grid">
+          <button *ngFor="let action of quickActions" 
+                  class="action-btn" 
+                  (click)="onQuickAction(action)"
+                  [style.--action-color]="action.color">
+            <div class="action-icon">
               <mat-icon>{{ action.icon }}</mat-icon>
             </div>
             <div class="action-content">
-              <h3>{{ action.label }}</h3>
-              <p>{{ action.description }}</p>
+              <span class="action-label">{{ action.label }}</span>
+              <span class="action-desc">{{ action.description }}</span>
             </div>
-            <div class="action-arrow">
-              <mat-icon>arrow_forward</mat-icon>
-            </div>
-          </div>
+            <mat-icon class="action-arrow">arrow_forward</mat-icon>
+          </button>
         </div>
-      </div>
+      </mat-card>
 
-      <!-- Recent Activity Section -->
-      <div class="recent-activity-section">
-        <div class="section-header">
-          <h2>Recent Platform Activity</h2>
-          <p>Latest updates and system events</p>
+      <!-- Recent Activity -->
+      <mat-card class="activity-card">
+        <div class="card-header">
+          <h3>Recent Activity</h3>
+          <p>Latest platform events</p>
         </div>
+        
         <div class="activity-list">
           <div *ngFor="let activity of recentActivities" class="activity-item">
             <div class="activity-icon">
               <mat-icon>{{ activity.icon }}</mat-icon>
             </div>
             <div class="activity-content">
-              <div class="activity-main">
-                <h4>{{ activity.type }}</h4>
-                <p>{{ activity.message }}</p>
-              </div>
-              <span class="activity-time">{{ activity.time }}</span>
+              <div class="activity-type">{{ activity.type }}</div>
+              <div class="activity-message">{{ activity.message }}</div>
+              <div class="activity-time">{{ activity.time }}</div>
             </div>
+          </div>
+
+          <!-- No activity state -->
+          <div *ngIf="recentActivities.length === 0" class="no-activity">
+            <mat-icon>notifications_off</mat-icon>
+            <p>No recent activity</p>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Pending Approvals Section -->
+    <div class="pending-approvals-section" *ngIf="hasData()">
+      <h2 class="section-title">Pending Approvals</h2>
+      <div class="approvals-grid">
+        <!-- Pending Businesses -->
+        <mat-card class="approval-card">
+          <div class="approval-header">
+            <div class="approval-icon" style="background: #f59e0b;">
+              <mat-icon>business</mat-icon>
+            </div>
+            <div class="approval-info">
+              <h3>Business Applications</h3>
+              <p>{{ pendingBusinessesCount }} pending review</p>
+            </div>
+          </div>
+          <div class="approval-actions">
+            <button class="view-btn" (click)="navigateToBusinesses()" [disabled]="!hasPendingBusinesses()">
+              <mat-icon>visibility</mat-icon>
+              View Applications
+            </button>
+          </div>
+        </mat-card>
+
+        <!-- Pending Advertisements -->
+        <mat-card class="approval-card">
+          <div class="approval-header">
+            <div class="approval-icon" style="background: #8b5cf6;">
+              <mat-icon>campaign</mat-icon>
+            </div>
+            <div class="approval-info">
+              <h3>Advertisement Campaigns</h3>
+              <p>{{ pendingAdvertisementsCount }} pending review</p>
+            </div>
+          </div>
+          <div class="approval-actions">
+            <button class="view-btn" (click)="navigateToAdvertisements()" [disabled]="!hasPendingAdvertisements()">
+              <mat-icon>visibility</mat-icon>
+              View Campaigns
+            </button>
+          </div>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- User Breakdown -->
+    <mat-card class="breakdown-card" *ngIf="hasData()">
+      <div class="card-header">
+        <h3>User Breakdown</h3>
+        <p>Platform user distribution</p>
+      </div>
+      <div class="breakdown-grid">
+        <div class="breakdown-item">
+          <div class="breakdown-icon landlords">
+            <mat-icon>person</mat-icon>
+          </div>
+          <div class="breakdown-info">
+            <h4>{{ dashboardData!.totalLandlords || 0 }}</h4>
+            <p>Landlords</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-icon tenants">
+            <mat-icon>group</mat-icon>
+          </div>
+          <div class="breakdown-info">
+            <h4>{{ dashboardData!.totalTenants || 0 }}</h4>
+            <p>Tenants</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-icon caretakers">
+            <mat-icon>engineering</mat-icon>
+          </div>
+          <div class="breakdown-info">
+            <h4>{{ dashboardData!.totalCaretakers || 0 }}</h4>
+            <p>Caretakers</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-icon businesses">
+            <mat-icon>store</mat-icon>
+          </div>
+          <div class="breakdown-info">
+            <h4>{{ dashboardData!.activeBusinesses || 0 }}</h4>
+            <p>Businesses</p>
           </div>
         </div>
       </div>
-    </ng-template>
-
-    <div *ngIf="dashboardError" class="error-state">
-      <mat-icon>error_outline</mat-icon>
-      <h3>Unable to load dashboard data</h3>
-      <p>{{ dashboardError }}</p>
-      <button class="retry-btn" (click)="loadDashboardData()">
-        <mat-icon>refresh</mat-icon>
-        Try Again
-      </button>
-    </div>
+    </mat-card>
   </div>
 </div>
