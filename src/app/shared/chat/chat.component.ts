@@ -1,15 +1,17 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms'; // Add this import
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ChatService } from '../../services/chat.service';
-import { User, ChatMessage, ChatRoom, CreateMessageRequest, BatchDeleteRequest } from '../../services/chat.interface';
+import { ChatService } from '../../services/chat.service'; // Adjust path as needed
+import { User, ChatMessage, ChatRoom, CreateMessageRequest, BatchDeleteRequest } from '../../services/chat.interface'; // Adjust path as needed
 
 @Component({
   selector: 'app-chat',
   templateUrl: './chat.component.html',
-  styleUrls: ['./chat.component.scss']
+  styleUrls: ['./chat.component.scss'],
+  standalone: true, // Add if using standalone components
+  imports: [CommonModule, FormsModule] // Add FormsModule here
 })
 export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   @ViewChild('messageContainer') private messageContainer!: ElementRef;
@@ -252,7 +254,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     this.subscriptions.push(markReadSub);
   }
 
-  // === UI HELPERS ===
+
 
   toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
@@ -262,7 +264,8 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     return this.currentUser?.id === senderId;
   }
 
-  getOtherParticipant(room: ChatRoom): User | undefined {
+  getOtherParticipant(room: ChatRoom | null): User | undefined {
+    if (!room) return undefined;
     return room.participants.find(p => p.id !== this.currentUser?.id);
   }
 
@@ -275,7 +278,7 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   formatTime(timestamp: string): string {
-    // In real app, format timestamp properly
+  
     return timestamp;
   }
 
@@ -296,11 +299,11 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  // === SEARCH ===
+
 
   searchRooms(): void {
     if (this.searchQuery.trim()) {
-      // Implement search logic using chatService.searchMessages()
+     
       const searchCriteria = {
         query: this.searchQuery,
         limit: 20
@@ -364,14 +367,13 @@ export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
     fileInput.click();
   }
 
-  // === EMOJI PICKER ===
 
   addEmoji(emoji: string): void {
     this.newMessage += emoji;
     this.showEmojiPicker = false;
   }
 
-  // === ROOM CREATION ===
+
 
   createTenantLandlordRoom(propertyId: number): void {
     const createSub = this.chatService.createTenantLandlordRoom(propertyId).subscribe({

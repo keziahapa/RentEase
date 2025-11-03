@@ -96,7 +96,7 @@
              [class.received]="!isCurrentUser(message.senderId)"
              [class.deleted]="message.deleted">
           
-          <div class="message-avatar" *ngIf="!isCurrentUser(message.senderId)">
+          <div class="message-avatar" *ngIf="!isCurrentUser(message.senderId) && message.sender">
             <div class="avatar small" [style.background]="getAvatarColor(message.senderId)">
               {{ message.sender?.avatar || message.sender?.name?.charAt(0) }}
             </div>
