@@ -22,13 +22,15 @@ export class AdminService {
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
 
   constructor() {
+    console.log('🟢🟢🟢 AdminService constructor called - service is instantiated 🟢🟢🟢');
     this.validateTokenOnInit();
   }
 
   private validateTokenOnInit() {
+    console.log('🟢🟢🟢 validateTokenOnInit called 🟢🟢🟢');
     const token = this.getToken();
     if (token) {
-      console.log('🔐 Token Validation on Init:', {
+      console.log('🔐🔐🔐 TOKEN FOUND - Validation on Init:', {
         hasToken: !!token,
         tokenLength: token.length,
         tokenPreview: token.substring(0, 20) + '...'
@@ -38,34 +40,50 @@ export class AdminService {
       try {
         if (token.includes('.')) {
           const payload = JSON.parse(atob(token.split('.')[1]));
-          console.log('🔐 Token Payload:', {
+          console.log('🔐🔐🔐 Token Payload:', {
             issuedTo: payload.sub,
             role: payload.role,
             issuedAt: new Date(payload.iat * 1000),
             expires: new Date(payload.exp * 1000),
             isExpired: Date.now() >= payload.exp * 1000
           });
+        } else {
+          console.log('🔐🔐🔐 Token does not appear to be standard JWT format');
         }
       } catch (e) {
-        console.log('🔐 Token is not a standard JWT, might be custom format');
+        console.log('🔐🔐🔐 Token decoding failed:', e);
       }
     } else {
-      console.warn('🔐 No token found in storage');
+      console.warn('🔐🔐🔐 NO TOKEN FOUND in storage');
+      console.log('🔐🔐🔐 Available storage:', {
+        localStorage: {
+          authToken: localStorage.getItem('authToken'),
+          token: localStorage.getItem('token')
+        },
+        sessionStorage: {
+          authToken: sessionStorage.getItem('authToken'),
+          token: sessionStorage.getItem('token')
+        }
+      });
     }
   }
 
   private getToken(): string | null {
-    return localStorage.getItem('authToken') || 
+    const token = localStorage.getItem('authToken') || 
            sessionStorage.getItem('authToken') ||
            localStorage.getItem('token') ||
            sessionStorage.getItem('token');
+    
+    console.log('🔐🔐🔐 getToken() returned:', token ? 'Token found' : 'No token');
+    return token;
   }
 
   private createHeaders(): HttpHeaders {
+    console.log('🟢🟢🟢 createHeaders() called 🟢🟢🟢');
     const token = this.getToken();
     const userRole = localStorage.getItem('userRole') || sessionStorage.getItem('userRole');
     
-    console.log('🔐 Creating Headers:', { 
+    console.log('🔐🔐🔐 CREATING HEADERS - Details:', { 
       hasToken: !!token, 
       userRole: userRole,
       tokenPreview: token ? token.substring(0, 20) + '...' : 'No token'
@@ -77,18 +95,25 @@ export class AdminService {
     
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+      console.log('🔐🔐🔐 Authorization header set with Bearer token');
+    } else {
+      console.warn('🔐🔐🔐 No token available for Authorization header');
     }
     
-    // Some backends require role in headers
     if (userRole) {
       headers['X-User-Role'] = userRole;
+      console.log('🔐🔐🔐 X-User-Role header set:', userRole);
+    } else {
+      console.warn('🔐🔐🔐 No user role available for X-User-Role header');
     }
     
-    return new HttpHeaders(headers);
+    const httpHeaders = new HttpHeaders(headers);
+    console.log('🔐🔐🔐 Final Headers Object:', httpHeaders);
+    return httpHeaders;
   }
 
   private handleError(error: HttpErrorResponse): Observable<never> {
-    console.error('🔴 Admin Service Error Details:', {
+    console.error('🔴🔴🔴 Admin Service Error Details:', {
       status: error.status,
       statusText: error.statusText,
       url: error.url,
@@ -106,7 +131,7 @@ export class AdminService {
     } else if (error.status === 403) {
       // Get the actual error message from backend
       errorMessage = error.error?.message || error.error?.error || 'Access denied - Insufficient permissions';
-      console.error('🔴 403 Forbidden Details:', error.error);
+      console.error('🔴🔴🔴 403 Forbidden Details:', error.error);
     } else if (error.status === 404) {
       errorMessage = 'Resource not found';
     } else if (error.status >= 500) {
@@ -115,6 +140,7 @@ export class AdminService {
       errorMessage = error.error.message;
     }
     
+    console.error('🔴🔴🔴 Showing error snackbar:', errorMessage);
     this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
     return throwError(() => ({ 
       message: errorMessage, 
@@ -126,15 +152,15 @@ export class AdminService {
   // Test method to verify token is working
   verifyToken(): Observable<any> {
     const url = `${this.apiUrl}/api/auth/verify`;
-    console.log('🔐 Testing token verification:', url);
+    console.log('🔐🔐🔐 Testing token verification:', url);
     
     return this.http.get(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ Token verification successful:', response)),
+      tap(response => console.log('✅✅✅ Token verification successful:', response)),
       catchError(error => {
-        console.error('❌ Token verification failed:', error);
+        console.error('❌❌❌ Token verification failed:', error);
         return throwError(() => error);
       })
     );
@@ -143,22 +169,22 @@ export class AdminService {
   // Test method to check admin access
   testAdminAccess(): Observable<any> {
     const url = `${this.apiUrl}/api/admin/test`;
-    console.log('🔐 Testing admin access:', url);
+    console.log('🔐🔐🔐 Testing admin access:', url);
     
     return this.http.get(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ Admin access test successful:', response)),
+      tap(response => console.log('✅✅✅ Admin access test successful:', response)),
       catchError(error => {
-        console.error('❌ Admin access test failed:', error);
+        console.error('❌❌❌ Admin access test failed:', error);
         return throwError(() => error);
       })
     );
   }
 
   getDashboardStats(): Observable<ApiResponse<AdminStats>> {
-    console.log('🔄 Loading dashboard stats...');
+    console.log('🔄🔄🔄 Loading dashboard stats...');
     
     return forkJoin({
       businesses: this.getBusinesses().pipe(catchError(() => of({ success: true, data: [] }))),
@@ -168,6 +194,7 @@ export class AdminService {
     }).pipe(
       map(results => {
         const stats = this.calculateStatsFromData(results);
+        console.log('📊📊📊 Dashboard stats calculated:', stats);
         return {
           success: true,
           message: 'Dashboard statistics calculated successfully',
@@ -184,7 +211,7 @@ export class AdminService {
     const advertisements = data.advertisements?.data || [];
     const pendingAdvertisements = data.pendingAdvertisements?.data || [];
 
-    console.log('📊 Calculating stats from real data:', {
+    console.log('📊📊📊 Calculating stats from real data:', {
       businesses: businesses.length,
       pendingBusinesses: pendingBusinesses.length,
       advertisements: advertisements.length,
@@ -287,15 +314,15 @@ export class AdminService {
   // Business Management
   getBusinesses(): Observable<ApiResponse<Business[]>> {
     const url = `${this.apiUrl}/api/admin/businesses`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - getBusinesses:', url);
     
     return this.http.get<ApiResponse<Business[]>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ Admin API Success - Businesses:', response)),
+      tap(response => console.log('✅✅✅ Admin API Success - Businesses:', response)),
       catchError(error => {
-        console.error('❌ Admin API Error - Businesses:', {
+        console.error('❌❌❌ Admin API Error - Businesses:', {
           url: url,
           status: error.status,
           error: error.error
@@ -307,15 +334,15 @@ export class AdminService {
 
   getPendingBusinesses(): Observable<ApiResponse<Business[]>> {
     const url = `${this.apiUrl}/api/admin/businesses/pending`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - getPendingBusinesses:', url);
     
     return this.http.get<ApiResponse<Business[]>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ Admin API Success - Pending Businesses:', response)),
+      tap(response => console.log('✅✅✅ Admin API Success - Pending Businesses:', response)),
       catchError(error => {
-        console.error('❌ Admin API Error - Pending Businesses:', {
+        console.error('❌❌❌ Admin API Error - Pending Businesses:', {
           url: url,
           status: error.status,
           error: error.error
@@ -327,15 +354,15 @@ export class AdminService {
 
   getBusinessDetails(businessId: number): Observable<ApiResponse<Business>> {
     const url = `${this.apiUrl}/api/admin/businesses/${businessId}`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - getBusinessDetails:', url);
     
     return this.http.get<ApiResponse<Business>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ Admin API Success - Business Details:', response)),
+      tap(response => console.log('✅✅✅ Admin API Success - Business Details:', response)),
       catchError(error => {
-        console.error('❌ Admin API Error - Business Details:', {
+        console.error('❌❌❌ Admin API Error - Business Details:', {
           url: url,
           status: error.status,
           error: error.error
@@ -347,7 +374,7 @@ export class AdminService {
 
   approveBusiness(businessId: number): Observable<ApiResponse<Business>> {
     const url = `${this.apiUrl}/api/admin/businesses/${businessId}/approve`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - approveBusiness:', url);
     
     return this.http.post<ApiResponse<Business>>(
       url,
@@ -356,11 +383,12 @@ export class AdminService {
     ).pipe(
       tap(response => {
         if (response.success) {
+          console.log('✅✅✅ Business approved successfully');
           this.snackBar.open('Business approved successfully', 'Close', { duration: 3000 });
         }
       }),
       catchError(error => {
-        console.error('❌ Admin API Error - Approve Business:', {
+        console.error('❌❌❌ Admin API Error - Approve Business:', {
           url: url,
           status: error.status,
           error: error.error
@@ -372,7 +400,7 @@ export class AdminService {
 
   rejectBusiness(businessId: number, rejectionReason: string): Observable<ApiResponse<Business>> {
     const url = `${this.apiUrl}/api/admin/businesses/${businessId}/reject`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - rejectBusiness:', url);
     
     const rejectionRequest: RejectionRequest = { rejectionReason };
     
@@ -383,11 +411,12 @@ export class AdminService {
     ).pipe(
       tap(response => {
         if (response.success) {
+          console.log('✅✅✅ Business rejected successfully');
           this.snackBar.open('Business rejected successfully', 'Close', { duration: 3000 });
         }
       }),
       catchError(error => {
-        console.error('❌ Admin API Error - Reject Business:', {
+        console.error('❌❌❌ Admin API Error - Reject Business:', {
           url: url,
           status: error.status,
           error: error.error
@@ -400,15 +429,15 @@ export class AdminService {
   // Advertisement Management
   getAdvertisements(): Observable<ApiResponse<Advertisement[]>> {
     const url = `${this.apiUrl}/api/admin/advertisements`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - getAdvertisements:', url);
     
     return this.http.get<ApiResponse<Advertisement[]>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ Admin API Success - Advertisements:', response)),
+      tap(response => console.log('✅✅✅ Admin API Success - Advertisements:', response)),
       catchError(error => {
-        console.error('❌ Admin API Error - Advertisements:', {
+        console.error('❌❌❌ Admin API Error - Advertisements:', {
           url: url,
           status: error.status,
           error: error.error
@@ -420,15 +449,15 @@ export class AdminService {
 
   getPendingAdvertisements(): Observable<ApiResponse<Advertisement[]>> {
     const url = `${this.apiUrl}/api/admin/advertisements/pending`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - getPendingAdvertisements:', url);
     
     return this.http.get<ApiResponse<Advertisement[]>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ Admin API Success - Pending Advertisements:', response)),
+      tap(response => console.log('✅✅✅ Admin API Success - Pending Advertisements:', response)),
       catchError(error => {
-        console.error('❌ Admin API Error - Pending Advertisements:', {
+        console.error('❌❌❌ Admin API Error - Pending Advertisements:', {
           url: url,
           status: error.status,
           error: error.error
@@ -440,15 +469,15 @@ export class AdminService {
 
   getAdvertisementDetails(advertisementId: number): Observable<ApiResponse<Advertisement>> {
     const url = `${this.apiUrl}/api/admin/advertisements/${advertisementId}`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - getAdvertisementDetails:', url);
     
     return this.http.get<ApiResponse<Advertisement>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ Admin API Success - Advertisement Details:', response)),
+      tap(response => console.log('✅✅✅ Admin API Success - Advertisement Details:', response)),
       catchError(error => {
-        console.error('❌ Admin API Error - Advertisement Details:', {
+        console.error('❌❌❌ Admin API Error - Advertisement Details:', {
           url: url,
           status: error.status,
           error: error.error
@@ -460,7 +489,7 @@ export class AdminService {
 
   approveAdvertisement(advertisementId: number): Observable<ApiResponse<Advertisement>> {
     const url = `${this.apiUrl}/api/admin/advertisements/${advertisementId}/approve`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - approveAdvertisement:', url);
     
     return this.http.post<ApiResponse<Advertisement>>(
       url,
@@ -469,11 +498,12 @@ export class AdminService {
     ).pipe(
       tap(response => {
         if (response.success) {
+          console.log('✅✅✅ Advertisement approved successfully');
           this.snackBar.open('Advertisement approved successfully', 'Close', { duration: 3000 });
         }
       }),
       catchError(error => {
-        console.error('❌ Admin API Error - Approve Advertisement:', {
+        console.error('❌❌❌ Admin API Error - Approve Advertisement:', {
           url: url,
           status: error.status,
           error: error.error
@@ -485,7 +515,7 @@ export class AdminService {
 
   rejectAdvertisement(advertisementId: number, rejectionReason: string): Observable<ApiResponse<Advertisement>> {
     const url = `${this.apiUrl}/api/admin/advertisements/${advertisementId}/reject`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - rejectAdvertisement:', url);
     
     const rejectionRequest: RejectionRequest = { rejectionReason };
     
@@ -496,11 +526,12 @@ export class AdminService {
     ).pipe(
       tap(response => {
         if (response.success) {
+          console.log('✅✅✅ Advertisement rejected successfully');
           this.snackBar.open('Advertisement rejected successfully', 'Close', { duration: 3000 });
         }
       }),
       catchError(error => {
-        console.error('❌ Admin API Error - Reject Advertisement:', {
+        console.error('❌❌❌ Admin API Error - Reject Advertisement:', {
           url: url,
           status: error.status,
           error: error.error
@@ -513,15 +544,15 @@ export class AdminService {
   // External Business Management
   getExternalBusinesses(): Observable<ApiResponse<ExternalBusiness[]>> {
     const url = `${this.apiUrl}/api/admin/external-businesses`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - getExternalBusinesses:', url);
     
     return this.http.get<ApiResponse<ExternalBusiness[]>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ Admin API Success - External Businesses:', response)),
+      tap(response => console.log('✅✅✅ Admin API Success - External Businesses:', response)),
       catchError(error => {
-        console.error('❌ Admin API Error - External Businesses:', {
+        console.error('❌❌❌ Admin API Error - External Businesses:', {
           url: url,
           status: error.status,
           error: error.error
@@ -533,15 +564,15 @@ export class AdminService {
 
   getPendingExternalBusinesses(): Observable<ApiResponse<ExternalBusiness[]>> {
     const url = `${this.apiUrl}/api/admin/external-businesses/pending`;
-    console.log('🔄 Calling admin endpoint:', url);
+    console.log('🔄🔄🔄 Calling admin endpoint - getPendingExternalBusinesses:', url);
     
     return this.http.get<ApiResponse<ExternalBusiness[]>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ Admin API Success - Pending External Businesses:', response)),
+      tap(response => console.log('✅✅✅ Admin API Success - Pending External Businesses:', response)),
       catchError(error => {
-        console.error('❌ Admin API Error - Pending External Businesses:', {
+        console.error('❌❌❌ Admin API Error - Pending External Businesses:', {
           url: url,
           status: error.status,
           error: error.error
