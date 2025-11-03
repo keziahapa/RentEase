@@ -44,7 +44,6 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   passwordError: string = '';
 
   ngOnInit(): void {
-   
     if (this.authService.isAuthenticated()) {
       const user = this.authService.getCurrentUser();
       if (user?.role === 'ADMIN') {
@@ -130,7 +129,6 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
     if (!this.validateForm()) return;
     
     this.isLoading = true;
-   
     this.emailError = '';
     this.passwordError = '';
 
@@ -140,28 +138,46 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
       rememberMe: false 
     };
 
+    console.log('🟡 Attempting admin login with:', loginRequest.email);
+
     this.authService.login(loginRequest).subscribe({
-      next: (response: AuthResponse) => {
+      next: (response: any) => {
+        console.log('🟢 Login response received:', response);
         this.isLoading = false;
         
+        // Check if response indicates success but with access denied
+        if (response.success === false) {
+          this.handleAccessDenied(response.message || 'Access denied');
+          return;
+        }
+
+        // Get user data from various possible locations
         const user = this.authService.getCurrentUser();
         const userRole = user?.role || response.role || response.user?.role;
+
+        console.log('🔵 Detected user role:', userRole);
 
         if (userRole === 'ADMIN') {
           this.showSnackbar('Admin login successful!', 'success');
           this.router.navigate(['/admin-dashboard']);
         } else {
-          // Not an admin, log them out
-          this.authService.logout();
-          this.showSnackbar('Access denied. Admin privileges required.', 'error');
-          this.loginData.password = '';
+          this.handleAccessDenied('Access denied. Admin privileges required.');
         }
       },
       error: (error) => {
+        console.error('🔴 Login error:', error);
         this.isLoading = false;
         this.handleApiError(error);
       }
     });
+  }
+
+  private handleAccessDenied(message: string): void {
+    console.log('🔴 Access denied:', message);
+    this.authService.logoutSync();
+    this.showSnackbar(message, 'error');
+    this.loginData.password = '';
+    this.emailError = 'Admin access required';
   }
 
   private handleApiError(error: any): void {
@@ -170,6 +186,23 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
     
     let errorMessage = 'Admin login failed. Please try again.';
     let showSnackbar = true;
+    
+    console.log('🔴 Error details:', {
+      status: error.status,
+      message: error.message,
+      error: error.error
+    });
+
+    // Handle 200 responses with error messages
+    if (error.status === 200 && error.error && typeof error.error === 'object') {
+      if (error.error.success === false) {
+        errorMessage = error.error.message || 'Access denied';
+        if (errorMessage.toLowerCase().includes('access denied') || errorMessage.toLowerCase().includes('admin')) {
+          this.handleAccessDenied(errorMessage);
+          return;
+        }
+      }
+    }
     
     if (typeof error === 'string') {
       errorMessage = error;
@@ -193,6 +226,9 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
         errorMessage = 'Admin account requires verification. Contact system administrator.';
       } else if (msg.includes('disabled') || msg.includes('inactive')) {
         errorMessage = 'Admin account has been deactivated';
+      } else if (msg.includes('access denied') || msg.includes('admin') || msg.includes('privilege')) {
+        this.handleAccessDenied(error.error.message);
+        return;
       } else if (msg.includes('network') || msg.includes('connection')) {
         errorMessage = 'Connection problem. Check your internet connection.';
       } else if (msg.includes('timeout')) {
@@ -211,7 +247,8 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
       this.passwordError = 'Invalid admin credentials';
       errorMessage = 'The email or password you entered is not correct';
     } else if (error.status === 403) {
-      errorMessage = 'Access denied. Admin privileges required.';
+      this.handleAccessDenied('Access denied. Admin privileges required.');
+      return;
     } else if (error.status === 404) {
       this.emailError = 'Admin account not found';
       errorMessage = 'No admin account found with this email address';
@@ -261,6 +298,6 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    
+    // Cleanup if needed
   }
 }

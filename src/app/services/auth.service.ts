@@ -24,13 +24,10 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
-  private initialized = false;
-
   constructor() {
     this.isBrowser = isPlatformBrowser(this.platformId);
-    if (this.isBrowser && !this.initialized) {
+    if (this.isBrowser) {
       this.initializeAuthState();
-      this.initialized = true;
     }
   }
 
@@ -63,14 +60,29 @@ export class AuthService {
     this.clearAllStorage();
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);
-    this.initialized = false;
   }
 
   login(credentials: any): Observable<any> {
+    console.log('🟡 AuthService: Attempting login for:', credentials.email);
+    
     return this.http.post<any>(`${this.apiUrl}/login`, credentials, {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
     }).pipe(
       tap(res => {
+        console.log('🟢 AuthService: Login response:', res);
+        
+        // Check if response indicates failure despite 200 status
+        if (res.success === false) {
+          console.error('🔴 AuthService: Login failed in response:', res.message);
+          throw new Error(res.message || 'Login failed');
+        }
+
+        // Validate required fields
+        if (!res.user || !res.user.role) {
+          console.error('🔴 AuthService: Invalid response - missing user or role');
+          throw new Error('Invalid login response');
+        }
+
         const phoneNumber = res.user?.phoneNumber || 
                            res.phoneNumber || 
                            this.getPendingPhoneNumber() || 
@@ -150,7 +162,6 @@ export class AuthService {
     this.clearAllStorage();
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);
-    this.initialized = false;
     this.router.navigate(['/login']);
   }
 
@@ -428,19 +439,21 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    const token = this.getFromStorage('authToken');
+    if (!this.isBrowser) return null;
     
-    if (!token) {
-      return null;
-    }
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    
+    if (!token) return null;
     
     let cleanToken = token.trim();
-    if (cleanToken.startsWith('"') && cleanToken.endsWith('"')) {
+    
+    // Remove quotes if present
+    if ((cleanToken.startsWith('"') && cleanToken.endsWith('"')) || 
+        (cleanToken.startsWith("'") && cleanToken.endsWith("'"))) {
       cleanToken = cleanToken.slice(1, -1);
     }
-    if (cleanToken.startsWith("'") && cleanToken.endsWith("'")) {
-      cleanToken = cleanToken.slice(1, -1);
-    }
+    
+    // Remove Bearer prefix if present
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
     }
@@ -570,67 +583,37 @@ export class AuthService {
   private handleAuthSuccess(response: any, rememberMe: boolean = false): void {
     if (!this.isBrowser) return;
     
-    let user: any = null;
-    let token: string | null = null;
+    console.log('🟢 AuthService: Handling auth success for role:', response.user?.role);
+    
+    const user = response.user;
+    const token = response.token;
 
-    let phoneNumber = response.phoneNumber || 
-                     response.user?.phoneNumber || 
-                     this.extractPhoneNumberFromMultipleSources(response) || 
-                     '';
-
-    if ('userId' in response) {
-      token = response.token;
-      user = {
-        id: response.userId.toString(),
-        email: response.email,
-        fullName: response.fullName,
-        role: response.role,
-        verified: response.verified,
-        emailVerified: response.verified,
-        phoneNumber: phoneNumber
-      };
-    } else if ('user' in response && response.user) {
-      user = {
-        ...response.user,
-        phoneNumber: phoneNumber
-      };
-      token = ('token' in response && response.token) ? response.token : null;
-    } else if (response.user) {
-      user = {
-        ...response.user,
-        phoneNumber: phoneNumber
-      };
-      token = response.token || null;
+    if (!user || !token) {
+      console.error('🔴 AuthService: Missing user or token in auth success');
+      return;
     }
 
-    if ((!user.phoneNumber || user.phoneNumber.trim() === '') && this.isBrowser) {
-      const pendingPhone = sessionStorage.getItem('pendingPhoneNumber');
-      if (pendingPhone) {
-        user.phoneNumber = pendingPhone;
-      }
+    let cleanToken = token.trim();
+    if (cleanToken.startsWith('Bearer ')) {
+      cleanToken = cleanToken.substring(7).trim();
     }
 
-    if (token) {
-      let cleanToken = token.trim();
-      if (cleanToken.startsWith('Bearer ')) {
-        cleanToken = cleanToken.substring(7).trim();
-      }
-      
-      if (rememberMe) {
-        localStorage.setItem('authToken', cleanToken);
-        localStorage.setItem('userData', JSON.stringify(user));
-      } else {
-        sessionStorage.setItem('authToken', cleanToken);
-        sessionStorage.setItem('userData', JSON.stringify(user));
-      }
+    // Store token and user data
+    if (rememberMe) {
+      localStorage.setItem('authToken', cleanToken);
+      localStorage.setItem('userData', JSON.stringify(user));
+    } else {
+      sessionStorage.setItem('authToken', cleanToken);
+      sessionStorage.setItem('userData', JSON.stringify(user));
     }
 
-    if (user) {
-      this.currentUserSubject.next(user);
-      this.isAuthenticatedSubject.next(true);
-      
-      this.clearPendingVerification();
-    }
+    // Update subjects
+    this.currentUserSubject.next(user);
+    this.isAuthenticatedSubject.next(true);
+    
+    this.clearPendingVerification();
+    
+    console.log('🟢 AuthService: Auth success completed for user:', user.email, 'role:', user.role);
   }
 
   private hasValidToken(): boolean {
@@ -726,6 +709,8 @@ export class AuthService {
   };
 
   private handleError = (error: HttpErrorResponse): Observable<never> => {
+    console.error('🔴 AuthService Error:', error);
+    
     let message = 'An unexpected error occurred';
     
     if (error.error instanceof ErrorEvent) {
