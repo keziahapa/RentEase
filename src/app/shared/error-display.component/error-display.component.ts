@@ -4,7 +4,6 @@ import { Subscription } from 'rxjs';
 import { ErrorHandlerService } from '../../services/error-handler.service';
 import { AppError, ErrorSeverity } from '../../services/error-handler.interface';
 
-
 @Component({
   selector: 'app-error-display',
   standalone: true,
@@ -38,6 +37,36 @@ export class ErrorDisplayComponent implements OnInit, OnDestroy {
         return 'error';
       case ErrorSeverity.CRITICAL:
         return 'dangerous';
+      default:
+        return 'info';
+    }
+  }
+
+  getTitle(severity: ErrorSeverity): string {
+    switch (severity) {
+      case ErrorSeverity.INFO:
+        return 'Information';
+      case ErrorSeverity.WARNING:
+        return 'Warning';
+      case ErrorSeverity.ERROR:
+        return 'Error';
+      case ErrorSeverity.CRITICAL:
+        return 'Critical Error';
+      default:
+        return 'Notification';
+    }
+  }
+
+  getToastClass(severity: ErrorSeverity): string {
+    switch (severity) {
+      case ErrorSeverity.INFO:
+        return 'info';
+      case ErrorSeverity.WARNING:
+        return 'warning';
+      case ErrorSeverity.ERROR:
+        return 'error';
+      case ErrorSeverity.CRITICAL:
+        return 'critical';
       default:
         return 'info';
     }
