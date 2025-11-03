@@ -77,13 +77,25 @@ export class AuthService {
           throw new Error(res.message || 'Login failed');
         }
 
-        // Validate required fields
-        if (!res.user || !res.user.role) {
-          console.error('🔴 AuthService: Invalid response - missing user or role');
-          throw new Error('Invalid login response');
+        // ✅ FIXED: Handle the actual response structure
+        // Extract user data from root level if user object doesn't exist
+        const userData = res.user || {
+          id: res.userId?.toString(),
+          fullName: res.fullName,
+          email: res.email,
+          role: res.role, // This might be missing too
+          phoneNumber: res.phoneNumber,
+          verified: res.verified,
+          emailVerified: res.emailVerified
+        };
+
+        // If role is still missing, we need to handle it differently
+        if (!userData.role) {
+          console.warn('🟡 AuthService: Role not provided in response, will check from token or API');
+          // Don't throw error - proceed and we'll get role from token or separate API call
         }
 
-        const phoneNumber = res.user?.phoneNumber || 
+        const phoneNumber = userData.phoneNumber || 
                            res.phoneNumber || 
                            this.getPendingPhoneNumber() || 
                            '';
@@ -91,7 +103,10 @@ export class AuthService {
         const enhancedResponse = {
           ...res,
           phoneNumber: phoneNumber,
-          user: res.user ? { ...res.user, phoneNumber: phoneNumber } : undefined
+          user: {
+            ...userData,
+            phoneNumber: phoneNumber
+          }
         };
         
         this.handleAuthSuccess(enhancedResponse, credentials.rememberMe);
@@ -286,51 +301,60 @@ export class AuthService {
   }
 
   sendOtp(request: any): Observable<any> {
-    const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
-    return this.http.post<any>(`${this.apiUrl}/send-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(catchError(this.handleError));
-  }
+  const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
+  return this.http.post<any>(`${this.apiUrl}/send-otp`, cleanRequest, {
+    headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+  }).pipe(catchError(this.handleError));
+}
 
   verifyOtp(request: any): Observable<any> {
-    const cleanRequest = {
-      email: request.email.trim().toLowerCase(),
-      otpCode: request.otpCode.toString().trim(),
-      type: request.type
-    };
-    
-    return this.http.post<any>(`${this.apiUrl}/verify-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(
-      tap(res => {
-        if (res.success && res.token) {
-          if (!res.user?.role) {
-            throw new Error('User role not provided in verification response');
-          }
-          
-          const phoneNumber = this.extractPhoneNumberFromMultipleSources(res);
-          
-          const enhancedResponse = {
-            token: res.token,
-            tokenType: 'Bearer',
-            userId: res.user.id as number,
-            fullName: res.user.fullName || '',
-            email: res.user.email || '',
-            role: res.user.role,
-            verified: res.user.verified || false,
-            phoneNumber: phoneNumber,
-            user: {
-              ...res.user,
-              phoneNumber: phoneNumber
-            }
-          };
-          
-          this.handleAuthSuccess(enhancedResponse, false);
+  const cleanRequest = {
+    email: request.email.trim().toLowerCase(),
+    otpCode: request.otpCode.toString().trim(),
+    type: request.type
+  };
+  
+  return this.http.post<any>(`${this.apiUrl}/verify-otp`, cleanRequest, {
+    headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+  }).pipe(
+    tap(res => {
+      if (res.success && res.token) {
+        const userData = res.user || {
+          id: res.userId?.toString(),
+          fullName: res.fullName,
+          email: res.email,
+          role: res.role,
+          verified: res.verified,
+          emailVerified: res.emailVerified
+        };
+
+        if (!userData.role) {
+          throw new Error('User role not provided in verification response');
         }
-      }),
-      catchError(this.handleOtpError)
-    );
-  }
+        
+        const phoneNumber = this.extractPhoneNumberFromMultipleSources(res);
+        
+        const enhancedResponse = {
+          token: res.token,
+          tokenType: 'Bearer',
+          userId: res.userId,
+          fullName: userData.fullName,
+          email: userData.email,
+          role: userData.role,
+          verified: userData.verified,
+          phoneNumber: phoneNumber,
+          user: {
+            ...userData,
+            phoneNumber: phoneNumber
+          }
+        };
+        
+        this.handleAuthSuccess(enhancedResponse, false);
+      }
+    }),
+    catchError(this.handleOtpError)
+  );
+}
 
   getPhoneNumber(): string {
     if (!this.isBrowser) return '';
@@ -431,12 +455,12 @@ export class AuthService {
     }
   }
 
-  resendOtp(request: any): Observable<any> {
-    const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
-    return this.http.post<any>(`${this.apiUrl}/resend-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(catchError(this.handleError));
-  }
+ resendOtp(request: any): Observable<any> {
+  const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
+  return this.http.post<any>(`${this.apiUrl}/resend-otp`, cleanRequest, {
+    headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+  }).pipe(catchError(this.handleError));
+}
 
   getToken(): string | null {
     if (!this.isBrowser) return null;
@@ -583,9 +607,19 @@ export class AuthService {
   private handleAuthSuccess(response: any, rememberMe: boolean = false): void {
     if (!this.isBrowser) return;
     
-    console.log('🟢 AuthService: Handling auth success for role:', response.user?.role);
+    console.log('🟢 AuthService: Handling auth success', response);
     
-    const user = response.user;
+    // ✅ FIXED: Extract user from response - handle both structures
+    const user = response.user || {
+      id: response.userId?.toString(),
+      email: response.email,
+      fullName: response.fullName,
+      role: response.role,
+      verified: response.verified,
+      emailVerified: response.emailVerified,
+      phoneNumber: response.phoneNumber
+    };
+
     const token = response.token;
 
     if (!user || !token) {
@@ -596,6 +630,12 @@ export class AuthService {
     let cleanToken = token.trim();
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
+    }
+
+    // ✅ FIXED: If role is missing, try to extract from token
+    if (!user.role) {
+      user.role = this.extractRoleFromToken(cleanToken);
+      console.log('🟡 AuthService: Extracted role from token:', user.role);
     }
 
     // Store token and user data
@@ -614,6 +654,24 @@ export class AuthService {
     this.clearPendingVerification();
     
     console.log('🟢 AuthService: Auth success completed for user:', user.email, 'role:', user.role);
+  }
+
+  private extractRoleFromToken(token: string): string | null {
+    try {
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) return null;
+      
+      const payload = tokenParts[1];
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      const decodedPayload = atob(paddedBase64);
+      const payloadObj = JSON.parse(decodedPayload);
+      
+      return payloadObj.role || null;
+    } catch (error) {
+      console.error('Error extracting role from token:', error);
+      return null;
+    }
   }
 
   private hasValidToken(): boolean {
