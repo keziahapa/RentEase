@@ -1,4 +1,3 @@
-
 import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
@@ -46,10 +45,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   userRole: string = 'Administrator';
   profileImage: string | null = null;
 
-  dashboardData: any = null;
-  isLoadingDashboard: boolean = false;
-  dashboardError: string | null = null;
-
   unreadNotificationsCount: number = 0;
   unreadMessagesCount: number = 0;
   isLoadingNotifications: boolean = false;
@@ -68,7 +63,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     try {
       this.loadUserData();
-      this.loadDashboardData();
       this.loadNotifications();
       this.updateGreeting();
       
@@ -171,47 +165,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadDashboardData(): void {
-    this.isLoadingDashboard = true;
-    this.dashboardError = null;
-
-    this.adminService.getDashboardStats().subscribe({
-      next: (response: any) => {
-        try {
-          if (response?.success && response.data) {
-            this.dashboardData = response.data;
-          } else {
-            this.dashboardError = 'Failed to load dashboard data';
-            this.dashboardData = this.getDefaultDashboardData();
-          }
-        } catch (error) {
-          console.error('Error processing dashboard data:', error);
-          this.dashboardError = 'Error processing data';
-          this.dashboardData = this.getDefaultDashboardData();
-        }
-        this.isLoadingDashboard = false;
-      },
-      error: (error) => {
-        this.dashboardError = error.message || 'Failed to load dashboard data';
-        this.dashboardData = this.getDefaultDashboardData();
-        this.isLoadingDashboard = false;
-        console.error('Dashboard data error:', error);
-      }
-    });
-  }
-
-  private getDefaultDashboardData(): any {
-    return {
-      totalUsers: 0,
-      totalProperties: 0,
-      activeBusinesses: 0,
-      monthlyRevenue: 0,
-      commissionRevenue: 0,
-      pendingApprovals: 0,
-      activeDisputes: 0
-    };
-  }
-
   private loadNotifications(): void {
     this.isLoadingNotifications = true;
     
@@ -225,7 +178,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   viewNotifications(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    this.router.navigate(['/admin-dashboard']).catch(() => {
+    this.router.navigate(['/admin-dashboard/notifications']).catch(() => {
       console.warn('Notifications route not available');
     });
   }
@@ -436,13 +389,12 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   refreshDashboard(): void {
-    this.loadDashboardData();
     this.loadNotifications();
+    // Let the overview component handle its own refresh
   }
 
   onLogoError(event: any): void {
     console.error('Logo failed to load:', event);
-    this.profileImage = this.generateInitialAvatar(this.userDisplayName);
   }
 
   isOverviewPage(): boolean {
