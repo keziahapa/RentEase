@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { ProfilePictureService, UpdateProfileResponse, ProfilePictureResponse } from './profile-picture.service';
@@ -18,99 +18,6 @@ import {
 })
 export class PropertyService {
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
-  private readonly fallbackProperties: any[] = [
-    {
-      id: 'property-101',
-      name: 'Greenwood Gardens',
-      location: 'Lavington, Nairobi',
-      propertyType: 'APARTMENT',
-      totalUnits: 12,
-      description: 'Modern apartments with parking, CCTV, and borehole water.',
-      ownerId: 'landlord-1',
-      createdAt: '2024-01-05T08:00:00Z',
-      updatedAt: '2024-02-13T12:30:00Z',
-      status: 'active',
-      units: [
-        {
-          id: 'unit-101',
-          unitNumber: 'A-01',
-          unitType: '2BR',
-          rentAmount: 55000,
-          deposit: 55000,
-          status: 'occupied',
-          tenant: {
-            id: 'tenant-101',
-            name: 'Amina Njoroge',
-            email: 'amina.njoroge@example.com'
-          }
-        },
-        {
-          id: 'unit-102',
-          unitNumber: 'A-02',
-          unitType: '1BR',
-          rentAmount: 42000,
-          deposit: 42000,
-          status: 'vacant'
-        },
-        {
-          id: 'unit-103',
-          unitNumber: 'A-03',
-          unitType: '3BR',
-          rentAmount: 68000,
-          deposit: 68000,
-          status: 'maintenance'
-        }
-      ]
-    },
-    {
-      id: 'property-205',
-      name: 'Skyview Towers',
-      location: 'Westlands, Nairobi',
-      propertyType: 'MIXED',
-      totalUnits: 20,
-      description: 'Mixed-use development with retail on ground floor.',
-      ownerId: 'landlord-1',
-      createdAt: '2023-09-12T06:15:00Z',
-      updatedAt: '2024-02-11T10:02:00Z',
-      status: 'active',
-      units: [
-        {
-          id: 'unit-205-1',
-          unitNumber: 'Penthouse 8A',
-          unitType: '3BR',
-          rentAmount: 95000,
-          deposit: 120000,
-          status: 'occupied',
-          tenant: {
-            id: 'tenant-205-1',
-            name: 'Brian Kamau',
-            email: 'brian.kamau@example.com'
-          }
-        },
-        {
-          id: 'unit-205-2',
-          unitNumber: 'Shop G-2',
-          unitType: 'RETAIL',
-          rentAmount: 75000,
-          deposit: 90000,
-          status: 'occupied',
-          tenant: {
-            id: 'tenant-205-2',
-            name: 'Prime Clinic',
-            email: 'info@primeclinic.co.ke'
-          }
-        },
-        {
-          id: 'unit-205-3',
-          unitNumber: 'Office 5B',
-          unitType: 'OFFICE',
-          rentAmount: 68000,
-          deposit: 68000,
-          status: 'vacant'
-        }
-      ]
-    }
-  ];
 
   constructor(
     private http: HttpClient,
@@ -167,17 +74,13 @@ export class PropertyService {
   }
 
   getProperties(): Observable<any[]> {
-    try {
-      return this.http.get<any>(
-        `${this.apiUrl}/api/landlord/properties`, 
-        { headers: this.createHeaders(), responseType: 'json' }
-      ).pipe(
-        map(response => this.normalizePropertiesResponse(response)),
-        catchError(error => this.handlePropertiesError(error))
-      );
-    } catch (error) {
-      return this.handlePropertiesError(error);
-    }
+    return this.http.get<any>(
+      `${this.apiUrl}/api/landlord/properties`, 
+      { headers: this.createHeaders(), responseType: 'json' }
+    ).pipe(
+      map(response => this.normalizePropertiesResponse(response)),
+      catchError(error => this.handlePropertiesError(error))
+    );
   }
 
   getPropertyById(propertyId: string): Observable<any> {
@@ -221,17 +124,13 @@ export class PropertyService {
   }
 
   getUnitsByPropertyId(propertyId: string): Observable<any[]> {
-    try {
-      return this.http.get<any>(
-        `${this.apiUrl}/api/landlord/properties/${propertyId}/units`,
-        { headers: this.createHeaders(), responseType: 'json' }
-      ).pipe(
-        map(response => this.normalizeUnitsResponse(response)),
-        catchError(error => this.handleUnitsError(propertyId, error))
-      );
-    } catch (error) {
-      return this.handleUnitsError(propertyId, error);
-    }
+    return this.http.get<any>(
+      `${this.apiUrl}/api/landlord/properties/${propertyId}/units`,
+      { headers: this.createHeaders(), responseType: 'json' }
+    ).pipe(
+      map(response => this.normalizeUnitsResponse(response)),
+      catchError(error => this.handleUnitsError(error))
+    );
   }
 
   getPropertyUnits(propertyId: string): Observable<any[]> {
@@ -298,7 +197,7 @@ export class PropertyService {
   getLandlordMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
-      return of(this.getDefaultLandlordMoveOutNotices());
+      return throwError(() => new Error('No authentication token available'));
     }
 
     let params = new HttpParams()
@@ -316,18 +215,14 @@ export class PropertyService {
         params 
       }
     ).pipe(
-      catchError(() => of(this.getDefaultLandlordMoveOutNotices()))
+      catchError(error => this.handleMoveOutError(error))
     );
   }
 
   approveMoveOutNotice(noticeId: number, request?: MoveOutActionRequest): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
-      return of({ 
-        success: false, 
-        message: 'No authentication token',
-        data: {} as LandlordMoveOutNotice
-      });
+      return throwError(() => new Error('No authentication token available'));
     }
 
     return this.http.post<LandlordMoveOutNoticeResponse>(
@@ -335,22 +230,14 @@ export class PropertyService {
       request || {},
       { headers: this.createHeaders() }
     ).pipe(
-      catchError(error => of({ 
-        success: false, 
-        message: error.message || 'Failed to approve move-out notice',
-        data: {} as LandlordMoveOutNotice
-      }))
+      catchError(error => this.handleMoveOutError(error))
     );
   }
 
   rejectMoveOutNotice(noticeId: number, request?: MoveOutActionRequest): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
-      return of({ 
-        success: false, 
-        message: 'No authentication token',
-        data: {} as LandlordMoveOutNotice
-      });
+      return throwError(() => new Error('No authentication token available'));
     }
 
     return this.http.post<LandlordMoveOutNoticeResponse>(
@@ -358,47 +245,35 @@ export class PropertyService {
       request || {},
       { headers: this.createHeaders() }
     ).pipe(
-      catchError(error => of({ 
-        success: false, 
-        message: error.message || 'Failed to reject move-out notice',
-        data: {} as LandlordMoveOutNotice
-      }))
+      catchError(error => this.handleMoveOutError(error))
     );
   }
 
   getLandlordMoveOutNoticeById(noticeId: number): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
-      return of({ 
-        success: false, 
-        message: 'No authentication token',
-        data: {} as LandlordMoveOutNotice
-      });
+      return throwError(() => new Error('No authentication token available'));
     }
 
     return this.http.get<LandlordMoveOutNoticeResponse>(
       `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}`,
       { headers: this.createHeaders() }
     ).pipe(
-      catchError(error => of({ 
-        success: false, 
-        message: error.message || 'Failed to fetch move-out notice',
-        data: {} as LandlordMoveOutNotice
-      }))
+      catchError(error => this.handleMoveOutError(error))
     );
   }
 
   getMoveOutStats(): Observable<MoveOutStats> {
     const token = this.authService.getToken();
     if (!token) {
-      return of(this.getDefaultMoveOutStats());
+      return throwError(() => new Error('No authentication token available'));
     }
 
     return this.http.get<MoveOutStats>(
       `${this.apiUrl}/api/landlord/move-out-notices/stats`,
       { headers: this.createHeaders() }
     ).pipe(
-      catchError(() => of(this.getDefaultMoveOutStats()))
+      catchError(error => this.handleMoveOutError(error))
     );
   }
 
@@ -409,7 +284,7 @@ export class PropertyService {
   getTenantMoveOutNotices(page: number = 1, limit: number = 10): Observable<TenantMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
-      return of(this.getDefaultTenantMoveOutNotices());
+      return throwError(() => new Error('No authentication token available'));
     }
 
     const params = new HttpParams()
@@ -423,18 +298,14 @@ export class PropertyService {
         params 
       }
     ).pipe(
-      catchError(() => of(this.getDefaultTenantMoveOutNotices()))
+      catchError(error => this.handleMoveOutError(error))
     );
   }
 
   submitMoveOutNotice(request: MoveOutNoticeRequest): Observable<TenantMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
-      return of({ 
-        success: false, 
-        message: 'No authentication token',
-        data: {} as any
-      });
+      return throwError(() => new Error('No authentication token available'));
     }
 
     return this.http.post<TenantMoveOutNoticeResponse>(
@@ -442,56 +313,37 @@ export class PropertyService {
       request,
       { headers: this.createHeaders() }
     ).pipe(
-      catchError(error => of({ 
-        success: false, 
-        message: error.message || 'Failed to submit move-out notice',
-        data: {} as any
-      }))
+      catchError(error => this.handleMoveOutError(error))
     );
   }
 
+  // FIXED: Changed from PATCH to POST
   cancelMoveOutNotice(noticeId: number): Observable<TenantMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
-      return of({ 
-        success: false, 
-        message: 'No authentication token',
-        data: {} as any
-      });
+      return throwError(() => new Error('No authentication token available'));
     }
 
-    return this.http.patch<TenantMoveOutNoticeResponse>(
+    return this.http.post<TenantMoveOutNoticeResponse>(
       `${this.apiUrl}/api/tenant/move-out-notices/${noticeId}/cancel`,
       {},
       { headers: this.createHeaders() }
     ).pipe(
-      catchError(error => of({ 
-        success: false, 
-        message: error.message || 'Failed to cancel move-out notice',
-        data: {} as any
-      }))
+      catchError(error => this.handleMoveOutError(error))
     );
   }
 
   getTenantMoveOutNoticeById(noticeId: number): Observable<TenantMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
-      return of({ 
-        success: false, 
-        message: 'No authentication token',
-        data: {} as any
-      });
+      return throwError(() => new Error('No authentication token available'));
     }
 
     return this.http.get<TenantMoveOutNoticeResponse>(
       `${this.apiUrl}/api/tenant/move-out-notices/${noticeId}`,
       { headers: this.createHeaders() }
     ).pipe(
-      catchError(error => of({ 
-        success: false, 
-        message: error.message || 'Failed to fetch move-out notice',
-        data: {} as any
-      }))
+      catchError(error => this.handleMoveOutError(error))
     );
   }
 
@@ -512,6 +364,9 @@ export class PropertyService {
     if (response?.content && Array.isArray(response.content)) {
       return response.content;
     }
+    if (response?.success && Array.isArray(response.data)) {
+      return response.data;
+    }
     return [];
   }
 
@@ -528,23 +383,21 @@ export class PropertyService {
     if (response?.content && Array.isArray(response.content)) {
       return response.content;
     }
+    if (response?.success && Array.isArray(response.data)) {
+      return response.data;
+    }
     return [];
   }
 
-  private handlePropertiesError(error: unknown): Observable<any[]> {
-    if (this.shouldFallback(error)) {
-      this.logFallback('properties list', error);
-      return of(this.cloneProperties(this.fallbackProperties));
-    }
+  private handlePropertiesError(error: unknown): Observable<never> {
     return throwError(() => this.normalizeError(error));
   }
 
-  private handleUnitsError(propertyId: string, error: unknown): Observable<any[]> {
-    if (this.shouldFallback(error)) {
-      this.logFallback(`units for property ${propertyId}`, error);
-      const property = this.fallbackProperties.find(item => item.id === propertyId);
-      return of(this.cloneUnits(property?.units ?? []));
-    }
+  private handleUnitsError(error: unknown): Observable<never> {
+    return throwError(() => this.normalizeError(error));
+  }
+
+  private handleMoveOutError(error: any): Observable<never> {
     return throwError(() => this.normalizeError(error));
   }
 
@@ -560,38 +413,6 @@ export class PropertyService {
       return error;
     }
     return { status: 500, message: 'Service temporarily unavailable', error };
-  }
-
-  private shouldFallback(error: unknown): boolean {
-    if (!error) {
-      return true;
-    }
-
-    if (error instanceof HttpErrorResponse) {
-      return error.status === 0 || error.status >= 500 || error.status === 404 || error.status === 401;
-    }
-
-    const status = (error as any)?.status;
-    if (typeof status === 'number') {
-      return status === 0 || status >= 500 || status === 404 || status === 401;
-    }
-
-    return true;
-  }
-
-  private cloneProperties(properties: any[]): any[] {
-    return properties.map(property => ({
-      ...property,
-      units: this.cloneUnits(property.units ?? [])
-    }));
-  }
-
-  private cloneUnits(units: any[]): any[] {
-    return units.map(unit => ({ ...unit }));
-  }
-
-  private logFallback(context: string, error: unknown): void {
-    console.warn(`[PropertyService] Falling back for ${context}:`, error);
   }
 
   private createHeaders(): HttpHeaders {
@@ -619,52 +440,4 @@ export class PropertyService {
       error: error.error
     }));
   };
-
-  // ============================================================================
-  // DEFAULT MOVE-OUT NOTICE DATA
-  // ============================================================================
-
-  private getDefaultLandlordMoveOutNotices(): LandlordMoveOutNoticeResponse {
-    return {
-      success: true,
-      data: [],
-      message: 'Using mock data',
-      pagination: {
-        currentPage: 1,
-        totalPages: 1,
-        totalItems: 0,
-        hasNext: false,
-        hasPrev: false
-      }
-    };
-  }
-
-  private getDefaultTenantMoveOutNotices(): TenantMoveOutNoticeResponse {
-    return {
-      success: true,
-      data: [],
-      message: 'Using mock data',
-      pagination: {
-        currentPage: 1,
-        totalPages: 1,
-        totalItems: 0,
-        hasNext: false,
-        hasPrev: false
-      }
-    };
-  }
-
-  private getDefaultMoveOutStats(): MoveOutStats {
-    return {
-      totalNotices: 0,
-      pendingNotices: 0,
-      approvedNotices: 0,
-      rejectedNotices: 0,
-      cancelledNotices: 0,
-      upcomingMoveOuts: 0,
-      averageProcessingTime: 0,
-      monthlyTrend: [],
-      reasonBreakdown: []
-    };
-  }
 }
