@@ -36,7 +36,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   private snackBar: MatSnackBar = inject(MatSnackBar);
 
   loginData = { email: '', password: '' };
-  showPassword = false; // FIXED: false = password hidden, true = password visible
+  showPassword = false;
   rememberMe = false;
   isLoading = false;
   returnUrl: string = '/dashboard';
@@ -122,7 +122,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   togglePasswordVisibility(): void {
     if (this.isLoading) return;
-    this.showPassword = !this.showPassword; // This logic is correct
+    this.showPassword = !this.showPassword;
   }
 
   onEmailInput(): void {
