@@ -8,41 +8,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SkeletonListComponent } from '../../../../../../shared/components/skeleton/skeleton-list.component';
 import { AdminService } from '../../../../../../services/admin.service';
-import { Subscription, forkJoin } from 'rxjs';
-
-interface DashboardData {
-  totalUsers: number;
-  totalProperties: number;
-  activeBusinesses: number;
-  activeDisputes: number;
-  monthlyRevenue: number;
-  userGrowth: number;
-  propertiesGrowth: number;
-  revenueGrowth: number;
-  totalLandlords: number;
-  totalTenants: number;
-  totalCaretakers: number;
-  platformEarnings?: number;
-  commissionRevenue?: number;
-  pendingApprovals?: number;
-  totalAdmins?: number;
-  systemHealth?: string;
-}
-
-interface QuickAction {
-  label: string;
-  description: string;
-  icon: string;
-  color: string;
-  route: string;
-}
-
-interface Activity {
-  type: string;
-  message: string;
-  icon: string;
-  time: string;
-}
+import { DashboardData, QuickAction, Activity } from '../../../../../../services/admin-interfaces';
+import { Subscription, forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-admin-overview',
@@ -116,10 +84,40 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     this.isLoadingDashboard = true;
     this.dashboardError = null;
 
-    // Load all data from backend simultaneously
-    const dashboardStats$ = this.adminService.getDashboardStats();
-    const pendingBusinesses$ = this.adminService.getPendingBusinesses();
-    const pendingAdvertisements$ = this.adminService.getPendingAdvertisements();
+    console.log('Loading admin dashboard data...');
+
+    const dashboardStats$ = this.adminService.getDashboardStats().pipe(
+      catchError(error => {
+        console.error('Error loading dashboard stats:', error);
+        return of({ 
+          success: false, 
+          message: error.message,
+          data: null 
+        });
+      })
+    );
+
+    const pendingBusinesses$ = this.adminService.getPendingBusinesses().pipe(
+      catchError(error => {
+        console.warn('Failed to load pending businesses:', error);
+        return of({ 
+          success: false, 
+          message: error.message,
+          data: [] 
+        });
+      })
+    );
+
+    const pendingAdvertisements$ = this.adminService.getPendingAdvertisements().pipe(
+      catchError(error => {
+        console.warn('Failed to load pending advertisements:', error);
+        return of({ 
+          success: false, 
+          message: error.message,
+          data: [] 
+        });
+      })
+    );
 
     const subscription = forkJoin({
       stats: dashboardStats$,
@@ -127,14 +125,17 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
       pendingAdvertisements: pendingAdvertisements$
     }).subscribe({
       next: (results) => {
-        // Process dashboard stats from backend
-        if (results.stats.success) {
+        console.log('Dashboard data loaded:', results);
+
+      
+        if (results.stats.success && results.stats.data) {
           this.dashboardData = this.transformStatsData(results.stats.data);
+          console.log('Dashboard stats transformed:', this.dashboardData);
         } else {
           throw new Error(results.stats.message || 'Failed to load dashboard statistics');
         }
 
-        // Process pending businesses count from backend
+      
         if (results.pendingBusinesses.success) {
           this.pendingBusinessesCount = results.pendingBusinesses.data.length;
         } else {
@@ -142,7 +143,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
           this.pendingBusinessesCount = 0;
         }
 
-        // Process pending advertisements count from backend
+       
         if (results.pendingAdvertisements.success) {
           this.pendingAdvertisementsCount = results.pendingAdvertisements.data.length;
         } else {
@@ -150,17 +151,17 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
           this.pendingAdvertisementsCount = 0;
         }
 
-        // Generate recent activities based on real data
+      
         this.generateRecentActivities();
         
         this.isLoadingDashboard = false;
+        console.log('Dashboard loading completed');
       },
       error: (error: any) => {
         console.error('Error loading dashboard data:', error);
         this.dashboardError = error.message || 'Failed to load dashboard data';
         this.isLoadingDashboard = false;
         
-        // FIX: Use a string literal instead of dashboardError which can be null
         const errorMessage = this.dashboardError || 'An unknown error occurred';
         this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
       }
@@ -193,7 +194,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
   private generateRecentActivities() {
     this.recentActivities = [];
 
-    // Add activities based on real backend data
+    
     if (this.pendingBusinessesCount > 0) {
       this.recentActivities.push({
         type: 'Pending Business Applications',
@@ -213,7 +214,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     }
 
     if (this.dashboardData) {
-      // Add user growth activity
+
       if (this.dashboardData.userGrowth > 0) {
         this.recentActivities.push({
           type: 'User Growth',
@@ -223,7 +224,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
         });
       }
 
-      // Add revenue activity
+     
       if (this.dashboardData.monthlyRevenue > 0) {
         this.recentActivities.push({
           type: 'Revenue Update',
@@ -233,7 +234,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
         });
       }
 
-      // Add disputes activity
+  
       if (this.dashboardData.activeDisputes > 0) {
         this.recentActivities.push({
           type: 'Active Disputes',
@@ -242,9 +243,19 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
           time: 'Requires attention'
         });
       }
+
+     
+      if (this.dashboardData.systemHealth && this.dashboardData.systemHealth !== 'healthy') {
+        this.recentActivities.push({
+          type: 'System Health',
+          message: `System status: ${this.dashboardData.systemHealth}`,
+          icon: 'monitor_heart',
+          time: 'Needs review'
+        });
+      }
     }
 
-    // Add default activity if no recent activities
+    
     if (this.recentActivities.length === 0) {
       this.recentActivities.push({
         type: 'System Status',
@@ -254,11 +265,12 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Limit to 3 activities
-    this.recentActivities = this.recentActivities.slice(0, 3);
+    // Limit to 4 activities
+    this.recentActivities = this.recentActivities.slice(0, 4);
   }
 
   refreshDashboard() {
+    console.log('Refreshing dashboard...');
     this.loadDashboardData();
     this.snackBar.open('Dashboard refreshed', 'Close', { duration: 3000 });
   }
@@ -301,6 +313,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
   }
 
   onQuickAction(action: QuickAction) {
+    console.log('Quick action clicked:', action.label);
     this.router.navigate([action.route]);
   }
 
@@ -312,7 +325,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     this.router.navigate(['/admin-dashboard/advertisements']);
   }
 
-  // Helper methods for safe data display
+ 
   getDisplayValue(value: number | undefined): string {
     return value !== undefined ? this.formatNumber(value) : '0';
   }
@@ -322,8 +335,34 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     return `${growth >= 0 ? '+' : ''}${growth}%`;
   }
 
-  // Safe method to get error message for template
+ 
   getErrorMessage(): string {
     return this.dashboardError || 'An unknown error occurred';
+  }
+
+
+  getSystemHealthColor(): string {
+    if (!this.dashboardData?.systemHealth) return '#6b7280';
+    
+    switch (this.dashboardData.systemHealth) {
+      case 'excellent': return '#10b981';
+      case 'good': return '#3b82f6';
+      case 'stable': return '#f59e0b';
+      case 'developing': return '#ef4444';
+      default: return '#6b7280';
+    }
+  }
+
+  
+  getSystemHealthIcon(): string {
+    if (!this.dashboardData?.systemHealth) return 'help';
+    
+    switch (this.dashboardData.systemHealth) {
+      case 'excellent': return 'check_circle';
+      case 'good': return 'verified';
+      case 'stable': return 'info';
+      case 'developing': return 'warning';
+      default: return 'help';
+    }
   }
 }

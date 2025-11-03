@@ -88,3 +88,37 @@ export interface ApiResponse<T> {
     totalPages: number;
   };
 }
+
+export interface DashboardData {
+  totalUsers: number;
+  totalProperties: number;
+  activeBusinesses: number;
+  activeDisputes: number;
+  monthlyRevenue: number;
+  userGrowth: number;
+  propertiesGrowth: number;
+  revenueGrowth: number;
+  totalLandlords: number;
+  totalTenants: number;
+  totalCaretakers: number;
+  platformEarnings?: number;
+  commissionRevenue?: number;
+  pendingApprovals?: number;
+  totalAdmins?: number;
+  systemHealth?: string;
+}
+
+export interface QuickAction {
+  label: string;
+  description: string;
+  icon: string;
+  color: string;
+  route: string;
+}
+
+export interface Activity {
+  type: string;
+  message: string;
+  icon: string;
+  time: string;
+}
