@@ -123,30 +123,6 @@
       .terms-container {
         margin: 25px 0;
         
-        .mat-mdc-checkbox {
-          .mat-mdc-checkbox-frame {
-            border-radius: 4px;
-            border-color: #bdc3c7;
-            transition: all 0.2s ease;
-          }
-
-          .mat-mdc-checkbox-background {
-            border-radius: 4px;
-            transition: all 0.2s ease;
-          }
-
-          &.mat-mdc-checkbox-checked {
-            .mat-mdc-checkbox-frame {
-              border-color: #1e3a8a;
-            }
-            
-            .mat-mdc-checkbox-background {
-              background-color: #1e3a8a;
-              border-color: #1e3a8a;
-            }
-          }
-        }
-
         .mat-mdc-checkbox-label {
           color: #374151;
           font-size: 14px;
@@ -171,6 +147,12 @@
             outline-offset: 2px;
             border-radius: 2px;
           }
+        }
+
+        .terms-error {
+          color: #ef4444;
+          font-size: 12px;
+          margin-top: 5px;
         }
       }
 
@@ -287,8 +269,28 @@
   }
 }
 
-// Material component overrides for checkbox
+// Material component overrides for checkbox - FIXED
 ::ng-deep {
+  // Checkbox styling - Blue background with white tick
+  .mat-mdc-checkbox {
+    &.mat-mdc-checkbox-checked {
+      .mdc-checkbox__background {
+        background-color: #1e3a8a !important;
+        border-color: #1e3a8a !important;
+      }
+    }
+    
+    .mdc-checkbox__native-control:enabled:checked ~ .mdc-checkbox__background {
+      background-color: #1e3a8a !important;
+      border-color: #1e3a8a !important;
+    }
+    
+    .mdc-checkbox__native-control:enabled:indeterminate ~ .mdc-checkbox__background {
+      background-color: #1e3a8a !important;
+      border-color: #1e3a8a !important;
+    }
+  }
+
   .mat-mdc-raised-button.mat-primary {
     background-color: #1e3a8a !important;
     
@@ -306,30 +308,6 @@
 
     .mat-mdc-floating-label {
       color: #1e3a8a !important;
-    }
-  }
-
-  // Checkbox styling
-  .mat-mdc-checkbox {
-    &.mat-mdc-checkbox-checked {
-      .mdc-checkbox__background {
-        background-color: #1e3a8a !important;
-        border-color: #1e3a8a !important;
-      }
-      
-      .mdc-checkbox__ripple {
-        background-color: #1e3a8a !important;
-      }
-    }
-    
-    .mdc-checkbox__native-control:enabled:checked ~ .mdc-checkbox__background {
-      background-color: #1e3a8a !important;
-      border-color: #1e3a8a !important;
-    }
-    
-    .mdc-checkbox__native-control:enabled:indeterminate ~ .mdc-checkbox__background {
-      background-color: #1e3a8a !important;
-      border-color: #1e3a8a !important;
     }
   }
 
@@ -386,5 +364,5 @@
         }
       }
     }
-  }
+  } 
 }

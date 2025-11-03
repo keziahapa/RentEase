@@ -1,4 +1,3 @@
-
 <div class="dashboard-container">
   <div class="mobile-menu-overlay" [class.active]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
   
@@ -169,10 +168,10 @@
       </div>
     </div>
 
-  
+    <!-- This is where the overview component will be displayed -->
     <router-outlet></router-outlet>
     
- 
+    <!-- Show overview component when on the base admin route -->
     <div *ngIf="isOverviewPage()">
       <app-admin-overview></app-admin-overview>
     </div>

@@ -44,7 +44,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   passwordError: string = '';
 
   ngOnInit(): void {
-    
+   
     if (this.authService.isAuthenticated()) {
       const user = this.authService.getCurrentUser();
       if (user?.role === 'ADMIN') {
@@ -77,7 +77,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
 
   togglePasswordVisibility(): void {
     if (this.isLoading) return;
-    this.showPassword = !this.showPassword;
+    this.showPassword = !this.showPassword; 
   }
 
   onEmailInput(): void {
@@ -151,7 +151,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
           this.showSnackbar('Admin login successful!', 'success');
           this.router.navigate(['/admin-dashboard']);
         } else {
-         
+          // Not an admin, log them out
           this.authService.logout();
           this.showSnackbar('Access denied. Admin privileges required.', 'error');
           this.loginData.password = '';
