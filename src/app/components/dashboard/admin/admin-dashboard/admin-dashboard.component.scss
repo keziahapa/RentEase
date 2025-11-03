@@ -4,6 +4,7 @@
   min-height: 100vh;
   background: #f8fafc;
   position: relative;
+  overflow-x: hidden;
 }
 
 // Mobile menu overlay
@@ -16,16 +17,21 @@
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: 998;
+  backdrop-filter: blur(2px);
   
   &.active {
     display: block;
+    
+    @media (max-width: 768px) {
+      display: block;
+    }
   }
 }
 
 // Sidebar styles
 .sidebar {
-  width: 280px;
-  background: #ffffff;
+  width: clamp(280px, 25vw, 320px);
+  background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
   border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
@@ -34,18 +40,40 @@
   overflow-y: auto;
   z-index: 999;
   transition: transform 0.3s ease;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
 
   @media (max-width: 768px) {
+    width: min(85vw, 300px);
     transform: translateX(-100%);
     
     &.mobile-open {
       transform: translateX(0);
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
     }
   }
 
+  @media (max-width: 480px) {
+    width: min(90vw, 280px);
+  }
+
   .sidebar-header {
-    padding: 1.5rem;
+    padding: clamp(1rem, 3vw, 1.5rem);
     border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
 
     .logo {
       cursor: pointer;
@@ -54,28 +82,29 @@
       justify-content: center;
 
       .logo-image {
-        height: 50px;
+        height: clamp(40px, 6vw, 50px);
         width: auto;
         object-fit: contain;
+        max-width: 100%;
       }
     }
   }
 
   .nav-menu {
     flex: 1;
-    padding: 1rem;
+    padding: clamp(0.75rem, 2vw, 1rem);
     overflow-y: auto;
 
     .nav-section {
-      margin: 1.5rem 0;
+      margin: clamp(1rem, 3vw, 1.5rem) 0;
 
       .nav-section-label {
-        font-size: 0.75rem;
+        font-size: clamp(0.7rem, 1.5vw, 0.75rem);
         font-weight: 600;
         color: #94a3b8;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        padding: 0.5rem 1rem;
+        padding: 0.5rem clamp(0.75rem, 2vw, 1rem);
         margin-bottom: 0.5rem;
       }
     }
@@ -83,24 +112,35 @@
     .nav-item {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 0.875rem 1rem;
+      gap: clamp(0.5rem, 1.5vw, 0.75rem);
+      padding: clamp(0.75rem, 2vw, 0.875rem) clamp(0.75rem, 2vw, 1rem);
       margin-bottom: 0.25rem;
-      border-radius: 10px;
+      border-radius: clamp(8px, 1.5vw, 10px);
       cursor: pointer;
       transition: all 0.3s ease;
       color: #64748b;
       font-weight: 500;
+      font-size: clamp(0.875rem, 2vw, 1rem);
+      min-height: 44px;
 
       .nav-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        font-size: clamp(18px, 3vw, 20px);
+        width: clamp(18px, 3vw, 20px);
+        height: clamp(18px, 3vw, 20px);
+        flex-shrink: 0;
+      }
+
+      .nav-label {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       &:hover {
         background: #f1f5f9;
         color: #1e40af;
+        transform: translateX(4px);
       }
 
       &.active {
@@ -112,41 +152,63 @@
           color: #1e40af;
         }
       }
+
+      @media (max-width: 480px) {
+        min-height: 48px;
+      }
     }
   }
 
   .sidebar-footer {
-    padding: 1rem;
+    padding: clamp(0.75rem, 2vw, 1rem);
     border-top: 1px solid #e2e8f0;
+    flex-shrink: 0;
 
     .logout-btn {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: clamp(0.5rem, 1.5vw, 0.75rem);
       width: 100%;
-      padding: 0.875rem 1rem;
+      padding: clamp(0.75rem, 2vw, 0.875rem) clamp(0.75rem, 2vw, 1rem);
       background: transparent;
       border: 1px solid #e2e8f0;
-      border-radius: 10px;
+      border-radius: clamp(8px, 1.5vw, 10px);
       cursor: pointer;
       color: #dc2626;
       font-weight: 500;
       transition: all 0.3s ease;
+      font-size: clamp(0.875rem, 2vw, 1rem);
+      min-height: 44px;
 
       .logout-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+        font-size: clamp(18px, 3vw, 20px);
+        width: clamp(18px, 3vw, 20px);
+        height: clamp(18px, 3vw, 20px);
+        flex-shrink: 0;
+      }
+
+      .logout-label {
+        flex: 1;
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       &:hover:not(:disabled) {
         background: #fef2f2;
         border-color: #dc2626;
+        transform: translateX(4px);
       }
 
       &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        transform: none !important;
+      }
+
+      @media (max-width: 480px) {
+        min-height: 48px;
       }
     }
   }
@@ -155,34 +217,48 @@
 // Main content area
 .main-content {
   flex: 1;
-  margin-left: 280px;
+  margin-left: clamp(280px, 25vw, 320px);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: margin-left 0.3s ease;
 
   @media (max-width: 768px) {
     margin-left: 0;
+    width: 100%;
   }
 
   .top-header {
     background: #ffffff;
     border-bottom: 1px solid #e2e8f0;
-    padding: 1.5rem 2rem;
+    padding: clamp(1rem, 3vw, 1.5rem) clamp(1.5rem, 4vw, 2rem);
     display: flex;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
     z-index: 100;
+    flex-wrap: wrap;
+    gap: 1rem;
+    min-height: 80px;
 
     @media (max-width: 768px) {
       padding: 1rem;
+      min-height: 70px;
+    }
+
+    @media (max-width: 480px) {
+      padding: 0.75rem;
+      min-height: 64px;
+      gap: 0.75rem;
     }
 
     .header-left {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: clamp(0.75rem, 2vw, 1rem);
+      flex: 1;
+      min-width: 0;
 
       .mobile-menu-btn {
         display: none;
@@ -191,38 +267,60 @@
         cursor: pointer;
         padding: 0.5rem;
         color: #64748b;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        min-width: 44px;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
 
         @media (max-width: 768px) {
           display: flex;
         }
 
         mat-icon {
-          font-size: 24px;
-          width: 24px;
-          height: 24px;
+          font-size: clamp(20px, 4vw, 24px);
+          width: clamp(20px, 4vw, 24px);
+          height: clamp(20px, 4vw, 24px);
         }
 
         &:hover {
+          background: #f8fafc;
           color: #1e40af;
+        }
+
+        &:active {
+          transform: scale(0.95);
         }
       }
 
       .greeting-section {
+        flex: 1;
+        min-width: 0;
+
         h1 {
-          font-size: 1.5rem;
+          font-size: clamp(1.25rem, 3vw, 1.5rem);
           font-weight: 700;
           color: #1e293b;
           margin: 0 0 0.25rem 0;
+          line-height: 1.2;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
 
-          @media (max-width: 768px) {
-            font-size: 1.25rem;
+          @media (max-width: 480px) {
+            font-size: 1.125rem;
           }
         }
 
         p {
           color: #64748b;
           margin: 0;
-          font-size: 0.9rem;
+          font-size: clamp(0.8rem, 2vw, 0.9rem);
+          line-height: 1.4;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
 
           @media (max-width: 768px) {
             display: none;
@@ -234,17 +332,18 @@
     .header-right {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: clamp(0.75rem, 2vw, 1rem);
+      flex-shrink: 0;
 
       .header-actions {
         display: flex;
-        gap: 0.5rem;
+        gap: clamp(0.375rem, 1vw, 0.5rem);
 
         .notification-btn,
         .refresh-btn {
-          width: 44px;
-          height: 44px;
-          border-radius: 10px;
+          width: clamp(40px, 6vw, 44px);
+          height: clamp(40px, 6vw, 44px);
+          border-radius: clamp(8px, 1.5vw, 10px);
           border: 1px solid #e2e8f0;
           background: #ffffff;
           cursor: pointer;
@@ -254,19 +353,24 @@
           position: relative;
           transition: all 0.3s ease;
           color: #64748b;
+          flex-shrink: 0;
 
           mat-icon {
-            font-size: 20px;
-            width: 20px;
-            height: 20px;
+            font-size: clamp(18px, 3vw, 20px);
+            width: clamp(18px, 3vw, 20px);
+            height: clamp(18px, 3vw, 20px);
           }
 
           &:hover {
             background: #f8fafc;
             border-color: #1e40af;
             color: #1e40af;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
+          }
+
+          &:active {
+            transform: translateY(0);
           }
 
           &.has-notifications {
@@ -280,12 +384,22 @@
             right: -4px;
             background: #dc2626;
             color: white;
-            font-size: 0.7rem;
+            font-size: clamp(0.65rem, 1.5vw, 0.7rem);
             font-weight: 600;
             padding: 0.125rem 0.375rem;
             border-radius: 999px;
             min-width: 18px;
+            height: 18px;
             text-align: center;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          @media (max-width: 480px) {
+            width: 40px;
+            height: 40px;
           }
         }
       }
@@ -294,28 +408,30 @@
         position: relative;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: clamp(0.375rem, 1vw, 0.5rem);
 
         .user-avatar-wrapper {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: clamp(0.5rem, 1.5vw, 0.75rem);
           cursor: pointer;
-          padding: 0.5rem;
-          border-radius: 10px;
+          padding: clamp(0.375rem, 1vw, 0.5rem);
+          border-radius: clamp(8px, 1.5vw, 10px);
           transition: background 0.3s ease;
+          min-height: 44px;
 
           &:hover {
             background: #f8fafc;
           }
 
           .user-avatar {
-            width: 44px;
-            height: 44px;
+            width: clamp(40px, 6vw, 44px);
+            height: clamp(40px, 6vw, 44px);
             border-radius: 50%;
             overflow: hidden;
             border: 2px solid #e2e8f0;
             transition: border-color 0.3s ease;
+            flex-shrink: 0;
 
             &:hover {
               border-color: #1e40af;
@@ -337,37 +453,50 @@
               color: #ffffff;
 
               mat-icon {
-                font-size: 32px;
-                width: 32px;
-                height: 32px;
+                font-size: clamp(24px, 4vw, 32px);
+                width: clamp(24px, 4vw, 32px);
+                height: clamp(24px, 4vw, 32px);
               }
             }
           }
 
           .user-info {
-            @media (max-width: 480px) {
+            @media (max-width: 640px) {
               display: none;
             }
 
             .user-name {
               font-weight: 600;
               color: #1e293b;
-              font-size: 0.9rem;
+              font-size: clamp(0.85rem, 2vw, 0.9rem);
               line-height: 1.2;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              max-width: 120px;
             }
 
             .user-role {
-              font-size: 0.75rem;
+              font-size: clamp(0.7rem, 1.5vw, 0.75rem);
               color: #64748b;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              max-width: 120px;
             }
           }
         }
 
         .dropdown-trigger {
           cursor: pointer;
-          padding: 0.5rem;
+          padding: clamp(0.375rem, 1vw, 0.5rem);
           border-radius: 8px;
           transition: background 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 32px;
+          min-height: 32px;
 
           &:hover {
             background: #f8fafc;
@@ -380,6 +509,9 @@
           .dropdown-chevron {
             color: #64748b;
             transition: transform 0.3s ease;
+            font-size: clamp(18px, 3vw, 20px);
+            width: clamp(18px, 3vw, 20px);
+            height: clamp(18px, 3vw, 20px);
 
             &.rotated {
               transform: rotate(180deg);
@@ -393,9 +525,10 @@
           right: 0;
           background: #ffffff;
           border: 1px solid #e2e8f0;
-          border-radius: 12px;
+          border-radius: clamp(10px, 2vw, 12px);
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-          min-width: 200px;
+          min-width: min(200px, 90vw);
+          max-width: 280px;
           z-index: 1000;
           overflow: hidden;
           animation: dropdownFadeIn 0.2s ease;
@@ -414,9 +547,9 @@
           .dropdown-item {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: clamp(0.5rem, 1.5vw, 0.75rem);
             width: 100%;
-            padding: 0.875rem 1rem;
+            padding: clamp(0.75rem, 2vw, 0.875rem) clamp(0.75rem, 2vw, 1rem);
             background: transparent;
             border: none;
             cursor: pointer;
@@ -424,13 +557,23 @@
             font-weight: 500;
             transition: all 0.3s ease;
             text-align: left;
+            font-size: clamp(0.875rem, 2vw, 1rem);
+            min-height: 44px;
 
             mat-icon {
-              font-size: 20px;
-              width: 20px;
-              height: 20px;
+              font-size: clamp(18px, 3vw, 20px);
+              width: clamp(18px, 3vw, 20px);
+              height: clamp(18px, 3vw, 20px);
               color: #64748b;
               transition: color 0.3s ease;
+              flex-shrink: 0;
+            }
+
+            .item-label {
+              flex: 1;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
 
             &:hover:not(:disabled) {
@@ -468,5 +611,162 @@
         }
       }
     }
+  }
+
+  // Content area for router outlet
+  .content-area {
+    flex: 1;
+    padding: clamp(1rem, 3vw, 1.5rem);
+    overflow-y: auto;
+    
+    @media (max-width: 768px) {
+      padding: 1rem;
+    }
+    
+    @media (max-width: 480px) {
+      padding: 0.75rem;
+    }
+  }
+}
+
+// Touch device optimizations
+@media (hover: none) and (pointer: coarse) {
+  .nav-item:hover,
+  .logout-btn:hover,
+  .notification-btn:hover,
+  .refresh-btn:hover,
+  .user-avatar-wrapper:hover,
+  .dropdown-trigger:hover,
+  .mobile-menu-btn:hover {
+    transform: none !important;
+  }
+
+  .nav-item:active,
+  .logout-btn:active,
+  .notification-btn:active,
+  .refresh-btn:active {
+    background: #e2e8f0 !important;
+    transform: scale(0.98) !important;
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .sidebar {
+    transition: none;
+  }
+
+  .profile-dropdown {
+    animation: none !important;
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .sidebar,
+  .top-header {
+    border-width: 2px;
+  }
+
+  .nav-item.active {
+    border: 2px solid #1e40af;
+  }
+
+  .logout-btn {
+    border-width: 2px;
+  }
+}
+
+// Dark mode support (optional)
+@media (prefers-color-scheme: dark) {
+  .dashboard-container {
+    background: #0f172a;
+  }
+
+  .sidebar,
+  .top-header {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+
+  .nav-item {
+    color: #cbd5e1;
+
+    &:hover {
+      background: #334155;
+      color: #60a5fa;
+    }
+
+    &.active {
+      background: #1e40af;
+      color: #ffffff;
+    }
+  }
+
+  .greeting-section h1 {
+    color: #f1f5f9;
+  }
+
+  .greeting-section p {
+    color: #94a3b8;
+  }
+
+  .notification-btn,
+  .refresh-btn {
+    background: #334155;
+    border-color: #475569;
+    color: #cbd5e1;
+
+    &:hover {
+      background: #475569;
+      border-color: #60a5fa;
+      color: #60a5fa;
+    }
+  }
+}
+
+// Very small screens
+@media (max-width: 360px) {
+  .header-right .header-actions {
+    gap: 0.25rem;
+  }
+
+  .profile-section .user-avatar-wrapper .user-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .notification-btn,
+  .refresh-btn {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+// Large screens
+@media (min-width: 1440px) {
+  .sidebar {
+    width: 300px;
+  }
+
+  .main-content {
+    margin-left: 300px;
+  }
+}
+
+// Extra large screens
+@media (min-width: 1920px) {
+  .sidebar {
+    width: 320px;
+  }
+
+  .main-content {
+    margin-left: 320px;
   }
 }
