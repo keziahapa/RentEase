@@ -1,99 +1,51 @@
-// src/app/shared/chat/chat.component.ts
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ChatService } from '../../services/chat.service';
-import { AuthService } from '../../services/auth.service';
-import { 
-  ChatRoom, 
-  ChatMessage, 
-  CreateMessageRequest, 
-  BasicResponse,
-  ApiResponse,
-  ChatRoomResponse,
-  ChatMessageResponse,
-  User
-} from '../../services/chat.interface';
+import { User, ChatMessage, ChatRoom, CreateMessageRequest, BatchDeleteRequest } from '../../services/chat.interface';
 
 @Component({
   selector: 'app-chat',
   templateUrl: './chat.component.html',
-  styleUrls: ['./chat.component.scss'],
-  standalone: true,
-  imports: [CommonModule, FormsModule]
+  styleUrls: ['./chat.component.scss']
 })
-export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
-  @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
+export class ChatComponent implements OnInit, AfterViewChecked, OnDestroy {
+  @ViewChild('messageContainer') private messageContainer!: ElementRef;
   @ViewChild('messageInput') private messageInput!: ElementRef;
-  
-  chatRooms: ChatRoom[] = [];
-  currentRoom: ChatRoom | null = null;
-  messages: ChatMessage[] = [];
-  newMessage = '';
-  loading = false;
-  errorMessage = '';
-  currentUserId: number = 0;
-  userRole: string = '';
-  
-  // Typing indicators
-  typingUsers: {userId: number, name: string}[] = [];
-  isTyping = false;
-  typingTimeout: any;
-  
-  // UI state
+
+  // UI State
   isSidebarOpen = true;
-  selectedRoomId: number | null = null;
-  showMenu = false;
+  selectedRoom: ChatRoom | null = null;
+  newMessage = '';
+  isTyping = false;
+  showEmojiPicker = false;
+  showFilePicker = false;
+  isLoading = false;
+  searchQuery = '';
   
+  // Data
+  chatRooms: ChatRoom[] = [];
+  messages: ChatMessage[] = [];
+  currentUser: User | null = null;
+
+  // Stats
+  errorsShown = 0;
+  messagesDeleted = 0;
+
   private subscriptions: Subscription[] = [];
 
-  private chatService = inject(ChatService);
-  private authService = inject(AuthService);
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
+  constructor(
+    private chatService: ChatService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {}
 
   ngOnInit(): void {
-    try {
-      this.currentUserId = this.chatService.getCurrentUserId();
-      this.userRole = this.authService.getCurrentUser()?.role || '';
-      this.loadChatRooms();
-      
-      // Subscribe to real-time updates
-      this.subscriptions.push(
-        this.chatService.currentRoom$.subscribe(room => {
-          this.currentRoom = room;
-          if (room) {
-            this.selectedRoomId = room.id;
-            this.loadRoomMessages(room.id);
-          }
-        }),
-        
-        this.chatService.messages$.subscribe(messages => {
-          this.messages = messages || [];
-          setTimeout(() => this.scrollToBottom(), 100);
-        }),
-        
-        this.chatService.typingUsers$.subscribe(users => {
-          this.typingUsers = users || [];
-        })
-      );
-
-      // Check for room ID in route
-      this.route.params.subscribe(params => {
-        if (params['roomId']) {
-          const roomId = parseInt(params['roomId'], 10);
-          if (!isNaN(roomId)) {
-            this.selectRoomById(roomId);
-          }
-        }
-      });
-
-    } catch (error) {
-      console.error('Error initializing chat component:', error);
-      this.errorMessage = 'Failed to initialize chat';
-    }
+    this.initializeCurrentUser();
+    this.loadChatRooms();
+    this.setupRouteListener();
   }
 
   ngAfterViewChecked(): void {
@@ -102,129 +54,274 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngOnDestroy(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
-    if (this.typingTimeout) {
-      clearTimeout(this.typingTimeout);
-    }
   }
 
-  @HostListener('document:click', ['$event'])
-  handleMenuClickOutside(event: MouseEvent): void {
-    if (this.showMenu) {
-      const target = event.target as HTMLElement;
-      
-      // Check if click is outside menu container, menu trigger, AND chat container
-      if (!target.closest('.menu-container') && 
-          !target.closest('.menu-trigger') &&
-          !target.closest('.chat-container')) {
-        this.showMenu = false;
+  // === INITIALIZATION ===
+
+  private initializeCurrentUser(): void {
+    // In a real app, get from auth service
+    this.currentUser = {
+      id: 1,
+      name: 'You',
+      email: 'tenant@example.com',
+      role: 'TENANT',
+      avatar: 'Y',
+      isOnline: true
+    };
+    this.chatService.setCurrentUser(this.currentUser);
+  }
+
+  private setupRouteListener(): void {
+    const routeSub = this.route.params.subscribe(params => {
+      const roomId = params['roomId'];
+      if (roomId) {
+        this.selectRoomById(+roomId);
       }
-    }
+    });
+    this.subscriptions.push(routeSub);
   }
 
-  loadChatRooms(): void {
-    this.loading = true;
-    this.errorMessage = '';
+  // === DATA LOADING ===
 
-    this.chatService.getChatRooms().subscribe({
-      next: (response: ChatRoomResponse) => {
-        if (response.success) {
-          this.chatRooms = response.data || [];
-          // Auto-select first room if none selected and no route parameter
-          if (this.chatRooms.length > 0 && !this.selectedRoomId && !this.route.snapshot.params['roomId']) {
-            this.selectRoom(this.chatRooms[0]);
-          }
-        } else {
-          this.errorMessage = response.message || 'Failed to load chat rooms';
+  private loadChatRooms(): void {
+    this.isLoading = true;
+    const roomsSub = this.chatService.getChatRooms().subscribe({
+      next: (rooms) => {
+        this.chatRooms = rooms;
+        this.isLoading = false;
+        
+        // Auto-select first room if none selected
+        if (rooms.length > 0 && !this.selectedRoom) {
+          this.selectRoom(rooms[0]);
         }
-        this.loading = false;
       },
-      error: (error: any) => {
-        this.errorMessage = error.message || 'Failed to load chat rooms';
-        this.loading = false;
+      error: (error) => {
         console.error('Error loading chat rooms:', error);
-        this.chatRooms = [];
+        this.errorsShown++;
+        this.isLoading = false;
       }
     });
+    this.subscriptions.push(roomsSub);
   }
 
-  loadRoomMessages(roomId: number): void {
-    this.errorMessage = '';
-
-    this.chatService.getRoomMessages(roomId).subscribe({
-      next: (response: ChatMessageResponse) => {
-        if (response.success) {
-          this.messages = response.data || [];
-          this.markRoomAsRead(roomId);
-        } else {
-          this.errorMessage = response.message || 'Failed to load messages';
-        }
+  private loadRoomMessages(roomId: number): void {
+    this.isLoading = true;
+    const messagesSub = this.chatService.getRoomMessages(roomId).subscribe({
+      next: (messages) => {
+        this.messages = messages;
+        this.isLoading = false;
+        
+        // Mark messages as read
+        this.markMessagesAsRead(roomId, messages);
       },
-      error: (error: any) => {
-        this.errorMessage = error.message || 'Failed to load messages';
-        console.error('Error loading room messages:', error);
-        this.messages = [];
+      error: (error) => {
+        console.error('Error loading messages:', error);
+        this.errorsShown++;
+        this.isLoading = false;
       }
     });
+    this.subscriptions.push(messagesSub);
   }
+
+  // === ROOM MANAGEMENT ===
 
   selectRoom(room: ChatRoom): void {
-    try {
-      this.chatService.setCurrentRoom(room);
-      this.selectedRoomId = room.id;
-      this.showMenu = false;
-      
-      // Update URL with room ID
-      this.router.navigate(['/chat', room.id]);
-      
-      // Mark as read
-      this.markRoomAsRead(room.id);
-    } catch (error) {
-      console.error('Error selecting room:', error);
-      this.errorMessage = 'Failed to select chat room';
-    }
+    this.selectedRoom = room;
+    this.messages = [];
+    this.loadRoomMessages(room.id);
+    this.updateBrowserUrl(room.id);
   }
 
   selectRoomById(roomId: number): void {
     const room = this.chatRooms.find(r => r.id === roomId);
     if (room) {
       this.selectRoom(room);
-    } else {
-      console.log('Room not found in current list, reloading rooms...');
-      this.loadChatRooms();
     }
   }
 
-  // Send message function
+  private updateBrowserUrl(roomId: number): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { room: roomId },
+      queryParamsHandling: 'merge'
+    });
+  }
+
+  // === MESSAGE MANAGEMENT ===
+
   sendMessage(): void {
-    if (!this.newMessage.trim() || !this.currentRoom) {
-      console.log('❌ Cannot send: No message or room');
+    if (!this.newMessage.trim() || !this.selectedRoom || !this.currentUser) {
       return;
     }
 
-    const messageData: CreateMessageRequest = {
-      chatRoomId: this.currentRoom.id,
+    const messageRequest: CreateMessageRequest = {
+      chatRoomId: this.selectedRoom.id,
       content: this.newMessage.trim(),
       messageType: 'TEXT'
     };
 
-    this.chatService.sendMessage(messageData).subscribe({
-      next: (response: ApiResponse<ChatMessage>) => {
-        console.log('✅ Message sent successfully:', response);
+    const sendSub = this.chatService.sendMessage(messageRequest).subscribe({
+      next: (sentMessage) => {
+        this.messages.push(sentMessage);
         this.newMessage = '';
-        this.stopTyping();
-        // Focus input after sending
-        if (this.messageInput?.nativeElement) {
-          this.messageInput.nativeElement.focus();
-        }
+        this.scrollToBottom();
+        
+        // Update room's last message
+        this.updateRoomLastMessage(sentMessage);
       },
-      error: (error: any) => {
-        console.error('❌ Error sending message:', error);
-        this.errorMessage = error.message || 'Failed to send message';
+      error: (error) => {
+        console.error('Error sending message:', error);
+        this.errorsShown++;
       }
     });
+    this.subscriptions.push(sendSub);
   }
 
-  // Enter key handling
+  deleteMessage(messageId: number): void {
+    if (!confirm('Are you sure you want to delete this message?')) {
+      return;
+    }
+
+    const deleteSub = this.chatService.deleteMessage(messageId).subscribe({
+      next: (success) => {
+        if (success) {
+          const messageIndex = this.messages.findIndex(m => m.id === messageId);
+          if (messageIndex > -1) {
+            this.messages[messageIndex].deleted = true;
+            this.messages[messageIndex].content = 'This message was deleted';
+            this.messagesDeleted++;
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error deleting message:', error);
+        this.errorsShown++;
+      }
+    });
+    this.subscriptions.push(deleteSub);
+  }
+
+  deleteSelectedMessages(): void {
+    const selectedMessages = this.messages.filter(m => m.selected);
+    if (selectedMessages.length === 0) return;
+
+    if (!confirm(`Are you sure you want to delete ${selectedMessages.length} messages?`)) {
+      return;
+    }
+
+    const deleteRequest: BatchDeleteRequest = {
+      messageIds: selectedMessages.map(m => m.id)
+    };
+
+    const batchDeleteSub = this.chatService.deleteMessagesBatch(deleteRequest).subscribe({
+      next: (success) => {
+        if (success) {
+          selectedMessages.forEach(message => {
+            const messageIndex = this.messages.findIndex(m => m.id === message.id);
+            if (messageIndex > -1) {
+              this.messages[messageIndex].deleted = true;
+              this.messages[messageIndex].content = 'This message was deleted';
+            }
+          });
+          this.messagesDeleted += selectedMessages.length;
+        }
+      },
+      error: (error) => {
+        console.error('Error deleting messages:', error);
+        this.errorsShown++;
+      }
+    });
+    this.subscriptions.push(batchDeleteSub);
+  }
+
+  // === MESSAGE STATUS ===
+
+  private markMessagesAsRead(roomId: number, messages: ChatMessage[]): void {
+    const unreadMessages = messages.filter(m => !m.read && m.senderId !== this.currentUser?.id);
+    if (unreadMessages.length === 0) return;
+
+    const messageIds = unreadMessages.map(m => m.id);
+    const markReadSub = this.chatService.markMessagesAsRead({
+      roomId,
+      messageIds
+    }).subscribe({
+      error: (error) => {
+        console.error('Error marking messages as read:', error);
+      }
+    });
+    this.subscriptions.push(markReadSub);
+  }
+
+  // === UI HELPERS ===
+
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
+  isCurrentUser(senderId: number): boolean {
+    return this.currentUser?.id === senderId;
+  }
+
+  getOtherParticipant(room: ChatRoom): User | undefined {
+    return room.participants.find(p => p.id !== this.currentUser?.id);
+  }
+
+  getAvatarColor(id: number): string {
+    const colors = [
+      '#0084ff', '#00ba34', '#ff9500', '#ff3b30', '#5856d6',
+      '#ff2d55', '#af52de', '#ffcc00', '#34c759', '#007aff'
+    ];
+    return colors[id % colors.length];
+  }
+
+  formatTime(timestamp: string): string {
+    // In real app, format timestamp properly
+    return timestamp;
+  }
+
+  private scrollToBottom(): void {
+    try {
+      if (this.messageContainer) {
+        this.messageContainer.nativeElement.scrollTop = 
+          this.messageContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) {
+      console.error('Error scrolling to bottom:', err);
+    }
+  }
+
+  private updateRoomLastMessage(message: ChatMessage): void {
+    if (this.selectedRoom) {
+      this.selectedRoom.lastMessage = message;
+    }
+  }
+
+  // === SEARCH ===
+
+  searchRooms(): void {
+    if (this.searchQuery.trim()) {
+      // Implement search logic using chatService.searchMessages()
+      const searchCriteria = {
+        query: this.searchQuery,
+        limit: 20
+      };
+      
+      const searchSub = this.chatService.searchMessages(searchCriteria).subscribe({
+        next: (results) => {
+          // Handle search results
+          console.log('Search results:', results);
+        },
+        error: (error) => {
+          console.error('Error searching messages:', error);
+          this.errorsShown++;
+        }
+      });
+      this.subscriptions.push(searchSub);
+    }
+  }
+
+  // === KEYBOARD HANDLERS ===
+
   onKeyPress(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -232,199 +329,61 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  onMessageInput(): void {
-    if (!this.isTyping && this.currentRoom) {
-      this.isTyping = true;
-      this.chatService.startTyping(this.currentRoom.id).subscribe({
-        error: (error) => console.error('Error starting typing:', error)
-      });
-    }
+  // === FILE UPLOAD ===
 
-    // Clear existing timeout
-    if (this.typingTimeout) {
-      clearTimeout(this.typingTimeout);
-    }
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file && this.selectedRoom && this.currentUser) {
+      // Create file message request
+      const fileMessageRequest: CreateMessageRequest = {
+        chatRoomId: this.selectedRoom.id,
+        content: file.name, // In real app, upload file and get URL
+        messageType: 'FILE'
+      };
 
-    // Set new timeout
-    this.typingTimeout = setTimeout(() => {
-      this.stopTyping();
-    }, 1000);
-  }
-
-  stopTyping(): void {
-    if (this.isTyping && this.currentRoom) {
-      this.isTyping = false;
-      this.chatService.stopTyping(this.currentRoom.id).subscribe({
-        error: (error) => console.error('Error stopping typing:', error)
-      });
-    }
-  }
-
-  deleteMessage(messageId: number): void {
-    if (confirm('Are you sure you want to delete this message?')) {
-      this.chatService.deleteMessage(messageId).subscribe({
-        next: (response: BasicResponse) => {
-          console.log('✅ Message deleted successfully');
+      const fileSub = this.chatService.sendMessage(fileMessageRequest).subscribe({
+        next: (sentMessage) => {
+          this.messages.push(sentMessage);
+          this.scrollToBottom();
+          this.updateRoomLastMessage(sentMessage);
         },
-        error: (error: any) => {
-          this.errorMessage = error.message || 'Failed to delete message';
-          console.error('Error deleting message:', error);
+        error: (error) => {
+          console.error('Error sending file message:', error);
+          this.errorsShown++;
         }
       });
+      this.subscriptions.push(fileSub);
     }
   }
 
-  // Three dots menu functions
-  toggleMenu(event?: Event): void {
-    if (event) {
-      event.stopPropagation();
-    }
-    this.showMenu = !this.showMenu;
+  triggerFileInput(): void {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*,.pdf,.doc,.docx';
+    fileInput.onchange = (event) => this.onFileSelected(event);
+    fileInput.click();
   }
 
-  viewProfile(): void {
-    this.showMenu = false;
-    console.log('View profile clicked');
+  // === EMOJI PICKER ===
+
+  addEmoji(emoji: string): void {
+    this.newMessage += emoji;
+    this.showEmojiPicker = false;
   }
 
-  muteChat(): void {
-    this.showMenu = false;
-    console.log('Mute chat clicked');
-  }
+  // === ROOM CREATION ===
 
-  clearChat(): void {
-    this.showMenu = false;
-    
-    if (confirm('Are you sure you want to clear this chat? This will delete all messages in this conversation.')) {
-      if (this.currentRoom) {
-        this.chatService.clearChat(this.currentRoom.id).subscribe({
-          next: (response: BasicResponse) => {
-            console.log('✅ Chat cleared successfully');
-            this.messages = [];
-          },
-          error: (error: any) => {
-            console.error('❌ Error clearing chat:', error);
-            this.errorMessage = error.message || 'Failed to clear chat';
-          }
-        });
+  createTenantLandlordRoom(propertyId: number): void {
+    const createSub = this.chatService.createTenantLandlordRoom(propertyId).subscribe({
+      next: (newRoom) => {
+        this.chatRooms.push(newRoom);
+        this.selectRoom(newRoom);
+      },
+      error: (error) => {
+        console.error('Error creating room:', error);
+        this.errorsShown++;
       }
-    }
-  }
-
-  deleteChat(): void {
-    this.showMenu = false;
-    
-    if (confirm('Are you sure you want to delete this chat? This action cannot be undone.')) {
-      if (this.currentRoom) {
-        this.chatService.deleteChatRoom(this.currentRoom.id).subscribe({
-          next: (response: BasicResponse) => {
-            console.log('✅ Chat deleted successfully');
-            this.currentRoom = null;
-            this.selectedRoomId = null;
-            this.messages = [];
-            this.loadChatRooms();
-            this.router.navigate(['/chat']);
-          },
-          error: (error: any) => {
-            console.error('❌ Error deleting chat:', error);
-            this.errorMessage = error.message || 'Failed to delete chat';
-          }
-        });
-      }
-    }
-  }
-
-  markRoomAsRead(roomId: number): void {
-    this.chatService.markRoomAsRead(roomId).subscribe({
-      error: (error) => console.error('Error marking room as read:', error)
     });
-  }
-
-  toggleSidebar(): void {
-    this.isSidebarOpen = !this.isSidebarOpen;
-  }
-
-  getRoomDisplayName(room: ChatRoom): string {
-    return this.chatService.generateRoomDisplayName(room, this.currentUserId) || 'Unknown User';
-  }
-
-  getOtherParticipants(room: ChatRoom): User[] {
-    return this.chatService.getOtherParticipants(room, this.currentUserId) || [];
-  }
-
-  isMyMessage(message: ChatMessage): boolean {
-    return message.senderId === this.currentUserId;
-  }
-
-  formatMessageTime(timestamp: string): string {
-    try {
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) {
-        return '';
-      }
-      
-      const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-      
-      if (diffInHours < 24) {
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      } else if (diffInHours < 168) {
-        return date.toLocaleDateString('en-US', { weekday: 'short' });
-      } else {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      }
-    } catch (error) {
-      console.error('Error formatting message time:', error);
-      return '';
-    }
-  }
-
-  formatLastMessageTime(room: ChatRoom): string {
-    if (!room.lastMessage) return '';
-    return this.formatMessageTime(room.lastMessage.timestamp);
-  }
-
-  getLastMessagePreview(room: ChatRoom): string {
-    if (!room.lastMessage) return 'No messages yet';
-    
-    const content = room.lastMessage.content;
-    return content.length > 35 ? content.substring(0, 35) + '...' : content;
-  }
-
-  scrollToBottom(): void {
-    try {
-      if (this.messagesContainer?.nativeElement) {
-        setTimeout(() => {
-          const container = this.messagesContainer.nativeElement;
-          container.scrollTop = container.scrollHeight;
-        }, 100);
-      }
-    } catch (err) {
-      console.warn('Could not scroll to bottom:', err);
-    }
-  }
-
-  getParticipantRole(participant: User): string {
-    if (!participant.role) return 'User';
-    
-    switch(participant.role.toUpperCase()) {
-      case 'LANDLORD': return 'Landlord';
-      case 'CARETAKER': return 'Caretaker';
-      case 'TENANT': return 'Tenant';
-      default: return participant.role;
-    }
-  }
-
-  getRoomTypeDisplay(room: ChatRoom): string {
-    if (!room.participantType) return 'Chat';
-    
-    const participantType = room.participantType as string;
-    
-    switch(participantType) {
-      case 'TENANT_LANDLORD': return 'Tenant ↔ Landlord';
-      case 'TENANT_CARETAKER': return 'Tenant ↔ Caretaker';
-      case 'LANDLORD_CARETAKER': return 'Landlord ↔ Caretaker';
-      default: return participantType.replace('_', ' ↔ ');
-    }
+    this.subscriptions.push(createSub);
   }
 }

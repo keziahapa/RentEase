@@ -1,4 +1,3 @@
-// chat.interface.ts
 export interface User {
   id: number;
   name: string;
@@ -20,6 +19,7 @@ export interface ChatMessage {
   sender?: User;
   status?: 'SENT' | 'DELIVERED' | 'READ';
   deleted?: boolean;
+  selected?: boolean; // For batch operations
 }
 
 export interface ChatRoom {
@@ -61,6 +61,11 @@ export interface TypingIndicator {
 }
 
 export interface MarkReadRequest {
+  messageIds: number[];
+  roomId: number;
+}
+
+export interface MarkDeliveredRequest {
   messageIds: number[];
   roomId: number;
 }
