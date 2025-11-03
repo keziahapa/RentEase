@@ -13,6 +13,7 @@ import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { ErrorHandlerService } from '../../services/error-handler.service';
 import { ErrorAction } from '../../services/error-handler.interface';
+
 import { 
   ChatRoom, 
   ChatMessage, 
@@ -23,13 +24,14 @@ import {
   ChatMessageResponse,
   User
 } from '../../services/chat.interface';
+import { ErrorDisplayComponent } from '../error-display.component/error-display.component';
 
 @Component({
   selector: 'app-chat',
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule,ErrorDisplayComponent]
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesContainer') private messagesContainer!: ElementRef;

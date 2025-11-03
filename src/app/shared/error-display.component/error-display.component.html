@@ -1,35 +1,369 @@
-<div class="error-container">
-  <div *ngFor="let error of errors" 
-       class="error-toast"
-       [class.error-info]="error.severity === 'info'"
-       [class.error-warning]="error.severity === 'warning'"
-       [class.error-error]="error.severity === 'error'"
-       [class.error-critical]="error.severity === 'critical'"
-       [@slideIn]>
-    
-    <div class="error-icon">
-      <span class="material-icons">
-        {{ getIcon(error.severity) }}
-      </span>
+<!-- Error Display Component -->
+<div class="error-container" *ngIf="errorHandler.hasError$ | async">
+  <div class="error-toast error">
+    <div class="toast-content">
+      <span class="material-icons">error</span>
+      <div class="toast-message">
+        <div class="toast-title">Error</div>
+        <div class="toast-description">{{ errorHandler.currentError$ | async }}</div>
+      </div>
+    </div>
+    <button class="toast-close" (click)="errorHandler.clearError()">
+      <span class="material-icons">close</span>
+    </button>
+  </div>
+</div>
+
+<div class="chat-container">
+  <div class="chat-layout">
+    <!-- Sidebar -->
+    <div class="sidebar" [class.sidebar-collapsed]="!isSidebarOpen">
+      <div class="sidebar-header">
+        <div class="sidebar-title">
+          <h2>Messages</h2>
+          <button class="toggle-sidebar" (click)="toggleSidebar()" aria-label="Toggle sidebar">
+            <span class="material-icons">{{ isSidebarOpen ? 'chevron_left' : 'chevron_right' }}</span>
+          </button>
+        </div>
+        <div class="search-box">
+          <input 
+            type="text" 
+            placeholder="Search conversations..." 
+            class="search-input" 
+            [(ngModel)]="searchQuery" 
+            (input)="searchRooms()"
+            aria-label="Search conversations"
+          >
+        </div>
+      </div>
+
+      <div class="chat-rooms">
+        <!-- Loading State -->
+        <div *ngIf="loading" class="loading-rooms">
+          <div class="spinner" aria-label="Loading conversations"></div>
+          Loading conversations...
+        </div>
+        
+        <!-- Empty State -->
+        <div *ngIf="!loading && chatRooms.length === 0" class="no-rooms">
+          <span class="material-icons" aria-hidden="true">forum</span>
+          <p>No conversations yet</p>
+          <button class="btn-primary" (click)="loadChatRooms()">
+            <span class="material-icons">refresh</span>
+            Refresh
+          </button>
+        </div>
+
+        <!-- Chat Rooms List -->
+        <div 
+          *ngFor="let room of chatRooms" 
+          class="room-item" 
+          [class.active]="room.id === selectedRoomId"
+          (click)="selectRoom(room)"
+          [attr.aria-label]="getRoomDisplayName(room) + ' conversation'"
+          [attr.aria-selected]="room.id === selectedRoomId"
+          role="button"
+          tabindex="0"
+          (keydown.enter)="selectRoom(room)"
+          (keydown.space)="selectRoom(room)"
+        >
+          <div class="room-avatar">
+            <div class="avatar-placeholder" [style.background]="getAvatarColor(room.id)">
+              {{ getRoomDisplayName(room)?.charAt(0)?.toUpperCase() || 'U' }}
+            </div>
+            <div 
+              class="online-indicator" 
+              *ngIf="getOtherParticipants(room)[0]?.isOnline"
+              aria-label="Online"
+            ></div>
+          </div>
+          
+          <div class="room-info">
+            <div class="room-header">
+              <span class="room-name">{{ getRoomDisplayName(room) }}</span>
+              <span class="room-time">{{ formatLastMessageTime(room) }}</span>
+            </div>
+            <div class="room-preview">
+              <span class="last-message">{{ getLastMessagePreview(room) }}</span>
+              <span 
+                *ngIf="room.unreadCount > 0" 
+                class="unread-badge"
+                aria-label="{{ room.unreadCount }} unread messages"
+              >
+                {{ room.unreadCount }}
+              </span>
+            </div>
+            <div class="room-type">
+              {{ getRoomTypeDisplay(room) }}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="error-content">
-      <div class="error-message">{{ error.message }}</div>
-      <div class="error-context" *ngIf="error.context">{{ error.context }}</div>
+    <!-- Main Chat Area -->
+    <div class="chat-main" *ngIf="currentRoom">
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <button class="mobile-back" (click)="currentRoom = null" aria-label="Back to conversations">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <div class="chat-user-info">
+          <div class="user-avatar">
+            <div class="avatar-placeholder" [style.background]="getAvatarColor(currentRoom.id)">
+              {{ getRoomDisplayName(currentRoom)?.charAt(0)?.toUpperCase() || 'U' }}
+            </div>
+          </div>
+          <div class="user-details">
+            <h3 class="user-name">{{ getRoomDisplayName(currentRoom) }}</h3>
+            <div class="user-status">
+              <span 
+                class="status-dot" 
+                [class.online]="getOtherParticipants(currentRoom)[0]?.isOnline"
+                [attr.aria-label]="getOtherParticipants(currentRoom)[0]?.isOnline ? 'Online' : 'Offline'"
+              >
+                {{ getOtherParticipants(currentRoom)[0]?.isOnline ? 'Online' : 'Offline' }}
+              </span>
+              <span class="user-role">{{ getParticipantRole(getOtherParticipants(currentRoom)[0]) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-actions">
+          <button 
+            class="menu-trigger" 
+            (click)="toggleMenu($event)"
+            aria-label="Chat options"
+            aria-haspopup="true"
+            [attr.aria-expanded]="showMenu"
+          >
+            <span class="material-icons">more_vert</span>
+          </button>
+
+          <div class="menu-container" *ngIf="showMenu" role="menu">
+            <div class="menu-item" (click)="viewProfile()" role="menuitem">
+              <span class="material-icons">person</span>
+              View Profile
+            </div>
+            <div class="menu-item" (click)="muteChat()" role="menuitem">
+              <span class="material-icons">notifications_off</span>
+              Mute Chat
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-item danger" (click)="clearChat()" role="menuitem">
+              <span class="material-icons">clear_all</span>
+              Clear Chat
+            </div>
+            <div class="menu-item danger" (click)="deleteChat()" role="menuitem">
+              <span class="material-icons">delete</span>
+              Delete Chat
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages Area -->
+      <div class="messages-container" #messagesContainer aria-live="polite">
+        <!-- No Messages State -->
+        <div *ngIf="messages.length === 0 && !loading" class="no-messages">
+          <div class="no-messages-icon">
+            <span class="material-icons" aria-hidden="true">chat</span>
+          </div>
+          <p>No messages yet</p>
+          <span>Start a conversation by sending a message</span>
+        </div>
+
+        <!-- Messages List -->
+        <div 
+          *ngFor="let message of messages; trackBy: trackByMessageId" 
+          class="message-wrapper"
+          [attr.aria-label]="(isMyMessage(message) ? 'You' : message.sender?.name) + ' said: ' + (message.deleted ? 'This message was deleted' : message.content)"
+        >
+          <div class="message" 
+               [class.my-message]="isMyMessage(message)" 
+               [class.other-message]="!isMyMessage(message)"
+               [class.deleted]="message.deleted">
+            
+            <!-- Other User's Avatar -->
+            <div *ngIf="!isMyMessage(message)" class="message-avatar">
+              <div class="avatar-small" [style.background]="getAvatarColor(message.senderId)">
+                {{ message.sender?.name?.charAt(0)?.toUpperCase() || 'U' }}
+              </div>
+            </div>
+
+            <!-- Message Content -->
+            <div class="message-content">
+              <p 
+                class="message-text" 
+                [class.deleted-text]="message.deleted"
+                [attr.aria-label]="message.deleted ? 'This message was deleted' : message.content"
+              >
+                {{ message.deleted ? 'This message was deleted' : message.content }}
+              </p>
+              <div class="message-footer">
+                <span class="message-time">{{ formatMessageTime(message.timestamp) }}</span>
+                
+                <!-- Message Status Indicators -->
+                <span 
+                  *ngIf="isMyMessage(message) && !message.deleted" 
+                  class="message-status"
+                  [attr.aria-label]="'Message ' + (message.status?.toLowerCase() || 'sent')"
+                >
+                  <span *ngIf="message.status === 'SENT'" class="status-icon">✓</span>
+                  <span *ngIf="message.status === 'DELIVERED'" class="status-icon delivered">✓✓</span>
+                  <span *ngIf="message.status === 'READ'" class="status-icon read">✓✓</span>
+                </span>
+                
+                <!-- Delete Message Button -->
+                <button 
+                  *ngIf="isMyMessage(message) && !message.deleted" 
+                  class="delete-btn" 
+                  (click)="deleteMessage(message.id)" 
+                  title="Delete message"
+                  aria-label="Delete message"
+                >
+                  <span class="material-icons">delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div 
+          *ngIf="typingUsers.length > 0" 
+          class="typing-indicator"
+          aria-live="polite"
+          aria-label="{{ typingUsers[0]?.name }} is typing"
+        >
+          <div class="typing-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <span class="typing-text">
+            {{ typingUsers[0]?.name }} is typing...
+          </span>
+        </div>
+      </div>
+
+      <!-- Message Input -->
+      <div class="message-input-container">
+        <div class="input-wrapper">
+          <!-- Attach File Button -->
+          <button 
+            class="input-action-btn" 
+            title="Attach file" 
+            (click)="triggerFileInput()"
+            aria-label="Attach file"
+          >
+            <span class="material-icons">attach_file</span>
+          </button>
+          
+          <!-- Message Textarea -->
+          <textarea 
+            #messageInput
+            [(ngModel)]="newMessage"
+            (keypress)="onKeyPress($event)"
+            (input)="onMessageInput()"
+            placeholder="Type a message..."
+            class="message-input"
+            rows="1"
+            aria-label="Type your message"
+            aria-multiline="true"
+            [attr.aria-disabled]="!currentRoom || sending"
+          ></textarea>
+          
+          <!-- Emoji Picker Toggle -->
+          <button 
+            class="input-action-btn" 
+            title="Add emoji" 
+            (click)="showEmojiPicker = !showEmojiPicker"
+            aria-label="Add emoji"
+            [attr.aria-expanded]="showEmojiPicker"
+          >
+            <span class="material-icons">mood</span>
+          </button>
+          
+          <!-- Send Button -->
+          <button 
+            class="send-btn" 
+            (click)="sendMessage()"
+            [disabled]="!newMessage.trim() || !currentRoom || sending"
+            title="Send message"
+            aria-label="Send message"
+          >
+            <span class="material-icons">send</span>
+          </button>
+        </div>
+
+        <!-- Emoji Picker -->
+        <div 
+          class="emoji-picker" 
+          *ngIf="showEmojiPicker"
+          role="listbox"
+          aria-label="Emoji picker"
+        >
+          <div class="emoji-grid">
+            <span 
+              *ngFor="let emoji of emojis" 
+              class="emoji-item" 
+              (click)="addEmoji(emoji)"
+              role="option"
+              [attr.aria-label]="'Emoji: ' + emoji"
+            >
+              {{ emoji }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="error-actions">
-      <button *ngIf="error.action" 
-              class="error-action-btn"
-              (click)="handleAction(error)">
-        {{ error.action.label }}
-      </button>
-      
-      <button *ngIf="error.dismissible"
-              class="error-close-btn"
-              (click)="dismiss(error.id)">
-        <span class="material-icons">close</span>
-      </button>
+    <!-- No Room Selected State -->
+    <div 
+      class="no-chat-selected" 
+      *ngIf="!currentRoom"
+      aria-live="polite"
+      aria-label="No conversation selected"
+    >
+      <div class="no-chat-content">
+        <div class="no-chat-icon">
+          <span class="material-icons" aria-hidden="true">forum</span>
+        </div>
+        <h3>No Conversation Selected</h3>
+        <p>Select a conversation from the sidebar to start chatting</p>
+        <div class="no-chat-actions" *ngIf="chatRooms.length === 0">
+          <button class="btn-primary" (click)="loadChatRooms()">
+            <span class="material-icons">refresh</span>
+            Refresh Conversations
+          </button>
+        </div>
+        <div class="no-chat-actions" *ngIf="chatRooms.length > 0">
+          <button class="btn-primary" (click)="isSidebarOpen = true">
+            <span class="material-icons">menu</span>
+            Show Conversations
+          </button>
+        </div>
+      </div>
     </div>
   </div>
+</div>
+
+<!-- Loading Overlay -->
+<div *ngIf="loading && !chatRooms.length" class="loading-overlay">
+  <div class="loading-spinner">
+    <div class="spinner-large"></div>
+    <p>Loading your conversations...</p>
+  </div>
+</div>
+
+<!-- Connection Status Indicator -->
+<div 
+  class="connection-status" 
+  [class.connected]="chatService.isConnected$ | async"
+  [class.disconnected]="!(chatService.isConnected$ | async)"
+  *ngIf="!(chatService.isConnected$ | async)"
+>
+  <span class="material-icons">wifi_off</span>
+  <span>Connecting...</span>
 </div>
