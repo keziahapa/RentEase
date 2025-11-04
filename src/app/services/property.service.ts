@@ -1,55 +1,45 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { ProfilePictureService, UpdateProfileResponse, ProfilePictureResponse } from './profile-picture.service';
-import { 
-  LandlordMoveOutNotice, 
-  LandlordMoveOutNoticeResponse, 
-  MoveOutActionRequest,
-  TenantMoveOutNoticeResponse,
-  MoveOutNoticeRequest,
-  MoveOutStats
-} from './dashboard-interface';
+import { ProfilePictureService } from './profile-picture.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PropertyService {
+  private http = inject(HttpClient);
+  private authService = inject(AuthService);
+  private profileService = inject(ProfilePictureService);
+  
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
-
-  constructor(
-    private http: HttpClient,
-    private authService: AuthService,
-    private profileService: ProfilePictureService
-  ) {}
 
   // ============================================================================
   // PROFILE METHODS
   // ============================================================================
 
-  getCurrentUserProfile(): Observable<UpdateProfileResponse> {
+  getCurrentUserProfile(): Observable<any> {
     return this.profileService.getCurrentUserProfile();
   }
 
-  updateUserProfile(profileData: any): Observable<UpdateProfileResponse> {
+  updateUserProfile(profileData: any): Observable<any> {
     return this.profileService.updateProfilePartial(profileData);
   }
 
-  getProfilePicture(): Observable<ProfilePictureResponse> {
+  getProfilePicture(): Observable<any> {
     return this.profileService.getProfilePicture();
   }
 
-  uploadProfilePicture(file: File): Observable<ProfilePictureResponse> {
+  uploadProfilePicture(file: File): Observable<any> {
     return this.profileService.uploadProfilePicture(file);
   }
 
-  updateProfilePicture(file: File): Observable<ProfilePictureResponse> {
+  updateProfilePicture(file: File): Observable<any> {
     return this.profileService.updateProfilePicture(file);
   }
 
-  deleteProfilePicture(): Observable<ProfilePictureResponse> {
+  deleteProfilePicture(): Observable<any> {
     return this.profileService.deleteProfilePicture();
   }
 
@@ -194,7 +184,7 @@ export class PropertyService {
   // MOVE-OUT NOTICE METHODS - LANDLORD
   // ============================================================================
 
-  getLandlordMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<LandlordMoveOutNoticeResponse> {
+  getLandlordMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
@@ -208,7 +198,7 @@ export class PropertyService {
       params = params.set('status', status);
     }
 
-    return this.http.get<LandlordMoveOutNoticeResponse>(
+    return this.http.get<any>(
       `${this.apiUrl}/api/landlord/move-out-notices`,
       { 
         headers: this.createHeaders(),
@@ -219,13 +209,13 @@ export class PropertyService {
     );
   }
 
-  approveMoveOutNotice(noticeId: number, request?: MoveOutActionRequest): Observable<LandlordMoveOutNoticeResponse> {
+  approveMoveOutNotice(noticeId: number, request?: any): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
-    return this.http.post<LandlordMoveOutNoticeResponse>(
+    return this.http.post<any>(
       `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}/approve`,
       request || {},
       { headers: this.createHeaders() }
@@ -234,13 +224,13 @@ export class PropertyService {
     );
   }
 
-  rejectMoveOutNotice(noticeId: number, request?: MoveOutActionRequest): Observable<LandlordMoveOutNoticeResponse> {
+  rejectMoveOutNotice(noticeId: number, request?: any): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
-    return this.http.post<LandlordMoveOutNoticeResponse>(
+    return this.http.post<any>(
       `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}/reject`,
       request || {},
       { headers: this.createHeaders() }
@@ -249,13 +239,13 @@ export class PropertyService {
     );
   }
 
-  getLandlordMoveOutNoticeById(noticeId: number): Observable<LandlordMoveOutNoticeResponse> {
+  getLandlordMoveOutNoticeById(noticeId: number): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
-    return this.http.get<LandlordMoveOutNoticeResponse>(
+    return this.http.get<any>(
       `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}`,
       { headers: this.createHeaders() }
     ).pipe(
@@ -263,13 +253,13 @@ export class PropertyService {
     );
   }
 
-  getMoveOutStats(): Observable<MoveOutStats> {
+  getMoveOutStats(): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
-    return this.http.get<MoveOutStats>(
+    return this.http.get<any>(
       `${this.apiUrl}/api/landlord/move-out-notices/stats`,
       { headers: this.createHeaders() }
     ).pipe(
@@ -281,7 +271,7 @@ export class PropertyService {
   // MOVE-OUT NOTICE METHODS - TENANT
   // ============================================================================
 
-  getTenantMoveOutNotices(page: number = 1, limit: number = 10): Observable<TenantMoveOutNoticeResponse> {
+  getTenantMoveOutNotices(page: number = 1, limit: number = 10): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
@@ -291,7 +281,7 @@ export class PropertyService {
       .set('page', page.toString())
       .set('limit', limit.toString());
 
-    return this.http.get<TenantMoveOutNoticeResponse>(
+    return this.http.get<any>(
       `${this.apiUrl}/api/tenant/move-out-notices`,
       { 
         headers: this.createHeaders(),
@@ -302,13 +292,13 @@ export class PropertyService {
     );
   }
 
-  submitMoveOutNotice(request: MoveOutNoticeRequest): Observable<TenantMoveOutNoticeResponse> {
+  submitMoveOutNotice(request: any): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
-    return this.http.post<TenantMoveOutNoticeResponse>(
+    return this.http.post<any>(
       `${this.apiUrl}/api/tenant/move-out-notices`,
       request,
       { headers: this.createHeaders() }
@@ -317,14 +307,13 @@ export class PropertyService {
     );
   }
 
-  // FIXED: Changed from PATCH to POST
-  cancelMoveOutNotice(noticeId: number): Observable<TenantMoveOutNoticeResponse> {
+  cancelMoveOutNotice(noticeId: number): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
-    return this.http.post<TenantMoveOutNoticeResponse>(
+    return this.http.post<any>(
       `${this.apiUrl}/api/tenant/move-out-notices/${noticeId}/cancel`,
       {},
       { headers: this.createHeaders() }
@@ -333,13 +322,13 @@ export class PropertyService {
     );
   }
 
-  getTenantMoveOutNoticeById(noticeId: number): Observable<TenantMoveOutNoticeResponse> {
+  getTenantMoveOutNoticeById(noticeId: number): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
-    return this.http.get<TenantMoveOutNoticeResponse>(
+    return this.http.get<any>(
       `${this.apiUrl}/api/tenant/move-out-notices/${noticeId}`,
       { headers: this.createHeaders() }
     ).pipe(
@@ -427,6 +416,7 @@ export class PropertyService {
     });
   }
 
+  // ✅ FIXED: Use arrow function to preserve 'this' context
   private handleError = (error: HttpErrorResponse): Observable<never> => {
     let errorMessage = 'An unexpected error occurred';
 

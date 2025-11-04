@@ -44,12 +44,16 @@ export class InvitationService {
     return headers;
   }
 
-  private handleError(error: HttpErrorResponse): Observable<never> {
+  // ✅ FIXED: Use arrow function to preserve 'this' context
+  private handleError = (error: HttpErrorResponse): Observable<never> => {
     let errorMessage = 'Service temporarily unavailable';
     
     if (error.status === 401) {
       errorMessage = 'Authentication failed. Your session may have expired. Please login again.';
-      this.authService.logoutSync();
+      // ✅ FIXED: Add null check for authService
+      if (this.authService) {
+        this.authService.logoutSync();
+      }
     } else if (error.status === 404) {
       errorMessage = 'Feature not available yet';
     } else if (error.error?.message) {
@@ -81,7 +85,10 @@ export class InvitationService {
         headers: this.createHeaders(),
         responseType: 'json'
       }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      // ✅ FIXED: Pass the arrow function directly
+      catchError(this.handleError)
+    );
   }
 
   acceptInvitation(token: string): Observable<any> {
@@ -100,7 +107,10 @@ export class InvitationService {
         headers: headers,
         responseType: 'json'
       }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      // ✅ FIXED: Pass the arrow function directly
+      catchError(this.handleError)
+    );
   }
 
   inviteCaretaker(inviteData: any): Observable<any> {
@@ -121,35 +131,46 @@ export class InvitationService {
         headers: this.createHeaders(),
         responseType: 'json'
       }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      // ✅ FIXED: Pass the arrow function directly
+      catchError(this.handleError)
+    );
   }
 
   getSentInvitations(): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/invitations/sent`,
       { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   getPendingInvitations(): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/invitations/pending`,
       { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   getReceivedInvitations(): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/invitations/received`,
       { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   cancelInvitation(invitationId: string): Observable<any> {
     return this.http.delete<any>(
       `${this.apiUrl}/invitations/${invitationId}`,
       { headers: this.createHeaders() }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   resendInvitation(invitationId: string): Observable<any> {
@@ -157,35 +178,45 @@ export class InvitationService {
       `${this.apiUrl}/invitations/${invitationId}/resend`,
       {},
       { headers: this.createHeaders() }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   getInvitationById(invitationId: string): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/invitations/${invitationId}`,
       { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   getInvitationsByProperty(propertyId: string): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/invitations/property/${propertyId}`,
       { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   getInvitationsByStatus(status: string): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/invitations/status/${status}`,
       { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   getInvitationDetails(token: string): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/invitations/details/${token}`,
       { headers: this.createAuthHeaders(), responseType: 'json' }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   validateInvitation(token: string): Observable<any> {
@@ -193,6 +224,8 @@ export class InvitationService {
       `${this.apiUrl}/invitations/validate`,
       { invitationToken: token },
       { headers: this.createAuthHeaders(), responseType: 'json' }
-    ).pipe(catchError(this.handleError));
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 }

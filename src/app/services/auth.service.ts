@@ -71,29 +71,20 @@ export class AuthService {
       tap(res => {
         console.log('🟢 AuthService: Login response:', res);
         
-        // Check if response indicates failure despite 200 status
         if (res.success === false) {
           console.error('🔴 AuthService: Login failed in response:', res.message);
           throw new Error(res.message || 'Login failed');
         }
 
-        // ✅ FIXED: Handle the actual response structure
-        // Extract user data from root level if user object doesn't exist
         const userData = res.user || {
           id: res.userId?.toString(),
           fullName: res.fullName,
           email: res.email,
-          role: res.role, // This might be missing too
+          role: res.role,
           phoneNumber: res.phoneNumber,
           verified: res.verified,
           emailVerified: res.emailVerified
         };
-
-        // If role is still missing, we need to handle it differently
-        if (!userData.role) {
-          console.warn('🟡 AuthService: Role not provided in response, will check from token or API');
-          // Don't throw error - proceed and we'll get role from token or separate API call
-        }
 
         const phoneNumber = userData.phoneNumber || 
                            res.phoneNumber || 
@@ -301,60 +292,60 @@ export class AuthService {
   }
 
   sendOtp(request: any): Observable<any> {
-  const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
-  return this.http.post<any>(`${this.apiUrl}/send-otp`, cleanRequest, {
-    headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-  }).pipe(catchError(this.handleError));
-}
+    const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
+    return this.http.post<any>(`${this.apiUrl}/send-otp`, cleanRequest, {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    }).pipe(catchError(this.handleError));
+  }
 
   verifyOtp(request: any): Observable<any> {
-  const cleanRequest = {
-    email: request.email.trim().toLowerCase(),
-    otpCode: request.otpCode.toString().trim(),
-    type: request.type
-  };
-  
-  return this.http.post<any>(`${this.apiUrl}/verify-otp`, cleanRequest, {
-    headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-  }).pipe(
-    tap(res => {
-      if (res.success && res.token) {
-        const userData = res.user || {
-          id: res.userId?.toString(),
-          fullName: res.fullName,
-          email: res.email,
-          role: res.role,
-          verified: res.verified,
-          emailVerified: res.emailVerified
-        };
+    const cleanRequest = {
+      email: request.email.trim().toLowerCase(),
+      otpCode: request.otpCode.toString().trim(),
+      type: request.type
+    };
+    
+    return this.http.post<any>(`${this.apiUrl}/verify-otp`, cleanRequest, {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    }).pipe(
+      tap(res => {
+        if (res.success && res.token) {
+          const userData = res.user || {
+            id: res.userId?.toString(),
+            fullName: res.fullName,
+            email: res.email,
+            role: res.role,
+            verified: res.verified,
+            emailVerified: res.emailVerified
+          };
 
-        if (!userData.role) {
-          throw new Error('User role not provided in verification response');
-        }
-        
-        const phoneNumber = this.extractPhoneNumberFromMultipleSources(res);
-        
-        const enhancedResponse = {
-          token: res.token,
-          tokenType: 'Bearer',
-          userId: res.userId,
-          fullName: userData.fullName,
-          email: userData.email,
-          role: userData.role,
-          verified: userData.verified,
-          phoneNumber: phoneNumber,
-          user: {
-            ...userData,
-            phoneNumber: phoneNumber
+          if (!userData.role) {
+            throw new Error('User role not provided in verification response');
           }
-        };
-        
-        this.handleAuthSuccess(enhancedResponse, false);
-      }
-    }),
-    catchError(this.handleOtpError)
-  );
-}
+          
+          const phoneNumber = this.extractPhoneNumberFromMultipleSources(res);
+          
+          const enhancedResponse = {
+            token: res.token,
+            tokenType: 'Bearer',
+            userId: res.userId,
+            fullName: userData.fullName,
+            email: userData.email,
+            role: userData.role,
+            verified: userData.verified,
+            phoneNumber: phoneNumber,
+            user: {
+              ...userData,
+              phoneNumber: phoneNumber
+            }
+          };
+          
+          this.handleAuthSuccess(enhancedResponse, false);
+        }
+      }),
+      catchError(this.handleOtpError)
+    );
+  }
 
   getPhoneNumber(): string {
     if (!this.isBrowser) return '';
@@ -455,12 +446,12 @@ export class AuthService {
     }
   }
 
- resendOtp(request: any): Observable<any> {
-  const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
-  return this.http.post<any>(`${this.apiUrl}/resend-otp`, cleanRequest, {
-    headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-  }).pipe(catchError(this.handleError));
-}
+  resendOtp(request: any): Observable<any> {
+    const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
+    return this.http.post<any>(`${this.apiUrl}/resend-otp`, cleanRequest, {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    }).pipe(catchError(this.handleError));
+  }
 
   getToken(): string | null {
     if (!this.isBrowser) return null;
@@ -471,13 +462,11 @@ export class AuthService {
     
     let cleanToken = token.trim();
     
-    // Remove quotes if present
     if ((cleanToken.startsWith('"') && cleanToken.endsWith('"')) || 
         (cleanToken.startsWith("'") && cleanToken.endsWith("'"))) {
       cleanToken = cleanToken.slice(1, -1);
     }
     
-    // Remove Bearer prefix if present
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
     }
@@ -609,7 +598,6 @@ export class AuthService {
     
     console.log('🟢 AuthService: Handling auth success', response);
     
-    // ✅ FIXED: Extract user from response - handle both structures
     const user = response.user || {
       id: response.userId?.toString(),
       email: response.email,
@@ -632,13 +620,11 @@ export class AuthService {
       cleanToken = cleanToken.substring(7).trim();
     }
 
-    // ✅ FIXED: If role is missing, try to extract from token
     if (!user.role) {
       user.role = this.extractRoleFromToken(cleanToken);
       console.log('🟡 AuthService: Extracted role from token:', user.role);
     }
 
-    // Store token and user data
     if (rememberMe) {
       localStorage.setItem('authToken', cleanToken);
       localStorage.setItem('userData', JSON.stringify(user));
@@ -647,7 +633,6 @@ export class AuthService {
       sessionStorage.setItem('userData', JSON.stringify(user));
     }
 
-    // Update subjects
     this.currentUserSubject.next(user);
     this.isAuthenticatedSubject.next(true);
     
