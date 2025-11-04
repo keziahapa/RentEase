@@ -9,14 +9,13 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatOptionModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // ✅ ADD THIS IMPORT
 
 import { InvitationService } from '../../../../../services/invitation.service';
 import { 
   InviteDialogData, 
   AvailableUnit, 
-  InviteDialogResult,
-  InviteTenantRequest,
-  InviteCaretakerRequest 
+  InviteDialogResult
 } from '../../../../../services/invitation-interfaces';
 
 @Component({
@@ -34,7 +33,8 @@ import {
     MatSelectModule,
     MatOptionModule,
     MatProgressSpinnerModule,
-    MatButtonModule
+    MatButtonModule,
+    MatSnackBarModule // ✅ ADD THIS TO IMPORTS ARRAY
   ]
 })
 export class InviteDialogComponent implements OnInit {
@@ -42,33 +42,38 @@ export class InviteDialogComponent implements OnInit {
   loading = false;
   availableUnits: AvailableUnit[] = [];
 
-  // Use inject() function instead of constructor injection
   private fb = inject(FormBuilder);
   private invitationService = inject(InvitationService);
+  private snackBar = inject(MatSnackBar); // ✅ MOVE THIS BEFORE dialogRef
   public dialogRef = inject(MatDialogRef<InviteDialogComponent, InviteDialogResult>);
   public data = inject<InviteDialogData>(MAT_DIALOG_DATA);
 
   constructor() {
-    this.inviteForm = this.createForm();
+    // ✅ Initialize empty form, will build properly in ngOnInit
+    this.inviteForm = this.fb.group({});
   }
 
   ngOnInit() {
     this.availableUnits = this.data.availableUnits || [];
-    console.log('📋 Available units:', this.availableUnits);
-    console.log('🎯 Dialog type:', this.data.type);
-    console.log('🏠 Property ID:', this.data.propertyId);
+    console.log('📋 Available units with IDs:', this.availableUnits.map(u => ({ id: u.id, unitNumber: u.unitNumber })));
+    
+    // ✅ Build form AFTER availableUnits is set
+    this.buildForm();
   }
 
-  createForm(): FormGroup {
+  private buildForm(): void {
     const formConfig: any = {
       email: ['', [Validators.required, Validators.email]]
     };
 
+    // ✅ Only add unitId if we have available units
     if (this.data.type === 'tenant' && this.availableUnits.length > 0) {
-      formConfig.unitId = ['', Validators.required];
+      // ✅ Set default value to first available unit
+      formConfig.unitId = [this.availableUnits[0].id, Validators.required];
     }
 
-    return this.fb.group(formConfig);
+    this.inviteForm = this.fb.group(formConfig);
+    console.log('✅ Form built with controls:', Object.keys(this.inviteForm.controls));
   }
 
   hasError(controlName: string, errorType: string): boolean {
@@ -87,9 +92,15 @@ export class InviteDialogComponent implements OnInit {
 
   onSend(): void {
     if (this.inviteForm.valid) {
-      this.loading = true;
-      
+      // ✅ Validate unitId exists before sending
       const formData = this.inviteForm.value;
+      
+      if (this.data.type === 'tenant' && !formData.unitId) {
+        this.snackBar.open('Please select a unit', 'Close', { duration: 3000 });
+        return;
+      }
+
+      this.loading = true;
       console.log('📤 Form data:', formData);
       
       if (this.data.type === 'tenant') {
@@ -103,10 +114,17 @@ export class InviteDialogComponent implements OnInit {
   }
 
   private inviteTenant(formData: any): void {
-    // ✅ FIXED: Only send what backend expects - tenantEmail and unitId
+    // ✅ Validate unitId exists
+    if (!formData.unitId) {
+      this.loading = false;
+      this.snackBar.open('Unit selection is required', 'Close', { duration: 3000 });
+      return;
+    }
+
+    // ✅ FIXED: Only send what backend expects
     const tenantData = {
       tenantEmail: formData.email,
-      unitId: formData.unitId // Remove propertyId, unitNumber, etc.
+      unitId: formData.unitId
     };
 
     console.log('📤 Sending tenant invitation:', tenantData);
@@ -143,7 +161,7 @@ export class InviteDialogComponent implements OnInit {
   }
 
   private inviteCaretaker(formData: any): void {
-    const caretakerData: InviteCaretakerRequest = {
+    const caretakerData = {
       caretakerEmail: formData.email,
       propertyId: this.data.propertyId
     };
