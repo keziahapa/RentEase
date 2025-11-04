@@ -80,6 +80,7 @@ export const routes: Routes = [
   { path: 'terms', component: TermsComponent },
   { path: 'privacy', component: PrivacyComponent },
   { path: 'accept-invitation/:token', component: AcceptInvitationComponent },
+  { path: 'accept-invitation', component: AcceptInvitationComponent },
   { path: 'waiting-landlord', component: WaitingLandlordComponent },
   
 

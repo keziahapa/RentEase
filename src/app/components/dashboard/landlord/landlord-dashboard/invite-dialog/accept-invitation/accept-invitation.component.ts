@@ -45,24 +45,120 @@ export class AcceptInvitationComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    console.log('🔄 AcceptInvitationComponent initialized');
+    console.log('🛣️ Current URL:', this.router.url);
+    
     this.userIsLoggedIn = this.authService.isLoggedIn();
     
- 
-    this.invitationToken = this.route.snapshot.paramMap.get('token');
+    // Extract token from multiple possible sources
+    this.invitationToken = this.extractTokenFromMultipleSources();
     
+    console.log('🔑 Extracted token:', this.invitationToken);
+    console.log('👤 User logged in:', this.userIsLoggedIn);
+
     if (!this.invitationToken) {
-      this.error = 'No invitation token provided. Please check your invitation link.';
+      this.error = 'No valid invitation token found. Please check your invitation link.';
       this.loading = false;
       return;
     }
 
-    console.log('Invitation token:', this.invitationToken);
-    console.log('User logged in:', this.userIsLoggedIn);
-
     sessionStorage.setItem('pendingInvitationToken', this.invitationToken);
-    
-   
     this.loadInvitationDetails();
+  }
+
+  private extractTokenFromMultipleSources(): string | null {
+    console.log('🔍 Searching for token in different sources...');
+    
+    // 1. Try route parameters (for /accept-invitation/:token)
+    const routeToken = this.route.snapshot.paramMap.get('token');
+    if (routeToken) {
+      console.log('✅ Found token in route parameters');
+      return routeToken;
+    }
+
+    // 2. Try query parameters (for /accept-invitation?token=abc123)
+    const queryParams = this.route.snapshot.queryParams;
+    console.log('🔍 Query parameters:', queryParams);
+    
+    const queryToken = queryParams['token'];
+    if (queryToken) {
+      console.log('✅ Found token in query parameters:', queryToken);
+      
+      // Handle malformed backend URLs
+      if (queryToken.includes('/accept-invitation?') || queryToken.includes('%2Faccept-invitation%3F')) {
+        console.log('🔄 Processing malformed URL format');
+        return this.extractTokenFromMalformedUrl(queryToken);
+      }
+      return queryToken;
+    }
+
+    // 3. Try URL fragment
+    const fragment = this.route.snapshot.fragment;
+    if (fragment) {
+      console.log('🔍 URL fragment:', fragment);
+      const match = fragment.match(/token=([^&]+)/);
+      if (match) {
+        console.log('✅ Found token in URL fragment');
+        return match[1];
+      }
+    }
+
+    // 4. Try to extract from current URL
+    const currentUrl = this.router.url;
+    console.log('🔍 Current router URL:', currentUrl);
+    
+    // Check if token is in the path
+    const pathMatch = currentUrl.match(/\/accept-invitation\/([^/?]+)/);
+    if (pathMatch) {
+      console.log('✅ Found token in URL path');
+      return pathMatch[1];
+    }
+
+    // Check if token is in query string of current URL
+    const queryMatch = currentUrl.match(/[?&]token=([^&]+)/);
+    if (queryMatch) {
+      console.log('✅ Found token in URL query string');
+      return queryMatch[1];
+    }
+
+    console.log('❌ No token found in any source');
+    return null;
+  }
+
+  private extractTokenFromMalformedUrl(malformedToken: string): string | null {
+    try {
+      console.log('🔄 Processing malformed token:', malformedToken);
+      
+      // Handle double-encoded format: %2Faccept-invitation%3Ftoken%3Dabc123
+      if (malformedToken.includes('%2F') || malformedToken.includes('%3F')) {
+        const decoded = decodeURIComponent(malformedToken);
+        console.log('🔓 Decoded token:', decoded);
+        
+        const match = decoded.match(/\/accept-invitation\?token=([^&]+)/);
+        if (match) {
+          console.log('✅ Extracted token from decoded URL');
+          return match[1];
+        }
+      }
+      
+      // Handle format: /accept-invitation?token=abc123
+      const match = malformedToken.match(/\/accept-invitation\?token=([^&]+)/);
+      if (match) {
+        console.log('✅ Extracted token from malformed format');
+        return match[1];
+      }
+      
+      // If it's just the token without the path prefix
+      if (malformedToken.length === 32 || malformedToken.length === 36) { // Common token lengths
+        console.log('✅ Using token directly (looks like a valid token)');
+        return malformedToken;
+      }
+      
+    } catch (error) {
+      console.error('❌ Error processing malformed token:', error);
+    }
+    
+    return null;
   }
 
   loadInvitationDetails() {
@@ -71,44 +167,51 @@ export class AcceptInvitationComponent implements OnInit {
       return;
     }
 
+    console.log('📡 Loading invitation details for token:', this.invitationToken);
+
     this.invitationService.getInvitationDetails(this.invitationToken).subscribe({
       next: (response: any) => {
         this.loading = false;
+        console.log('✅ Invitation details response:', response);
+        
         if (response.success && response.data) {
           this.invitationDetails = response.data;
           this.invitationType = this.safeDetermineInvitationType();
-          console.log(' Invitation details loaded:', this.invitationDetails);
-          console.log(' Invitation type:', this.invitationType);
+          console.log('📋 Invitation details loaded:', this.invitationDetails);
+          console.log('🎯 Invitation type:', this.invitationType);
           
           if (this.userIsLoggedIn) {
-            console.log(' User is logged in, auto-accepting invitation...');
+            console.log('🚀 User is logged in, auto-accepting invitation...');
             this.acceptInvitationAndRedirect();
           }
         } else {
-          this.error = 'Invalid invitation response. Please check your invitation link.';
+          this.error = response.message || 'Invalid invitation response. Please check your invitation link.';
+          console.error('❌ Invalid invitation response:', response);
         }
       },
       error: (error: any) => {
         this.loading = false;
+        console.error('❌ Error loading invitation details:', error);
+        
+        // Even if details fail, we can still try to accept with just the token
         console.log('ℹ️ Could not load invitation details, proceeding with token only');
         this.invitationType = this.guessInvitationType();
         
-      
         if (this.userIsLoggedIn && this.invitationToken) {
           console.log('🔄 Attempting to accept invitation with token only...');
           this.acceptInvitationAndRedirect();
+        } else {
+          this.error = 'Failed to load invitation details. Please try again.';
         }
       }
     });
   }
 
- 
   private safeDetermineInvitationType(): 'tenant' | 'caretaker' {
     if (!this.invitationDetails) {
       return this.guessInvitationType();
     }
 
- 
     if (this.invitationDetails.inviteeRole?.toLowerCase().includes('tenant') || 
         this.invitationDetails.role?.toLowerCase().includes('tenant')) {
       return 'tenant';
@@ -123,10 +226,11 @@ export class AcceptInvitationComponent implements OnInit {
   }
 
   private guessInvitationType(): 'tenant' | 'caretaker' {
- 
     const url = this.router.url.toLowerCase();
     if (url.includes('tenant')) return 'tenant';
     if (url.includes('caretaker')) return 'caretaker';
+    
+    // Default to tenant if we can't determine
     return 'tenant';
   }
 
@@ -136,7 +240,6 @@ export class AcceptInvitationComponent implements OnInit {
       return;
     }
 
- 
     if (!this.authService.isLoggedIn()) {
       this.error = 'Please log in first to accept this invitation.';
       this.redirectToLogin();
@@ -146,14 +249,14 @@ export class AcceptInvitationComponent implements OnInit {
     this.processing = true;
     this.error = null;
 
-    console.log(' Accepting invitation with token:', this.invitationToken);
-    console.log(' Invitation type:', this.invitationType);
+    console.log('🎯 Accepting invitation with token:', this.invitationToken);
+    console.log('📝 Invitation type:', this.invitationType);
 
     this.invitationService.acceptInvitation(this.invitationToken).subscribe({
       next: (response: any) => {
         this.processing = false;
         this.success = true;
-        console.log(' Invitation accepted successfully:', response);
+        console.log('✅ Invitation accepted successfully:', response);
     
         sessionStorage.removeItem('pendingInvitationToken');
         
@@ -163,7 +266,6 @@ export class AcceptInvitationComponent implements OnInit {
           panelClass: ['success-snackbar']
         });
         
-       
         this.redirectToDashboard();
       },
       error: (error: any) => {
@@ -183,6 +285,8 @@ export class AcceptInvitationComponent implements OnInit {
       dashboardRoute = '/caretaker-dashboard';
     }
     
+    console.log('🔄 Redirecting to dashboard:', dashboardRoute);
+    
     setTimeout(() => {
       this.router.navigate([dashboardRoute]);
     }, 2000);
@@ -199,54 +303,9 @@ export class AcceptInvitationComponent implements OnInit {
     }
   }
 
-  private getInvitationTitle(): string {
-    switch (this.invitationType) {
-      case 'tenant':
-        return 'Tenancy Invitation';
-      case 'caretaker':
-        return 'Caretaker Invitation';
-      default:
-        return 'Property Invitation';
-    }
-  }
-
-  private getInvitationDescription(): string {
-    if (this.invitationDetails) {
-      const propertyName = this.invitationDetails.propertyName || 'the property';
-      const inviterName = this.invitationDetails.inviterName || 'the property owner';
-      
-      switch (this.invitationType) {
-        case 'tenant':
-          return `You have been invited by ${inviterName} to become a tenant at ${propertyName}. Accept this invitation to access your tenancy details, rental information, and manage your stay.`;
-        case 'caretaker':
-          return `You have been invited by ${inviterName} to become a caretaker for ${propertyName}. Accept this invitation to access property management features and maintenance tools.`;
-        default:
-          return `You have been invited by ${inviterName} to join ${propertyName}. Accept this invitation to get started.`;
-      }
-    } else {
-      switch (this.invitationType) {
-        case 'tenant':
-          return 'You have been invited to become a tenant at a property. Accept this invitation to access your tenancy details and manage your rental.';
-        case 'caretaker':
-          return 'You have been invited to become a caretaker for a property. Accept this invitation to access property management features.';
-        default:
-          return 'You have been invited to join a property. Accept this invitation to get started.';
-      }
-    }
-  }
-
-  private getRoleDisplayName(): string {
-    switch (this.invitationType) {
-      case 'tenant':
-        return 'Tenant';
-      case 'caretaker':
-        return 'Caretaker';
-      default:
-        return 'Member';
-    }
-  }
-
   private handleAcceptError(error: any): void {
+    console.error('❌ Invitation acceptance error:', error);
+    
     if (error.status === 401) {
       this.error = 'Your session has expired. Please log in again to accept this invitation.';
       this.redirectToLogin();
@@ -256,7 +315,6 @@ export class AcceptInvitationComponent implements OnInit {
       this.error = 'Invitation not found or has been cancelled. Please contact the property owner for a new invitation.';
     } else if (error.status === 409) {
       this.error = 'This invitation has already been accepted. Redirecting you to the dashboard...';
-    
       setTimeout(() => {
         this.redirectToDashboard();
       }, 3000);
@@ -291,7 +349,7 @@ export class AcceptInvitationComponent implements OnInit {
     });
   }
 
- 
+  // Public methods for template
   navigateToLogin(): void {
     this.redirectToLogin();
   }
@@ -304,12 +362,10 @@ export class AcceptInvitationComponent implements OnInit {
     this.router.navigate(['/']);
   }
 
-
   needsAuthentication(): boolean {
     return !this.userIsLoggedIn && !this.success && !this.loading && !this.processing;
   }
 
-  
   retryAcceptance(): void {
     this.userIsLoggedIn = this.authService.isLoggedIn();
     if (this.userIsLoggedIn) {
@@ -321,15 +377,30 @@ export class AcceptInvitationComponent implements OnInit {
 
   // Public getters for template
   getInvitationTypeDisplay(): string {
-    return this.getInvitationTitle();
+    return this.invitationType === 'tenant' ? 'Tenancy Invitation' : 
+           this.invitationType === 'caretaker' ? 'Caretaker Invitation' : 'Property Invitation';
   }
 
   getRoleName(): string {
-    return this.getRoleDisplayName();
+    return this.invitationType === 'tenant' ? 'Tenant' : 
+           this.invitationType === 'caretaker' ? 'Caretaker' : 'Member';
   }
 
   getDescription(): string {
-    return this.getInvitationDescription();
+    if (this.invitationDetails) {
+      const propertyName = this.invitationDetails.propertyName || 'the property';
+      const inviterName = this.invitationDetails.inviterName || 'the property owner';
+      
+      if (this.invitationType === 'tenant') {
+        return `You have been invited by ${inviterName} to become a tenant at ${propertyName}. Accept this invitation to access your tenancy details, rental information, and manage your stay.`;
+      } else if (this.invitationType === 'caretaker') {
+        return `You have been invited by ${inviterName} to become a caretaker for ${propertyName}. Accept this invitation to access property management features and maintenance tools.`;
+      }
+    }
+    
+    return this.invitationType === 'tenant' 
+      ? 'You have been invited to become a tenant at a property. Accept this invitation to access your tenancy details and manage your rental.'
+      : 'You have been invited to become a caretaker for a property. Accept this invitation to access property management features.';
   }
 
   getPropertyName(): string {
@@ -344,7 +415,6 @@ export class AcceptInvitationComponent implements OnInit {
     return !!this.invitationDetails;
   }
 
- 
   onAcceptInvitation(): void {
     if (this.userIsLoggedIn) {
       this.acceptInvitationAndRedirect();
