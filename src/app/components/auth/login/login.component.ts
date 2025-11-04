@@ -50,6 +50,15 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (this.authService.isAuthenticated()) {
+      // ✅ ADDED: Check if authenticated user came from invitation
+      const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
+      const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+      
+      if (hasPendingInvitation && returnUrl) {
+        this.router.navigateByUrl(returnUrl);
+        return;
+      }
+      
       this.redirectToDashboard();
       return;
     }
@@ -328,16 +337,25 @@ export class LoginComponent implements OnInit, OnDestroy {
       'TENANT': '/tenant-dashboard/dashboard',
       'BUSINESS': '/business-dashboard',
       'CARETAKER': '/caretaker-dashboard/overview',
-     
     };
 
     const dashboardRoute = roleMap[normalizedRole] || '/tenant-dashboard/home';
     
-    this.router.navigate([dashboardRoute]).then(success => {
-      if (!success) {
-        this.router.navigate(['/dashboard']);
-      }
-    });
+    // ✅ ADDED: Check if user came from invitation
+    const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
+    const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+    
+    if (hasPendingInvitation && returnUrl) {
+      // Redirect back to invitation page with token
+      this.router.navigateByUrl(returnUrl);
+    } else {
+      // Normal redirect to dashboard
+      this.router.navigate([dashboardRoute]).then(success => {
+        if (!success) {
+          this.router.navigate(['/dashboard']);
+        }
+      });
+    }
   }
 
   private redirectToDashboard(): void {

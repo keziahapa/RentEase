@@ -61,6 +61,12 @@ export class AcceptInvitationComponent implements OnInit {
 
     sessionStorage.setItem('pendingInvitationToken', this.invitationToken);
     
+    // ✅ ADDED: Redirect to login if not authenticated
+    if (!this.userIsLoggedIn) {
+      this.redirectToLogin();
+      return;
+    }
+    
     this.loadInvitationDetails();
   }
 
