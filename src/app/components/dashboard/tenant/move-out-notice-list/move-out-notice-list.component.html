@@ -1,3 +1,4 @@
+<!-- move-out-notice-list.component.html -->
 <div class="move-out-notices-container">
   <div class="header-section">
     <div class="header-content">
@@ -11,12 +12,15 @@
   </div>
 
   <div class="content-section">
+    <!-- Loading State -->
     <div *ngIf="isLoading" class="loading-state">
       <mat-spinner diameter="50"></mat-spinner>
       <p>Loading move-out notices...</p>
     </div>
 
+    <!-- Content when not loading -->
     <div *ngIf="!isLoading">
+      <!-- Empty State -->
       <div *ngIf="moveOutNotices.length === 0" class="empty-state">
         <mat-icon>exit_to_app</mat-icon>
         <h3>No Move Out Notices</h3>
@@ -27,6 +31,7 @@
         </button>
       </div>
 
+      <!-- Notices Grid -->
       <div *ngIf="moveOutNotices.length > 0" class="notices-grid">
         <div *ngFor="let notice of moveOutNotices" class="notice-card">
           <div class="notice-header">
@@ -43,8 +48,16 @@
           <div class="notice-content">
             <div class="notice-details">
               <div class="detail-item">
+                <span class="detail-label">Property:</span>
+                <span class="detail-value">{{ notice.property?.name || 'N/A' }}</span>
+              </div>
+              <div class="detail-item" *ngIf="notice.unit">
+                <span class="detail-label">Unit:</span>
+                <span class="detail-value">{{ notice.unit.unitNumber }}</span>
+              </div>
+              <div class="detail-item">
                 <span class="detail-label">Reason:</span>
-                <span class="detail-value">{{ notice.reason }}</span>
+                <span class="detail-value">{{ getMoveOutReasonDisplay(notice.reason) }}</span>
               </div>
               <div class="detail-item" *ngIf="notice.notes">
                 <span class="detail-label">Notes:</span>
@@ -53,6 +66,10 @@
               <div class="detail-item">
                 <span class="detail-label">Submitted:</span>
                 <span class="detail-value">{{ formatDate(notice.submittedAt || '') }}</span>
+              </div>
+              <div class="detail-item" *ngIf="notice.landlordNotes">
+                <span class="detail-label">Landlord Response:</span>
+                <span class="detail-value landlord-notes">{{ notice.landlordNotes }}</span>
               </div>
             </div>
           </div>
@@ -74,7 +91,10 @@
 
       <!-- Pagination -->
       <div *ngIf="moveOutNotices.length > 0" class="pagination-section">
-        <button class="pagination-btn" (click)="prevPage()" [disabled]="!hasPrev">
+        <button class="pagination-btn" 
+                (click)="prevPage()" 
+                [disabled]="!hasPrev"
+                [class.disabled]="!hasPrev">
           <mat-icon>chevron_left</mat-icon>
           <span>Previous</span>
         </button>
@@ -83,7 +103,10 @@
           Page {{ currentPage }} of {{ totalPages }}
         </span>
         
-        <button class="pagination-btn" (click)="nextPage()" [disabled]="!hasNext">
+        <button class="pagination-btn" 
+                (click)="nextPage()" 
+                [disabled]="!hasNext"
+                [class.disabled]="!hasNext">
           <span>Next</span>
           <mat-icon>chevron_right</mat-icon>
         </button>

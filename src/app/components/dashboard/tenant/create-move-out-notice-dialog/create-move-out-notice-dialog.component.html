@@ -1,0 +1,107 @@
+<!-- create-move-out-notice-dialog.component.html -->
+<div class="dialog-container">
+  <h2 mat-dialog-title>
+    <mat-icon>exit_to_app</mat-icon>
+    <span>Create Move-Out Notice</span>
+  </h2>
+  
+  <mat-dialog-content>
+    <form [formGroup]="noticeForm" class="notice-form">
+      
+      <!-- Property Selection -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Property</mat-label>
+        <mat-select formControlName="propertyId" required>
+          <mat-option [value]="1">Current Property</mat-option>
+        </mat-select>
+        <mat-icon matPrefix>home</mat-icon>
+        <mat-error *ngIf="noticeForm.get('propertyId')?.hasError('required')">
+          Property is required
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Move-Out Date -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Move-Out Date</mat-label>
+        <input matInput 
+               [matDatepicker]="picker" 
+               formControlName="moveOutDate"
+               [min]="minDate"
+               placeholder="Select date"
+               required>
+        <mat-icon matPrefix>event</mat-icon>
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        <mat-hint>Select a date at least 1 day in advance</mat-hint>
+        <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('required')">
+          Move-out date is required
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Reason Selection -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Reason for Moving Out</mat-label>
+        <mat-select formControlName="reason" required>
+          <mat-option *ngFor="let reason of moveOutReasons" [value]="reason.value">
+            {{ reason.label }}
+          </mat-option>
+        </mat-select>
+        <mat-icon matPrefix>help_outline</mat-icon>
+        <mat-error *ngIf="noticeForm.get('reason')?.hasError('required')">
+          Reason is required
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Additional Notes -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Additional Notes (Optional)</mat-label>
+        <textarea matInput 
+                  formControlName="notes"
+                  rows="4"
+                  maxlength="500"
+                  placeholder="Any additional information you'd like to share..."></textarea>
+        <mat-icon matPrefix>notes</mat-icon>
+        <mat-hint align="end">
+          {{ noticeForm.get('notes')?.value?.length || 0 }}/500
+        </mat-hint>
+        <mat-error *ngIf="noticeForm.get('notes')?.hasError('maxlength')">
+          Maximum 500 characters allowed
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Information Box -->
+      <div class="info-box">
+        <div class="info-header">
+          <mat-icon>info</mat-icon>
+          <span>Important Information</span>
+        </div>
+        <div class="info-content">
+          <ul>
+            <li>Please provide at least 30 days notice before your intended move-out date</li>
+            <li>Your landlord will review your request and respond within 3-5 business days</li>
+            <li>A final inspection will be scheduled before your move-out date</li>
+          </ul>
+        </div>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Dialog Actions -->
+  <mat-dialog-actions>
+    <button mat-stroked-button 
+            type="button" 
+            (click)="onCancel()"
+            [disabled]="isSubmitting">
+      Cancel
+    </button>
+    <button mat-raised-button 
+            color="primary" 
+            type="submit"
+            (click)="onSubmit()"
+            [disabled]="!noticeForm.valid || isSubmitting">
+      <mat-spinner *ngIf="isSubmitting" diameter="20" style="display: inline-block; margin-right: 8px;"></mat-spinner>
+      <span>{{ isSubmitting ? 'Submitting...' : 'Submit Notice' }}</span>
+    </button>
+  </mat-dialog-actions>
+</div>

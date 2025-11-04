@@ -11,6 +11,7 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,  // ✅ ADD THIS LINE
     "importHelpers": true,
     "target": "ES2022",
     "module": "ESNext",

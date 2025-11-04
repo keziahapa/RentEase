@@ -1,0 +1,182 @@
+// create-move-out-notice-dialog.component.scss
+
+.dialog-container {
+  max-width: 600px;
+  
+  h2[mat-dialog-title] {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 20px 0;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+    color: #1f2937;
+    font-size: 24px;
+    font-weight: 600;
+
+    mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+      color: #3b82f6;
+    }
+  }
+}
+
+mat-dialog-content {
+  padding: 0 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.notice-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+
+  .full-width {
+    width: 100%;
+  }
+
+  mat-form-field {
+    mat-icon[matPrefix] {
+      margin-right: 8px;
+      color: #6b7280;
+    }
+  }
+}
+
+.info-box {
+  background-color: #eff6ff;
+  border-left: 4px solid #3b82f6;
+  padding: 16px;
+  margin: 16px 0;
+  border-radius: 4px;
+
+  .info-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1e40af;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .info-content {
+    color: #1e40af;
+    font-size: 14px;
+    line-height: 1.6;
+
+    ul {
+      margin: 8px 0 0 0;
+      padding-left: 20px;
+
+      li {
+        margin-bottom: 4px;
+      }
+    }
+  }
+}
+
+mat-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  margin: 0;
+  border-top: 1px solid #e5e7eb;
+
+  button {
+    min-width: 100px;
+    height: 40px;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &[mat-stroked-button] {
+      border: 1px solid #d1d5db;
+      color: #6b7280;
+
+      &:hover:not([disabled]) {
+        background-color: #f9fafb;
+        border-color: #9ca3af;
+      }
+    }
+
+    &[mat-raised-button] {
+      &:hover:not([disabled]) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  mat-spinner {
+    display: inline-block;
+    margin-right: 8px;
+  }
+}
+
+// Responsive Design
+@media (max-width: 600px) {
+  .dialog-container {
+    h2[mat-dialog-title] {
+      font-size: 20px;
+
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+      }
+    }
+  }
+
+  mat-dialog-content {
+    padding: 0 16px;
+  }
+
+  mat-dialog-actions {
+    padding: 16px;
+    flex-direction: column;
+    
+    button {
+      width: 100%;
+      margin-bottom: 8px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .info-box {
+    padding: 12px;
+    font-size: 13px;
+  }
+}
+
+// Material Overrides
+::ng-deep {
+  .mat-mdc-dialog-container {
+    border-radius: 8px;
+    padding: 0;
+  }
+
+  .mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+      border-radius: 4px;
+    }
+  }
+}

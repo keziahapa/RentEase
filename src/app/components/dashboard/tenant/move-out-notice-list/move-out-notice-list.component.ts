@@ -1,3 +1,4 @@
+// move-out-notice-list.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -8,7 +9,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { PropertyService } from '../../../../services/property.service';
-import { TenantMoveOutNotice, TenantMoveOutNoticeResponse } from '../../../../services/dashboard-interface';
+import { TenantMoveOutNotice, TenantMoveOutNoticeResponse, MoveOutNoticeRequest } from '../../../../services/dashboard-interface';
+import { CreateMoveOutNoticeDialogComponent } from '../create-move-out-notice-dialog/create-move-out-notice-dialog.component';
 
 @Component({
   selector: 'app-move-out-notice-list',
@@ -59,8 +61,9 @@ export class MoveOutNoticeListComponent implements OnInit {
         }
         this.isLoading = false;
       },
-      error: (error) => {
-        this.snackBar.open('Failed to load move-out notices', 'Close', { duration: 5000 });
+      error: (error: any) => {
+        const errorMessage = error?.message || 'Failed to load move-out notices';
+        this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
         this.isLoading = false;
       }
     });
@@ -87,7 +90,46 @@ export class MoveOutNoticeListComponent implements OnInit {
   }
 
   createNewNotice(): void {
-    this.router.navigate(['/tenant-dashboard/move-out-notices/new']);
+    const dialogRef = this.dialog.open(CreateMoveOutNoticeDialogComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      disableClose: false,
+      data: {
+        propertyId: 1, // You can pass current property ID if available
+        unitId: null
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        // result contains the form data from the dialog
+        this.submitMoveOutNotice(result);
+      }
+    });
+  }
+
+  private submitMoveOutNotice(noticeData: MoveOutNoticeRequest): void {
+    this.propertyService.submitMoveOutNotice(noticeData).subscribe({
+      next: (response: TenantMoveOutNoticeResponse) => {
+        if (response.success) {
+          this.snackBar.open('Move-out notice submitted successfully', 'Close', { 
+            duration: 3000 
+          });
+          this.loadMoveOutNotices(this.currentPage); // Refresh the list
+        } else {
+          this.snackBar.open(response.message || 'Failed to submit notice', 'Close', { 
+            duration: 5000 
+          });
+        }
+      },
+      error: (error: any) => {
+        const errorMessage = error?.message || 'Failed to submit move-out notice';
+        this.snackBar.open(errorMessage, 'Close', { 
+          duration: 5000 
+        });
+        console.error('Submit error:', error);
+      }
+    });
   }
 
   viewNotice(notice: TenantMoveOutNotice): void {
@@ -111,8 +153,9 @@ export class MoveOutNoticeListComponent implements OnInit {
           this.snackBar.open(response.message || 'Failed to cancel notice', 'Close', { duration: 5000 });
         }
       },
-      error: (error) => {
-        this.snackBar.open('Failed to cancel move-out notice', 'Close', { duration: 5000 });
+      error: (error: any) => {
+        const errorMessage = error?.message || 'Failed to cancel move-out notice';
+        this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
       }
     });
   }
