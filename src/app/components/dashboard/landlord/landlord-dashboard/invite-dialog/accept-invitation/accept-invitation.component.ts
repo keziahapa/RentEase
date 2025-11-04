@@ -47,8 +47,8 @@ export class AcceptInvitationComponent implements OnInit {
   ngOnInit() {
     this.userIsLoggedIn = this.authService.isLoggedIn();
     
- 
-    this.invitationToken = this.route.snapshot.paramMap.get('token');
+    // ✅ FIXED: Use queryParamMap instead of paramMap for query parameters
+    this.invitationToken = this.route.snapshot.queryParamMap.get('token');
     
     if (!this.invitationToken) {
       this.error = 'No invitation token provided. Please check your invitation link.';
@@ -61,7 +61,6 @@ export class AcceptInvitationComponent implements OnInit {
 
     sessionStorage.setItem('pendingInvitationToken', this.invitationToken);
     
-   
     this.loadInvitationDetails();
   }
 
@@ -77,11 +76,11 @@ export class AcceptInvitationComponent implements OnInit {
         if (response.success && response.data) {
           this.invitationDetails = response.data;
           this.invitationType = this.safeDetermineInvitationType();
-          console.log(' Invitation details loaded:', this.invitationDetails);
-          console.log(' Invitation type:', this.invitationType);
+          console.log('Invitation details loaded:', this.invitationDetails);
+          console.log('Invitation type:', this.invitationType);
           
           if (this.userIsLoggedIn) {
-            console.log(' User is logged in, auto-accepting invitation...');
+            console.log('User is logged in, auto-accepting invitation...');
             this.acceptInvitationAndRedirect();
           }
         } else {
@@ -90,25 +89,22 @@ export class AcceptInvitationComponent implements OnInit {
       },
       error: (error: any) => {
         this.loading = false;
-        console.log('ℹ️ Could not load invitation details, proceeding with token only');
+        console.log('Could not load invitation details, proceeding with token only');
         this.invitationType = this.guessInvitationType();
         
-      
         if (this.userIsLoggedIn && this.invitationToken) {
-          console.log('🔄 Attempting to accept invitation with token only...');
+          console.log('Attempting to accept invitation with token only...');
           this.acceptInvitationAndRedirect();
         }
       }
     });
   }
 
- 
   private safeDetermineInvitationType(): 'tenant' | 'caretaker' {
     if (!this.invitationDetails) {
       return this.guessInvitationType();
     }
 
- 
     if (this.invitationDetails.inviteeRole?.toLowerCase().includes('tenant') || 
         this.invitationDetails.role?.toLowerCase().includes('tenant')) {
       return 'tenant';
@@ -123,7 +119,6 @@ export class AcceptInvitationComponent implements OnInit {
   }
 
   private guessInvitationType(): 'tenant' | 'caretaker' {
- 
     const url = this.router.url.toLowerCase();
     if (url.includes('tenant')) return 'tenant';
     if (url.includes('caretaker')) return 'caretaker';
@@ -136,7 +131,6 @@ export class AcceptInvitationComponent implements OnInit {
       return;
     }
 
- 
     if (!this.authService.isLoggedIn()) {
       this.error = 'Please log in first to accept this invitation.';
       this.redirectToLogin();
@@ -146,14 +140,14 @@ export class AcceptInvitationComponent implements OnInit {
     this.processing = true;
     this.error = null;
 
-    console.log(' Accepting invitation with token:', this.invitationToken);
-    console.log(' Invitation type:', this.invitationType);
+    console.log('Accepting invitation with token:', this.invitationToken);
+    console.log('Invitation type:', this.invitationType);
 
     this.invitationService.acceptInvitation(this.invitationToken).subscribe({
       next: (response: any) => {
         this.processing = false;
         this.success = true;
-        console.log(' Invitation accepted successfully:', response);
+        console.log('Invitation accepted successfully:', response);
     
         sessionStorage.removeItem('pendingInvitationToken');
         
@@ -163,12 +157,11 @@ export class AcceptInvitationComponent implements OnInit {
           panelClass: ['success-snackbar']
         });
         
-       
         this.redirectToDashboard();
       },
       error: (error: any) => {
         this.processing = false;
-        console.error('❌ Error accepting invitation:', error);
+        console.error('Error accepting invitation:', error);
         this.handleAcceptError(error);
       }
     });
@@ -291,7 +284,6 @@ export class AcceptInvitationComponent implements OnInit {
     });
   }
 
- 
   navigateToLogin(): void {
     this.redirectToLogin();
   }
@@ -304,11 +296,9 @@ export class AcceptInvitationComponent implements OnInit {
     this.router.navigate(['/']);
   }
 
-
   needsAuthentication(): boolean {
     return !this.userIsLoggedIn && !this.success && !this.loading && !this.processing;
   }
-
   
   retryAcceptance(): void {
     this.userIsLoggedIn = this.authService.isLoggedIn();
@@ -344,7 +334,6 @@ export class AcceptInvitationComponent implements OnInit {
     return !!this.invitationDetails;
   }
 
- 
   onAcceptInvitation(): void {
     if (this.userIsLoggedIn) {
       this.acceptInvitationAndRedirect();
