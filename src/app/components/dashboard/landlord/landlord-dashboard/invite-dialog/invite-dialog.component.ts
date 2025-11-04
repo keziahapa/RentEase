@@ -103,13 +103,10 @@ export class InviteDialogComponent implements OnInit {
   }
 
   private inviteTenant(formData: any): void {
-    const selectedUnit = this.availableUnits.find(unit => unit.id === formData.unitId);
-    
-    const tenantData: InviteTenantRequest = {
+    // ✅ FIXED: Only send what backend expects - tenantEmail and unitId
+    const tenantData = {
       tenantEmail: formData.email,
-      propertyId: this.data.propertyId,
-      unitId: formData.unitId,
-      unitNumber: selectedUnit?.unitNumber
+      unitId: formData.unitId // Remove propertyId, unitNumber, etc.
     };
 
     console.log('📤 Sending tenant invitation:', tenantData);

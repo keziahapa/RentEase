@@ -1,4 +1,3 @@
-
 export interface InviteDialogData {
   type: 'tenant' | 'caretaker';
   propertyId: number;
@@ -17,19 +16,15 @@ export interface AvailableUnit {
   bathrooms?: number;
 }
 
-
 export interface InviteTenantRequest {
   tenantEmail: string;
-  propertyId: number;
-  unitId?: string;
-  unitNumber?: string;
+  unitId: string; // Only these two fields as per backend
 }
 
 export interface InviteCaretakerRequest {
   caretakerEmail: string;
   propertyId: number;
 }
-
 
 export interface InvitationResponse {
   success: boolean;
@@ -49,7 +44,6 @@ export interface InvitationListResponse {
   message: string;
   data?: any[];
 }
-
 
 export interface Invitation {
   id: string;
@@ -78,9 +72,8 @@ export interface InvitationDetails {
   expiresAt: string;
   role?: string;
   unitNumber?: string;
-   invitedBy?: string;
+  invitedBy?: string;
 }
-
 
 export interface AcceptInvitationRequest {
   invitationToken: string;
@@ -93,7 +86,6 @@ export interface ResendInvitationRequest {
 export interface CancelInvitationRequest {
   invitationId: string;
 }
-
 
 export interface InviteDialogResult {
   success: boolean;
