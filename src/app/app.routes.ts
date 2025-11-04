@@ -258,6 +258,5 @@ export const routes: Routes = [
   { path: 'admin', redirectTo: '/admin-dashboard' },
   { path: 'dashboard', redirectTo: '/tenant-dashboard', pathMatch: 'full' },
   
- 
   { path: '**', redirectTo: '' }
 ];
