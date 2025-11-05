@@ -61,6 +61,7 @@ import { MoveOutNoticeListComponent } from './components/dashboard/tenant/move-o
 import { LandlordMoveOutNoticeListComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-move-out-notice-list/landlord-move-out-notice-list.component';
 import { MoveOutActionDialogComponent } from './components/dashboard/landlord/landlord-dashboard/move-out-action-dialog/move-out-action-dialog.component';
 import { LandlordDashboardComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-dashboard.component';
+import { DashboardOverviewComponent } from './components/dashboard/tenant/dashboard-overview/dashboard-overview.component';
 
 
 export const routes: Routes = [
@@ -99,33 +100,33 @@ export const routes: Routes = [
   },
   
 
-  {
-    path: 'tenant-dashboard',
-    component: TenantDashboardComponent,
-     canActivate: [authGuard],
-    children: [
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard', component: TenantDashboardComponent },
-      { path: 'deposit', component: DepositComponent },
-      { path: 'payments', component: PaymentsComponent },
-      { path: 'maintenance', component: MaintenanceComponent },
-      { path: 'documents', component: DocumentsComponent },
-      { path: 'messages', component: MessagesComponent },
-      { path: 'chat', component: ChatComponent },
-      { path: 'reviews', component: ReviewComponent },
-      { path: 'settings', component: SettingsComponent },
-      { path: 'move-out-notices', component: MoveOutNoticeListComponent },
-      { 
-        path: 'profile',
-        children: [
-          { path: 'view', component: ProfileViewComponent },
-          { path: 'edit', component: ProfileEditComponent },
-          { path: '', redirectTo: 'view', pathMatch: 'full' }
-        ]
-      }
-    ]
-  },
-  
+ {
+  path: 'tenant-dashboard',
+  component: TenantDashboardComponent,
+  canActivate: [authGuard],
+  children: [
+    { path: '', redirectTo: 'overview', pathMatch: 'full' },
+    { path: 'overview', component: DashboardOverviewComponent },
+    { path: 'dashboard', redirectTo: 'overview', pathMatch: 'full' }, 
+    { path: 'deposit', component: DepositComponent },
+    { path: 'payments', component: PaymentsComponent },
+    { path: 'maintenance', component: MaintenanceComponent },
+    { path: 'documents', component: DocumentsComponent },
+    { path: 'messages', component: MessagesComponent },
+    { path: 'chat', component: ChatComponent },
+    { path: 'reviews', component: ReviewComponent },
+    { path: 'settings', component: SettingsComponent },
+    { path: 'move-out-notices', component: MoveOutNoticeListComponent },
+    { 
+      path: 'profile',
+      children: [
+        { path: 'view', component: ProfileViewComponent },
+        { path: 'edit', component: ProfileEditComponent },
+        { path: '', redirectTo: 'view', pathMatch: 'full' }
+      ]
+    }
+  ]
+},
   
   {
     path: 'landlord-dashboard',

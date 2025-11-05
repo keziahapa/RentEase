@@ -1,15 +1,17 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { TenantService } from '../../../../services/tenant.service';
 import { CommunicationService } from '../../../../services/communication.service';
+import { InvitationService } from '../../../../services/invitation.service';
 import { DashboardOverviewComponent } from '../dashboard-overview/dashboard-overview.component';
 import { ChatComponent } from '../../../../shared/chat/chat.component';
 
@@ -22,6 +24,7 @@ import { ChatComponent } from '../../../../shared/chat/chat.component';
     MatDialogModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
+    MatSnackBarModule,
     RouterOutlet,
     DashboardOverviewComponent,
     ChatComponent
@@ -47,13 +50,18 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
   unreadMessagesCount: number = 0;
   isLoadingNotifications: boolean = false;
 
+  // 🟢 ADDED: Invitation retry properties
+  pendingInvitation: any = null;
+  isProcessingInvitation = false;
+  hasPendingInvitationAlert = false;
+
   private profileUpdateListener: any;
   isLoggingOut: boolean = false;
   private communicationSubscriptions = new Subscription();
   private notificationSummarySubscription: Subscription | null = null;
 
-  greeting: string = '';
-  currentTime: string = '';
+  private invitationService = inject(InvitationService);
+  private snackBar = inject(MatSnackBar);
 
   constructor(
     private router: Router,
@@ -65,19 +73,14 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadUserData();
+    this.checkPendingInvitations(); // 🟢 ADDED: Check for pending invitations first
     this.loadDashboardData();
     this.loadNotifications();
-    this.updateGreeting();
-    
-    setInterval(() => {
-      this.updateGreeting();
-    }, 60000);
 
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: NavigationEnd) => {
       this.updateCurrentSectionFromRoute(event.urlAfterRedirects);
-      this.loadProfileImage();
     });
 
     this.updateCurrentSectionFromRoute(this.router.url);
@@ -94,25 +97,131 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     this.communicationSubscriptions.unsubscribe();
   }
 
-  private updateGreeting(): void {
+  // 🟢 ADDED: Greeting method
+  getGreetingMessage(): string {
     const now = new Date();
     const hours = now.getHours();
-    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const firstName = this.userDisplayName.split(' ')[0];
     
-    this.currentTime = `${hours}:${minutes}`;
-    
+    let greeting = '';
     if (hours < 12) {
-      this.greeting = 'Good morning';
+      greeting = 'Good morning';
     } else if (hours < 18) {
-      this.greeting = 'Good afternoon';
+      greeting = 'Good afternoon';
     } else {
-      this.greeting = 'Good evening';
+      greeting = 'Good evening';
+    }
+    
+    return `${greeting}, ${firstName}! 👋`;
+  }
+
+  // 🟢 ADDED: Invitation retry logic
+  private checkPendingInvitations(): void {
+    try {
+      const pendingInvitationStr = localStorage.getItem('pendingInvitation');
+      if (pendingInvitationStr) {
+        this.pendingInvitation = JSON.parse(pendingInvitationStr);
+        
+        if (this.pendingInvitation && this.pendingInvitation.status === 'queued') {
+          console.log('🔄 Tenant Dashboard: Found pending invitation, attempting to process...');
+          this.hasPendingInvitationAlert = true;
+          this.processPendingInvitation();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error checking pending invitations:', error);
     }
   }
 
-  getGreetingMessage(): string {
-    const firstName = this.userDisplayName.split(' ')[0];
-    return `${this.greeting}, ${firstName}! 👋`;
+  private processPendingInvitation(): void {
+    if (!this.pendingInvitation || this.isProcessingInvitation) return;
+
+    this.isProcessingInvitation = true;
+    
+    this.snackBar.open('🔄 Processing pending invitation...', 'Close', { 
+      duration: 3000,
+      panelClass: ['info-snackbar']
+    });
+
+    this.invitationService.acceptInvitation(this.pendingInvitation.token).subscribe({
+      next: (response: any) => {
+        this.isProcessingInvitation = false;
+        this.hasPendingInvitationAlert = false;
+        console.log('✅ Pending invitation accepted successfully:', response);
+        
+        this.clearPendingInvitation();
+        
+        this.snackBar.open('🎉 Invitation accepted successfully!', 'Close', { 
+          duration: 5000,
+          panelClass: ['success-snackbar']
+        });
+
+        // Refresh to show new data
+        setTimeout(() => {
+          this.loadDashboardData();
+        }, 1000);
+      },
+      error: (error: any) => {
+        this.isProcessingInvitation = false;
+        console.error('❌ Failed to process pending invitation:', error);
+        
+        if (this.pendingInvitation) {
+          this.pendingInvitation.attemptCount++;
+          this.pendingInvitation.lastAttempt = new Date();
+          this.pendingInvitation.lastError = error.message;
+          
+          if (this.pendingInvitation.attemptCount >= this.pendingInvitation.maxRetries) {
+            this.snackBar.open('❌ Invitation failed after multiple attempts. Please contact support.', 'Close', { 
+              duration: 7000,
+              panelClass: ['error-snackbar']
+            });
+            this.clearPendingInvitation();
+          } else {
+            localStorage.setItem('pendingInvitation', JSON.stringify(this.pendingInvitation));
+            this.snackBar.open('⏳ Invitation will retry later', 'Close', { 
+              duration: 3000,
+              panelClass: ['warning-snackbar']
+            });
+            
+            // Schedule next retry with exponential backoff
+            this.scheduleNextRetry();
+          }
+        }
+      }
+    });
+  }
+
+  private clearPendingInvitation(): void {
+    localStorage.removeItem('pendingInvitation');
+    sessionStorage.removeItem('pendingInvitationToken');
+    this.pendingInvitation = null;
+    this.hasPendingInvitationAlert = false;
+  }
+
+  private scheduleNextRetry(): void {
+    if (!this.pendingInvitation) return;
+
+    const retryDelay = Math.min(30000, 2000 * Math.pow(2, this.pendingInvitation.attemptCount));
+    
+    console.log(`⏰ Scheduling next retry in ${retryDelay}ms`);
+    
+    setTimeout(() => {
+      if (this.pendingInvitation && this.pendingInvitation.status === 'queued') {
+        this.processPendingInvitation();
+      }
+    }, retryDelay);
+  }
+
+  // 🟢 ADDED: Manual retry for template
+  retryPendingInvitation(): void {
+    if (this.pendingInvitation && !this.isProcessingInvitation) {
+      this.processPendingInvitation();
+    }
+  }
+
+  clearFailedInvitation(): void {
+    this.clearPendingInvitation();
+    this.snackBar.open('Pending invitation cleared', 'Close', { duration: 3000 });
   }
 
   @HostListener('document:click', ['$event'])
@@ -425,9 +534,33 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
   refreshDashboard(): void {
     this.loadDashboardData();
     this.loadNotifications();
+    this.checkPendingInvitations(); // 🟢 ADDED: Check invitations on refresh
   }
 
   onLogoError(event: any): void {
     console.error('Logo failed to load:', event);
+  }
+
+  // 🟢 ADDED: Template helpers for invitation status
+  getInvitationStatus(): string {
+    if (!this.pendingInvitation) return '';
+    
+    if (this.isProcessingInvitation) {
+      return 'Processing invitation...';
+    } else if (this.pendingInvitation.attemptCount > 0) {
+      return `Retry ${this.pendingInvitation.attemptCount}/${this.pendingInvitation.maxRetries}`;
+    } else {
+      return 'Pending invitation';
+    }
+  }
+
+  canRetryInvitation(): boolean {
+    return this.pendingInvitation && 
+           !this.isProcessingInvitation && 
+           this.pendingInvitation.attemptCount < this.pendingInvitation.maxRetries;
+  }
+
+  shouldShowInvitationAlert(): boolean {
+    return this.hasPendingInvitationAlert && this.pendingInvitation;
   }
 }
