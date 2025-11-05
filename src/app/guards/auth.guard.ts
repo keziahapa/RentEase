@@ -1,4 +1,3 @@
-
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
@@ -7,11 +6,19 @@ export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   
-  const isLoggedIn = authService.isLoggedIn();
   
+  const isAuthenticated = authService.isAuthenticated();
+  
+  console.log('🛡️ Auth Guard Check:', {
+    url: state.url,
+    isAuthenticated: isAuthenticated,
+    hasToken: !!authService.getToken(),
+    queryParams: route.queryParams
+  });
+
 
   if (state.url.includes('/admin-dashboard')) {
-    if (isLoggedIn && authService.isAdmin()) {
+    if (isAuthenticated && authService.isAdmin()) {
       return true;
     } else {
       console.log('Access denied to admin dashboard - not an admin');
@@ -19,15 +26,21 @@ export const authGuard: CanActivateFn = (route, state) => {
       return false;
     }
   }
-  
 
-  if (isLoggedIn) {
+ 
+  if (isAuthenticated) {
     return true;
   } else {
-    router.navigate(['/login']);
+   
+    const queryParams = {
+      returnUrl: state.url,
+      ...route.queryParams
+    };
+    
+    console.log('🔐 Redirecting to login with params:', queryParams);
+    router.navigate(['/login'], { queryParams });
     return false;
   }
 };
-
 
 export default authGuard;

@@ -63,16 +63,11 @@ export class AuthService {
   }
 
   login(credentials: any): Observable<any> {
-    console.log('🟡 AuthService: Attempting login for:', credentials.email);
-    
     return this.http.post<any>(`${this.apiUrl}/login`, credentials, {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
     }).pipe(
       tap(res => {
-        console.log('🟢 AuthService: Login response:', res);
-        
         if (res.success === false) {
-          console.error('🔴 AuthService: Login failed in response:', res.message);
           throw new Error(res.message || 'Login failed');
         }
 
@@ -491,7 +486,8 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean { 
-    return this.hasValidToken();
+    const token = this.getToken();
+    return !!token;
   }
 
   isLoggedIn(): boolean {
@@ -596,8 +592,6 @@ export class AuthService {
   private handleAuthSuccess(response: any, rememberMe: boolean = false): void {
     if (!this.isBrowser) return;
     
-    console.log('🟢 AuthService: Handling auth success', response);
-    
     const user = response.user || {
       id: response.userId?.toString(),
       email: response.email,
@@ -611,7 +605,7 @@ export class AuthService {
     const token = response.token;
 
     if (!user || !token) {
-      console.error('🔴 AuthService: Missing user or token in auth success');
+      console.error('Missing user or token in auth success');
       return;
     }
 
@@ -622,7 +616,6 @@ export class AuthService {
 
     if (!user.role) {
       user.role = this.extractRoleFromToken(cleanToken);
-      console.log('🟡 AuthService: Extracted role from token:', user.role);
     }
 
     if (rememberMe) {
@@ -637,8 +630,6 @@ export class AuthService {
     this.isAuthenticatedSubject.next(true);
     
     this.clearPendingVerification();
-    
-    console.log('🟢 AuthService: Auth success completed for user:', user.email, 'role:', user.role);
   }
 
   private extractRoleFromToken(token: string): string | null {
@@ -752,7 +743,7 @@ export class AuthService {
   };
 
   private handleError = (error: HttpErrorResponse): Observable<never> => {
-    console.error('🔴 AuthService Error:', error);
+    console.error('AuthService Error:', error);
     
     let message = 'An unexpected error occurred';
     
