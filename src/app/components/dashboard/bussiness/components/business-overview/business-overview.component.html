@@ -1,0 +1,143 @@
+<!-- business-overview.component.html -->
+<div class="dashboard-home">
+  <div class="dashboard-content">
+    
+    <div *ngIf="isLoadingDashboard" class="loading-state">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Loading business dashboard...</p>
+    </div>
+
+    <div *ngIf="!isLoadingDashboard">
+      <!-- Header Section -->
+      <div class="header-section">
+        <div class="header-content">
+          <h1 class="dashboard-title">Business Dashboard</h1>
+          <p class="dashboard-subtitle">Manage your advertisements and track performance</p>
+        </div>
+        <button class="add-property-btn" (click)="createNewAd()">
+          <mat-icon>add_circle</mat-icon>
+          <span>Create New Ad</span>
+        </button>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Ads</span>
+            <div class="stat-icon">
+              <mat-icon>campaign</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getTotalAds() }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Active Ads</span>
+            <div class="stat-icon">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getActiveAds() }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Pending Ads</span>
+            <div class="stat-icon">
+              <mat-icon>schedule</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getPendingAds() }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Spent</span>
+            <div class="stat-icon">
+              <mat-icon>payments</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">KES {{ getTotalSpent() | number }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Clicks</span>
+            <div class="stat-icon">
+              <mat-icon>trending_up</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getTotalClicks() }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Approval Rate</span>
+            <div class="stat-icon">
+              <mat-icon>verified</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getApprovalRate() }}</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions Section -->
+      <div class="quick-actions-section">
+        <div class="section-header">
+          <h2>Quick Actions</h2>
+          <p>Manage your advertising campaigns</p>
+        </div>
+        <div class="quick-actions-grid">
+          <div *ngFor="let action of quickActions" 
+               class="quick-action-card" 
+               (click)="onQuickAction(action)">
+            <div class="action-icon" [style.background]="action.color">
+              <mat-icon>{{ action.icon }}</mat-icon>
+            </div>
+            <div class="action-content">
+              <h3>{{ action.label }}</h3>
+              <p>{{ action.description }}</p>
+            </div>
+            <div class="action-arrow">
+              <mat-icon>arrow_forward</mat-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity Section -->
+      <div class="recent-activity-section">
+        <div class="section-header">
+          <h2>Recent Activity</h2>
+          <p>Latest updates from your advertising campaigns</p>
+        </div>
+        <div class="activity-list">
+          <div *ngFor="let activity of recentActivities" class="activity-item">
+            <div class="activity-icon">
+              <mat-icon>{{ activity.icon }}</mat-icon>
+            </div>
+            <div class="activity-content">
+              <div class="activity-main">
+                <h4>{{ activity.type }}</h4>
+                <p>{{ activity.message }}</p>
+              </div>
+              <span class="activity-time">{{ activity.time }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="dashboardError" class="error-state">
+      <mat-icon>error_outline</mat-icon>
+      <h3>Unable to load dashboard data</h3>
+      <p>{{ dashboardError }}</p>
+      <button class="retry-btn" (click)="loadDashboardData()">
+        <mat-icon>refresh</mat-icon>
+        Try Again
+      </button>
+    </div>
+  </div>
+</div>

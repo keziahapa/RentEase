@@ -1,0 +1,95 @@
+<div class="messages-view">
+  <div class="view-header">
+    <h2>Messages</h2>
+    <div class="view-stats">
+      <span class="stat-badge unread">{{unreadCount}} Unread</span>
+    </div>
+  </div>
+
+  <div class="messages-container">
+    <div class="messages-sidebar">
+      <div class="sidebar-header">
+        <h3>Inbox</h3>
+        <button class="btn btn-primary">
+          <mat-icon>add</mat-icon>
+          New Message
+        </button>
+      </div>
+      
+      <div class="messages-list">
+        <div *ngFor="let message of messages" 
+             class="message-item" 
+             [class.active]="selectedMessage?.id === message.id"
+             [class.unread]="!message.isRead"
+             (click)="selectMessage(message)">
+          <div class="message-header">
+            <div class="sender-info">
+              <span class="sender-name">{{message.sender}}</span>
+              <span class="priority-badge" [class]="getPriorityClass(message.priority)">
+                {{message.priority}}
+              </span>
+            </div>
+            <div class="message-time">{{formatDate(message.timestamp)}}</div>
+          </div>
+          <div class="message-subject">{{message.subject}}</div>
+          <div class="message-preview">{{message.content.substring(0, 60)}}...</div>
+          <div class="message-actions">
+            <button class="btn-icon" (click)="$event.stopPropagation(); deleteMessage(message)">
+              <mat-icon>delete</mat-icon>
+            </button>
+            <button *ngIf="message.isRead" class="btn-icon" (click)="$event.stopPropagation(); markAsUnread(message)">
+              <mat-icon>mark_email_unread</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="message-detail" *ngIf="selectedMessage">
+      <div class="detail-header">
+        <div class="message-info">
+          <h3 class="message-subject">{{selectedMessage.subject}}</h3>
+          <div class="message-meta">
+            <span class="sender">From: {{selectedMessage.sender}}</span>
+            <span class="timestamp">{{formatDate(selectedMessage.timestamp)}}</span>
+            <span class="priority-badge" [class]="getPriorityClass(selectedMessage.priority)">
+              {{selectedMessage.priority}}
+            </span>
+          </div>
+        </div>
+        <div class="message-actions">
+          <button class="btn btn-secondary" (click)="replyToMessage()">
+            <mat-icon>reply</mat-icon>
+            Reply
+          </button>
+          <button class="btn btn-secondary" (click)="markAsUnread(selectedMessage)">
+            <mat-icon>mark_email_unread</mat-icon>
+            Mark Unread
+          </button>
+          <button class="btn btn-danger" (click)="deleteMessage(selectedMessage)">
+            <mat-icon>delete</mat-icon>
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <div class="message-content">
+        <p>{{selectedMessage.content}}</p>
+      </div>
+
+      <div class="reply-section">
+        <h4>Reply</h4>
+        <textarea class="reply-input" placeholder="Type your reply here..." rows="4"></textarea>
+        <div class="reply-actions">
+          <button class="btn btn-primary">Send Reply</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="no-message-selected" *ngIf="!selectedMessage">
+      <mat-icon>email</mat-icon>
+      <h4>Select a message to read</h4>
+      <p>Choose a message from your inbox to view its contents</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,413 @@
+<!-- src/app/components/dashboard/landlord/landlord-dashboard/financials/invoices/invoices.component.html -->
+<div class="invoices-container">
+  <!-- Header Section -->
+  <div class="header">
+    <div class="header-content">
+      <div class="title-section">
+        <h1>Invoice Management</h1>
+        <p>Manage rent invoices for all your tenants</p>
+      </div>
+      <div class="header-actions">
+        <button mat-raised-button color="primary" (click)="openCreateInvoice()">
+          <mat-icon>add</mat-icon>
+          Create Invoice
+        </button>
+        <button mat-stroked-button (click)="bulkSendReminders()">
+          <mat-icon>email</mat-icon>
+          Send Reminders
+        </button>
+        <button mat-stroked-button [matMenuTriggerFor]="exportMenu">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item (click)="exportToExcel()">
+            <mat-icon>table_chart</mat-icon>
+            Export to Excel
+          </button>
+          <button mat-menu-item (click)="generateReport()">
+            <mat-icon>description</mat-icon>
+            Generate Report
+          </button>
+        </mat-menu>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-icon total">
+            <mat-icon>receipt_long</mat-icon>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value">{{ totalInvoices }}</div>
+            <div class="stat-label">Total Invoices</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-icon revenue">
+            <mat-icon>account_balance_wallet</mat-icon>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value">KSh {{ totalAmount | number:'1.0-0' }}</div>
+            <div class="stat-label">Total Amount</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-icon paid">
+            <mat-icon>check_circle</mat-icon>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value">KSh {{ paidAmount | number:'1.0-0' }}</div>
+            <div class="stat-label">Amount Paid</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-icon overdue">
+            <mat-icon>warning</mat-icon>
+          </div>
+          <div class="stat-details">
+            <div class="stat-value">KSh {{ overdueAmount | number:'1.0-0' }}</div>
+            <div class="stat-label">Overdue Amount</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Filters and Search -->
+  <mat-card class="filters-card">
+    <mat-card-content>
+      <div class="filters-row">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Search invoices...</mat-label>
+          <input matInput [(ngModel)]="searchQuery" (keyup)="onSearch()" placeholder="Search by tenant, invoice number, or unit">
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Filter by Status</mat-label>
+          <mat-select [(ngModel)]="statusFilter" (selectionChange)="onStatusFilterChange()">
+            <mat-option value="">All Status</mat-option>
+            <mat-option value="Draft">Draft</mat-option>
+            <mat-option value="Sent">Sent</mat-option>
+            <mat-option value="Paid">Paid</mat-option>
+            <mat-option value="Partially Paid">Partially Paid</mat-option>
+            <mat-option value="Overdue">Overdue</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-stroked-button (click)="clearFilters()">
+          <mat-icon>clear</mat-icon>
+          Clear Filters
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Tabs -->
+  <mat-card class="content-card">
+    <mat-tab-group [(selectedIndex)]="selectedTab" (selectedTabChange)="onTabChange($event.index)">
+      <mat-tab label="All Invoices">
+        <span class="tab-counter">({{ invoices.length }})</span>
+      </mat-tab>
+      <mat-tab label="Paid">
+        <span class="tab-counter">({{ (invoices | filter:'status':'Paid').length }})</span>
+      </mat-tab>
+      <mat-tab label="Pending">
+        <span class="tab-counter">({{ (invoices | filter:'status':'Sent').length + (invoices | filter:'status':'Partially Paid').length }})</span>
+      </mat-tab>
+      <mat-tab label="Overdue">
+        <span class="tab-counter">({{ (invoices | filter:'status':'Overdue').length }})</span>
+      </mat-tab>
+      <mat-tab label="Draft">
+        <span class="tab-counter">({{ (invoices | filter:'status':'Draft').length }})</span>
+      </mat-tab>
+    </mat-tab-group>
+
+    <!-- Invoices Table -->
+    <div class="table-container">
+      <mat-table [dataSource]="filteredInvoices" class="invoices-table" matSort>
+        <!-- Invoice Number Column -->
+        <ng-container matColumnDef="invoiceNumber">
+          <mat-header-cell *matHeaderCellDef mat-sort-header> Invoice # </mat-header-cell>
+          <mat-cell *matCellDef="let invoice">
+            <div class="invoice-number">
+              <strong>{{ invoice.invoiceNumber }}</strong>
+              <div class="invoice-description">{{ invoice.description }}</div>
+            </div>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Tenant Name Column -->
+        <ng-container matColumnDef="tenantName">
+          <mat-header-cell *matHeaderCellDef mat-sort-header> Tenant </mat-header-cell>
+          <mat-cell *matCellDef="let invoice">
+            <div class="tenant-info">
+              <div class="tenant-name">{{ invoice.tenantName }}</div>
+              <div class="tenant-unit">{{ invoice.unit }} - {{ invoice.property }}</div>
+            </div>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Unit Column -->
+        <ng-container matColumnDef="unit">
+          <mat-header-cell *matHeaderCellDef mat-sort-header> Unit </mat-header-cell>
+          <mat-cell *matCellDef="let invoice">
+            <div class="unit-info">
+              <strong>{{ invoice.unit }}</strong>
+              <div class="property-name">{{ invoice.property }}</div>
+            </div>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Invoice Date Column -->
+        <ng-container matColumnDef="invoiceDate">
+          <mat-header-cell *matHeaderCellDef mat-sort-header> Invoice Date </mat-header-cell>
+          <mat-cell *matCellDef="let invoice">
+            {{ invoice.invoiceDate | date:'MMM d, yyyy' }}
+          </mat-cell>
+        </ng-container>
+
+        <!-- Due Date Column -->
+        <ng-container matColumnDef="dueDate">
+          <mat-header-cell *matHeaderCellDef mat-sort-header> Due Date </mat-header-cell>
+          <mat-cell *matCellDef="let invoice">
+            <div class="due-date" [class.overdue]="isOverdue(invoice)">
+              {{ invoice.dueDate | date:'MMM d, yyyy' }}
+              <div *ngIf="isOverdue(invoice)" class="overdue-text">
+                {{ getDaysOverdue(invoice) }} days overdue
+              </div>
+            </div>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Total Amount Column -->
+        <ng-container matColumnDef="totalAmount">
+          <mat-header-cell *matHeaderCellDef mat-sort-header> Total Amount </mat-header-cell>
+          <mat-cell *matCellDef="let invoice">
+            <div class="amount-breakdown">
+              <div class="total-amount">KSh {{ invoice.totalAmount | number:'1.0-0' }}</div>
+              <div class="amount-details">
+                Rent: KSh {{ invoice.rentAmount | number:'1.0-0' }}
+                <span *ngIf="invoice.utilities > 0"> + Utilities: KSh {{ invoice.utilities | number:'1.0-0' }}</span>
+                <span *ngIf="invoice.lateFees > 0"> + Late Fees: KSh {{ invoice.lateFees | number:'1.0-0' }}</span>
+              </div>
+            </div>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Paid Amount Column -->
+        <ng-container matColumnDef="paidAmount">
+          <mat-header-cell *matHeaderCellDef mat-sort-header> Paid Amount </mat-header-cell>
+          <mat-cell *matCellDef="let invoice">
+            <div class="paid-amount">
+              KSh {{ invoice.paidAmount | number:'1.0-0' }}
+              <div *ngIf="invoice.paidDate" class="payment-date">
+                Paid: {{ invoice.paidDate | date:'MMM d, yyyy' }}
+              </div>
+            </div>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Balance Amount Column -->
+        <ng-container matColumnDef="balanceAmount">
+          <mat-header-cell *matHeaderCellDef mat-sort-header> Balance </mat-header-cell>
+          <mat-cell *matCellDef="let invoice">
+            <div class="balance-amount" [class.zero-balance]="invoice.balanceAmount === 0">
+              KSh {{ invoice.balanceAmount | number:'1.0-0' }}
+            </div>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <mat-header-cell *matHeaderCellDef mat-sort-header> Status </mat-header-cell>
+          <mat-cell *matCellDef="let invoice">
+            <mat-chip [color]="getStatusColor(invoice.status)" selected>
+              {{ invoice.status }}
+            </mat-chip>
+            <div *ngIf="invoice.remindersSent > 0" class="reminder-info">
+              {{ invoice.remindersSent }} reminder(s) sent
+            </div>
+          </mat-cell>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <mat-header-cell *matHeaderCellDef> Actions </mat-header-cell>
+          <mat-cell *matCellDef="let invoice">
+            <button mat-icon-button [matMenuTriggerFor]="actionsMenu">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #actionsMenu="matMenu">
+              <button mat-menu-item (click)="downloadInvoice(invoice)">
+                <mat-icon>download</mat-icon>
+                Download PDF
+              </button>
+              <mat-divider></mat-divider>
+              <button mat-menu-item (click)="sendInvoice(invoice)" *ngIf="invoice.status === 'Draft'">
+                <mat-icon>send</mat-icon>
+                Send Invoice
+              </button>
+              <button mat-menu-item (click)="sendReminder(invoice)" *ngIf="invoice.status !== 'Paid' && invoice.status !== 'Draft'">
+                <mat-icon>email</mat-icon>
+                Send Reminder
+              </button>
+              <button mat-menu-item (click)="markAsPaid(invoice)" *ngIf="invoice.status !== 'Paid'">
+                <mat-icon>check_circle</mat-icon>
+                Mark as Paid
+              </button>
+              <mat-divider></mat-divider>
+              <button mat-menu-item (click)="editInvoice(invoice)" *ngIf="invoice.status === 'Draft'">
+                <mat-icon>edit</mat-icon>
+                Edit Invoice
+              </button>
+              <button mat-menu-item (click)="deleteInvoice(invoice)" *ngIf="invoice.status === 'Draft'" class="delete-action">
+                <mat-icon>delete</mat-icon>
+                Delete Invoice
+              </button>
+            </mat-menu>
+          </mat-cell>
+        </ng-container>
+
+        <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+        <mat-row *matRowDef="let row; columns: displayedColumns;" [class.overdue-row]="isOverdue(row)"></mat-row>
+      </mat-table>
+
+      <!-- No Data State -->
+      <div *ngIf="filteredInvoices.length === 0" class="no-data">
+        <mat-icon>receipt_long</mat-icon>
+        <h3>No invoices found</h3>
+        <p>No invoices match your current filters</p>
+        <button mat-raised-button color="primary" (click)="clearFilters()">Clear Filters</button>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Create/Edit Invoice Form -->
+  <div *ngIf="isCreateMode" class="form-overlay" (click)="closeCreateInvoice()">
+    <div class="form-container" (click)="$event.stopPropagation()">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
+            {{ editingInvoice ? 'Edit Invoice' : 'Create New Invoice' }}
+          </mat-card-title>
+          <button mat-icon-button (click)="closeCreateInvoice()" class="close-btn">
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-card-header>
+
+        <mat-card-content>
+          <form [formGroup]="invoiceForm" (ngSubmit)="saveInvoice()">
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Select Tenant</mat-label>
+                <mat-select formControlName="tenantId" (selectionChange)="onTenantChange()">
+                  <mat-option *ngFor="let tenant of tenants" [value]="tenant.id">
+                    {{ tenant.name }} - {{ tenant.unit }} ({{ tenant.property }})
+                  </mat-option>
+                </mat-select>
+                <mat-error>Please select a tenant</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Invoice Date</mat-label>
+                <input matInput [matDatepicker]="invoicePicker" formControlName="invoiceDate">
+                <mat-datepicker-toggle matSuffix [for]="invoicePicker"></mat-datepicker-toggle>
+                <mat-datepicker #invoicePicker></mat-datepicker>
+                <mat-error>Invoice date is required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Due Date</mat-label>
+                <input matInput [matDatepicker]="duePicker" formControlName="dueDate">
+                <mat-datepicker-toggle matSuffix [for]="duePicker"></mat-datepicker-toggle>
+                <mat-datepicker #duePicker></mat-datepicker>
+                <mat-error>Due date is required</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Rent Amount</mat-label>
+                <input matInput type="number" formControlName="rentAmount" placeholder="0">
+                <span matPrefix>KSh&nbsp;</span>
+                <mat-error>Please enter a valid amount</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Utilities</mat-label>
+                <input matInput type="number" formControlName="utilities" placeholder="0">
+                <span matPrefix>KSh&nbsp;</span>
+                <mat-error>Please enter a valid amount</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Late Fees</mat-label>
+                <input matInput type="number" formControlName="lateFees" placeholder="0">
+                <span matPrefix>KSh&nbsp;</span>
+                <mat-error>Please enter a valid amount</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Description</mat-label>
+                <textarea matInput formControlName="description" rows="3" placeholder="Enter invoice description"></textarea>
+              </mat-form-field>
+            </div>
+
+            <!-- Total Calculation -->
+            <div class="total-calculation">
+              <div class="calculation-row">
+                <span>Rent Amount:</span>
+                <span>KSh {{ invoiceForm.get('rentAmount')?.value || 0 | number:'1.0-0' }}</span>
+              </div>
+              <div class="calculation-row">
+                <span>Utilities:</span>
+                <span>KSh {{ invoiceForm.get('utilities')?.value || 0 | number:'1.0-0' }}</span>
+              </div>
+              <div class="calculation-row">
+                <span>Late Fees:</span>
+                <span>KSh {{ invoiceForm.get('lateFees')?.value || 0 | number:'1.0-0' }}</span>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="calculation-row total">
+                <span><strong>Total Amount:</strong></span>
+                <span><strong>KSh {{ (invoiceForm.get('rentAmount')?.value || 0) + (invoiceForm.get('utilities')?.value || 0) + (invoiceForm.get('lateFees')?.value || 0) | number:'1.0-0' }}</strong></span>
+              </div>
+            </div>
+          </form>
+        </mat-card-content>
+
+        <mat-card-actions align="end">
+          <button mat-button (click)="closeCreateInvoice()">Cancel</button>
+          <button mat-raised-button color="primary" (click)="saveInvoice()" [disabled]="!invoiceForm.valid">
+            {{ editingInvoice ? 'Update Invoice' : 'Create Invoice' }}
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+</div>

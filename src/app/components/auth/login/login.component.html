@@ -1,0 +1,117 @@
+<div class="login-page">
+  <div class="login-card">
+    <div class="logo-title">
+      <img src="/images/logo.png" alt="RentEase Logo" />
+      <h2>Login</h2>
+    </div>
+
+    <div *ngIf="showAutoLoginNotice" class="auto-login-notice">
+      <mat-icon>timer</mat-icon>
+      <span>Auto-login in {{countdown}} seconds...</span>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" #loginForm="ngForm" novalidate>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Email Address</mat-label>
+        <input
+          matInput
+          type="email"
+          [(ngModel)]="loginData.email"
+          name="email"
+          placeholder="Enter your email"
+          (input)="onEmailInput()"
+          (blur)="onEmailBlur()"
+          required
+          [disabled]="isLoading"
+        />
+        <mat-icon matSuffix>email</mat-icon>
+      
+        <mat-error *ngIf="emailError">
+          {{ emailError }}
+        </mat-error>
+        
+        <mat-error *ngIf="!emailError && loginForm.submitted && !loginData.email.trim()">
+          Email is required
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Password</mat-label>
+        <input
+          matInput
+          [type]="showPassword ? 'text' : 'password'"
+          [(ngModel)]="loginData.password"
+          name="password"
+          placeholder="Enter your password"
+          (input)="onPasswordInput()"
+          (blur)="onPasswordBlur()"
+          required
+          minlength="6"
+          [disabled]="isLoading"
+        />
+        <button 
+          mat-icon-button 
+          matSuffix 
+          (click)="togglePasswordVisibility()"
+          [attr.aria-label]="'Toggle password visibility'"
+          type="button"
+          [disabled]="isLoading"
+        >
+          <mat-icon>{{ showPassword ? 'visibility' : 'visibility_off' }}</mat-icon>
+        </button>
+        
+        <mat-error *ngIf="passwordError">
+          {{ passwordError }}
+        </mat-error>
+        
+        <mat-error *ngIf="!passwordError && loginForm.submitted && !loginData.password">
+          Password is required
+        </mat-error>
+        <mat-error *ngIf="!passwordError && loginForm.submitted && loginData.password && loginData.password.length < 6">
+          Password must be at least 6 characters
+        </mat-error>
+      </mat-form-field>
+
+      <div class="form-options">
+        <mat-checkbox 
+          [(ngModel)]="rememberMe" 
+          name="rememberMe" 
+          color="primary"
+          [disabled]="isLoading">
+          Remember me
+        </mat-checkbox>
+        <a 
+          (click)="navigateToForgotPassword()" 
+          class="forgot-password-link"
+          [class.disabled]="isLoading">
+          Forgot Password?
+        </a>
+      </div>
+
+      <button
+        mat-raised-button
+        color="primary"
+        class="full-width submit-btn"
+        type="submit"
+        [disabled]="isLoading || !isFormValid"
+      >
+        <span *ngIf="isLoading" class="button-loading">
+          <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+          Signing In...
+        </span>
+        <span *ngIf="!isLoading">{{ loginButtonText }}</span>
+      </button>
+    </form>
+
+    <div class="register-link">
+      <p>Don't have an account? 
+        <a 
+          (click)="navigateToRegister()" 
+          class="register-now"
+          [class.disabled]="isLoading">
+          Register Now
+        </a>
+      </p>
+    </div>
+  </div>
+</div>

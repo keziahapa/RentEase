@@ -1,0 +1,454 @@
+<!-- src/app/components/dashboard/tenant/deposit/deposit.component.html -->
+
+<div class="deposit-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <button class="back-btn" (click)="goBack()" aria-label="Go back to dashboard">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Dashboard
+    </button>
+    <div class="page-title">
+      <h2>Deposit Details</h2>
+      <p>Your security deposit information and protection details</p>
+    </div>
+  </div>
+
+  <div class="error-banner" *ngIf="loadError">
+    <mat-icon>error_outline</mat-icon>
+    {{loadError}}
+  </div>
+
+  <div class="loading-state" *ngIf="isLoading">
+    <mat-icon>hourglass_empty</mat-icon>
+    <p>Loading deposit details...</p>
+  </div>
+
+  <!-- Status Overview -->
+  <div class="status-overview">
+    <div class="status-card">
+      <div class="status-icon" [ngClass]="getDepositStatus().className">
+        <mat-icon>{{getDepositStatus().icon}}</mat-icon>
+      </div>
+      <div class="status-content">
+        <h3>{{formatCurrency(depositAmount ?? depositSummary.totalAmount)}}</h3>
+        <p>{{getDepositStatus().status}}</p>
+        <div class="progress-indicator">
+          <div class="progress-bar">
+            <div class="progress-fill" 
+                 [style.width.%]="getTimelineCompletionPercentage()">
+            </div>
+          </div>
+          <span class="progress-text">
+            {{getCompletedEventsCount()}}/{{getTotalEventsCount()}} completed
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="quick-stats">
+      <div class="stat-item">
+        <mat-icon>account_balance</mat-icon>
+        <div class="stat-content">
+          <span class="stat-value">{{formatCurrency(depositSummary.refundableAmount)}}</span>
+          <span class="stat-label">Refundable</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <mat-icon>trending_up</mat-icon>
+        <div class="stat-content">
+          <span class="stat-value">{{formatPercentage(depositSummary.interestRate || 0)}}</span>
+          <span class="stat-label">Interest Rate</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <mat-icon>shield</mat-icon>
+        <div class="stat-content">
+          <span class="stat-value">Protected</span>
+          <span class="stat-label">Status</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="tab-navigation">
+    <button class="tab-btn" 
+            [class.active]="isActiveTab('summary')"
+            (click)="setActiveTab('summary')"
+            [attr.aria-label]="getTabAriaLabel('summary')">
+      <mat-icon>summarize</mat-icon>
+      Summary
+    </button>
+    <button class="tab-btn" 
+            [class.active]="isActiveTab('timeline')"
+            (click)="setActiveTab('timeline')"
+            [attr.aria-label]="getTabAriaLabel('timeline')">
+      <mat-icon>timeline</mat-icon>
+      Timeline
+    </button>
+    <button class="tab-btn" 
+            [class.active]="isActiveTab('breakdown')"
+            (click)="setActiveTab('breakdown')"
+            [attr.aria-label]="getTabAriaLabel('breakdown')">
+      <mat-icon>pie_chart</mat-icon>
+      Breakdown
+    </button>
+    <button class="tab-btn" 
+            [class.active]="isActiveTab('protection')"
+            (click)="setActiveTab('protection')"
+            [attr.aria-label]="getTabAriaLabel('protection')">
+      <mat-icon>security</mat-icon>
+      Protection
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    
+    <!-- Summary Tab -->
+    <div class="tab-panel" *ngIf="selectedTab === 'summary'">
+      <div class="content-grid">
+        <!-- Deposit Summary Card -->
+        <div class="card collapsible-card" 
+             [class.collapsed]="isSectionCollapsed('summary')"
+             [class.animating]="isAnimating('summary')">
+          <div class="card-header clickable-header" (click)="toggleSection('summary')">
+            <div class="card-title">
+              <mat-icon class="card-icon">account_balance_wallet</mat-icon>
+              <h3>Deposit Summary</h3>
+            </div>
+            <button class="collapse-toggle" [attr.aria-label]="getAriaLabel('summary')">
+              <mat-icon class="collapse-icon">expand_more</mat-icon>
+            </button>
+          </div>
+          <div class="card-content collapsible-content" [class.collapsed]="isSectionCollapsed('summary')">
+            <div class="summary-grid">
+              <div class="summary-item">
+                <mat-icon class="summary-icon">account_balance_wallet</mat-icon>
+                <div class="summary-content">
+                  <span class="summary-label">Total Deposit Amount</span>
+                  <span class="summary-value">{{formatCurrency(depositSummary.totalAmount)}}</span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <mat-icon class="summary-icon">shield</mat-icon>
+                <div class="summary-content">
+                  <span class="summary-label">Protection Scheme</span>
+                  <span class="summary-value">{{depositSummary.protectionScheme}}</span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <mat-icon class="summary-icon">event</mat-icon>
+                <div class="summary-content">
+                  <span class="summary-label">Date Paid</span>
+                  <span class="summary-value">{{depositSummary.datePaid}}</span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <mat-icon class="summary-icon">schedule</mat-icon>
+                <div class="summary-content">
+                  <span class="summary-label">Expected Return</span>
+                  <span class="summary-value">{{depositSummary.expectedReturnDate}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Projected Refund Card -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <mat-icon class="card-icon">trending_up</mat-icon>
+              <h3>Projected Refund</h3>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="refund-calculation">
+              <div class="calculation-row">
+                <span>Refundable Amount</span>
+                <span>{{formatCurrency(depositSummary.refundableAmount)}}</span>
+              </div>
+              <div class="calculation-row">
+                <span>Projected Interest ({{formatPercentage(depositSummary.interestRate || 0)}})</span>
+                <span>+{{formatCurrency(calculateProjectedInterest())}}</span>
+              </div>
+              <div class="calculation-divider"></div>
+              <div class="calculation-row total">
+                <span>Total Projected Refund</span>
+                <span>{{formatCurrency(getProjectedRefundAmount())}}</span>
+              </div>
+            </div>
+            <div class="refund-note">
+              <mat-icon>info</mat-icon>
+              <p>Interest is calculated annually and paid upon lease termination. 
+                 Final amount may vary based on actual lease duration and any applicable deductions.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline Tab -->
+    <div class="tab-panel" *ngIf="selectedTab === 'timeline'">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <mat-icon class="card-icon">timeline</mat-icon>
+            <h3>Deposit Processing Timeline</h3>
+          </div>
+          <div class="timeline-progress-indicator">
+            <span>{{getTimelineCompletionPercentage()}}% Complete</span>
+          </div>
+        </div>
+        <div class="card-content">
+          <div class="timeline-container">
+            <div class="timeline-list">
+              <div class="timeline-item" 
+                   *ngFor="let event of (depositTimeline ?? []); let i = index; trackBy: trackByTimelineId"
+                   [class.completed]="event.completed"
+                   [class.current]="!event.completed && i === 0">
+                <div class="timeline-indicator">
+                  <div class="timeline-dot" [class.completed]="event.completed">
+                    <mat-icon *ngIf="event.completed">check</mat-icon>
+                    <mat-icon *ngIf="!event.completed">radio_button_unchecked</mat-icon>
+                  </div>
+                  <div class="timeline-line" *ngIf="depositTimeline && i < depositTimeline.length - 1"></div>
+                </div>
+                <div class="timeline-content">
+                  <div class="timeline-header">
+                    <h4 class="timeline-title">{{event.title}}</h4>
+                    <span class="timeline-date">{{event.date}}</span>
+                  </div>
+                  <p class="timeline-description" *ngIf="event.description">
+                    {{event.description}}
+                  </p>
+                  <div class="timeline-details" *ngIf="event.amount || event.reference">
+                    <span *ngIf="event.amount" class="timeline-amount">
+                      Amount: {{formatCurrency(event.amount)}}
+                    </span>
+                    <span *ngIf="event.reference" class="timeline-reference">
+                      Ref: {{event.reference}}
+                    </span>
+                  </div>
+                  <div class="timeline-status">
+                    <div class="status-badge" 
+                         [class.status-success]="event.completed"
+                         [class.status-pending]="!event.completed">
+                      <mat-icon>{{event.completed ? 'check_circle' : 'schedule'}}</mat-icon>
+                      {{event.completed ? 'Completed' : 'Pending'}}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Breakdown Tab -->
+    <div class="tab-panel" *ngIf="selectedTab === 'breakdown'">
+      <div class="content-grid">
+        <!-- Breakdown Chart -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <mat-icon class="card-icon">pie_chart</mat-icon>
+              <h3>Deposit Breakdown</h3>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="breakdown-chart">
+              <div class="chart-container">
+                <!-- Simple visual representation -->
+                <div class="breakdown-bars">
+                  <div class="breakdown-bar" 
+                       *ngFor="let item of depositBreakdown; trackBy: trackByBreakdownId"
+                       [style.height.%]="item.percentage"
+                       [class]="'bar-' + item.type"
+                       [title]="item.description + ': ' + formatCurrency(item.amount)">
+                  </div>
+                </div>
+              </div>
+              <div class="breakdown-legend">
+                <div class="legend-item" *ngFor="let item of depositBreakdown; trackBy: trackByBreakdownId">
+                  <div class="legend-color" [class]="'color-' + item.type"></div>
+                  <span class="legend-label">{{item.description}}</span>
+                  <span class="legend-value">{{formatCurrency(item.amount)}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Refundability Summary -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <mat-icon class="card-icon">account_balance</mat-icon>
+              <h3>Refundability</h3>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="refundability-summary">
+              <div class="refundability-item refundable">
+                <div class="refundability-header">
+                  <mat-icon>check_circle</mat-icon>
+                  <h4>Refundable</h4>
+                  <span class="percentage">{{formatPercentage(getRefundablePercentage())}}</span>
+                </div>
+                <div class="refundability-amount">{{formatCurrency(depositSummary.refundableAmount)}}</div>
+                <p>Amount that will be returned at the end of your lease, subject to property condition.</p>
+              </div>
+              <div class="refundability-item non-refundable">
+                <div class="refundability-header">
+                  <mat-icon>remove_circle</mat-icon>
+                  <h4>Non-Refundable</h4>
+                  <span class="percentage">{{formatPercentage(getNonRefundablePercentage())}}</span>
+                </div>
+                <div class="refundability-amount">{{formatCurrency(depositSummary.nonRefundableAmount)}}</div>
+                <p>Fees and charges that will not be returned regardless of property condition.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Protection Tab -->
+    <div class="tab-panel" *ngIf="selectedTab === 'protection'">
+      <div class="content-grid">
+        <!-- Protection Features -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <mat-icon class="card-icon">security</mat-icon>
+              <h3>Protection Features</h3>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="protection-features">
+              <div class="feature-item" 
+                   *ngFor="let feature of protectionFeatures; trackBy: trackByFeatureId">
+                <div class="feature-icon">
+                  <mat-icon>{{feature.icon}}</mat-icon>
+                </div>
+                <div class="feature-content">
+                  <h4>{{feature.title}}</h4>
+                  <p>{{feature.description}}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Protection Documents -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <mat-icon class="card-icon">description</mat-icon>
+              <h3>Protection Documents</h3>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="document-list">
+              <div class="document-item">
+                <div class="document-icon">
+                  <mat-icon>verified</mat-icon>
+                </div>
+                <div class="document-content">
+                  <h4>Protection Certificate</h4>
+                  <p>Official certificate of deposit protection</p>
+                </div>
+                <button class="download-btn" 
+                        (click)="downloadProtectionCertificate()"
+                        title="Download protection certificate">
+                  <mat-icon>download</mat-icon>
+                  Download
+                </button>
+              </div>
+              <div class="document-item">
+                <div class="document-icon">
+                  <mat-icon>gavel</mat-icon>
+                </div>
+                <div class="document-content">
+                  <h4>Dispute Process Guide</h4>
+                  <p>Step-by-step guide for resolving deposit disputes</p>
+                </div>
+                <button class="download-btn" 
+                        (click)="downloadDisputeProcess()"
+                        title="Download dispute process guide">
+                  <mat-icon>download</mat-icon>
+                  Download
+                </button>
+              </div>
+            </div>
+            <div class="protection-actions">
+              <button class="btn btn-primary" 
+                      (click)="openDisputePortal()"
+                      title="Open dispute resolution portal">
+                <mat-icon>launch</mat-icon>
+                Access Dispute Portal
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Protection Details -->
+        <div class="card card-full-width">
+          <div class="card-header">
+            <div class="card-title">
+              <mat-icon class="card-icon">info</mat-icon>
+              <h3>How Your Deposit is Protected</h3>
+            </div>
+          </div>
+          <div class="card-content">
+            <div class="protection-details">
+              <div class="detail-section">
+                <h4>Government Protection Scheme</h4>
+                <p>Your deposit is protected under the Kenya Residential Tenancy Act 2023. This means:</p>
+                <ul>
+                  <li>Your deposit is held in a separate, ring-fenced account</li>
+                  <li>It cannot be used by the landlord for other purposes</li>
+                  <li>You have access to free dispute resolution services</li>
+                  <li>The deposit earns interest at the current government rate</li>
+                </ul>
+              </div>
+              <div class="detail-section">
+                <h4>Dispute Resolution Process</h4>
+                <p>If there's a disagreement about your deposit return:</p>
+                <ol>
+                  <li>Contact your landlord first to discuss the issue</li>
+                  <li>If unresolved, raise a dispute through the online portal</li>
+                  <li>A neutral mediator will review your case within 14 days</li>
+                  <li>If mediation fails, the case goes to binding arbitration</li>
+                  <li>Final decisions are legally enforceable</li>
+                </ol>
+              </div>
+              <div class="detail-section">
+                <h4>Your Rights</h4>
+                <ul>
+                  <li>Right to receive your deposit back within 30 days of lease end</li>
+                  <li>Right to receive interest earned on your deposit</li>
+                  <li>Right to dispute any deductions from your deposit</li>
+                  <li>Right to access all documentation related to your deposit</li>
+                  <li>Right to free mediation services for deposit disputes</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loading-spinner">
+      <mat-icon>hourglass_empty</mat-icon>
+      <p>Loading deposit details...</p>
+    </div>
+  </div>
+</div>

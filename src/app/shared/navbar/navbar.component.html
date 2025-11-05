@@ -1,0 +1,44 @@
+<nav class="navbar" [class.scrolled]="isNavScrolled">
+  <div class="nav-container">
+    <a href="#" class="logo" (click)="scrollToTop(); $event.preventDefault()">
+      <img src="/images/logo.png" alt="RentEase Logo" class="logo-image">
+    </a>
+    
+    <ul class="nav-links" [class.active]="isMobileMenuOpen">
+      <li>
+        <a routerLink="/" 
+           routerLinkActive="active" 
+           [routerLinkActiveOptions]="{ exact: true }">
+          Home
+        </a>
+      </li>
+      <li>
+        <a routerLink="/pricing" routerLinkActive="active" (click)="setActiveMenu('pricing')">
+          Pricing
+        </a>
+      </li>
+      <li>
+        <a routerLink="/contact" routerLinkActive="active" (click)="setActiveMenu('contact')">
+          Contact
+        </a>
+      </li>
+      <li>
+        <a routerLink="/about" routerLinkActive="active" (click)="setActiveMenu('about')">
+          About
+        </a>
+      </li>
+    </ul>
+
+    <div class="nav-actions">
+      <button class="nav-cta" (click)="navigateToLogin()">
+        Login
+      </button>
+
+      <button class="mobile-menu-btn" (click)="toggleMobileMenu()" [class.active]="isMobileMenuOpen">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </div>
+</nav>

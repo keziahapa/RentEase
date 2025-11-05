@@ -1,0 +1,83 @@
+<div class="reports-view">
+  <div class="view-header">
+    <h2>Reports & Analytics</h2>
+    <div class="view-actions">
+      <button class="btn btn-primary" (click)="exportPdf()" [disabled]="isExportingPdf">
+        <mat-icon>picture_as_pdf</mat-icon>
+        <span>{{isExportingPdf ? 'Exporting...' : 'Export PDF'}}</span>
+      </button>
+      <button class="btn btn-secondary" (click)="exportExcel()" [disabled]="isExportingCsv">
+        <mat-icon>table_chart</mat-icon>
+        <span>{{isExportingCsv ? 'Exporting...' : 'Export Excel'}}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="reports-grid">
+    <div class="report-card">
+      <div class="report-icon">
+        <mat-icon>assessment</mat-icon>
+      </div>
+      <div class="report-info">
+        <h3>Monthly Performance Report</h3>
+        <p>Comprehensive overview of platform performance and metrics</p>
+        <button class="btn btn-primary" (click)="onGenerateReport('monthly-performance')">Generate Report</button>
+      </div>
+    </div>
+
+    <div class="report-card">
+      <div class="report-icon">
+        <mat-icon>people</mat-icon>
+      </div>
+      <div class="report-info">
+        <h3>User Analytics</h3>
+        <p>Detailed analysis of user growth and engagement patterns</p>
+        <button class="btn btn-primary" (click)="onGenerateReport('user-analytics')">Generate Report</button>
+      </div>
+    </div>
+
+    <div class="report-card">
+      <div class="report-icon">
+        <mat-icon>apartment</mat-icon>
+      </div>
+      <div class="report-info">
+        <h3>Property Management Report</h3>
+        <p>Property occupancy rates and management efficiency</p>
+        <button class="btn btn-primary" (click)="onGenerateReport('property-management')">Generate Report</button>
+      </div>
+    </div>
+
+    <div class="report-card">
+      <div class="report-icon">
+        <mat-icon>business</mat-icon>
+      </div>
+      <div class="report-info">
+        <h3>Business Performance</h3>
+        <p>Service provider performance and customer satisfaction</p>
+        <button class="btn btn-primary" (click)="onGenerateReport('business-performance')">Generate Report</button>
+      </div>
+    </div>
+
+    <div class="report-card">
+      <div class="report-icon">
+        <mat-icon>trending_up</mat-icon>
+      </div>
+      <div class="report-info">
+        <h3>Revenue Analysis</h3>
+        <p>Revenue trends, commission analysis, and financial insights</p>
+        <button class="btn btn-primary" (click)="onGenerateReport('revenue-analysis')">Generate Report</button>
+      </div>
+    </div>
+
+    <div class="report-card">
+      <div class="report-icon">
+        <mat-icon>gavel</mat-icon>
+      </div>
+      <div class="report-info">
+        <h3>Dispute Resolution Report</h3>
+        <p>Dispute patterns, resolution times, and satisfaction rates</p>
+        <button class="btn btn-primary" (click)="onGenerateReport('dispute-resolution')">Generate Report</button>
+      </div>
+    </div>
+  </div>
+</div>

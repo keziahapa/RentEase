@@ -1,0 +1,133 @@
+<div class="admin-login-page">
+  <div class="admin-login-container">
+    <!-- Security Header -->
+    <div class="security-header">
+      <mat-icon>admin_panel_settings</mat-icon>
+      <h1>Admin Portal</h1>
+      <p>Secure administrative access only</p>
+    </div>
+
+    <mat-card class="admin-login-card">
+      <mat-card-content>
+        <form (ngSubmit)="onSubmit()" #loginForm="ngForm" novalidate>
+          <!-- Email Field -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Admin Email</mat-label>
+            <input
+              matInput
+              type="email"
+              [(ngModel)]="loginData.email"
+              name="email"
+              placeholder="Enter admin email address"
+              (input)="onEmailInput()"
+              (blur)="onEmailBlur()"
+              required
+              [disabled]="isLoading"
+            />
+            <mat-icon matSuffix>security</mat-icon>
+          
+            <mat-error *ngIf="emailError">
+              {{ emailError }}
+            </mat-error>
+            
+            <mat-error *ngIf="!emailError && loginForm.submitted && !loginData.email.trim()">
+              Admin email is required
+            </mat-error>
+          </mat-form-field>
+
+          <!-- Password Field -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Admin Password</mat-label>
+            <input
+              matInput
+              [type]="showPassword ? 'text' : 'password'"
+              [(ngModel)]="loginData.password"
+              name="password"
+              placeholder="Enter admin password"
+              (input)="onPasswordInput()"
+              (blur)="onPasswordBlur()"
+              required
+              minlength="8"
+              [disabled]="isLoading"
+            />
+            <button 
+              mat-icon-button 
+              matSuffix 
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="'Toggle password visibility'"
+              type="button"
+              [disabled]="isLoading"
+            >
+             
+              <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            
+            <mat-error *ngIf="passwordError">
+              {{ passwordError }}
+            </mat-error>
+            
+            <mat-error *ngIf="!passwordError && loginForm.submitted && !loginData.password">
+              Admin password is required
+            </mat-error>
+            <mat-error *ngIf="!passwordError && loginForm.submitted && loginData.password && loginData.password.length < 8">
+              Admin password must be at least 8 characters
+            </mat-error>
+          </mat-form-field>
+
+          <!-- Security Notice -->
+          <div class="security-notice">
+            <mat-icon>warning</mat-icon>
+            <span>This portal is for authorized administrators only. All activities are logged.</span>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            mat-raised-button
+            color="primary"
+            class="full-width submit-btn"
+            type="submit"
+            [disabled]="isLoading || !isFormValid"
+          >
+            <span *ngIf="isLoading" class="button-loading">
+              <mat-spinner diameter="20" class="button-spinner"></mat-spinner>
+              Authenticating...
+            </span>
+            <span *ngIf="!isLoading">
+              <mat-icon>login</mat-icon>
+              Access Admin Portal
+            </span>
+          </button>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Back to Main Site -->
+    <div class="back-to-main">
+      <a 
+        (click)="navigateToMainLogin()" 
+        class="back-link"
+        [class.disabled]="isLoading">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Main Site
+      </a>
+    </div>
+
+    <!-- Footer Security Info -->
+    <div class="security-footer">
+      <div class="security-features">
+        <div class="feature">
+          <mat-icon>https</mat-icon>
+          <span>SSL Encrypted</span>
+        </div>
+        <div class="feature">
+          <mat-icon>monitor_heart</mat-icon>
+          <span>Activity Monitored</span>
+        </div>
+        <div class="feature">
+          <mat-icon>audit</mat-icon>
+          <span>Audit Logged</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

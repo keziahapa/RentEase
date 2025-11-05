@@ -1,0 +1,192 @@
+<div class="dashboard-home">
+  <div class="dashboard-content">
+    
+    <!-- Loading State -->
+    <div *ngIf="isLoadingDashboard" class="loading-state">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Loading dashboard data...</p>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div *ngIf="!isLoadingDashboard && !dashboardError">
+      
+      <!-- Header Section -->
+      <div class="header-section">
+        <div class="header-content">
+          <h1 class="dashboard-title">Tenant Dashboard</h1>
+          <p class="dashboard-subtitle">Welcome back! Here's your rental summary.</p>
+        </div>
+        <div class="header-actions">
+          <button class="action-btn maintenance-btn" (click)="openMaintenanceRequest()">
+            <mat-icon>build</mat-icon>
+            <span>Request Maintenance</span>
+          </button>
+          <button class="action-btn move-out-btn" 
+                  (click)="submitMoveOutNotice()"
+                  [disabled]="hasActiveMoveOut()">
+            <mat-icon>exit_to_app</mat-icon>
+            <span>{{ hasActiveMoveOut() ? 'Move Out Submitted' : 'Move Out Notice' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        
+        <!-- Current Rent -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Current Rent</span>
+            <div class="stat-icon rent-icon">
+              <mat-icon>payments</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">KES {{ getCurrentRent() | number }}</div>
+          <div class="stat-subtitle">Monthly</div>
+        </div>
+
+        <!-- Payment Status -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Payment Status</span>
+            <div class="stat-icon payment-icon">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getPaymentStatus() }}</div>
+          <div class="stat-subtitle">{{ getDaysUntilDue() }} days until due</div>
+        </div>
+
+        <!-- Maintenance -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Maintenance</span>
+            <div class="stat-icon maintenance-icon">
+              <mat-icon>handyman</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getOpenMaintenance() }}</div>
+          <div class="stat-subtitle">Open requests</div>
+        </div>
+
+        <!-- Lease End -->
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Lease Ends</span>
+            <div class="stat-icon lease-icon">
+              <mat-icon>event</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getLeaseEndDays() }}</div>
+          <div class="stat-subtitle">days remaining</div>
+        </div>
+
+        <!-- Move Out Notices -->
+        <div class="stat-card move-out-stat" 
+             *ngIf="getPendingMoveOutNotices() > 0"
+             (click)="viewMoveOutNotices()">
+          <div class="stat-header">
+            <span class="stat-title">Move Out Notices</span>
+            <div class="stat-icon move-out-icon">
+              <mat-icon>exit_to_app</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getPendingMoveOutNotices() }}</div>
+          <div class="stat-subtitle" *ngIf="hasUpcomingMoveOut()">
+            Next: {{ getUpcomingMoveOutDate() }}
+          </div>
+          <div class="stat-subtitle" *ngIf="!hasUpcomingMoveOut()">
+            Pending approval
+          </div>
+        </div>
+
+        <!-- Property Info -->
+        <div class="stat-card property-stat">
+          <div class="stat-header">
+            <span class="stat-title">Current Residence</span>
+            <div class="stat-icon property-icon">
+              <mat-icon>home</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getPropertyName() }}</div>
+          <div class="stat-subtitle">{{ getUnitNumber() }} • {{ getPropertyAddress() }}</div>
+        </div>
+
+      </div>
+
+      <!-- Quick Actions Section -->
+      <div class="quick-actions-section">
+        <div class="section-header">
+          <h2>Quick Actions</h2>
+          <p>Frequently used tasks</p>
+        </div>
+        <div class="quick-actions-grid">
+          <div *ngFor="let action of quickActions" 
+               class="quick-action-card" 
+               (click)="onQuickAction(action)"
+               [class.disabled]="action.label === 'Move Out Notice' && hasActiveMoveOut()">
+            <div class="action-icon" [style.background]="action.color">
+              <mat-icon>{{ action.icon }}</mat-icon>
+            </div>
+            <div class="action-content">
+              <h3>{{ action.label }}</h3>
+              <p>{{ action.description }}</p>
+              <div *ngIf="action.label === 'Move Out Notice' && hasActiveMoveOut()" class="move-out-badge">
+                Already Submitted
+              </div>
+            </div>
+            <div class="action-arrow">
+              <mat-icon>arrow_forward</mat-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity Section -->
+      <div class="recent-activity-section">
+        <div class="section-header">
+          <h2>Recent Activity</h2>
+          <p>Latest updates from your rental</p>
+        </div>
+        <div class="activity-list">
+          <div *ngFor="let activity of recentActivities" class="activity-item">
+            <div class="activity-icon">
+              <mat-icon>{{ activity.icon }}</mat-icon>
+            </div>
+            <div class="activity-content">
+              <div class="activity-main">
+                <h4>{{ activity.type }}</h4>
+                <p>{{ activity.message }}</p>
+              </div>
+              <span class="activity-time">{{ activity.time }}</span>
+            </div>
+          </div>
+          <div *ngIf="recentActivities.length === 0" class="activity-item">
+            <div class="activity-icon">
+              <mat-icon>info</mat-icon>
+            </div>
+            <div class="activity-content">
+              <div class="activity-main">
+                <h4>No Recent Activity</h4>
+                <p>Your activity will appear here</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="dashboardError" class="error-state">
+      <mat-icon>error_outline</mat-icon>
+      <h3>Unable to load dashboard data</h3>
+      <p>{{ dashboardError }}</p>
+      <button class="retry-btn" (click)="loadDashboardData()">
+        <mat-icon>refresh</mat-icon>
+        Try Again
+      </button>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,267 @@
+.status-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.status-card {
+  width: 100%;
+  max-width: 800px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.header-icon {
+  font-size: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #673ab7;
+}
+
+h1 {
+  margin: 0;
+  color: #333;
+  font-weight: 600;
+}
+
+.subtitle {
+  color: #666;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem;
+  text-align: center;
+
+  p {
+    color: #666;
+    margin: 0;
+  }
+}
+
+.no-registration {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 3rem;
+  text-align: center;
+
+  .no-data-icon {
+    font-size: 4rem;
+    width: 4rem;
+    height: 4rem;
+    color: #999;
+  }
+
+  h2 {
+    margin: 0;
+    color: #333;
+  }
+
+  p {
+    color: #666;
+    margin: 0;
+    font-size: 1.1rem;
+  }
+}
+
+.registration-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: #f5f5f5;
+
+  &.approved {
+    background: #e8f5e8;
+    border-left: 4px solid #4caf50;
+  }
+
+  &.rejected {
+    background: #ffebee;
+    border-left: 4px solid #f44336;
+  }
+
+  &.pending {
+    background: #fff3e0;
+    border-left: 4px solid #ff9800;
+  }
+}
+
+.status-icon {
+  font-size: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+
+  .approved & { color: #4caf50; }
+  .rejected & { color: #f44336; }
+  .pending & { color: #ff9800; }
+}
+
+.status-content {
+  h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+
+    .approved & { color: #2e7d32; }
+    .rejected & { color: #c62828; }
+    .pending & { color: #ef6c00; }
+  }
+
+  p {
+    margin: 0;
+    color: #666;
+    font-size: 1rem;
+  }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  &.full-width {
+    grid-column: 1 / -1;
+  }
+
+  label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  p {
+    margin: 0;
+    color: #666;
+    font-size: 1rem;
+  }
+}
+
+.rejection-reason {
+  color: #d32f2f !important;
+  font-style: italic;
+  background: #ffebee;
+  padding: 0.75rem;
+  border-radius: 4px;
+  border-left: 3px solid #f44336;
+}
+
+.document-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  mat-icon {
+    color: #666;
+  }
+}
+
+.document-url {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.refresh-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 1rem;
+  background: #e3f2fd;
+  border-radius: 6px;
+  color: #1976d2;
+  font-size: 0.9rem;
+
+  mat-icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .status-container {
+    padding: 1rem 0.5rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .status-indicator {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .actions {
+    flex-direction: column;
+    
+    button {
+      width: 100%;
+    }
+  }
+}
+
+:host ::ng-deep {
+  .mat-card {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
+    border-radius: 12px !important;
+  }
+}

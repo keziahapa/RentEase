@@ -1,0 +1,70 @@
+<div class="inspections-view">
+  <div class="view-header">
+    <h2>Property Inspections</h2>
+    <div class="view-stats">
+      <span class="stat-badge scheduled">{{inspections.length}} Scheduled</span>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table mat-table [dataSource]="inspections" class="inspection-table">
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef>Type</th>
+        <td mat-cell *matCellDef="let inspection">
+          <span class="inspection-type" [class]="getInspectionTypeClass(inspection.type)">
+            {{inspection.type}}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="property">
+        <th mat-header-cell *matHeaderCellDef>Property</th>
+        <td mat-cell *matCellDef="let inspection">{{inspection.property}}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="tenantName">
+        <th mat-header-cell *matHeaderCellDef>Tenant</th>
+        <td mat-cell *matCellDef="let inspection">{{inspection.tenantName}}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="date">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let inspection">{{inspection.date}}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let inspection">
+          <span class="status-badge" [class]="getStatusClass(inspection.status)">
+            {{inspection.status}}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="depositAmount">
+        <th mat-header-cell *matHeaderCellDef>Deposit</th>
+        <td mat-cell *matCellDef="let inspection">
+          <span *ngIf="inspection.depositAmount > 0">{{formatCurrency(inspection.depositAmount)}}</span>
+          <span *ngIf="inspection.depositAmount === 0" class="no-deposit">-</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let inspection">
+          <div class="action-buttons">
+            <button *ngIf="inspection.status === 'scheduled'" class="btn-success" (click)="completeInspection(inspection)">
+              Complete
+            </button>
+            <button class="btn-secondary">
+              Reschedule
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  </div>
+</div>

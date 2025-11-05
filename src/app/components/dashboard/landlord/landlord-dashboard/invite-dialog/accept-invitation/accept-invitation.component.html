@@ -1,0 +1,104 @@
+<div class="invitation-container">
+  <mat-card class="invitation-card">
+    <mat-card-content>
+      <!-- Loading State -->
+      <div *ngIf="loading" class="loading-state">
+        <mat-progress-spinner diameter="50" mode="indeterminate"></mat-progress-spinner>
+        <p>Loading invitation...</p>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="error && !loading" class="error-state">
+        <mat-icon class="error-icon">error_outline</mat-icon>
+        <h2>Invitation Error</h2>
+        <p>{{ error }}</p>
+        <div class="actions">
+          <button mat-raised-button color="primary" (click)="navigateToHome()">
+            Go Home
+          </button>
+          <button *ngIf="error.includes('log in')" mat-button (click)="retryAcceptance()">
+            Try Again
+          </button>
+        </div>
+      </div>
+
+      <!-- Processing State (Auto-accepting) -->
+      <div *ngIf="processing" class="processing-state">
+        <mat-progress-spinner diameter="50" mode="indeterminate"></mat-progress-spinner>
+        <p>Accepting invitation...</p>
+      </div>
+
+      <!-- Success State (Redirecting to Dashboard) -->
+      <div *ngIf="success" class="success-state">
+        <mat-icon class="success-icon">check_circle</mat-icon>
+        <h2>Invitation Accepted!</h2>
+        <p>Redirecting you to your dashboard...</p>
+      </div>
+
+      <!-- Invitation Page for Non-Logged-In Users -->
+      <div *ngIf="needsAuthentication()" class="invitation-state">
+        <!-- Tenant Icon -->
+        <mat-icon *ngIf="invitationType === 'tenant'" class="invitation-icon tenant-icon">
+          apartment
+        </mat-icon>
+        
+        <!-- Caretaker Icon -->
+        <mat-icon *ngIf="invitationType === 'caretaker'" class="invitation-icon caretaker-icon">
+          engineering
+        </mat-icon>
+        
+        <!-- Default Icon -->
+        <mat-icon *ngIf="!invitationType" class="invitation-icon">
+          mail_outline
+        </mat-icon>
+        
+        <h2>{{ getInvitationTypeDisplay() }}</h2>
+        
+        <p class="invitation-description">{{ getDescription() }}</p>
+        
+        <div *ngIf="invitationDetails" class="invitation-details">
+          <div class="detail-item">
+            <strong>Property:</strong> {{ invitationDetails.propertyName }}
+          </div>
+          <div *ngIf="invitationDetails.unitNumber" class="detail-item">
+            <strong>Unit:</strong> {{ invitationDetails.unitNumber }}
+          </div>
+          <div class="detail-item">
+            <strong>Role:</strong> {{ getRoleName() }}
+          </div>
+          <!-- FIXED: Use inviterName instead of invitedBy -->
+          <div class="detail-item">
+            <strong>Invited by:</strong> {{ invitationDetails.inviterName }}
+          </div>
+        </div>
+
+        <div *ngIf="!invitationDetails" class="invitation-details">
+          <div class="detail-item">
+            <strong>Role:</strong> {{ getRoleName() }}
+          </div>
+          <p>You've been invited to join a property management system.</p>
+        </div>
+
+        <div class="auth-actions">
+          <p>Please log in or register to accept this invitation:</p>
+          
+          <button mat-raised-button color="primary" (click)="navigateToLogin()" class="action-button">
+            <mat-icon>login</mat-icon>
+            Login to Accept
+          </button>
+          
+          <button mat-stroked-button color="primary" (click)="navigateToRegister()" class="action-button">
+            <mat-icon>person_add</mat-icon>
+            Register to Accept
+          </button>
+        </div>
+
+        <div class="secondary-actions">
+          <button mat-button (click)="navigateToHome()">
+            Return to Home
+          </button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

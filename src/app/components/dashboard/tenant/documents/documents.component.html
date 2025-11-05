@@ -1,0 +1,417 @@
+<div class="documents-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <button class="back-btn" (click)="goBack()" aria-label="Go back to dashboard">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Dashboard
+    </button>
+    <div class="page-title">
+      <h2>Documents</h2>
+      <p>Access and manage all your rental documents</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="openUploadModal()" title="Upload new document">
+        <mat-icon>upload_file</mat-icon>
+        Upload Document
+      </button>
+    </div>
+  </div>
+
+  <!-- Document Statistics -->
+  <div class="action-error" *ngIf="loadError" role="alert">
+    <mat-icon>error</mat-icon>
+    <span>{{loadError}}</span>
+    <button type="button"
+            class="action-error-btn"
+            (click)="loadDocuments()"
+            title="Retry loading documents">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <div class="action-error" *ngIf="actionError" role="alert">
+    <mat-icon>error</mat-icon>
+    <span>{{actionError}}</span>
+    <button type="button"
+            class="action-error-btn"
+            (click)="dismissActionError()"
+            title="Dismiss">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="document-stats">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <mat-icon>folder</mat-icon>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{getTotalDocuments()}}</span>
+        <span class="stat-label">Total Documents</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <mat-icon>storage</mat-icon>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{getTotalSize()}}</span>
+        <span class="stat-label">Total Size</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <mat-icon>category</mat-icon>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{categoryOptions.length}}</span>
+        <span class="stat-label">Categories</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{selectedDocuments.size}}</span>
+        <span class="stat-label">Selected</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters and Controls -->
+  <div class="controls-section">
+    <div class="search-controls">
+      <div class="search-bar">
+        <mat-icon>search</mat-icon>
+        <input type="text" 
+               placeholder="Search documents..." 
+               [(ngModel)]="searchQuery"
+               (input)="onSearchChange()"
+               class="search-input">
+        <button *ngIf="searchQuery" 
+                (click)="searchQuery = ''; onSearchChange()"
+                class="clear-search"
+                title="Clear search">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      
+      <div class="filter-controls">
+        <select [(ngModel)]="selectedCategory" 
+                (change)="onCategoryChange()"
+                class="category-filter">
+          <option value="">All Categories</option>
+          <option *ngFor="let category of categoryOptions; trackBy: trackByCategoryId" 
+                  [value]="category">
+            {{category}}
+          </option>
+        </select>
+        
+        <button (click)="clearFilters()" 
+                class="clear-filters-btn"
+                title="Clear all filters">
+          <mat-icon>clear_all</mat-icon>
+          Clear Filters
+        </button>
+      </div>
+    </div>
+
+    <div class="view-controls">
+      <div class="sort-controls">
+        <label>Sort by:</label>
+        <select [(ngModel)]="sortBy" (change)="setSortBy(sortBy)" class="sort-select">
+          <option value="date">Date</option>
+          <option value="name">Name</option>
+          <option value="category">Category</option>
+          <option value="size">Size</option>
+        </select>
+        <button (click)="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'" 
+                class="sort-direction"
+                [title]="sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'">
+          <mat-icon>{{sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'}}</mat-icon>
+        </button>
+      </div>
+      
+      <div class="view-mode-controls">
+        <button (click)="setViewMode('grid')" 
+                [class.active]="viewMode === 'grid'"
+                class="view-mode-btn"
+                title="Grid view">
+          <mat-icon>grid_view</mat-icon>
+        </button>
+        <button (click)="setViewMode('list')" 
+                [class.active]="viewMode === 'list'"
+                class="view-mode-btn"
+                title="List view">
+          <mat-icon>view_list</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div class="bulk-actions" *ngIf="selectedDocuments.size > 0">
+      <span class="selection-count">{{selectedDocuments.size}} selected</span>
+      <button (click)="downloadSelected()" class="bulk-action-btn" title="Download selected">
+        <mat-icon>download</mat-icon>
+        Download
+      </button>
+      <button (click)="deleteSelected()" class="bulk-action-btn danger" title="Delete selected">
+        <mat-icon>delete</mat-icon>
+        Delete
+      </button>
+      <button (click)="selectedDocuments.clear()" class="bulk-action-btn" title="Clear selection">
+        <mat-icon>clear</mat-icon>
+        Clear
+      </button>
+    </div>
+  </div>
+
+  <!-- Documents Content -->
+  <div class="documents-content">
+    <!-- Select All Checkbox -->
+    <div class="select-all-section" *ngIf="filteredDocuments.length > 0">
+      <label class="select-all-checkbox">
+        <input type="checkbox" 
+               [checked]="selectedDocuments.size === filteredDocuments.length && filteredDocuments.length > 0"
+               [indeterminate]="selectedDocuments.size > 0 && selectedDocuments.size < filteredDocuments.length"
+               (change)="selectAllDocuments()">
+        <span>Select all ({{filteredDocuments.length}})</span>
+      </label>
+    </div>
+
+    <!-- Documents Grid/List -->
+    <div class="documents-container" 
+         [class.grid-view]="viewMode === 'grid'"
+         [class.list-view]="viewMode === 'list'">
+      
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading-state">
+        <mat-icon class="loading-icon">hourglass_empty</mat-icon>
+        <p>Loading documents...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoading && filteredDocuments.length === 0" class="empty-state">
+        <mat-icon>folder_open</mat-icon>
+        <h3>No documents found</h3>
+        <p *ngIf="searchQuery || selectedCategory">
+          Try adjusting your search or filter criteria
+        </p>
+        <p *ngIf="!searchQuery && !selectedCategory">
+          Upload your first document to get started
+        </p>
+        <button class="btn btn-primary" (click)="openUploadModal()">
+          <mat-icon>upload_file</mat-icon>
+          Upload Document
+        </button>
+      </div>
+
+      <!-- Document Items -->
+      <div *ngFor="let doc of filteredDocuments; trackBy: trackByDocumentId" 
+           class="document-item"
+           [class.selected]="isDocumentSelected(doc.id)"
+           [class.expired]="isExpired(doc)"
+           [class.expiring-soon]="isExpiringSoon(doc)">
+        
+        <!-- Selection Checkbox -->
+        <div class="document-checkbox">
+          <input type="checkbox" 
+                 [checked]="isDocumentSelected(doc.id)"
+                 (change)="toggleDocumentSelection(doc.id)">
+        </div>
+
+        <!-- Document Icon -->
+        <div class="document-icon">
+          <mat-icon [style.color]="getCategoryColor(doc.category)">
+            {{getFileIcon(doc.mimeType)}}
+          </mat-icon>
+        </div>
+         <!-- Document Info -->
+        <div class="document-info">
+          <div class="document-header">
+            <h4 class="document-name">{{doc.name}}</h4>
+            <div class="document-status">
+              <span class="status-badge" [ngClass]="getStatusClass(doc.status)">
+                {{doc.status}}
+              </span>
+              <span *ngIf="isExpiringSoon(doc)" class="expiry-warning">
+                <mat-icon>warning</mat-icon>
+                Expires soon
+              </span>
+              <span *ngIf="isExpired(doc)" class="expiry-danger">
+                <mat-icon>error</mat-icon>
+                Expired
+              </span>
+            </div>
+          </div>
+          
+          <div class="document-meta">
+            <div class="meta-row">
+              <span class="meta-label">
+                <mat-icon>category</mat-icon>
+                Category:
+              </span>
+              <span class="meta-value category-tag" [style.background-color]="getCategoryColor(doc.category) + '20'" 
+                    [style.color]="getCategoryColor(doc.category)">
+                {{doc.category}}
+              </span>
+            </div>
+            
+            <div class="meta-row">
+              <span class="meta-label">
+                <mat-icon>storage</mat-icon>
+                Size:
+              </span>
+              <span class="meta-value">{{doc.size}}</span>
+            </div>
+            
+            <div class="meta-row">
+              <span class="meta-label">
+                <mat-icon>upload</mat-icon>
+                Uploaded:
+              </span>
+              <span class="meta-value">{{doc.uploadedDate}} by {{doc.uploadedBy}}</span>
+            </div>
+            
+            <div class="meta-row" *ngIf="doc.lastAccessed">
+              <span class="meta-label">
+                <mat-icon>visibility</mat-icon>
+                Last accessed:
+              </span>
+              <span class="meta-value">{{doc.lastAccessed}}</span>
+            </div>
+            
+            <div class="meta-row" *ngIf="doc.expiryDate">
+              <span class="meta-label">
+                <mat-icon>event</mat-icon>
+                Expires:
+              </span>
+              <span class="meta-value">{{doc.expiryDate}}</span>
+            </div>
+          </div>
+          
+          <div class="document-description" *ngIf="doc.description">
+            <p>{{doc.description}}</p>
+          </div>
+          
+          <div class="document-tags" *ngIf="doc.tags.length > 0">
+            <span class="tag" *ngFor="let tag of doc.tags">{{tag}}</span>
+          </div>
+          
+          <div class="document-stats">
+            <span class="download-count">
+              <mat-icon>download</mat-icon>
+              {{doc.downloadCount}} downloads
+            </span>
+            <span class="version-info">
+              v{{doc.version}}
+            </span>
+          </div>
+        </div>
+
+        <!-- Document Actions -->
+        <div class="document-actions">
+          <button class="action-btn primary" 
+                  (click)="previewDocument(doc)"
+                  title="Preview document">
+            <mat-icon>visibility</mat-icon>
+            <span>Preview</span>
+          </button>
+          
+          <button class="action-btn" 
+                  (click)="downloadDocument(doc)"
+                  title="Download document">
+            <mat-icon>download</mat-icon>
+            <span>Download</span>
+          </button>
+          
+          <button class="action-btn" 
+                  (click)="shareDocument(doc)"
+                  title="Share document">
+            <mat-icon>share</mat-icon>
+            <span>Share</span>
+          </button>
+          
+          <div class="action-menu">
+            <button class="action-btn menu-trigger" 
+                    title="More actions">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <div class="action-dropdown">
+              <button class="dropdown-item" (click)="deleteDocument(doc)">
+                <mat-icon>delete</mat-icon>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div class="modal-overlay" *ngIf="showUploadModal" (click)="closeUploadModal()">
+    <div class="upload-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Upload Document</h3>
+        <button class="close-btn" (click)="closeUploadModal()" title="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      
+      <div class="modal-content">
+        <div class="upload-area" 
+             [class.drag-over]="dragOverActive"
+             (dragover)="onDragOver($event)"
+             (dragleave)="onDragLeave($event)"
+             (drop)="onDrop($event)">
+          <mat-icon class="upload-icon">cloud_upload</mat-icon>
+          <h4>Drag & drop files here</h4>
+          <p>or click to browse</p>
+          <input type="file" 
+                 multiple 
+                 class="file-input"
+                 (change)="onFileSelect($event)"
+                 accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.zip">
+          <button class="browse-btn">Browse Files</button>
+        </div>
+        
+        <!-- Upload Progress -->
+        <div class="upload-progress" *ngIf="uploadingFiles.length > 0">
+          <div class="progress-header">
+            <h4>Uploading {{uploadingFiles.length}} file(s)</h4>
+            <span>{{uploadProgress}}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="uploadProgress"></div>
+          </div>
+          <div class="uploading-files">
+            <div class="file-item" *ngFor="let file of uploadingFiles">
+              <mat-icon>insert_drive_file</mat-icon>
+              <span>{{file.name}}</span>
+              <span class="file-size">({{formatFileSize(file.size)}})</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="upload-info">
+          <p><strong>Supported formats:</strong> PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, ZIP</p>
+          <p><strong>Maximum file size:</strong> 10MB per file</p>
+          <p class="upload-error" *ngIf="uploadError">
+            <mat-icon>error</mat-icon>
+            {{uploadError}}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="loading-spinner">
+      <mat-icon>hourglass_empty</mat-icon>
+      <p>Loading documents...</p>
+    </div>
+  </div>
+</div>

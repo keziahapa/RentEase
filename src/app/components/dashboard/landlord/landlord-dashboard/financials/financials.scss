@@ -1,0 +1,351 @@
+.financials-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  background-color: #f8fafc; // $background-light
+}
+
+/* Header Section */
+.header {
+  h1 {
+    color: #3b82f6; // $primary-color
+    margin: 0 0 8px 0;
+    font-size: 2.5rem;
+    font-weight: 400;
+  }
+
+  .subtitle {
+    color: #374151; // $text-secondary
+    margin: 0 0 24px 0;
+    font-size: 1.1rem;
+  }
+}
+
+.header-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f3f4f6;
+  transition: box-shadow 250ms ease-in-out;
+
+  &:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  &.income {
+    border-left: 4px solid #10b981; // $success-color
+  }
+
+  &.expenses {
+    border-left: 4px solid #ef4444; // $error-color
+  }
+
+  &.profit {
+    border-left: 4px solid #3b82f6; // $primary-color
+  }
+
+  &.alerts {
+    border-left: 4px solid #f59e0b; // $warning-color
+  }
+
+  .stat-layout {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .stat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: #94a3b8; // $text-disabled equivalent
+    }
+
+    .stat-content {
+      h3 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: #374151; // $text-secondary
+        text-transform: uppercase;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+      }
+
+      .amount {
+        font-size: 1.8rem;
+        font-weight: 500;
+        margin: 0 0 4px 0;
+        color: #1f2937; // $text-primary
+
+        &.positive {
+          color: #10b981; // $success-color
+        }
+
+        &.negative {
+          color: #ef4444; // $error-color
+        }
+      }
+
+      .trend {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 12px;
+
+        &.positive {
+          background-color: #e8f5e8;
+          color: #2e7d32;
+        }
+
+        &.negative {
+          background-color: #ffebee;
+          color: #c62828;
+        }
+      }
+    }
+  }
+}
+
+/* Charts Section */
+.charts-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+
+  .chart-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f3f4f6;
+    transition: box-shadow 250ms ease-in-out;
+
+    &:hover {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .chart-wrapper {
+      height: 300px;
+      position: relative;
+
+      canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+    }
+  }
+}
+
+/* Tabs Section */
+.tabs-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f3f4f6;
+  transition: box-shadow 250ms ease-in-out;
+  margin-bottom: 24px;
+
+  &:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .tab-content {
+    padding: 24px;
+    min-height: 400px;
+
+    .tab-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+
+      h2 {
+        margin: 0;
+        color: #1f2937; // $text-primary
+        font-size: 1.5rem;
+        font-weight: 400;
+      }
+    }
+  }
+}
+
+/* Data Tables */
+.data-table {
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f3f4f6;
+  transition: box-shadow 250ms ease-in-out;
+
+  &:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .mat-mdc-header-cell {
+    font-weight: 600;
+    color: #1f2937; // $text-primary
+    background-color: #f8fafc; // $background-light
+  }
+
+  .mat-mdc-cell {
+    border-bottom: 1px solid #e5e7eb; // $border-color
+  }
+
+  .mat-mdc-row:hover {
+    background-color: #f8fafc; // $background-light
+  }
+}
+
+/* Status Chips */
+.status-paid {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
+.status-pending {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+.status-overdue {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.status-completed {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
+.status-processing {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+.status-unpaid {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+/* Buttons */
+.mat-mdc-icon-button {
+  color: #94a3b8; // $text-disabled equivalent
+  margin: 0 4px;
+
+  &:hover {
+    color: #3b82f6; // $primary-color
+  }
+
+  &:disabled {
+    color: rgba(0, 0, 0, 0.26);
+  }
+}
+
+.mat-mdc-raised-button {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Material Tab Overrides */
+::ng-deep .mat-mdc-tab-group {
+  --mdc-tab-indicator-active-indicator-color: #3b82f6; // $primary-color
+
+  .mat-mdc-tab-header {
+    border-bottom: 1px solid #e5e7eb; // $border-color
+
+    .mat-mdc-tab .mdc-tab__text-label {
+      font-weight: 500;
+      font-size: 14px;
+    }
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .charts-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .financials-container {
+    padding: 16px;
+  }
+  
+  .header h1 {
+    font-size: 2rem;
+  }
+  
+  .header-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .tab-content {
+    padding: 16px;
+  }
+  
+  .tab-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .chart-wrapper {
+    height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-layout {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .amount {
+    font-size: 1.5rem;
+  }
+  
+  .data-table {
+    font-size: 12px;
+
+    .mat-mdc-header-cell,
+    .mat-mdc-cell {
+      padding: 8px;
+    }
+  }
+}

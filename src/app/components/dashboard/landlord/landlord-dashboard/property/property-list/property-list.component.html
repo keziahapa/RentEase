@@ -1,0 +1,128 @@
+<div class="property-list-container">
+  <div class="header-section">
+    <div class="header-content">
+      <h1>My Properties</h1>
+      <p class="subtitle">Manage your property portfolio and units</p>
+    </div>
+    <div class="header-actions">
+      <button mat-icon-button (click)="refreshProperties()" 
+              matTooltip="Refresh properties" class="refresh-btn">
+        <mat-icon>refresh</mat-icon>
+      </button>
+      <button mat-raised-button color="primary" (click)="createProperty()" class="create-btn">
+        <mat-icon>add</mat-icon>
+        Add New Property
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-skeleton" *ngIf="loading">
+    <app-skeleton-list variant="card" [count]="3"></app-skeleton-list>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-message" *ngIf="errorMessage && !loading">
+    <mat-icon>error_outline</mat-icon>
+    <h3>Unable to Load Properties</h3>
+    <p>{{ errorMessage }}</p>
+    <button mat-raised-button color="primary" (click)="loadProperties()" class="retry-btn">
+      <mat-icon>refresh</mat-icon>
+      Try Again
+    </button>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!loading && !errorMessage && properties.length === 0">
+    <div class="empty-content">
+      <mat-icon class="empty-icon">home</mat-icon>
+      <h2>No Properties Yet</h2>
+      <p>Start building your property portfolio by adding your first property</p>
+      <button mat-raised-button color="primary" (click)="createProperty()" class="create-first-btn">
+        <mat-icon>add</mat-icon>
+        Create Your First Property
+      </button>
+    </div>
+  </div>
+
+  <!-- Properties Grid -->
+  <div class="properties-grid" *ngIf="!loading && properties.length > 0">
+    <div *ngFor="let property of properties" class="property-card" (click)="viewProperty(property.id!)">
+      <div class="property-header">
+        <div class="property-info">
+          <h3 class="property-name">{{ property.name }}</h3>
+          <p class="property-location">
+            <mat-icon>location_on</mat-icon>
+            {{ property.location }}
+          </p>
+        </div>
+        <div class="property-actions">
+          <!-- Caretaker Invite Button Only -->
+          <button mat-icon-button 
+                  matTooltip="Invite Caretaker" 
+                  class="invite-btn" 
+                  (click)="inviteCaretaker(property, $event)">
+            <mat-icon>engineering</mat-icon>
+          </button>
+
+          <button mat-icon-button (click)="editProperty(property.id!, $event)" 
+                  matTooltip="Edit property" class="edit-btn">
+            <mat-icon>edit</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="property-details">
+        <div class="detail-row">
+          <span class="label">Type:</span>
+          <span class="value property-type">{{ getPropertyTypeDisplay(property.propertyType) }}</span>
+        </div>
+        
+        <div class="detail-row">
+          <span class="label">Total Units:</span>
+          <span class="value">{{ property.totalUnits || 0 }}</span>
+        </div>
+      </div>
+
+      <div class="property-stats">
+        <div class="stat-item">
+          <div class="stat-value">{{ getOccupiedUnits(property) }}</div>
+          <div class="stat-label">Occupied</div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-value">{{ getVacantUnits(property) }}</div>
+          <div class="stat-label">Vacant</div>
+        </div>
+        
+        <div class="stat-item">
+          <div class="stat-value">{{ getOccupancyRate(property) }}%</div>
+          <div class="stat-label">Occupancy</div>
+        </div>
+        
+        <div class="stat-item revenue">
+          <div class="stat-value">{{ formatCompactCurrency(getTotalRevenue(property)) }}</div>
+          <div class="stat-label">Monthly</div>
+        </div>
+      </div>
+
+      <div class="property-footer">
+        <button mat-stroked-button (click)="viewPropertyUnits(property.id!)" 
+                class="units-button">
+          <mat-icon>door_front</mat-icon>
+          View Units
+        </button>
+        
+        <button mat-button (click)="viewProperty(property.id!)" 
+                class="view-button">
+          View Details
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="properties-count" *ngIf="properties.length > 0 && !loading">
+    <p>Showing {{ properties.length }} propert{{ properties.length === 1 ? 'y' : 'ies' }}</p>
+  </div>
+</div>

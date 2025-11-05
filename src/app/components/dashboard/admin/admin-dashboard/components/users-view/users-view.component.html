@@ -1,0 +1,187 @@
+<div class="users-view">
+  <div class="view-header">
+    <h2>User Management</h2>
+    <div class="view-actions">
+      <div class="view-stats">
+        <span class="stat-badge total">{{getTotalUsersCount()}} Total Users</span>
+        <span class="stat-badge tenants">{{getTenantsCount()}} Tenants</span>
+        <span class="stat-badge landlords">{{getLandlordsCount()}} Landlords</span>
+        <span class="stat-badge caretakers">{{getCaretakersCount()}} Caretakers</span>
+      </div>
+      <button
+        class="btn btn-primary"
+        matTooltip="Export Users"
+        [matMenuTriggerFor]="usersExportMenu">
+        <mat-icon>download</mat-icon>
+        <span>Export</span>
+        <mat-icon class="menu-caret">expand_more</mat-icon>
+      </button>
+      <mat-menu #usersExportMenu="matMenu">
+        <button mat-menu-item (click)="exportUsers('csv')" [disabled]="exportState.csv">
+          <mat-icon>grid_on</mat-icon>
+          <span>{{exportState.csv ? 'Exporting CSV...' : 'Export CSV'}}</span>
+        </button>
+        <button mat-menu-item (click)="exportUsers('pdf')" [disabled]="exportState.pdf">
+          <mat-icon>picture_as_pdf</mat-icon>
+          <span>{{exportState.pdf ? 'Exporting PDF...' : 'Export PDF'}}</span>
+        </button>
+      </mat-menu>
+    </div>
+  </div>
+
+  <div class="filters-section">
+    <div class="filter-group">
+      <label>User Type:</label>
+      <select [(ngModel)]="selectedUserType" (change)="filterUsers.emit()">
+        <option value="all">All Users</option>
+        <option value="tenant">Tenants</option>
+        <option value="landlord">Landlords</option>
+        <option value="caretaker">Caretakers</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Status:</label>
+      <select [(ngModel)]="selectedStatus" (change)="filterUsers.emit()">
+        <option value="all">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+        <option value="suspended">Suspended</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-container" *ngIf="filteredUsers.length > 0; else noUsers">
+    <table mat-table [dataSource]="filteredUsers" class="user-table">
+      <ng-container matColumnDef="avatar">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let user">
+          <div class="user-avatar" [class]="user.type">
+            {{getUserInitials(user.name)}}
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="userInfo">
+        <th mat-header-cell *matHeaderCellDef>User Information</th>
+        <td mat-cell *matCellDef="let user">
+          <div class="user-main-info">
+            <div class="user-name">{{user.name}}</div>
+            <div class="user-email">{{user.email}}</div>
+          </div>
+          <div class="user-meta">
+            <span class="user-type type-{{user.type}}">{{user.type | titlecase}}</span>
+            <span class="user-id">ID: {{user.id}}</span>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="properties">
+        <th mat-header-cell *matHeaderCellDef>Properties / Relationships</th>
+        <td mat-cell *matCellDef="let user">
+          <div class="property-info">
+            <div *ngIf="user.type === 'tenant'" class="tenant-info">
+              <div class="property-item">
+                <mat-icon>home</mat-icon>
+                <span>{{user.rentalProperty || 'No property assigned'}}</span>
+              </div>
+              <div class="property-item">
+                <mat-icon>person</mat-icon>
+                <span>Landlord: {{user.landlordName || 'Not assigned'}}</span>
+              </div>
+              <div class="property-item">
+                <mat-icon>handyman</mat-icon>
+                <span>Caretaker: {{user.caretakerName || 'Not assigned'}}</span>
+              </div>
+            </div>
+
+            <div *ngIf="user.type === 'landlord'" class="landlord-info">
+              <div class="property-item">
+                <mat-icon>apartment</mat-icon>
+                <span>{{user.propertiesCount || 0}} Properties</span>
+              </div>
+              <div class="property-item">
+                <mat-icon>people</mat-icon>
+                <span>{{user.tenantsCount || 0}} Tenants</span>
+              </div>
+              <div class="property-item">
+                <mat-icon>handyman</mat-icon>
+                <span>{{user.caretakersCount || 0}} Caretakers</span>
+              </div>
+            </div>
+
+            <div *ngIf="user.type === 'caretaker'" class="caretaker-info">
+              <div class="property-item">
+                <mat-icon>home_work</mat-icon>
+                <span>Manages {{user.managedPropertiesCount || 0}} Properties</span>
+              </div>
+              <div class="property-item">
+                <mat-icon>person</mat-icon>
+                <span>Works for {{user.landlordsCount || 0}} Landlords</span>
+              </div>
+              <div class="property-item">
+                <mat-icon>build</mat-icon>
+                <span>{{user.activeMaintenance || 0}} Active Maintenance</span>
+              </div>
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let user">
+          <div class="status-section">
+            <span class="status-badge" [class]="getStatusClass(user.status)">
+              {{user.status}}
+            </span>
+            <div class="join-date">Since {{user.joinDate}}</div>
+            <div class="last-active" *ngIf="user.lastActive">
+              Last active: {{user.lastActive}}
+            </div>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let user">
+          <div class="action-buttons">
+            <button class="btn-primary" (click)="viewUserDetails.emit(user)" matTooltip="View Details">
+              <mat-icon>visibility</mat-icon>
+              View
+            </button>
+            <button class="btn-secondary" (click)="editUser.emit(user)" matTooltip="Edit User">
+              <mat-icon>edit</mat-icon>
+              Edit
+            </button>
+            <button *ngIf="user.status === 'active'" 
+                    class="btn-warning" 
+                    (click)="suspendUser.emit(user)"
+                    matTooltip="Suspend User">
+              <mat-icon>pause_circle</mat-icon>
+              Suspend
+            </button>
+            <button *ngIf="user.status !== 'active'" 
+                    class="btn-success" 
+                    (click)="activateUser.emit(user)"
+                    matTooltip="Activate User">
+              <mat-icon>play_circle</mat-icon>
+              Activate
+            </button>
+          </div>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  </div>
+
+  <ng-template #noUsers>
+    <div class="empty-state">
+      <mat-icon>people_outline</mat-icon>
+      <h3>No Users Found</h3>
+      <p>There are no users matching your filter criteria.</p>
+    </div>
+  </ng-template>
+</div>

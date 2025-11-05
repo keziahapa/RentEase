@@ -1,0 +1,299 @@
+// business-management.component.scss
+.business-management {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  .header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 0 8px;
+
+    .header-content {
+      flex: 1;
+
+      h1 {
+        margin: 0 0 8px 0;
+        font-size: 32px;
+        font-weight: 700;
+        color: #1a237e;
+      }
+
+      p {
+        margin: 0;
+        color: #666;
+        font-size: 16px;
+      }
+    }
+
+    .refresh-btn {
+      background: #1a237e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background: #303f9f;
+      }
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+
+  .tab-content {
+    padding: 16px 0;
+
+    .pending-count {
+      background: #e3f2fd;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: #1565c0;
+
+      strong {
+        font-size: 18px;
+        color: #0d47a1;
+      }
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    background: white;
+  }
+
+  .businesses-table {
+    width: 100%;
+    background: white;
+
+    .mat-header-cell {
+      background: #f5f5f5;
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+      padding: 16px;
+    }
+
+    .mat-cell {
+      padding: 16px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .business-name {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      strong {
+        font-size: 14px;
+        color: #333;
+      }
+
+      .business-category {
+        font-size: 12px;
+        color: #666;
+        background: #f5f5f5;
+        padding: 2px 8px;
+        border-radius: 12px;
+        display: inline-block;
+      }
+    }
+
+    .owner-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .owner-name {
+        font-size: 14px;
+        color: #333;
+      }
+
+      .owner-email {
+        font-size: 12px;
+        color: #666;
+      }
+    }
+
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: capitalize;
+
+      &.status-approved {
+        background: #e8f5e8;
+        color: #2e7d32;
+      }
+
+      &.status-pending {
+        background: #fff3e0;
+        color: #ef6c00;
+      }
+
+      &.status-rejected {
+        background: #ffebee;
+        color: #c62828;
+      }
+
+      &.status-suspended {
+        background: #f5f5f5;
+        color: #616161;
+      }
+
+      &.status-unknown {
+        background: #f5f5f5;
+        color: #757575;
+      }
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+
+      button {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &.approve-btn {
+          background: #e8f5e8;
+          color: #2e7d32;
+
+          &:hover {
+            background: #c8e6c9;
+          }
+        }
+
+        &.reject-btn {
+          background: #ffebee;
+          color: #c62828;
+
+          &:hover {
+            background: #ffcdd2;
+          }
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+
+    mat-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      color: #bdbdbd;
+    }
+
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 500;
+      color: #424242;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #757575;
+    }
+  }
+
+  // Material overrides
+  ::ng-deep {
+    .mat-tab-group {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .mat-tab-header {
+      background: #fafafa;
+    }
+
+    .mat-tab-label {
+      font-weight: 500;
+      color: #666;
+    }
+
+    .mat-tab-label-active {
+      color: #1a237e;
+    }
+
+    .mat-ink-bar {
+      background-color: #1a237e !important;
+    }
+
+    .mat-menu-panel {
+      min-width: 160px;
+    }
+
+    .mat-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .business-management {
+    padding: 12px;
+
+    .header {
+      flex-direction: column;
+      gap: 16px;
+      align-items: flex-start;
+
+      .header-content {
+        h1 {
+          font-size: 24px;
+        }
+      }
+    }
+
+    .businesses-table {
+      .mat-header-cell,
+      .mat-cell {
+        padding: 12px 8px;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        gap: 4px;
+      }
+    }
+  }
+}

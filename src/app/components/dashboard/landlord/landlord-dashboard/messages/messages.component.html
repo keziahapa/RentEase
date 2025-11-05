@@ -1,0 +1,112 @@
+<div class="messages-page">
+  <aside class="conversation-pane">
+    <header class="pane-header">
+      <h2>Messages</h2>
+      <p>Stay in touch with tenants and caretakers.</p>
+    </header>
+
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input
+        type="search"
+        [formControl]="searchControl"
+        placeholder="Search conversations"
+      />
+    </div>
+
+    <div class="conversation-list" *ngIf="isLoading">
+      <app-skeleton-list variant="list" [count]="5" [lines]="2"></app-skeleton-list>
+    </div>
+
+    <div class="conversation-list" *ngIf="!isLoading && errorMessage">
+      <div class="error-state">
+        <mat-icon>report_problem</mat-icon>
+        <p>{{ errorMessage }}</p>
+        <button mat-stroked-button color="primary" type="button" (click)="loadConversations()">
+          <mat-icon>refresh</mat-icon>
+          Retry
+        </button>
+      </div>
+    </div>
+
+    <div class="conversation-list" *ngIf="!isLoading && !errorMessage">
+      <div
+        class="conversation-item"
+        *ngFor="let conversation of filteredConversations; trackBy: trackByConversationId"
+        [class.active]="conversation.id === selectedConversation?.id"
+        (click)="selectConversation(conversation)"
+      >
+        <div class="item-initials">
+          {{ conversation.title.slice(0, 1) }}
+        </div>
+        <div class="item-content">
+          <div class="item-title">{{ conversation.title }}</div>
+          <div class="item-preview">{{ conversation.lastMessagePreview }}</div>
+        </div>
+        <div class="item-meta">
+          <span class="item-date">{{ conversation.lastUpdated | date:'d MMM' }}</span>
+          <span class="badge" *ngIf="conversation.unreadCount > 0">
+            {{ conversation.unreadCount > 99 ? '99+' : conversation.unreadCount }}
+          </span>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="filteredConversations.length === 0">
+        <mat-icon>forum</mat-icon>
+        <p>No conversations match your search.</p>
+      </div>
+    </div>
+  </aside>
+
+  <section class="thread-pane" *ngIf="selectedConversation; else noConversation">
+    <header class="thread-header">
+      <div class="thread-title">
+        <h3>{{ selectedConversation?.title }}</h3>
+        <span class="participant">
+          <mat-icon>groups</mat-icon>
+          {{ participantsLabel(selectedConversation) }}
+        </span>
+      </div>
+      <button mat-icon-button type="button" (click)="loadConversations()" [disabled]="isLoading">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </header>
+
+    <div class="messages-thread" #threadRef>
+      <div
+        class="message-bubble"
+        *ngFor="let message of selectedConversation?.messages; trackBy: trackByMessageId"
+        [class.outgoing]="message.sender.role === 'landlord'"
+      >
+        <div class="bubble-meta">
+          <span class="sender">{{ message.sender.name }}</span>
+          <span class="timestamp">{{ message.timestamp | date:'d MMM, h:mm a' }}</span>
+        </div>
+        <p>{{ message.content }}</p>
+      </div>
+    </div>
+
+    <form class="message-composer" (ngSubmit)="sendMessage()">
+      <mat-form-field appearance="outline" class="message-field">
+        <mat-label>Write a message</mat-label>
+        <textarea matInput rows="2" [formControl]="messageControl" placeholder="Type your reply"></textarea>
+        <mat-error *ngIf="messageControl.hasError('required')">Message cannot be empty</mat-error>
+      </mat-form-field>
+
+      <button mat-flat-button color="primary" type="submit" [disabled]="isSending || messageControl.invalid">
+        <mat-icon>send</mat-icon>
+        {{ isSending ? 'Sending…' : 'Send' }}
+      </button>
+    </form>
+  </section>
+
+  <ng-template #noConversation>
+    <section class="thread-pane empty">
+      <div class="placeholder">
+        <mat-icon>chat_bubble_outline</mat-icon>
+        <h3>Select a conversation</h3>
+        <p>Choose a conversation on the left to view messages or start a new one from the tenant profile.</p>
+      </div>
+    </section>
+  </ng-template>
+</div>

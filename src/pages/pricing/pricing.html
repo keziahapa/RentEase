@@ -1,0 +1,207 @@
+<!-- Navbar Component -->
+<app-navbar></app-navbar>
+
+<!-- Page Hero Section -->
+<section class="page-hero">
+  <div class="container">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        RentEase
+        <span class="gradient-text">Subscription Plans</span>
+      </h1>
+      <p class="hero-description">
+        Choose the plan that works best for your property management needs. No hidden fees, no surprises.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing Section -->
+<section class="pricing-section">
+  <div class="container">
+    <div class="pricing-grid">
+      <div class="pricing-card" 
+           *ngFor="let plan of pricingPlans" 
+           [class.popular]="plan.popular">
+        
+        <div class="popular-badge" *ngIf="plan.popular">Most Popular</div>
+        
+        <div class="pricing-header">
+          <h3 class="plan-name">{{ plan.name }}</h3>
+          <div class="plan-price">
+            <span class="price">{{ plan.price }}</span>
+            <span class="period">{{ plan.period }}</span>
+          </div>
+          <p class="plan-description">{{ plan.description }}</p>
+        </div>
+
+        <ul class="plan-features">
+          <li class="feature" *ngFor="let feature of plan.features">
+            <mat-icon>check</mat-icon>
+            {{ feature }}
+          </li>
+        </ul>
+
+        <button class="plan-button" 
+                [class.popular-button]="plan.popular"
+                (click)="selectPlan(plan)">
+          {{ plan.buttonText }}
+        </button>
+      </div>
+    </div>
+
+    <div class="pricing-note">
+      <div class="note-content">
+        <h4>Additional Information</h4>
+        <p><strong>Transaction Fee:</strong> 2% on deposits and rent payments processed through our platform</p>
+        <p><strong>Partnership Commissions:</strong> 10-20% for insurance, movers, and other partner services</p>
+        <p><strong>Annual Discount:</strong> Save 15% when you pay annually</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ Section -->
+<section class="faq-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">
+        Frequently Asked <span class="gradient-text">Questions</span>
+      </h2>
+      <p class="section-description">
+        Get answers to the most common questions about our pricing and platform
+      </p>
+    </div>
+
+    <div class="faq-grid">
+      <div class="faq-item" 
+           *ngFor="let faq of faqs; let i = index"
+           [class.expanded]="faq.expanded">
+        
+        <div class="faq-question" (click)="toggleFaq(i)">
+          <h3>{{ faq.question }}</h3>
+          <mat-icon class="faq-icon">{{ faq.expanded ? 'remove' : 'add' }}</mat-icon>
+        </div>
+        
+        <div class="faq-answer" [class.show]="faq.expanded">
+          <p>{{ faq.answer }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="faq-contact">
+      <div class="contact-card">
+        <mat-icon>help_outline</mat-icon>
+        <h3>Still have questions?</h3>
+        <p>Our support team is here to help you choose the right plan and get started with RentEase.</p>
+        <button class="btn btn-primary" (click)="navigateToContact()">
+          Contact Support
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Comparison Section -->
+<section class="comparison-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">
+        Plan <span class="gradient-text">Comparison</span>
+      </h2>
+      <p class="section-description">
+        Compare features across all plans to find the perfect fit for your needs
+      </p>
+    </div>
+
+    <div class="comparison-table-wrapper">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Features</th>
+            <th>Basic</th>
+            <th>Premium</th>
+            <th>Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Digital Document Storage</td>
+            <td><mat-icon class="check">check</mat-icon></td>
+            <td><mat-icon class="check">check</mat-icon></td>
+            <td><mat-icon class="check">check</mat-icon></td>
+          </tr>
+          <tr>
+            <td>Communication Platform</td>
+            <td><mat-icon class="check">check</mat-icon></td>
+            <td><mat-icon class="check">check</mat-icon></td>
+            <td><mat-icon class="check">check</mat-icon></td>
+          </tr>
+          <tr>
+            <td>Marketplace Access</td>
+            <td>Basic</td>
+            <td>Advanced</td>
+            <td>Advanced</td>
+          </tr>
+          <tr>
+            <td>Customer Support</td>
+            <td>Email (24hrs)</td>
+            <td>Priority Support</td>
+            <td>Dedicated Manager</td>
+          </tr>
+          <tr>
+            <td>Analytics & Reporting</td>
+            <td><mat-icon class="cross">close</mat-icon></td>
+            <td>Detailed</td>
+            <td>Advanced</td>
+          </tr>
+          <tr>
+            <td>Custom Branding</td>
+            <td><mat-icon class="cross">close</mat-icon></td>
+            <td><mat-icon class="check">check</mat-icon></td>
+            <td><mat-icon class="check">check</mat-icon></td>
+          </tr>
+          <tr>
+            <td>API Access</td>
+            <td><mat-icon class="cross">close</mat-icon></td>
+            <td><mat-icon class="cross">close</mat-icon></td>
+            <td><mat-icon class="check">check</mat-icon></td>
+          </tr>
+          <tr>
+            <td>White-label Solutions</td>
+            <td><mat-icon class="cross">close</mat-icon></td>
+            <td><mat-icon class="cross">close</mat-icon></td>
+            <td><mat-icon class="check">check</mat-icon></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-content">
+      <h2 class="cta-title">Ready to Get Started?</h2>
+      <p class="cta-description">
+        Choose your plan and join thousands of satisfied users transforming their rental experience
+      </p>
+      <div class="cta-buttons">
+        <button class="btn btn-primary large" (click)="navigateToContact()">
+          Start Free Trial
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+        <button class="btn btn-secondary large" (click)="navigateToFeatures()">
+          View Features
+          <mat-icon>visibility</mat-icon>
+        </button>
+      </div>
+      <p class="cta-note">14-day free trial • No setup fees • Cancel anytime</p>
+    </div>
+  </div>
+</section>
+
+<!-- Footer Component -->
+<app-footer></app-footer>

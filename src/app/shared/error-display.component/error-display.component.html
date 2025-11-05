@@ -1,0 +1,35 @@
+<div class="error-container">
+  <div *ngFor="let error of errors" 
+       class="error-toast" 
+       [class]="getToastClass(error.severity)"
+       role="alert"
+       aria-live="polite">
+    
+    <div class="toast-content">
+      <span class="material-icons">{{ getIcon(error.severity) }}</span>
+      <div class="toast-message">
+        <div class="toast-title">{{ getTitle(error.severity) }}</div>
+        <div class="toast-description">{{ error.message }}</div>
+        <!-- Remove the details section since it doesn't exist in AppError -->
+      </div>
+    </div>
+
+    <div class="toast-actions">
+      <button 
+        *ngIf="error.action" 
+        class="toast-action-btn"
+        (click)="handleAction(error)"
+        type="button">
+        {{ error.action.label }}
+      </button>
+      
+      <button 
+        class="toast-close" 
+        (click)="dismiss(error.id)"
+        type="button"
+        aria-label="Dismiss notification">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+  </div>
+</div>

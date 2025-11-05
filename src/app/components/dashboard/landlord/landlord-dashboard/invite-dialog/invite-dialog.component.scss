@@ -1,0 +1,202 @@
+.invite-dialog-container {
+  .dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  .invite-dialog {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow: auto;
+  }
+
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #e0e0e0;
+
+    h3 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #333;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .dialog-icon {
+      color: #666;
+    }
+
+    .dialog-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background: #f5f5f5;
+        color: #333;
+      }
+    }
+  }
+
+  .dialog-content {
+    padding: 20px 24px;
+
+    .property-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f8f9fa;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid #007bff;
+
+      mat-icon {
+        color: #007bff;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      span {
+        font-weight: 500;
+        color: #333;
+      }
+    }
+
+    .invite-form {
+      .form-row {
+        margin-bottom: 20px;
+
+        .form-field {
+          width: 100%;
+
+          ::ng-deep .mat-form-field-outline {
+            border-radius: 8px;
+          }
+
+          ::ng-deep .mat-form-field-wrapper {
+            padding-bottom: 0;
+          }
+        }
+      }
+    }
+
+    .invitation-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: #e3f2fd;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      border-left: 4px solid #2196f3;
+
+      mat-icon {
+        color: #2196f3;
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        margin-top: 1px;
+      }
+
+      span {
+        color: #1565c0;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+    }
+  }
+
+  .dialog-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 16px 24px 20px;
+    border-top: 1px solid #e0e0e0;
+
+    .dialog-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 120px;
+      justify-content: center;
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      &.cancel-btn {
+        background: #f8f9fa;
+        color: #666;
+        border: 1px solid #ddd;
+
+        &:hover:not(:disabled) {
+          background: #e9ecef;
+        }
+      }
+
+      &.primary-btn {
+        background: #007bff;
+        color: white;
+
+        &:hover:not(:disabled) {
+          background: #0056b3;
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 600px) {
+  .invite-dialog-container {
+    .dialog-overlay {
+      padding: 10px;
+    }
+
+    .invite-dialog {
+      max-height: 95vh;
+    }
+
+    .dialog-actions {
+      flex-direction: column-reverse;
+
+      .dialog-btn {
+        min-width: auto;
+        width: 100%;
+      }
+    }
+  }
+}

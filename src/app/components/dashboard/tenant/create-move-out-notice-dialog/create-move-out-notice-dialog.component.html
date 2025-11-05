@@ -1,0 +1,137 @@
+<div class="dialog-container">
+  <h2 mat-dialog-title>
+    <mat-icon>exit_to_app</mat-icon>
+    <span>Submit Move-Out Notice</span>
+  </h2>
+  
+  <mat-dialog-content>
+    <form [formGroup]="noticeForm" class="notice-form" (ngSubmit)="onSubmit()">
+      
+      <!-- Current Property Info -->
+      <div class="property-info-section">
+        <div class="property-header">
+          <mat-icon>home</mat-icon>
+          <h3>Current Property</h3>
+        </div>
+        <div class="property-details">
+          <div class="property-item">
+            <span class="label">Property:</span>
+            <span class="value">Sunrise Apartments</span>
+          </div>
+          <div class="property-item">
+            <span class="label">Unit:</span>
+            <span class="value">A101</span>
+          </div>
+          <div class="property-item">
+            <span class="label">Address:</span>
+            <span class="value">123 Main Street, Nairobi</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Move-Out Date -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Intended Move-Out Date</mat-label>
+        <input matInput 
+               [matDatepicker]="picker" 
+               formControlName="moveOutDate"
+               [min]="minDate"
+               [max]="maxDate"
+               placeholder="Select your move-out date"
+               required>
+        <mat-icon matPrefix>event</mat-icon>
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        <mat-hint>Select a date at least 1 day in advance</mat-hint>
+        <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('required')">
+          {{ getMoveOutDateError() }}
+        </mat-error>
+        <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('matDatepickerMin')">
+          Move-out date must be in the future
+        </mat-error>
+        <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('matDatepickerMax')">
+          Move-out date cannot be more than 1 year from now
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Reason Selection -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Reason for Moving Out</mat-label>
+        <mat-select formControlName="reason" required>
+          <mat-option *ngFor="let reason of moveOutReasons" [value]="reason.value">
+            {{ reason.label }}
+          </mat-option>
+        </mat-select>
+        <mat-icon matPrefix>help_outline</mat-icon>
+        <mat-error *ngIf="noticeForm.get('reason')?.hasError('required')">
+          {{ getReasonError() }}
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Additional Notes -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Additional Notes (Optional)</mat-label>
+        <textarea matInput 
+                  formControlName="notes"
+                  rows="4"
+                  maxlength="1000"
+                  placeholder="Please provide any additional information that might be helpful for your landlord..."></textarea>
+        <mat-icon matPrefix>notes</mat-icon>
+        <mat-hint align="end">
+          {{ getNotesLength() }}/1000 characters
+        </mat-hint>
+        <mat-error *ngIf="noticeForm.get('notes')?.hasError('maxlength')">
+          Maximum 1000 characters allowed
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Information Box -->
+      <div class="info-box">
+        <div class="info-header">
+          <mat-icon>info</mat-icon>
+          <span>Important Information</span>
+        </div>
+        <div class="info-content">
+          <p><strong>Before you submit:</strong></p>
+          <ul>
+            <li>Please provide at least <strong>30 days notice</strong> before your intended move-out date</li>
+            <li>Your landlord will review your request and respond within <strong>3-5 business days</strong></li>
+            <li>A <strong>final inspection</strong> will be scheduled before your move-out date</li>
+            <li>Ensure all <strong>rent payments are up to date</strong></li>
+            <li>Your security deposit will be processed after the final inspection</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Terms Agreement -->
+      <div class="terms-section">
+        <mat-checkbox (change)="onTermsChange($event.checked)" class="terms-checkbox">
+          I understand that submitting this notice starts the move-out process and I am responsible for all rent payments until the move-out date.
+        </mat-checkbox>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <!-- Dialog Actions -->
+  <mat-dialog-actions>
+    <button mat-stroked-button 
+            type="button" 
+            (click)="onCancel()"
+            [disabled]="isSubmitting"
+            class="cancel-btn">
+      <mat-icon>close</mat-icon>
+      Cancel
+    </button>
+    <button mat-raised-button 
+            color="warn" 
+            type="button"
+            (click)="onSubmit()"
+            [disabled]="!isFormValid()"
+            class="submit-btn">
+      <mat-spinner *ngIf="isSubmitting" diameter="20" class="button-spinner"></mat-spinner>
+      <mat-icon *ngIf="!isSubmitting">send</mat-icon>
+      <span>{{ isSubmitting ? 'Submitting...' : 'Submit Move-Out Notice' }}</span>
+    </button>
+  </mat-dialog-actions>
+</div>

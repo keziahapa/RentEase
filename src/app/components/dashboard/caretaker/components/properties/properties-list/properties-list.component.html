@@ -1,0 +1,66 @@
+<div class="properties-container">
+  <div class="section-header">
+    <h2>Managed Properties</h2>
+    <p>Properties you are responsible for managing</p>
+  </div>
+
+  <div class="loading-spinner" *ngIf="loading">
+    <mat-spinner></mat-spinner>
+  </div>
+
+  <div class="error-message" *ngIf="error && !loading">
+    <mat-icon>error</mat-icon>
+    <span>{{ error }}</span>
+  </div>
+
+  <div class="properties-grid" *ngIf="!loading && !error && properties.length > 0">
+    <mat-card class="property-card" *ngFor="let property of properties">
+      <mat-card-content>
+        <h3 class="property-name">{{ property.name }}</h3>
+        <p class="property-address">{{ property.address }}</p>
+        
+        <div class="property-stats">
+          <div class="stat">
+            <span class="stat-value">{{ getTotalUnits(property) }}</span>
+            <span class="stat-label">Total Units</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ getOccupancyRate(property) }}%</span>
+            <span class="stat-label">Occupancy Rate</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ getAvailableUnits(property) }}</span>
+            <span class="stat-label">Available</span>
+          </div>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions>
+        <button mat-button color="primary" (click)="viewPropertyDetails(property.id)">
+          <mat-icon>info</mat-icon>
+          Details
+        </button>
+        <button mat-button color="accent" (click)="viewUnits(property.id)">
+          <mat-icon>apartment</mat-icon>
+          View Units
+        </button>
+        <button mat-button color="warn" (click)="manageUnits(property.id)">
+          <mat-icon>settings</mat-icon>
+          Manage
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && !error && properties.length === 0">
+    <div class="empty-content">
+      <mat-icon class="empty-icon">apartment</mat-icon>
+      <h3>No Properties Assigned</h3>
+      <p>You haven't been assigned to manage any properties yet.</p>
+      <button mat-raised-button color="primary" (click)="loadProperties()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </div>
+</div>

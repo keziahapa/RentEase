@@ -1,0 +1,111 @@
+<div class="review-view">
+  <section class="review-summary">
+    <div class="summary-card">
+      <div class="score">
+        <span class="score-value">{{averageRating | number:'1.1-1'}}</span>
+        <div class="stars">
+          <mat-icon *ngFor="let star of getStars(5); let i = index" [class.filled]="isFilledStar(i)">
+            {{ getStarIcon(i) }}
+          </mat-icon>
+        </div>
+      </div>
+      <div class="summary-details">
+        <h3>Overall experience</h3>
+        <p>{{totalReviews}} review{{totalReviews === 1 ? '' : 's'}} shared by tenants</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="review-form">
+    <h3>Share your feedback</h3>
+
+    <form (ngSubmit)="submitReview()">
+      <div class="form-row">
+        <label>Who are you reviewing?</label>
+        <div class="subject-toggle">
+          <button type="button" [class.active]="subjectType === 'landlord'" (click)="setSubjectType('landlord')">Landlord</button>
+          <button type="button" [class.active]="subjectType === 'property'" (click)="setSubjectType('property')">Property</button>
+          <button type="button" [class.active]="subjectType === 'caretaker'" (click)="setSubjectType('caretaker')">Caretaker</button>
+          <button type="button" [class.active]="subjectType === 'service'" (click)="setSubjectType('service')">Service</button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Name</label>
+        <input type="text" [(ngModel)]="subjectName" name="subjectName" placeholder="Enter name" required>
+      </div>
+
+      <div class="form-row">
+        <label>Rating</label>
+        <div class="rating-input">
+          <button type="button" *ngFor="let star of getStars(5); let i = index" (click)="rating = i + 1" [class.filled]="i < rating">
+            <mat-icon>{{ i < rating ? 'star' : 'star_border' }}</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Comment</label>
+        <textarea [(ngModel)]="comment" name="comment" rows="3" placeholder="Share your experience" required></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="submit-btn" [disabled]="isSubmitting || !subjectName.trim() || !comment.trim()">
+          <mat-icon>send</mat-icon>
+          {{isSubmitting ? 'Submitting...' : 'Submit Review'}}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="review-list">
+    <h3>Recent reviews</h3>
+
+    <div class="state state-loading" *ngIf="isLoadingReviews">
+      <mat-icon>hourglass_empty</mat-icon>
+      <p>Loading reviews…</p>
+    </div>
+
+    <div class="state state-error" *ngIf="!isLoadingReviews && loadError">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{loadError}}</p>
+      <button (click)="loadReviews()">Retry</button>
+    </div>
+
+    <div class="state state-empty" *ngIf="!isLoadingReviews && !loadError && reviews.length === 0">
+      <mat-icon>chat_bubble_outline</mat-icon>
+      <p>No reviews yet.</p>
+      <small>Share your experience to help the community.</small>
+    </div>
+
+    <div class="reviews-grid" *ngIf="!isLoadingReviews && !loadError && reviews.length > 0">
+      <article class="review-card" *ngFor="let review of reviews; trackBy: trackByReviewId">
+        <header>
+          <div class="subject">
+            <span class="subject-type">{{review.subjectType | titlecase}}</span>
+            <h4>{{review.subjectName}}</h4>
+          </div>
+          <div class="review-rating">
+            <mat-icon *ngFor="let star of getStars(5); let i = index" [class.filled]="i < review.rating">
+              {{ i < review.rating ? 'star' : 'star_border' }}
+            </mat-icon>
+          </div>
+        </header>
+
+        <p class="comment">{{review.comment}}</p>
+
+        <footer>
+          <div class="meta">
+            <span class="reviewer">{{review.reviewer}}</span>
+            <span class="timestamp">{{formatTimestamp(review.createdAt)}}</span>
+          </div>
+          <div class="response" *ngIf="review.response">
+            <strong>{{review.response.author}} replied</strong>
+            <p>{{review.response.message}}</p>
+            <small>{{formatTimestamp(review.response.createdAt)}}</small>
+          </div>
+        </footer>
+      </article>
+    </div>
+  </section>
+</div>

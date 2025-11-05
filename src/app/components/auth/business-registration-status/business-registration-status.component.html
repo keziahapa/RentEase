@@ -1,0 +1,118 @@
+<div class="status-container">
+  <div class="status-card">
+    <mat-card>
+      <mat-card-header>
+        <div class="header-content">
+          <mat-icon class="header-icon">pending_actions</mat-icon>
+          <h1>Business Registration Status</h1>
+        </div>
+        <p class="subtitle">Track your business registration progress</p>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="loading-state">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>Loading registration status...</p>
+        </div>
+
+        <!-- No Registration Found -->
+        <div *ngIf="!isLoading && !registration" class="no-registration">
+          <mat-icon class="no-data-icon">business_center</mat-icon>
+          <h2>No Registration Found</h2>
+          <p>You haven't submitted a business registration yet.</p>
+          <button mat-raised-button color="primary" (click)="registerNewBusiness()">
+            Start Registration
+          </button>
+        </div>
+
+        <!-- Registration Details -->
+        <div *ngIf="!isLoading && registration" class="registration-details">
+          <!-- Status Card -->
+          <div class="status-indicator" [class]="registration.verificationStatus.toLowerCase()">
+            <mat-icon class="status-icon">{{ getStatusIcon() }}</mat-icon>
+            <div class="status-content">
+              <h3>{{ registration.verificationStatus }}</h3>
+              <p>{{ getStatusMessage() }}</p>
+            </div>
+          </div>
+
+          <!-- Registration Information -->
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Business Name</label>
+              <p>{{ registration.businessName }}</p>
+            </div>
+            <div class="info-item">
+              <label>Registration Number</label>
+              <p>{{ registration.businessRegistrationNumber }}</p>
+            </div>
+            <div class="info-item">
+              <label>Submitted On</label>
+              <p>{{ formatDate(registration.createdAt) }}</p>
+            </div>
+            <div class="info-item">
+              <label>Submitted By</label>
+              <p>{{ registration.userFullName }} ({{ registration.userEmail }})</p>
+            </div>
+            
+            <!-- Verified At (if approved) -->
+            <div *ngIf="registration.verifiedAt" class="info-item">
+              <label>Verified On</label>
+              <p>{{ formatDate(registration.verifiedAt) }}</p>
+            </div>
+
+            <!-- Rejection Reason (if rejected) -->
+            <div *ngIf="registration.rejectionReason" class="info-item full-width">
+              <label>Rejection Reason</label>
+              <p class="rejection-reason">{{ registration.rejectionReason }}</p>
+            </div>
+
+            <!-- License Document -->
+            <div class="info-item full-width">
+              <label>License Document</label>
+              <div class="document-link">
+                <mat-icon>description</mat-icon>
+                <a [href]="registration.businessLicenseDocumentUrl" target="_blank" class="document-url">
+                  View Business License
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="actions">
+            <button mat-stroked-button 
+                    (click)="refreshStatus()"
+                    [disabled]="isRefreshing">
+              <mat-icon>refresh</mat-icon>
+              {{ isRefreshing ? 'Refreshing...' : 'Refresh Status' }}
+            </button>
+
+            <button *ngIf="canEditRegistration()" 
+                    mat-raised-button 
+                    color="warn"
+                    (click)="editRegistration()">
+              <mat-icon>edit</mat-icon>
+              Edit Registration
+            </button>
+
+            <button *ngIf="registration.verificationStatus === 'APPROVED'" 
+                    mat-raised-button 
+                    color="primary"
+                    (click)="viewDashboard()">
+              <mat-icon>dashboard</mat-icon>
+              Go to Dashboard
+            </button>
+          </div>
+
+          <!-- Auto-refresh notice -->
+          <div *ngIf="registration.verificationStatus === 'PENDING'" class="refresh-notice">
+            <mat-icon>info</mat-icon>
+            <span>Status auto-refreshes every 30 seconds</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

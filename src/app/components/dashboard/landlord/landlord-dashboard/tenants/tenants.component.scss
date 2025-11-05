@@ -1,0 +1,429 @@
+.tenants-page {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: #f8fafc;
+  min-height: calc(100vh - 64px);
+  color: #0f172a;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.headline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  p {
+    margin: 0;
+    color: #475569;
+  }
+}
+
+.last-updated {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: #64748b;
+
+  mat-icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .refresh-btn mat-icon {
+    margin-right: 6px;
+  }
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid rgba(244, 63, 94, 0.1);
+
+  mat-icon {
+    color: #f04438;
+  }
+
+  button {
+    margin-left: auto;
+  }
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.summary-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .label {
+    font-size: 0.95rem;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  .value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  .meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 0.85rem;
+
+    mat-icon {
+      font-size: 18px;
+      height: 18px;
+      width: 18px;
+      color: inherit;
+    }
+  }
+
+  &.highlight {
+    background: #ecfdf3;
+    border-color: rgba(16, 185, 129, 0.2);
+
+    .value {
+      color: #047857;
+    }
+  }
+
+  &.warning {
+    background: #fff7ed;
+    border-color: rgba(247, 144, 9, 0.2);
+
+    .value {
+      color: #b45309;
+    }
+  }
+
+  &.danger {
+    background: #fef2f2;
+    border-color: rgba(225, 29, 72, 0.2);
+
+    .value {
+      color: #b91c1c;
+    }
+  }
+
+  &.compact .value {
+    font-size: 1.5rem;
+  }
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+
+  .search-field {
+    flex: 1 1 260px;
+  }
+
+  .property-field {
+    flex: 0 1 220px;
+  }
+
+  .status-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .reset-button {
+    margin-left: auto;
+
+    mat-icon {
+      margin-right: 4px;
+    }
+  }
+}
+
+.chip-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: currentColor;
+}
+
+.status-active {
+  color: #15803d;
+}
+
+.status-ending {
+  color: #b45309;
+}
+
+.status-overdue {
+  color: #dc2626;
+}
+
+.tenants-content {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 0;
+  border: 1px solid rgba(203, 213, 225, 0.6);
+  overflow: hidden;
+}
+
+.tenants-table {
+  width: 100%;
+  background: transparent;
+}
+
+.mat-mdc-table {
+  background: transparent;
+}
+
+.mat-mdc-header-row {
+  background: #f1f5f9;
+}
+
+.mat-mdc-header-cell {
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.mat-mdc-cell {
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  color: #0f172a;
+}
+
+.tenant-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tenant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4c6ef5, #15aabf);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 1rem;
+}
+
+.tenant-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .tenant-name {
+    font-weight: 600;
+  }
+
+  .tenant-email {
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+}
+
+.property-cell,
+.lease-cell,
+.rent-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.property-meta,
+.lease-meta,
+.lease-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #64748b;
+
+  mat-icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+  }
+}
+
+.property-name {
+  font-weight: 600;
+}
+
+.property-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #64748b;
+
+  mat-icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+  }
+}
+
+.rent-value {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.rent-missing {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.rent-outstanding {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #b91c1c;
+
+  mat-icon {
+    font-size: 18px;
+    height: 18px;
+    width: 18px;
+  }
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #0f172a;
+  text-transform: capitalize;
+  font-size: 0.85rem;
+
+  &.status-active {
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
+  }
+
+  &.status-ending {
+    background: rgba(217, 119, 6, 0.12);
+    color: #b45309;
+  }
+
+  &.status-overdue {
+    background: rgba(220, 38, 38, 0.12);
+    color: #b91c1c;
+  }
+}
+
+.tenants-table tr:last-child .mat-mdc-cell {
+  border-bottom: none;
+}
+
+.empty-state {
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+  text-align: center;
+
+  mat-icon {
+    font-size: 48px;
+    height: 48px;
+    width: 48px;
+    color: #94a3b8;
+  }
+
+  h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.4rem;
+  }
+
+  p {
+    margin: 0;
+    max-width: 360px;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 960px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+
+    .reset-button {
+      align-self: flex-end;
+    }
+  }
+
+}
+
+@media (max-width: 720px) {
+  .tenants-content {
+    border-radius: 16px;
+    overflow-x: auto;
+  }
+
+  .tenant-avatar {
+    width: 36px;
+    height: 36px;
+  }
+}

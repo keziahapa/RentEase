@@ -1,0 +1,106 @@
+<div class="page-header">
+  <button class="back-btn" (click)="goBack()">
+    <mat-icon>arrow_back</mat-icon>
+    Back to Dashboard
+  </button>
+  <div class="page-title">
+    <h2>Community Marketplace</h2>
+    <p>Buy, sell, and trade with your neighbors</p>
+  </div>
+</div>
+
+<div class="card collapsible-card" 
+     [class.collapsed]="isSectionCollapsed('marketplace')"
+     [class.animating]="isAnimating('marketplace')">
+  <div class="card-header clickable-header" (click)="toggleSection('marketplace')">
+    <div class="marketplace-tabs" (click)="$event.stopPropagation()">
+      <button 
+        class="tab" 
+        [class.active]="activeMarketplaceTab === 'items'"
+        (click)="setActiveMarketplaceTab('items')">
+        <mat-icon>shopping_cart</mat-icon>
+        Items for Sale
+      </button>
+      <button 
+        class="tab" 
+        [class.active]="activeMarketplaceTab === 'services'"
+        (click)="setActiveMarketplaceTab('services')">
+        <mat-icon>handyman</mat-icon>
+        Services
+      </button>
+      <button 
+        class="tab" 
+        [class.active]="activeMarketplaceTab === 'housing'"
+        (click)="setActiveMarketplaceTab('housing')">
+        <mat-icon>home</mat-icon>
+        Housing
+      </button>
+    </div>
+    <button class="collapse-toggle">
+      <mat-icon class="collapse-icon">expand_more</mat-icon>
+    </button>
+  </div>
+  <div class="card-content collapsible-content" [class.collapsed]="isSectionCollapsed('marketplace')">
+    <div class="marketplace-grid" *ngIf="!isLoading && !loadError && visibleListings.length > 0">
+      <div class="marketplace-card" *ngFor="let item of visibleListings">
+        <div class="marketplace-image">
+          <div class="placeholder-image">
+            <mat-icon>image</mat-icon>
+          </div>
+        </div>
+        <div class="marketplace-info">
+          <h4>{{item.title}}</h4>
+          <p class="marketplace-description">{{item.description}}</p>
+          <div class="marketplace-meta">
+            <div class="marketplace-price">
+              <mat-icon>attach_money</mat-icon>
+              KSH {{formatNumber(item.price)}}
+            </div>
+            <div class="marketplace-location">
+              <mat-icon>location_on</mat-icon>
+              {{item.location}}
+            </div>
+          </div>
+          <div class="marketplace-seller">
+            <mat-icon>person</mat-icon>
+            Seller: {{item.seller}}
+          </div>
+          <div class="marketplace-contact" *ngIf="item.contactPhone">
+            <mat-icon>phone</mat-icon>
+            {{item.contactPhone}}
+          </div>
+        </div>
+        <div class="marketplace-actions">
+          <button class="btn btn-primary">
+            <mat-icon>phone</mat-icon>
+            Contact Seller
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="marketplace-grid empty" *ngIf="!isLoading && !loadError && visibleListings.length === 0">
+      <div class="empty-state">
+        <mat-icon>storefront</mat-icon>
+        <h3>No listings yet</h3>
+        <p>Check back soon or switch categories to see more offers.</p>
+      </div>
+    </div>
+    <div class="marketplace-grid loading" *ngIf="isLoading">
+      <div class="loading-state">
+        <mat-icon>hourglass_empty</mat-icon>
+        <p>Loading community listings...</p>
+      </div>
+    </div>
+    <div class="marketplace-grid error" *ngIf="!isLoading && loadError">
+      <div class="error-state">
+        <mat-icon>error_outline</mat-icon>
+        <h3>Unable to load listings</h3>
+        <p>{{loadError}}</p>
+        <button class="btn btn-secondary" (click)="$event.stopPropagation(); fetchMarketplaceListings();">
+          <mat-icon>refresh</mat-icon>
+          Try Again
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

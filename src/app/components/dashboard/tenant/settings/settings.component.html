@@ -1,0 +1,137 @@
+<div class="tenant-settings">
+  <section class="settings-card">
+    <header>
+      <div>
+        <h2>Profile Information</h2>
+        <p>Keep your contact details up to date so landlords and caretakers can reach you.</p>
+      </div>
+      <mat-icon>person</mat-icon>
+    </header>
+
+    <form [formGroup]="profileForm" (ngSubmit)="onUpdatePhone()" class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Full name</mat-label>
+        <input matInput formControlName="fullName" placeholder="Your name" [disabled]="true">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" placeholder="you@example.com" [disabled]="true">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Phone number</mat-label>
+        <input
+          matInput
+          type="tel"
+          formControlName="phoneNumber"
+          placeholder="+2547XXXXXXXX">
+        <mat-hint>Use your registered phone number for OTP verification.</mat-hint>
+        <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('required')">
+          Phone number is required.
+        </mat-error>
+        <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('invalidPhone')">
+          Enter a valid Kenyan phone number starting with +254 or 0.
+        </mat-error>
+      </mat-form-field>
+
+      <div class="actions">
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          [disabled]="isUpdatingPhone">
+          <mat-icon>save</mat-icon>
+          <span>{{ isUpdatingPhone ? 'Updating...' : 'Update Contact Details' }}</span>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <mat-divider></mat-divider>
+
+  <section class="settings-card">
+    <header>
+      <div>
+        <h2>Security</h2>
+        <p>Manage your password to keep your account secure.</p>
+      </div>
+      <mat-icon>lock</mat-icon>
+    </header>
+
+    <form [formGroup]="passwordForm" (ngSubmit)="onUpdatePassword()" class="form-grid security-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Current password</mat-label>
+        <input matInput type="password" formControlName="currentPassword" autocomplete="current-password">
+        <mat-error *ngIf="passwordForm.get('currentPassword')?.hasError('required')">
+          Current password is required.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>New password</mat-label>
+        <input matInput type="password" formControlName="newPassword" autocomplete="new-password">
+        <mat-hint>Minimum 8 characters, mix letters and numbers.</mat-hint>
+        <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('minlength')">
+          Password must be at least 8 characters long.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Confirm new password</mat-label>
+        <input matInput type="password" formControlName="confirmNewPassword" autocomplete="new-password">
+        <mat-error *ngIf="passwordForm.get('confirmNewPassword')?.hasError('minlength')">
+          Confirmation must be at least 8 characters long.
+        </mat-error>
+      </mat-form-field>
+
+      <div class="actions">
+        <button
+          mat-flat-button
+          color="accent"
+          type="submit"
+          [disabled]="isUpdatingPassword">
+          <mat-icon>password</mat-icon>
+          <span>{{ isUpdatingPassword ? 'Updating...' : 'Update Password' }}</span>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <mat-divider></mat-divider>
+
+  <section class="settings-card">
+    <header>
+      <div>
+        <h2>Notifications</h2>
+        <p>Choose how you want to be notified about important activity.</p>
+      </div>
+      <mat-icon>notifications</mat-icon>
+    </header>
+
+    <form [formGroup]="notificationsForm" (ngSubmit)="onSaveNotificationPreferences()" class="notification-grid">
+      <mat-slide-toggle formControlName="emailUpdates">
+        Email updates about rent and maintenance activity
+      </mat-slide-toggle>
+
+      <mat-slide-toggle formControlName="smsReminders">
+        SMS reminders for rent due dates
+      </mat-slide-toggle>
+
+      <mat-slide-toggle formControlName="maintenanceAlerts">
+        Real-time maintenance updates
+      </mat-slide-toggle>
+
+      <mat-slide-toggle formControlName="communityAnnouncements">
+        Community announcements and events
+      </mat-slide-toggle>
+
+      <div class="actions">
+        <button mat-stroked-button color="primary" type="submit">
+          <mat-icon>done_all</mat-icon>
+          <span>Save Preferences</span>
+        </button>
+      </div>
+    </form>
+  </section>
+</div>

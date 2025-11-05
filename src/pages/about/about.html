@@ -1,0 +1,162 @@
+
+<app-navbar></app-navbar>
+
+
+<section class="page-hero">
+  <div class="container">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        About <span class="gradient-text">RentEase</span>
+      </h1>
+      <p class="hero-description">
+        We're on a mission to eliminate rental fraud and create transparent,
+        secure property management solutions for Kenya's growing rental market.
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<section class="mission-section">
+  <div class="container">
+    <div class="mission-grid">
+      <div class="mission-card">
+        <div class="mission-icon"><mat-icon>flag</mat-icon></div>
+        <h3>Our Mission</h3>
+        <p>
+          To eliminate rental fraud, streamline property management, and build
+          trust between landlords, tenants, and caretakers through innovative
+          digital solutions.
+        </p>
+      </div>
+
+      <div class="mission-card">
+        <div class="mission-icon"><mat-icon>visibility</mat-icon></div>
+        <h3>Our Vision</h3>
+        <p>
+          To become East Africa's leading digital property management platform,
+          setting the standard for secure, transparent, and efficient rental
+          transactions.
+        </p>
+      </div>
+
+      <div class="mission-card">
+        <div class="mission-icon"><mat-icon>favorite</mat-icon></div>
+        <h3>Our Purpose</h3>
+        <p>
+          Every Kenyan deserves a safe, secure rental experience. We're building
+          the technology infrastructure to make that vision a reality.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="story-section">
+  <div class="container">
+    <div class="story-content">
+      <div class="story-text">
+        <h2 class="section-title">Our Story</h2>
+        <p>
+          RentEase was founded after Keziah personally experienced rental fraud.
+          Instead of giving up, the challenge inspired the creation of a
+          platform that protects tenants, landlords, and caretakers from similar
+          experiences.
+        </p>
+
+        <p>
+          What started as a solution to a personal problem is steadily growing into 
+          one of Kenya's most trusted digital property management platforms—aiming 
+          to connect honest landlords with verified tenants and secure rental 
+          transactions every day.
+        </p>
+
+        <p>
+          While we are still building and expanding, our vision is to serve users 
+          across Kenya's major cities and eventually throughout East Africa. 
+          Every feature we create is guided by one goal: making rental transactions 
+          secure, transparent, and fraud-free.
+        </p>
+      </div>
+
+      <div class="story-image" style="background-image: url('/images/team-meeting.avif');"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Values Section -->
+<section class="values-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">
+        Our <span class="gradient-text">Values</span>
+      </h2>
+      <p class="section-description">
+        The principles that guide everything we do at RentEase
+      </p>
+    </div>
+
+    <div class="values-grid">
+      <div class="value-card" *ngFor="let value of values">
+        <div class="value-icon"><mat-icon>{{ value.icon }}</mat-icon></div>
+        <h3>{{ value.title }}</h3>
+        <p>{{ value.description }}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Team Section -->
+<section class="team-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">
+        Meet Our <span class="gradient-text">Team</span>
+      </h2>
+      <p class="section-description">
+        The passionate professionals building the future of property management
+        in Kenya
+      </p>
+    </div>
+
+    <div class="team-grid">
+      <div class="team-card" *ngFor="let member of teamMembers">
+        <div class="team-image">
+          <img [src]="member.image" [alt]="member.name" />
+        </div>
+        <div class="team-info">
+          <h3>{{ member.name }}</h3>
+          <p class="team-role">{{ member.role }}</p>
+          <p class="team-bio">{{ member.bio }}</p>
+          <a [href]="member.linkedin" class="team-linkedin">
+            <mat-icon>link</mat-icon> LinkedIn
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-content">
+      <h2 class="cta-title">Join Our Mission</h2>
+      <p class="cta-description">
+        Help us build a safer, more transparent rental market for all Kenyans
+      </p>
+      <div class="cta-buttons">
+        <button class="btn btn-primary large" (click)="navigateToContact()">
+          Get Started Today <mat-icon>arrow_forward</mat-icon>
+        </button>
+        <button class="btn btn-secondary large" (click)="navigateToContact()">
+          Partner With Us <mat-icon>handshake</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer Component -->
+<app-footer></app-footer>

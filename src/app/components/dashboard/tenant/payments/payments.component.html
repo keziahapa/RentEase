@@ -1,0 +1,415 @@
+<!-- Payments Section -->
+<div class="payments-container">
+  <div class="page-header">
+    <div class="page-title">
+      <h2>Payment Management</h2>
+      <p>View payment history, make payments, and manage your rent</p>
+    </div>
+  </div>
+
+  <!-- Payment Summary Cards -->
+  <div class="error-banner" *ngIf="summaryError">
+    <mat-icon>error_outline</mat-icon>
+    {{summaryError}}
+  </div>
+
+  <ng-container *ngIf="!summaryLoading; else summaryLoadingTpl">
+    <div class="payment-summary-grid">
+      <div class="summary-card next-payment">
+        <div class="summary-icon">
+          <mat-icon>account_balance_wallet</mat-icon>
+        </div>
+        <div class="summary-content">
+          <div class="summary-value">KSH {{formatNumber(nextPaymentAmount)}}</div>
+          <div class="summary-label">Next Payment Due</div>
+          <div class="summary-date">{{nextPaymentDate}}</div>
+        </div>
+        <div
+          class="summary-status"
+          *ngIf="filteredPaymentHistory.length > 0"
+          [ngClass]="getPaymentStatusClass(filteredPaymentHistory[0].status)">
+          <mat-icon>{{ getPaymentStatusIcon(filteredPaymentHistory[0].status) }}</mat-icon>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon">
+          <mat-icon>payments</mat-icon>
+        </div>
+        <div class="summary-content">
+          <div class="summary-value">KSH {{formatNumber(totalPaidThisYear)}}</div>
+          <div class="summary-label">Paid This Year</div>
+          <div class="summary-date">{{paymentsThisYear}} payments</div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon">
+          <mat-icon>trending_up</mat-icon>
+        </div>
+        <div class="summary-content">
+          <div class="summary-value">{{paymentStreak}}</div>
+          <div class="summary-label">Payment Streak</div>
+          <div class="summary-date">Consecutive months</div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon">
+          <mat-icon>schedule</mat-icon>
+        </div>
+        <div class="summary-content">
+          <div class="summary-value">{{averagePaymentDays}}</div>
+          <div class="summary-label">Average Payment Time</div>
+          <div class="summary-date">Days before due</div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+  <ng-template #summaryLoadingTpl>
+    <div class="card loading-card">
+      <mat-icon>hourglass_empty</mat-icon>
+      <span>Loading payment summary...</span>
+    </div>
+  </ng-template>
+  
+  <!-- Quick Payment Section -->
+  <div class="card card-feature">
+    <div class="card-header">
+      <div class="card-title">
+        <mat-icon class="card-icon">flash_on</mat-icon>
+        <h3>Quick Payment</h3>
+      </div>
+      <div class="payment-due-info" *ngIf="isPaymentDue()">
+        <span class="due-badge">
+          <mat-icon>warning</mat-icon>
+          Payment Due Soon
+        </span>
+      </div>
+    </div>
+    <div class="card-content">
+      <div class="quick-payment-form">
+        <div class="payment-amount-section">
+          <label class="form-label">
+            <mat-icon>attach_money</mat-icon>
+            Payment Amount
+          </label>
+          <div class="amount-input-group">
+            <span class="currency-prefix">KSH</span>
+            <input 
+              type="number" 
+              [(ngModel)]="paymentAmount" 
+              class="amount-input" 
+              placeholder="0.00"
+              min="0"
+              step="0.01">
+            <button 
+              class="preset-btn" 
+              (click)="setPaymentAmount(rentAmount)"
+              [class.active]="paymentAmount === rentAmount">
+              Full Rent
+            </button>
+          </div>
+        </div>
+        
+        <div class="payment-method-section">
+          <label class="form-label">
+            <mat-icon>credit_card</mat-icon>
+            Payment Method
+          </label>
+          <div class="payment-methods">
+            <button 
+              class="payment-method-btn" 
+              *ngFor="let method of paymentMethods"
+              [class.selected]="selectedPaymentMethod === method.id"
+              (click)="selectPaymentMethod(method.id)">
+              <mat-icon>{{method.icon}}</mat-icon>
+              <span>{{method.name}}</span>
+              <div class="method-details" *ngIf="method.details">{{method.details}}</div>
+            </button>
+          </div>
+        </div>
+        
+        <div class="payment-actions">
+          <button 
+            class="btn btn-primary btn-large" 
+            (click)="processPayment()"
+            [disabled]="!isPaymentValid() || isProcessingPayment">
+            <mat-icon>send</mat-icon>
+            {{isProcessingPayment ? 'Processing...' : ('Pay KSH ' + formatNumber(paymentAmount || 0))}}
+          </button>
+          <button class="btn btn-secondary" (click)="schedulePayment()" [disabled]="!isPaymentValid() || isProcessingPayment">
+            <mat-icon>schedule</mat-icon>
+            Schedule Payment
+          </button>
+        </div>
+        <div class="payment-feedback" *ngIf="paymentSuccess || paymentError">
+          <div class="success-message" *ngIf="paymentSuccess">
+            <mat-icon>check_circle</mat-icon>
+            {{paymentSuccess}}
+          </div>
+          <div class="error-message" *ngIf="paymentError">
+            <mat-icon>error</mat-icon>
+            {{paymentError}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Payment History -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <mat-icon class="card-icon">history</mat-icon>
+        <h3>Payment History</h3>
+      </div>
+      <div class="header-actions">
+        <select class="form-control" [(ngModel)]="paymentFilter" (change)="filterPayments()">
+          <option value="all">All Payments</option>
+          <option value="thisYear">This Year</option>
+          <option value="thisMonth">This Month</option>
+          <option value="last6Months">Last 6 Months</option>
+        </select>
+        <button class="btn btn-outline" (click)="downloadPaymentHistory()">
+          <mat-icon>download</mat-icon>
+          Export
+        </button>
+      </div>
+    </div>
+    <div class="card-content">
+      <div class="error-banner" *ngIf="historyError">
+        <mat-icon>error_outline</mat-icon>
+        {{historyError}}
+      </div>
+      <ng-container *ngIf="!historyLoading; else historyLoadingTpl">
+      <div class="table-container">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th (click)="sortPayments('date')" class="sortable">
+                <mat-icon>event</mat-icon>
+                Date
+                <mat-icon class="sort-icon" *ngIf="paymentSort.field === 'date'">
+                  {{paymentSort.direction === 'asc' ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}}
+                </mat-icon>
+              </th>
+              <th>
+                <mat-icon>category</mat-icon>
+                Type
+              </th>
+              <th (click)="sortPayments('amount')" class="sortable">
+                <mat-icon>attach_money</mat-icon>
+                Amount
+                <mat-icon class="sort-icon" *ngIf="paymentSort.field === 'amount'">
+                  {{paymentSort.direction === 'asc' ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}}
+                </mat-icon>
+              </th>
+              <th>
+                <mat-icon>credit_card</mat-icon>
+                Method
+              </th>
+              <th>
+                <mat-icon>info</mat-icon>
+                Status
+              </th>
+              <th>
+                <mat-icon>confirmation_number</mat-icon>
+                Reference
+              </th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let payment of filteredPaymentHistory; trackBy: trackPayment">
+              <td>
+                <div class="date-display">
+                  <div class="date-primary">{{formatDate(payment.date)}}</div>
+                  <div class="date-secondary">{{getRelativeDate(payment.date)}}</div>
+                </div>
+              </td>
+              <td>
+                <div class="type-display">
+                  <mat-icon class="type-icon">{{getPaymentTypeIcon(payment.type)}}</mat-icon>
+                  {{payment.type}}
+                </div>
+              </td>
+              <td>
+                <div class="amount-display">
+                  <span class="amount-value">KSH {{formatNumber(payment.amount)}}</span>
+                  <span class="amount-label" *ngIf="payment.lateFee">
+                    +KSH {{formatNumber(payment.lateFee)}} late fee
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div class="method-display">
+                  <mat-icon class="method-icon">{{getPaymentMethodIcon(payment.method)}}</mat-icon>
+                  {{payment.method}}
+                  <div class="method-details" *ngIf="payment.methodDetails">{{payment.methodDetails}}</div>
+                </div>
+              </td>
+              <td>
+                <div class="status-badge" [ngClass]="getPaymentStatusClass(payment.status)">
+                  <mat-icon>{{getPaymentStatusIcon(payment.status)}}</mat-icon>
+                  {{payment.status | titlecase}}
+                </div>
+              </td>
+              <td>
+                <div class="reference-display">
+                  <span class="reference-code">{{payment.reference}}</span>
+                  <button class="copy-btn" (click)="copyToClipboard(payment.reference)" title="Copy reference">
+                    <mat-icon>content_copy</mat-icon>
+                  </button>
+                </div>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-icon" (click)="viewPaymentDetails(payment)" title="View Details">
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                  <button class="btn-icon" (click)="downloadReceipt(payment)" title="Download Receipt">
+                    <mat-icon>download</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      <div class="pagination-container" *ngIf="totalPaymentPages > 1">
+        <div class="pagination-info">
+          Showing {{getPaymentRangeStart()}} to {{getPaymentRangeEnd()}} of {{totalPayments}} payments
+        </div>
+        <div class="pagination-controls">
+          <button 
+            class="btn btn-outline" 
+            (click)="previousPaymentPage()"
+            [disabled]="currentPaymentPage === 1">
+            <mat-icon>chevron_left</mat-icon>
+            Previous
+          </button>
+          <span class="page-info">{{currentPaymentPage}} of {{totalPaymentPages}}</span>
+          <button 
+            class="btn btn-outline" 
+            (click)="nextPaymentPage()"
+            [disabled]="currentPaymentPage === totalPaymentPages">
+            Next
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+      </ng-container>
+      <ng-template #historyLoadingTpl>
+        <div class="loading-state">
+          <mat-icon>hourglass_empty</mat-icon>
+          <p>Loading payment history...</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+  
+  <!-- Scheduled Payments -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <mat-icon class="card-icon">schedule</mat-icon>
+        <h3>Scheduled Payments</h3>
+      </div>
+    </div>
+    <div class="card-content">
+      <div class="error-banner" *ngIf="scheduledError">
+        <mat-icon>error_outline</mat-icon>
+        {{scheduledError}}
+      </div>
+      <div class="loading-state" *ngIf="scheduledLoading">
+        <mat-icon>hourglass_empty</mat-icon>
+        <p>Loading scheduled payments...</p>
+      </div>
+      <div class="scheduled-payment-list" *ngIf="!scheduledLoading && scheduledPayments.length > 0">
+        <div class="scheduled-payment-item" *ngFor="let payment of scheduledPayments">
+          <div class="payment-info">
+            <div class="payment-title">{{payment.description}}</div>
+            <div class="payment-amount">KSH {{formatNumber(payment.amount)}}</div>
+            <div class="payment-schedule">
+              <mat-icon>schedule</mat-icon>
+              {{payment.scheduleDate}} via {{payment.method}}
+            </div>
+          </div>
+          <div class="payment-actions">
+            <button class="btn btn-outline btn-sm" (click)="editScheduledPayment(payment)">
+              <mat-icon>edit</mat-icon>
+              Edit
+            </button>
+            <button class="btn btn-danger btn-sm" (click)="cancelScheduledPayment(payment)">
+              <mat-icon>cancel</mat-icon>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="empty-state" *ngIf="!scheduledLoading && scheduledPayments.length === 0">
+        <mat-icon>event_busy</mat-icon>
+        <p>No scheduled payments found.</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Payment Insights -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <mat-icon class="card-icon">insights</mat-icon>
+        <h3>Payment Insights</h3>
+      </div>
+    </div>
+    <div class="card-content">
+      <div class="insights-grid">
+        <div class="insight-item">
+          <div class="insight-icon">
+            <mat-icon>trending_up</mat-icon>
+          </div>
+          <div class="insight-content">
+            <div class="insight-title">Payment Consistency</div>
+            <div class="insight-value">{{getPaymentConsistency()}}%</div>
+            <div class="insight-description">On-time payment rate over last 12 months</div>
+          </div>
+        </div>
+        
+        <div class="insight-item">
+          <div class="insight-icon">
+            <mat-icon>savings</mat-icon>
+          </div>
+          <div class="insight-content">
+            <div class="insight-title">Early Payment Savings</div>
+            <div class="insight-value">KSH {{formatNumber(earlyPaymentSavings)}}</div>
+            <div class="insight-description">Saved in late fees this year</div>
+          </div>
+        </div>
+        
+        <div class="insight-item">
+          <div class="insight-icon">
+            <mat-icon>calendar_month</mat-icon>
+          </div>
+          <div class="insight-content">
+            <div class="insight-title">Preferred Payment Day</div>
+            <div class="insight-value">{{preferredPaymentDay}}</div>
+            <div class="insight-description">Most common payment day of month</div>
+          </div>
+        </div>
+        
+        <div class="insight-item">
+          <div class="insight-icon">
+            <mat-icon>payment</mat-icon>
+          </div>
+          <div class="insight-content">
+            <div class="insight-title">Preferred Method</div>
+            <div class="insight-value">{{preferredPaymentMethod}}</div>
+            <div class="insight-description">Most used payment method</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

@@ -1,0 +1,310 @@
+.admin-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white; // Changed to white background
+  padding: 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+.admin-login-container {
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+}
+
+.security-header {
+  margin-bottom: 32px;
+  color: #1e293b; // Changed to dark color for white background
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    color: #1e3a8a; // Admin blue color
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.5px;
+    color: #1e293b;
+  }
+
+  p {
+    font-size: 16px;
+    color: #64748b;
+    margin: 0;
+    font-weight: 400;
+  }
+}
+
+.admin-login-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  margin-bottom: 24px;
+  border: 1px solid #e2e8f0;
+
+  mat-card-content {
+    padding: 32px 32px 24px 32px;
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+.security-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #f8fafc;
+  color: #475569;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #64748b;
+  }
+
+  span {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+}
+
+.submit-btn {
+  margin-top: 16px;
+  padding: 16px;
+  font-weight: 600;
+  font-size: 16px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  position: relative;
+  background: #1e3a8a;
+  color: white;
+  border: none;
+
+  &:hover:not(:disabled) {
+    background: #3730a3;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px -2px rgba(30, 58, 138, 0.4);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  mat-icon {
+    margin-right: 8px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.button-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.button-spinner {
+  display: inline-block;
+}
+
+.back-to-main {
+  margin-bottom: 32px;
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+
+    &:hover:not(.disabled) {
+      color: #1e3a8a;
+      background: #f8fafc;
+    }
+
+    &.disabled {
+      pointer-events: none;
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+.security-footer {
+  .security-features {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 500;
+
+      mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: #1e3a8a;
+      }
+    }
+  }
+}
+
+// Material Overrides for Admin Theme
+::ng-deep .admin-login-card {
+  .mat-form-field {
+    font-family: inherit;
+    width: 100%;
+  }
+
+  .mat-form-field .mat-form-field-outline {
+    border-radius: 8px;
+    border-color: #e2e8f0;
+  }
+
+  .mat-form-field.mat-focused .mat-form-field-outline-thick {
+    border-color: #1e3a8a;
+    border-width: 2px;
+  }
+
+  .mat-form-field-label {
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .mat-form-field.mat-focused .mat-form-field-label {
+    color: #1e3a8a;
+  }
+
+  .mat-input-element {
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .mat-input-element::placeholder {
+    color: #9ca3af;
+  }
+
+  .mat-raised-button {
+    border-radius: 12px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .mat-raised-button:focus {
+    outline: 2px solid #1e3a8a;
+    outline-offset: 2px;
+  }
+
+  .mat-raised-button:disabled {
+    background: #9ca3af !important;
+    color: #ffffff !important;
+    cursor: not-allowed;
+  }
+}
+
+// Responsive Design
+@media (max-width: 600px) {
+  .admin-login-page {
+    padding: 16px;
+  }
+
+  .security-header {
+    h1 {
+      font-size: 28px;
+    }
+
+    p {
+      font-size: 14px;
+    }
+
+    mat-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  .admin-login-card {
+    mat-card-content {
+      padding: 24px 20px 20px 20px;
+    }
+  }
+
+  .security-notice {
+    padding: 12px;
+    font-size: 13px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .submit-btn {
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  .security-features {
+    gap: 16px !important;
+
+    .feature {
+      font-size: 11px !important;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .security-features {
+    flex-direction: column;
+    gap: 12px !important;
+  }
+}

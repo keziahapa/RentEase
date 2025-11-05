@@ -1,0 +1,144 @@
+<div class="caretaker-reports">
+  <div class="view-header">
+    <h2>My Work Summary</h2>
+    <div class="last-updated">Last updated: {{formatDate('2024-03-05')}}</div>
+  </div>
+
+  <!-- Work Statistics -->
+  <div class="work-stats">
+    <div class="stat-card">
+      <div class="stat-icon completed">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{workSummary.completedJobsThisWeek}}</div>
+        <div class="stat-label">Jobs This Week</div>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon pending">
+        <mat-icon>schedule</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{workSummary.pendingRequests}}</div>
+        <div class="stat-label">Pending Requests</div>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon inspections">
+        <mat-icon>home</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{workSummary.upcomingInspections}}</div>
+        <div class="stat-label">Upcoming Inspections</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon response">
+        <mat-icon>timer</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{workSummary.averageResponseTime}}</div>
+        <div class="stat-label">Avg. Response Time</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reports-content">
+    <!-- Recent Work Activity -->
+    <div class="recent-activity-section">
+      <div class="section-header">
+        <h3>Recent Work Activity</h3>
+        <span class="total-jobs">{{recentJobs.length}} jobs</span>
+      </div>
+      
+      <div class="activity-list">
+        <div *ngFor="let job of recentJobs" class="activity-item">
+          <div class="activity-main">
+            <div class="job-type-badge" [class]="getPriorityClass(job.priority)">
+              {{job.type}}
+            </div>
+            <div class="job-details">
+              <div class="job-property">{{job.property}}</div>
+              <div class="job-description">{{job.description}}</div>
+            </div>
+            <div class="job-date">{{formatDate(job.date)}}</div>
+          </div>
+          <div class="job-status" [class]="getStatusClass(job.status)">
+            {{job.status}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly Schedule -->
+    <div class="schedule-section">
+      <h3>This Week's Schedule</h3>
+      <div class="schedule-list">
+        <div *ngFor="let day of weeklySchedule" class="schedule-day" [class.completed]="day.completed">
+          <div class="day-header">
+            <span class="day-name">{{day.day}}</span>
+            <button class="complete-btn" (click)="markDayComplete(day)">
+              <mat-icon>{{day.completed ? 'check_circle' : 'radio_button_unchecked'}}</mat-icon>
+              {{day.completed ? 'Completed' : 'Mark Complete'}}
+            </button>
+          </div>
+          <div class="day-tasks">
+            <div *ngFor="let task of day.tasks" class="task-item">
+              <mat-icon>play_arrow</mat-icon>
+              <span>{{task}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supply Needs -->
+    <div class="supply-section">
+      <div class="section-header">
+        <h3>Supply Needs</h3>
+        <button class="btn btn-primary" (click)="addSupplyItem()">
+          <mat-icon>add</mat-icon>
+          Add Item
+        </button>
+      </div>
+      
+      <div class="supply-list">
+        <div *ngFor="let item of supplyNeeds; let i = index" class="supply-item">
+          <mat-icon>inventory_2</mat-icon>
+          <span class="item-text">{{item}}</span>
+          <button class="remove-btn" (click)="removeSupplyItem(i)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+        
+        <div *ngIf="supplyNeeds.length === 0" class="no-supplies">
+          <mat-icon>inventory_2</mat-icon>
+          <p>No supply needs at the moment</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-section">
+      <h3>Quick Actions</h3>
+      <div class="action-buttons">
+        <button class="action-btn" (click)="printWorkSummary()">
+          <mat-icon>print</mat-icon>
+          Print Summary
+        </button>
+        <button class="action-btn" (click)="requestSupplies()">
+          <mat-icon>local_shipping</mat-icon>
+          Request Supplies
+        </button>
+        <button class="action-btn" (click)="contactSupervisor()">
+          <mat-icon>message</mat-icon>
+          Contact Supervisor
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

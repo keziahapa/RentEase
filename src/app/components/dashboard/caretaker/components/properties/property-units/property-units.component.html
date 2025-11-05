@@ -1,0 +1,94 @@
+<div class="property-units-container">
+  <div class="header-section">
+    <button mat-button (click)="goBack()" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Property
+    </button>
+  </div>
+
+  <div class="loading-spinner" *ngIf="loading">
+    <mat-spinner></mat-spinner>
+  </div>
+
+  <div class="error-message" *ngIf="error && !loading">
+    <mat-icon>error</mat-icon>
+    <span>{{ error }}</span>
+  </div>
+
+  <div class="units-content" *ngIf="!loading && !error">
+    <div class="units-header">
+      <h1>Units - {{ property?.name }}</h1>
+      <p class="property-address">{{ property?.address }}</p>
+      
+      <div class="units-actions">
+        <button mat-raised-button color="primary" (click)="addUnit()">
+          <mat-icon>add</mat-icon>
+          Add New Unit
+        </button>
+      </div>
+    </div>
+
+    <div class="units-stats">
+      <div class="stat">
+        <span class="stat-value">{{ totalUnits }}</span>
+        <span class="stat-label">Total Units</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ occupiedUnits }}</span>
+        <span class="stat-label">Occupied</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ vacantUnits }}</span>
+        <span class="stat-label">Vacant</span>
+      </div>
+    </div>
+
+    <div class="units-grid" *ngIf="units.length > 0">
+      <mat-card class="unit-card" *ngFor="let unit of units">
+        <mat-card-content>
+          <div class="unit-header">
+            <h3 class="unit-number">{{ unit.unitNumber }}</h3>
+            <span class="unit-status" [class.occupied]="unit.isOccupied" [class.vacant]="!unit.isOccupied">
+              {{ unit.isOccupied ? 'Occupied' : 'Vacant' }}
+            </span>
+          </div>
+          
+          <div class="unit-details">
+            <div class="detail-row">
+              <span class="label">Type:</span>
+              <span class="value">{{ unit.unitType }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Rent:</span>
+              <span class="value rent">KSH {{ unit.rentAmount | number }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Deposit:</span>
+              <span class="value">KSH {{ unit.deposit | number }}</span>
+            </div>
+          </div>
+
+          <p class="unit-description">{{ unit.description }}</p>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-button color="primary" *ngIf="!unit.isOccupied">
+            Assign Tenant
+          </button>
+          <button mat-button *ngIf="unit.isOccupied">
+            View Tenant
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <div class="empty-state" *ngIf="units.length === 0">
+      <mat-icon>apartment</mat-icon>
+      <h3>No Units Available</h3>
+      <p>This property doesn't have any units yet. Add your first unit to get started.</p>
+      <button mat-raised-button color="primary" (click)="addUnit()">
+        Add First Unit
+      </button>
+    </div>
+  </div>
+</div>

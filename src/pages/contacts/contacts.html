@@ -1,0 +1,40 @@
+<!-- Navbar Component -->
+<app-navbar></app-navbar>
+
+<!-- Page Hero Section -->
+<section class="page-hero">
+  <div class="container">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        Get in <span class="gradient-text">Touch</span>
+      </h1>
+      <p class="hero-description">
+        Ready to eliminate rental fraud and streamline your property management? 
+        Contact our team to learn how RentEase can help you.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Contact Methods Section -->
+<section class="contact-methods-section">
+  <div class="container">
+    <div class="contact-methods-grid">
+      <div class="contact-method-card" *ngFor="let method of contactMethods">
+        <div class="method-icon">
+          <mat-icon>{{ method.icon }}</mat-icon>
+        </div>
+        <h3 class="method-title">{{ method.title }}</h3>
+        <div class="method-details">
+          <a [href]="method.link" *ngIf="method.link; else noLink">{{ method.details }}</a>
+          <ng-template #noLink>
+            <span>{{ method.details }}</span>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer Component -->
+<app-footer></app-footer>

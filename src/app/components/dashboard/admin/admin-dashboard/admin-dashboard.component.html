@@ -1,0 +1,179 @@
+<div class="dashboard-container">
+  <div class="mobile-menu-overlay" [class.active]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
+  
+  <nav class="sidebar" [class.mobile-open]="isMobileMenuOpen">
+    <div class="sidebar-header">
+      <div class="logo" (click)="navigateToSection('overview')">
+        <img src="/images/logo.png" alt="RentEase Logo" class="logo-image" (error)="onLogoError($event)">
+      </div>
+    </div>
+
+    <div class="nav-menu">
+      <div class="nav-item" 
+           [class.active]="isNavActive('overview')" 
+           (click)="navigateToSection('overview')">
+        <mat-icon class="nav-icon">dashboard</mat-icon>
+        <span>Dashboard</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('users')" 
+           (click)="navigateToSection('users')">
+        <mat-icon class="nav-icon">people</mat-icon>
+        <span>Users</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('properties')" 
+           (click)="navigateToSection('properties')">
+        <mat-icon class="nav-icon">apartment</mat-icon>
+        <span>Properties</span>
+      </div>
+
+      <!-- Business Management Section -->
+      <div class="nav-section">
+        <div class="nav-section-label">Business Management</div>
+        
+        <div class="nav-item" 
+             [class.active]="isNavActive('businesses')" 
+             (click)="navigateToSection('businesses')">
+          <mat-icon class="nav-icon">business_center</mat-icon>
+          <span>Businesses</span>
+        </div>
+
+        <div class="nav-item" 
+             [class.active]="isNavActive('advertisements')" 
+             (click)="navigateToSection('advertisements')">
+          <mat-icon class="nav-icon">campaign</mat-icon>
+          <span>Advertisements</span>
+        </div>
+
+        <div class="nav-item" 
+             [class.active]="isNavActive('external-businesses')" 
+             (click)="navigateToSection('external-businesses')">
+          <mat-icon class="nav-icon">store</mat-icon>
+          <span>External Businesses</span>
+        </div>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('disputes')" 
+           (click)="navigateToSection('disputes')">
+        <mat-icon class="nav-icon">gavel</mat-icon>
+        <span>Disputes</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('transactions')" 
+           (click)="navigateToSection('transactions')">
+        <mat-icon class="nav-icon">payments</mat-icon>
+        <span>Transactions</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('reports')" 
+           (click)="navigateToSection('reports')">
+        <mat-icon class="nav-icon">assessment</mat-icon>
+        <span>Reports</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('settings')" 
+           (click)="navigateToSection('settings')">
+        <mat-icon class="nav-icon">settings</mat-icon>
+        <span>Settings</span>
+      </div>
+
+      <div class="nav-item" 
+           [class.active]="isNavActive('profile')" 
+           (click)="viewProfile()">
+        <mat-icon class="nav-icon">account_circle</mat-icon>
+        <span>Profile</span>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" (click)="logout()" [disabled]="isLoggingOut">
+        <mat-icon class="logout-icon">logout</mat-icon>
+        <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+      </button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="top-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <div class="greeting-section">
+          <h1>{{ getGreetingMessage() }}</h1>
+          <p>Platform administration and monitoring</p>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="header-actions">
+          <button class="notification-btn" (click)="viewNotifications()" 
+                  [class.has-notifications]="unreadNotificationsCount > 0"
+                  matTooltip="{{ unreadNotificationsCount > 0 ? unreadNotificationsCount + ' unread notifications' : 'No new notifications' }}"
+                  matTooltipPosition="below">
+            <mat-icon>notifications</mat-icon>
+            <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
+              {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
+            </span>
+          </button>
+
+          <button class="refresh-btn" (click)="refreshDashboard()" matTooltip="Refresh Data">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+
+        <div class="profile-section">
+          <div class="user-avatar-wrapper" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <div class="user-avatar">
+              <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image">
+              <div *ngIf="!profileImage" class="avatar-placeholder">
+                <mat-icon>account_circle</mat-icon>
+              </div>
+            </div>
+            <div class="user-info">
+              <div class="user-name">{{ userDisplayName }}</div>
+              <div class="user-role">{{ userRole }}</div>
+            </div>
+          </div>
+
+          <div class="dropdown-trigger" (click)="toggleProfileMenu(); $event.stopPropagation()">
+            <mat-icon class="dropdown-chevron" [class.rotated]="isProfileMenuOpen">expand_more</mat-icon>
+          </div>
+
+          <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
+            <button class="dropdown-item" (click)="viewProfile(); $event.stopPropagation()">
+              <mat-icon>account_circle</mat-icon>
+              <span>View Profile</span>
+            </button>
+            <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
+              <mat-icon>edit</mat-icon>
+              <span>Edit Profile</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item logout-item" 
+                    (click)="logout(); $event.stopPropagation()"
+                    [disabled]="isLoggingOut">
+              <mat-icon>logout</mat-icon>
+              <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Router outlet for different sections -->
+    <router-outlet></router-outlet>
+    
+    <!-- Show overview component when on the base admin route -->
+    <div *ngIf="isOverviewPage()">
+      <app-admin-overview></app-admin-overview>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,276 @@
+.disputes-view {
+  .view-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+
+    h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: #2c3e50;
+
+      .dark-mode & {
+        color: white;
+      }
+    }
+
+    .view-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .view-stats {
+        display: flex;
+        gap: 8px;
+
+        .stat-badge {
+          padding: 6px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 500;
+
+          &.pending { background: #fff3e0; color: #f57c00; }
+
+          .dark-mode & {
+            &.pending { background: #78350f; color: #fdba74; }
+          }
+        }
+      }
+
+      .btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+
+        &.btn-primary {
+          background-color: #3498db;
+          color: white;
+
+          &:hover {
+            background-color: #2980b9;
+          }
+        }
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+
+        .menu-caret {
+          margin-left: 4px;
+          font-size: 16px;
+        }
+      }
+    }
+  }
+
+  .table-container {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e0e0e0;
+
+    .dark-mode & {
+      background: #2d3748;
+      border-color: #4a5568;
+    }
+  }
+
+  .dispute-table {
+    width: 100%;
+
+    ::ng-deep {
+      .mat-header-cell {
+        background: #f8f9fa;
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 14px;
+        padding: 16px;
+
+        .dark-mode & {
+          background: #4a5568;
+          color: white;
+        }
+      }
+
+      .mat-cell {
+        padding: 16px;
+        border-bottom: 1px solid #e0e0e0;
+        font-size: 14px;
+
+        .dark-mode & {
+          border-bottom-color: #4a5568;
+          color: white;
+        }
+      }
+
+      .mat-row:hover {
+        background-color: #f8f9fa;
+
+        .dark-mode & {
+          background-color: #4a5568;
+        }
+      }
+    }
+  }
+
+  .dispute-type {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: capitalize;
+
+    &.type-deposit { background: #fff3e0; color: #f57c00; }
+    &.type-service { background: #e3f2fd; color: #1976d2; }
+    &.type-payment { background: #e8f5e8; color: #2e7d32; }
+
+    .dark-mode & {
+      &.type-deposit { background: #78350f; color: #fdba74; }
+      &.type-service { background: #1e3a5f; color: #90caf9; }
+      &.type-payment { background: #1b4332; color: #81c784; }
+    }
+  }
+
+  .status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: capitalize;
+
+    &.status-pending {
+      background: #fff3e0;
+      color: #f57c00;
+    }
+
+    &.status-resolved {
+      background: #e8f5e8;
+      color: #2e7d32;
+    }
+
+    &.status-escalated {
+      background: #ffebee;
+      color: #d32f2f;
+    }
+
+    .dark-mode & {
+      &.status-pending {
+        background: #78350f;
+        color: #fdba74;
+      }
+
+      &.status-resolved {
+        background: #1b4332;
+        color: #81c784;
+      }
+
+      &.status-escalated {
+        background: #7f1d1d;
+        color: #fca5a5;
+      }
+    }
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &.btn-success {
+        background: #27ae60;
+        color: white;
+
+        &:hover {
+          background: #219653;
+        }
+      }
+
+      &.btn-secondary {
+        background: #f8f9fa;
+        color: #666;
+        border: 1px solid #e0e0e0;
+
+        .dark-mode & {
+          background: #4a5568;
+          color: #cbd5e0;
+          border-color: #718096;
+        }
+
+        &:hover {
+          background: #e9ecef;
+
+          .dark-mode & {
+            background: #718096;
+          }
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+
+    .dark-mode & {
+      color: #cbd5e0;
+    }
+
+    mat-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: #bdc3c7;
+      margin-bottom: 16px;
+
+      .dark-mode & {
+        color: #718096;
+      }
+    }
+
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #2c3e50;
+
+      .dark-mode & {
+        color: white;
+      }
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #666;
+
+      .dark-mode & {
+        color: #cbd5e0;
+      }
+    }
+  }
+}

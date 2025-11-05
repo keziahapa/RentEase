@@ -1,0 +1,248 @@
+<div class="tenants-page">
+  <section class="page-header">
+    <div class="headline">
+      <h2>Tenant directory</h2>
+      <p>Track active leases, upcoming move-outs, and outstanding balances across your portfolio.</p>
+      <div class="last-updated" *ngIf="lastUpdatedMessage() as updated">
+        <mat-icon>schedule</mat-icon>
+        <span>{{ updated }}</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button
+        mat-flat-button
+        color="primary"
+        class="refresh-btn"
+        type="button"
+        (click)="refreshTenants(true)"
+        [disabled]="isRefreshing"
+        matTooltip="Reload tenant list from the server"
+      >
+        <mat-icon>refresh</mat-icon>
+        <span>{{ isRefreshing ? 'Refreshing…' : 'Refresh' }}</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="error-banner" *ngIf="errorMessage">
+    <mat-icon>warning</mat-icon>
+    <span>{{ errorMessage }}</span>
+    <button mat-icon-button type="button" (click)="refreshTenants(true)" [disabled]="isRefreshing">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </section>
+
+  <section class="summary-grid" *ngIf="summary">
+    <div class="summary-card">
+      <div class="label">Active leases</div>
+      <div class="value">{{ summary.activeLeases }}</div>
+      <div class="meta">
+        <mat-icon>groups</mat-icon>
+        <span>{{ summary.totalTenants }} total tenants</span>
+      </div>
+    </div>
+
+    <div class="summary-card highlight">
+      <div class="label">Occupancy</div>
+      <div class="value">{{ summary.occupancyRate }}%</div>
+      <div class="meta">
+        <mat-icon>domain</mat-icon>
+        <span>{{ summary.occupiedUnits }} of {{ summary.totalUnits || (summary.occupiedUnits + summary.vacantUnits) }} units filled</span>
+      </div>
+    </div>
+
+    <div class="summary-card warning">
+      <div class="label">Ending soon</div>
+      <div class="value">{{ summary.leasesEndingSoon }}</div>
+      <div class="meta">
+        <mat-icon>calendar_month</mat-icon>
+        <span>Within the next 45 days</span>
+      </div>
+    </div>
+
+    <div class="summary-card danger">
+      <div class="label">Overdue tenants</div>
+      <div class="value">{{ summary.overdueTenants }}</div>
+      <div class="meta">
+        <mat-icon>report_problem</mat-icon>
+        <span>Includes outstanding balances</span>
+      </div>
+    </div>
+
+    <div class="summary-card compact" *ngIf="summary.averageMonthlyRent">
+      <div class="label">Average monthly rent</div>
+      <div class="value">{{ summary.averageMonthlyRent | currency:'KES':'symbol' }}</div>
+      <div class="meta">
+        <mat-icon>payments</mat-icon>
+        <span>Across occupied units</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="filters">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Search tenants</mat-label>
+      <input matInput [formControl]="searchControl" placeholder="Search by name, email, property or unit" />
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        aria-label="Clear search"
+        *ngIf="searchControl.value"
+        (click)="clearSearch()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="property-field">
+      <mat-label>Property</mat-label>
+      <mat-select [formControl]="propertyControl">
+        <mat-option value="all">All properties</mat-option>
+        <mat-option *ngFor="let property of propertyOptions" [value]="property.id">
+          {{ property.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-chip-listbox [formControl]="statusControl" aria-label="Filter by lease status" class="status-filter" multiple="false">
+      <mat-chip-option value="all">
+        <span class="chip-dot status-active"></span>
+        All statuses
+      </mat-chip-option>
+      <mat-chip-option value="active">
+        <span class="chip-dot status-active"></span>
+        Active
+      </mat-chip-option>
+      <mat-chip-option value="endingSoon">
+        <span class="chip-dot status-ending"></span>
+        Ending soon
+      </mat-chip-option>
+      <mat-chip-option value="overdue">
+        <span class="chip-dot status-overdue"></span>
+        Overdue
+      </mat-chip-option>
+    </mat-chip-listbox>
+
+    <button mat-button type="button" class="reset-button" *ngIf="hasFiltersApplied()" (click)="resetFilters()">
+      <mat-icon>filter_alt_off</mat-icon>
+      Reset
+    </button>
+  </section>
+
+  <section class="tenants-content">
+    <app-skeleton-list *ngIf="isLoading" variant="table" [count]="6" [lines]="4"></app-skeleton-list>
+
+    <ng-container *ngIf="!isLoading">
+      <table mat-table [dataSource]="filteredTenants" class="tenants-table" *ngIf="filteredTenants.length > 0">
+        <ng-container matColumnDef="tenant">
+          <th mat-header-cell *matHeaderCellDef> Tenant </th>
+          <td mat-cell *matCellDef="let tenant">
+            <div class="tenant-cell">
+              <div class="tenant-avatar">
+                <span>{{ tenant.name.slice(0, 1) }}</span>
+              </div>
+              <div class="tenant-details">
+                <div class="tenant-name">{{ tenant.name }}</div>
+                <div class="tenant-email" *ngIf="tenant.email">{{ tenant.email }}</div>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="property">
+          <th mat-header-cell *matHeaderCellDef> Property </th>
+          <td mat-cell *matCellDef="let tenant">
+            <div class="property-cell">
+              <div class="property-name">{{ tenant.propertyName }}</div>
+              <div class="property-meta">
+                <mat-icon>meeting_room</mat-icon>
+                <span>Unit {{ tenant.unitNumber || 'N/A' }}</span>
+              </div>
+              <div class="property-location" *ngIf="tenant.propertyLocation">
+                <mat-icon>location_on</mat-icon>
+                <span>{{ tenant.propertyLocation }}</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="lease">
+          <th mat-header-cell *matHeaderCellDef> Lease </th>
+          <td mat-cell *matCellDef="let tenant">
+            <div class="lease-cell">
+              <div class="lease-dates" *ngIf="tenant.leaseStart || tenant.leaseEnd">
+                <mat-icon>event</mat-icon>
+                <span>
+                  {{ tenant.leaseStart ? (tenant.leaseStart | date:'d MMM y') : 'Start TBD' }}
+                  –
+                  {{ tenant.leaseEnd ? (tenant.leaseEnd | date:'d MMM y') : 'Open ended' }}
+                </span>
+              </div>
+              <div class="lease-dates" *ngIf="!tenant.leaseStart && !tenant.leaseEnd">
+                <mat-icon>event</mat-icon>
+                <span>Lease details pending</span>
+              </div>
+              <div class="lease-meta" *ngIf="tenant.lastPaymentDate">
+                <mat-icon>schedule</mat-icon>
+                <span>Last payment {{ tenant.lastPaymentDate | date:'d MMM' }}</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="rent">
+          <th mat-header-cell *matHeaderCellDef> Monthly rent </th>
+          <td mat-cell *matCellDef="let tenant">
+            <div class="rent-cell">
+              <div class="rent-value" *ngIf="tenant.rentAmount; else rentMissing">
+                {{ tenant.rentAmount | currency:'KES':'symbol':'1.0-0' }}
+              </div>
+              <ng-template #rentMissing>
+                <span class="rent-missing">Not set</span>
+              </ng-template>
+              <div class="rent-outstanding" *ngIf="tenant.outstandingBalance && tenant.outstandingBalance > 0">
+                <mat-icon>error</mat-icon>
+                <span>{{ tenant.outstandingBalance | currency:'KES':'symbol':'1.0-0' }} overdue</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef> Status </th>
+          <td mat-cell *matCellDef="let tenant">
+            <span class="status-chip" [ngClass]="statusChipClass(tenant.status)">
+              <span class="chip-dot" [ngClass]="statusChipClass(tenant.status)"></span>
+              {{ statusLabel(tenant.status) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let tenant">
+            <button
+              mat-stroked-button
+              color="primary"
+              type="button"
+              [routerLink]="['/landlord-dashboard/property', tenant.propertyId, 'units']"
+              [disabled]="!tenant.propertyId"
+            >
+              View units
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+
+      <div class="empty-state" *ngIf="filteredTenants.length === 0">
+        <mat-icon>group_off</mat-icon>
+        <h3>No tenants found</h3>
+        <p>Adjust your filters or invite tenants from the property page once units are ready.</p>
+      </div>
+    </ng-container>
+  </section>
+</div>

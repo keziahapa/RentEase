@@ -1,0 +1,139 @@
+<div class="overview-view">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon maintenance">
+        <mat-icon>build</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{formatNumber(stats.pendingMaintenance)}}</div>
+        <div class="stat-label">Pending Maintenance</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon inspections">
+        <mat-icon>home</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{formatNumber(stats.scheduledInspections)}}</div>
+        <div class="stat-label">Scheduled Inspections</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon deposits">
+        <mat-icon>account_balance</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{formatNumber(stats.activeDepositCases)}}</div>
+        <div class="stat-label">Active Deposit Cases</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon completed">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{formatNumber(stats.completedJobs)}}</div>
+        <div class="stat-label">Completed Jobs</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon response">
+        <mat-icon>timer</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{stats.responseRate}}%</div>
+        <div class="stat-label">Response Rate</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon satisfaction">
+        <mat-icon>star</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{stats.tenantSatisfaction}}/5</div>
+        <div class="stat-label">Tenant Satisfaction</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="quick-actions-section">
+    <h3>Quick Actions</h3>
+    <div class="actions-grid">
+      <button *ngFor="let action of quickActions" class="action-btn" (click)="action.action()">
+        <div class="action-icon" [style.background-color]="action.color">
+          <mat-icon>{{action.icon}}</mat-icon>
+        </div>
+        <span class="action-label">{{action.title}}</span>
+        <span class="action-description">{{action.description}}</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="recent-activity">
+    <div class="activity-section">
+      <h3>Recent Maintenance Requests</h3>
+      <div class="activity-list">
+        <div *ngFor="let request of maintenanceRequests.slice(0, 3)" class="activity-item">
+          <div class="activity-icon" [class]="getPriorityClass(request.priority)">
+            <mat-icon>build</mat-icon>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">{{request.title}}</div>
+            <div class="activity-details">
+              <span class="tenant">{{request.tenantName}}</span> • 
+              <span class="property">{{request.property}}</span>
+            </div>
+            <div class="activity-status">
+              <span class="status-badge" [class]="getStatusClass(request.status)">{{request.status}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="activity-section">
+      <h3>Upcoming Inspections</h3>
+      <div class="activity-list">
+        <div *ngFor="let inspection of inspections.slice(0, 3)" class="activity-item">
+          <div class="activity-icon" [class]="getInspectionTypeClass(inspection.type)">
+            <mat-icon>home</mat-icon>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">{{inspection.type | titlecase}} Inspection</div>
+            <div class="activity-details">
+              <span class="tenant">{{inspection.tenantName}}</span> • 
+              <span class="property">{{inspection.property}}</span>
+            </div>
+            <div class="activity-date">{{formatDate(inspection.date)}}</div>
+          </div>
+        </div>
+        <div *ngIf="inspections.length === 0" class="empty-state">No upcoming inspections scheduled.</div>
+      </div>
+    </div>
+
+    <div class="activity-section">
+      <h3>Verified Vacancy Status</h3>
+      <div class="activity-list">
+        <div *ngFor="let vacancy of vacancyEvents.slice(0, 3)" class="activity-item">
+          <div class="activity-icon vacancy-icon" [ngClass]="getVacancyStatusClass(vacancy.status)">
+            <mat-icon>verified_user</mat-icon>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">{{vacancy.property}} • {{vacancy.unit}}</div>
+            <div class="activity-details">
+              <span class="tenant">{{vacancy.tenantName}}</span> • 
+              <span class="status-badge" [class]="getVacancyStatusClass(vacancy.status)">{{vacancy.status | titlecase}}</span>
+            </div>
+            <div class="activity-date">Move-out: {{formatDate(vacancy.moveOutDate)}}</div>
+          </div>
+        </div>
+        <div *ngIf="vacancyEvents.length === 0" class="empty-state">No pending vacancy verifications.</div>
+      </div>
+    </div>
+  </div>
+</div>

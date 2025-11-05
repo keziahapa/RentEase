@@ -1,0 +1,164 @@
+<div class="dashboard-home">
+  <div class="dashboard-content">
+    
+    <div *ngIf="isLoadingDashboard" class="dashboard-skeleton">
+      <app-skeleton-list variant="stat" [count]="5"></app-skeleton-list>
+      <app-skeleton-list variant="card" [count]="4"></app-skeleton-list>
+      <app-skeleton-list variant="list" [count]="4"></app-skeleton-list>
+    </div>
+
+    <div *ngIf="!isLoadingDashboard">
+      <!-- Header Section -->
+      <div class="header-section">
+        <div class="header-content">
+          <h1 class="dashboard-title">Dashboard Overview</h1>
+          <p class="dashboard-subtitle">Welcome back! Here's your property management summary.</p>
+        </div>
+        <button class="add-property-btn" (click)="openPropertyForm()">
+          <mat-icon>add</mat-icon>
+          <span>Add New Property</span>
+        </button>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Total Properties</span>
+            <div class="stat-icon">
+              <mat-icon>apartment</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getTotalProperties() }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Occupancy Rate</span>
+            <div class="stat-icon">
+              <mat-icon>bar_chart</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getOccupancyRate() }}%</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Monthly Revenue</span>
+            <div class="stat-icon">
+              <mat-icon>attach_money</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">KES {{ getMonthlyRevenue() | number }}</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Rent Collection</span>
+            <div class="stat-icon">
+              <mat-icon>trending_up</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getRentCollectionRate() }}%</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-header">
+            <span class="stat-title">Maintenance</span>
+            <div class="stat-icon">
+              <mat-icon>handyman</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getOpenMaintenance() }}</div>
+        </div>
+
+        <!-- Move Out Stats Cards -->
+        <div class="stat-card" *ngIf="hasPendingMoveOuts()">
+          <div class="stat-header">
+            <span class="stat-title">Pending Move Outs</span>
+            <div class="stat-icon">
+              <mat-icon>exit_to_app</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getPendingMoveOutNotices() }}</div>
+        </div>
+
+        <div class="stat-card" *ngIf="hasUpcomingMoveOuts()">
+          <div class="stat-header">
+            <span class="stat-title">Upcoming Move Outs</span>
+            <div class="stat-icon">
+              <mat-icon>schedule</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getUpcomingMoveOuts() }}</div>
+        </div>
+
+        <div class="stat-card" *ngIf="getApprovedMoveOutNotices() > 0">
+          <div class="stat-header">
+            <span class="stat-title">Approved Move Outs</span>
+            <div class="stat-icon">
+              <mat-icon>check_circle</mat-icon>
+            </div>
+          </div>
+          <div class="stat-value">{{ getApprovedMoveOutNotices() }}</div>
+        </div>
+      </div>
+
+      <!-- Quick Actions Section -->
+      <div class="quick-actions-section">
+        <div class="section-header">
+          <h2>Quick Actions</h2>
+          <p>Frequently used tasks</p>
+        </div>
+        <div class="quick-actions-grid">
+          <div *ngFor="let action of quickActions" 
+               class="quick-action-card" 
+               (click)="onQuickAction(action)">
+            <div class="action-icon" [style.background]="action.color">
+              <mat-icon>{{ action.icon }}</mat-icon>
+            </div>
+            <div class="action-content">
+              <h3>{{ action.label }}</h3>
+              <p>{{ action.description }}</p>
+            </div>
+            <div class="action-arrow">
+              <mat-icon>arrow_forward</mat-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity Section -->
+      <div class="recent-activity-section">
+        <div class="section-header">
+          <h2>Recent Activity</h2>
+          <p>Latest updates from your properties</p>
+        </div>
+        <div class="activity-list">
+          <div *ngFor="let activity of recentActivities" class="activity-item">
+            <div class="activity-icon">
+              <mat-icon>{{ activity.icon }}</mat-icon>
+            </div>
+            <div class="activity-content">
+              <div class="activity-main">
+                <h4>{{ activity.type }}</h4>
+                <p>{{ activity.message }}</p>
+              </div>
+              <span class="activity-time">{{ activity.time }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="dashboardError" class="error-state">
+      <mat-icon>error_outline</mat-icon>
+      <h3>Unable to load dashboard data</h3>
+      <p>{{ dashboardError }}</p>
+      <button class="retry-btn" (click)="loadDashboardData()">
+        <mat-icon>refresh</mat-icon>
+        Try Again
+      </button>
+    </div>
+  </div>
+</div>

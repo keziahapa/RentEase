@@ -1,0 +1,82 @@
+<div class="my-ads-container">
+  <div class="header">
+    <div class="header-content">
+      <h2>My Advertisements</h2>
+      <p>Manage your business advertisements</p>
+    </div>
+    <button mat-raised-button color="primary" (click)="createNewAd()">
+      <mat-icon>add</mat-icon>
+      Create New Ad
+    </button>
+  </div>
+
+  <div class="content">
+    <div *ngIf="isLoading" class="loading-section">
+      <mat-progress-spinner diameter="40" mode="indeterminate"></mat-progress-spinner>
+      <p>Loading your advertisements...</p>
+    </div>
+
+    <div *ngIf="!isLoading && advertisements.length === 0" class="empty-state">
+      <mat-icon>campaign</mat-icon>
+      <h3>No Advertisements Yet</h3>
+      <p>Create your first advertisement to start promoting your business</p>
+      <button mat-raised-button color="primary" (click)="createNewAd()">
+        Create Your First Ad
+      </button>
+    </div>
+
+    <div *ngIf="!isLoading && advertisements.length > 0" class="ads-grid">
+      <mat-card *ngFor="let ad of advertisements" class="ad-card">
+        <div class="ad-media" *ngIf="ad.mediaUrl">
+          <img *ngIf="ad.mediaType === 'IMAGE'" [src]="ad.mediaUrl" alt="Advertisement" (error)="onImageError($event)">
+          <video *ngIf="ad.mediaType === 'VIDEO'" [src]="ad.mediaUrl" controls></video>
+        </div>
+        
+        <mat-card-header>
+          <mat-card-title>{{ ad.title }}</mat-card-title>
+          <div class="spacer"></div>
+          <mat-chip [color]="getStatusColor(ad.status)" [class]="ad.status.toLowerCase()">
+            {{ getStatusText(ad.status) }}
+          </mat-chip>
+        </mat-card-header>
+
+        <mat-card-content>
+          <p class="ad-description">{{ ad.description }}</p>
+          
+          <div class="ad-stats" *ngIf="ad.status === 'APPROVED'">
+            <div class="stat">
+              <span class="stat-value">{{ ad.views || 0 }}</span>
+              <span class="stat-label">Views</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">{{ ad.clicks || 0 }}</span>
+              <span class="stat-label">Clicks</span>
+            </div>
+          </div>
+
+          <div class="ad-meta">
+            <span>Created: {{ ad.createdAt | date }}</span>
+            <span *ngIf="ad.rejectionReason" class="rejection-reason">
+              Reason: {{ ad.rejectionReason }}
+            </span>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions align="end">
+          <button mat-button color="primary" (click)="viewAd(ad.id)">
+            <mat-icon>visibility</mat-icon>
+            View
+          </button>
+          <button mat-button (click)="editAd(ad.id)" [disabled]="ad.status === 'PENDING'">
+            <mat-icon>edit</mat-icon>
+            Edit
+          </button>
+          <button mat-button color="warn" (click)="deleteAd(ad.id)">
+            <mat-icon>delete</mat-icon>
+            Delete
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+</div>

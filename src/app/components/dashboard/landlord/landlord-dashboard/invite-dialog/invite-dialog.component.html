@@ -1,0 +1,80 @@
+<div class="invite-dialog-container">
+  <div class="dialog-overlay" (click)="onCancel()">
+    <div class="invite-dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>
+          <mat-icon class="dialog-icon">{{ data.type === 'tenant' ? 'person' : 'engineering' }}</mat-icon>
+          Invite {{ data.type === 'tenant' ? 'Tenant' : 'Caretaker' }}
+        </h3>
+        <button class="dialog-close" (click)="onCancel()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="dialog-content">
+        <div class="property-info" *ngIf="data.propertyName">
+          <mat-icon>apartment</mat-icon>
+          <span>{{ data.propertyName }}</span>
+        </div>
+
+        <form [formGroup]="inviteForm" class="invite-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Email Address *</mat-label>
+              <input matInput 
+                    formControlName="email" 
+                    type="email" 
+                    placeholder="Enter email address">
+              <mat-icon matSuffix>email</mat-icon>
+              
+              <mat-error *ngIf="hasError('email', 'required')">
+                Email is required
+              </mat-error>
+              <mat-error *ngIf="hasError('email', 'email')">
+                Please enter a valid email address
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row" *ngIf="showUnitSelection()">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Select Unit *</mat-label>
+              <mat-select formControlName="unitId">
+                <mat-option value="">-- Select Unit --</mat-option>
+                <mat-option *ngFor="let unit of availableUnits" [value]="unit.id">
+                  Unit {{ unit.unitNumber }} - {{ getUnitTypeDisplay(unit.unitType) }} 
+                  <span *ngIf="unit.rentAmount">- {{ formatCurrency(unit.rentAmount) }}</span>
+                </mat-option>
+              </mat-select>
+              <mat-icon matSuffix>meeting_room</mat-icon>
+              
+              <mat-error *ngIf="hasError('unitId', 'required')">
+                Please select a unit
+              </mat-error>
+            </mat-form-field>
+          </div>
+        </form>
+
+        <div class="invitation-note">
+          <mat-icon>info</mat-icon>
+          <span>An invitation link will be sent to the email address provided.</span>
+        </div>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="dialog-btn cancel-btn" 
+                (click)="onCancel()" 
+                [disabled]="loading">
+          Cancel
+        </button>
+        
+        <button type="button" class="dialog-btn primary-btn" 
+                (click)="onSend()"
+                [disabled]="!inviteForm.valid || loading">
+          <mat-spinner diameter="16" *ngIf="loading"></mat-spinner>
+          <span>{{ loading ? 'Sending...' : 'Send Invitation' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

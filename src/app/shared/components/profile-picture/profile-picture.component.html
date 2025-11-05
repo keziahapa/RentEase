@@ -1,0 +1,57 @@
+<div class="profile-picture-container" [class]="getSizeClass()">
+  <div class="avatar-section">
+    <div class="avatar-wrapper" [class.editable]="editable">
+      <div *ngIf="loading" class="loading-state">
+        <div class="spinner"></div>
+      </div>
+
+      <div *ngIf="!loading" class="avatar-content">
+        <img 
+          *ngIf="imageUrl && !isDefaultAvatar()" 
+          [src]="imageUrl" 
+          (error)="onImageError()"
+          class="profile-image"
+          alt="Profile picture">
+        
+        <div *ngIf="isDefaultAvatar()" class="avatar-placeholder">
+          <span class="initials">{{ getInitials() }}</span>
+        </div>
+
+        <div *ngIf="editable" class="edit-overlay">
+          <input 
+            type="file" 
+            #fileInput
+            (change)="onFileSelected($event)"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            class="file-input">
+          
+          <div class="edit-actions">
+            <button 
+              mat-icon-button 
+              class="edit-btn"
+              (click)="fileInput.click()"
+              [disabled]="uploading"
+              matTooltip="Upload new photo">
+              <mat-icon>{{ uploading ? 'refresh' : 'photo_camera' }}</mat-icon>
+            </button>
+            
+            <button 
+              *ngIf="!isDefaultAvatar()" 
+              mat-icon-button 
+              class="delete-btn"
+              (click)="deletePicture()"
+              [disabled]="uploading"
+              matTooltip="Remove photo">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showName || showRole" class="user-info">
+    <div *ngIf="showName" class="user-name">{{ getUserName() }}</div>
+    <div *ngIf="showRole" class="user-role">{{ getRoleDisplay() }}</div>
+  </div>
+</div>

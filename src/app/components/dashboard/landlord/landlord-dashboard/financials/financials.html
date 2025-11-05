@@ -1,0 +1,299 @@
+<!-- financials.component.html -->
+<div class="financials-container">
+  <!-- Header Section -->
+  <div class="header">
+    <h1>Financial Management Dashboard</h1>
+    <p class="subtitle">Comprehensive overview of your property financials</p>
+    
+    <div class="header-stats">
+      <!-- Income Card -->
+      <mat-card class="stat-card income">
+        <mat-card-content>
+          <div class="stat-layout">
+            <mat-icon class="stat-icon">account_balance_wallet</mat-icon>
+            <div class="stat-content">
+              <h3>Total Monthly Income</h3>
+              <p class="amount">${{ monthlyIncome | number:'1.2-2' }}</p>
+              <span class="trend positive">+5.2%</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Expenses Card -->
+      <mat-card class="stat-card expenses">
+        <mat-card-content>
+          <div class="stat-layout">
+            <mat-icon class="stat-icon">money_off</mat-icon>
+            <div class="stat-content">
+              <h3>Total Monthly Expenses</h3>
+              <p class="amount">${{ monthlyExpenses | number:'1.2-2' }}</p>
+              <span class="trend negative">+2.1%</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Profit Card -->
+      <mat-card class="stat-card profit">
+        <mat-card-content>
+          <div class="stat-layout">
+            <mat-icon class="stat-icon">trending_up</mat-icon>
+            <div class="stat-content">
+              <h3>Net Profit</h3>
+              <p class="amount" [class.positive]="netProfit >= 0" [class.negative]="netProfit < 0">
+                ${{ netProfit | number:'1.2-2' }}
+              </p>
+              <span class="trend positive">+8.7%</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Alerts Card -->
+      <mat-card class="stat-card alerts">
+        <mat-card-content>
+          <div class="stat-layout">
+            <mat-icon class="stat-icon" color="warn">warning</mat-icon>
+            <div class="stat-content">
+              <h3>Pending Actions</h3>
+              <p class="amount">{{ pendingInvoicesCount + overdueInvoicesCount }}</p>
+              <span class="trend">{{ overdueInvoicesCount }} overdue</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Router Outlet for Child Components (Invoices, Payments, etc.) -->
+  <router-outlet></router-outlet>
+
+  <!-- Overview Content (only shows when no child route is active) -->
+  <div class="overview-content" *ngIf="showOverview">
+    <!-- Charts Section -->
+    <div class="charts-section">
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>Monthly Income vs Expenses</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="chart-wrapper">
+            <canvas #incomeExpenseChart></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="chart-card">
+        <mat-card-header>
+          <mat-card-title>Payment Trends</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="chart-wrapper">
+            <canvas #paymentTrendsChart></canvas>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Navigation Section for Financial Sub-pages -->
+    <mat-card class="navigation-card">
+      <mat-card-content>
+        <div class="financial-navigation">
+          <h2>Financial Management Sections</h2>
+          <p>Navigate to detailed financial management pages</p>
+          <div class="nav-buttons">
+            <button mat-raised-button color="primary" routerLink="invoices" routerLinkActive="active">
+              <mat-icon>receipt</mat-icon>
+              Detailed Invoice Management
+            </button>
+            <button mat-stroked-button routerLink="payments" routerLinkActive="active">
+              <mat-icon>credit_card</mat-icon>
+              Payment History
+            </button>
+            <button mat-stroked-button routerLink="expenses" routerLinkActive="active">
+              <mat-icon>trending_down</mat-icon>
+              Expense Management
+            </button>
+            <button mat-stroked-button routerLink="reports" routerLinkActive="active">
+              <mat-icon>analytics</mat-icon>
+              Financial Reports
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Overview Tables Section -->
+    <mat-card class="tabs-card">
+      <mat-tab-group>
+        <!-- Invoices Tab -->
+        <mat-tab label="Recent Invoices">
+          <div class="tab-content">
+            <div class="tab-header">
+              <h2>Recent Invoices ({{ invoices.length }})</h2>
+              <button mat-raised-button color="primary" routerLink="invoices">
+                <mat-icon>visibility</mat-icon>
+                View All Invoices
+              </button>
+            </div>
+
+            <mat-table [dataSource]="invoices.slice(0, 3)" class="data-table">
+              <ng-container matColumnDef="tenantName">
+                <mat-header-cell *matHeaderCellDef> Tenant </mat-header-cell>
+                <mat-cell *matCellDef="let invoice"> {{ invoice.tenantName }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="unit">
+                <mat-header-cell *matHeaderCellDef> Unit </mat-header-cell>
+                <mat-cell *matCellDef="let invoice"> {{ invoice.unit }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="invoiceDate">
+                <mat-header-cell *matHeaderCellDef> Date </mat-header-cell>
+                <mat-cell *matCellDef="let invoice"> {{ invoice.invoiceDate | date:'MMM d, yyyy' }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="amount">
+                <mat-header-cell *matHeaderCellDef> Amount </mat-header-cell>
+                <mat-cell *matCellDef="let invoice"> {{ invoice.amount | currency }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="status">
+                <mat-header-cell *matHeaderCellDef> Status </mat-header-cell>
+                <mat-cell *matCellDef="let invoice">
+                  <mat-chip [class]="'status-' + invoice.status.toLowerCase()">
+                    {{ invoice.status }}
+                  </mat-chip>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="actions">
+                <mat-header-cell *matHeaderCellDef> Actions </mat-header-cell>
+                <mat-cell *matCellDef="let invoice">
+                  <button mat-icon-button (click)="sendReminder(invoice)" [disabled]="invoice.status === 'Paid'">
+                    <mat-icon>email</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="markAsPaid(invoice)" [disabled]="invoice.status === 'Paid'">
+                    <mat-icon>check_circle</mat-icon>
+                  </button>
+                </mat-cell>
+              </ng-container>
+
+              <mat-header-row *matHeaderRowDef="invoiceColumns"></mat-header-row>
+              <mat-row *matRowDef="let row; columns: invoiceColumns;"></mat-row>
+            </mat-table>
+          </div>
+        </mat-tab>
+
+        <!-- Payments Tab -->
+        <mat-tab label="Recent Payments">
+          <div class="tab-content">
+            <div class="tab-header">
+              <h2>Recent Payments ({{ payments.length }})</h2>
+              <button mat-raised-button color="primary" routerLink="payments">
+                <mat-icon>visibility</mat-icon>
+                View All Payments
+              </button>
+            </div>
+
+            <mat-table [dataSource]="payments.slice(0, 3)" class="data-table">
+              <ng-container matColumnDef="tenantName">
+                <mat-header-cell *matHeaderCellDef> Tenant </mat-header-cell>
+                <mat-cell *matCellDef="let payment"> {{ payment.tenantName }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="unit">
+                <mat-header-cell *matHeaderCellDef> Unit </mat-header-cell>
+                <mat-cell *matCellDef="let payment"> {{ payment.unit }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="paymentMethod">
+                <mat-header-cell *matHeaderCellDef> Method </mat-header-cell>
+                <mat-cell *matCellDef="let payment"> {{ payment.paymentMethod }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="amount">
+                <mat-header-cell *matHeaderCellDef> Amount </mat-header-cell>
+                <mat-cell *matCellDef="let payment"> {{ payment.amount | currency }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="dateReceived">
+                <mat-header-cell *matHeaderCellDef> Date </mat-header-cell>
+                <mat-cell *matCellDef="let payment"> {{ payment.dateReceived | date:'MMM d, yyyy' }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="status">
+                <mat-header-cell *matHeaderCellDef> Status </mat-header-cell>
+                <mat-cell *matCellDef="let payment">
+                  <mat-chip [class]="'status-' + payment.status.toLowerCase()">
+                    {{ payment.status }}
+                  </mat-chip>
+                </mat-cell>
+              </ng-container>
+
+              <mat-header-row *matHeaderRowDef="paymentColumns"></mat-header-row>
+              <mat-row *matRowDef="let row; columns: paymentColumns;"></mat-row>
+            </mat-table>
+          </div>
+        </mat-tab>
+
+        <!-- Expenses Tab -->
+        <mat-tab label="Recent Expenses">
+          <div class="tab-content">
+            <div class="tab-header">
+              <h2>Recent Expenses ({{ expenses.length }})</h2>
+              <button mat-raised-button color="primary" routerLink="expenses">
+                <mat-icon>visibility</mat-icon>
+                View All Expenses
+              </button>
+            </div>
+
+            <mat-table [dataSource]="expenses.slice(0, 3)" class="data-table">
+              <ng-container matColumnDef="property">
+                <mat-header-cell *matHeaderCellDef> Property </mat-header-cell>
+                <mat-cell *matCellDef="let expense"> {{ expense.property }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="expenseType">
+                <mat-header-cell *matHeaderCellDef> Type </mat-header-cell>
+                <mat-cell *matCellDef="let expense"> {{ expense.expenseType }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="amount">
+                <mat-header-cell *matHeaderCellDef> Amount </mat-header-cell>
+                <mat-cell *matCellDef="let expense"> {{ expense.amount | currency }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="date">
+                <mat-header-cell *matHeaderCellDef> Date </mat-header-cell>
+                <mat-cell *matCellDef="let expense"> {{ expense.date | date:'MMM d, yyyy' }} </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="status">
+                <mat-header-cell *matHeaderCellDef> Status </mat-header-cell>
+                <mat-cell *matCellDef="let expense">
+                  <mat-chip [class]="'status-' + expense.status.toLowerCase()">
+                    {{ expense.status }}
+                  </mat-chip>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="actions">
+                <mat-header-cell *matHeaderCellDef> Actions </mat-header-cell>
+                <mat-cell *matCellDef="let expense">
+                  <button mat-icon-button (click)="toggleExpenseStatus(expense)">
+                    <mat-icon>{{ expense.status === 'Paid' ? 'money_off' : 'attach_money' }}</mat-icon>
+                  </button>
+                </mat-cell>
+              </ng-container>
+
+              <mat-header-row *matHeaderRowDef="expenseColumns"></mat-header-row>
+              <mat-row *matRowDef="let row; columns: expenseColumns;"></mat-row>
+            </mat-table>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </mat-card>
+  </div>
+</div>

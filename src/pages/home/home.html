@@ -1,0 +1,226 @@
+
+<app-navbar></app-navbar>
+-
+<div class="hero-carousel" 
+     (mouseenter)="onCarouselMouseEnter()" 
+     (mouseleave)="onCarouselMouseLeave()">
+  
+  <div *ngFor="let slide of slides; let i = index" 
+       class="carousel-slide" 
+       [class.active]="currentSlide === i">
+    
+    <div class="slide-content">
+      <h2>{{ slide.title }}</h2>
+      <p>{{ slide.description }}</p>
+      <button class="slide-cta" (click)="navigateToRegister()">
+        Get Started
+        <mat-icon>arrow_forward</mat-icon>
+      </button>
+    </div>
+
+    <div class="slide-image" 
+         [style.background-image]="'url(' + slide.image + ')'"></div>
+  </div>
+
+  <div class="carousel-controls">
+    <button class="carousel-btn prev" (click)="prevSlide()">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <div class="carousel-dots">
+      <span *ngFor="let slide of slides; let i = index" 
+            class="dot" 
+            [class.active]="currentSlide === i" 
+            (click)="goToSlide(i)"></span>
+    </div>
+    <button class="carousel-btn next" (click)="nextSlide()">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+</div>
+
+
+<div *ngIf="showUninvitedMessage" class="uninvited-message-container">
+  <p class="uninvited-text">
+    Tenant/Caretaker registration is by invitation only. Please contact your landlord to register.
+  </p>
+  <div class="uninvited-actions">
+    <button mat-raised-button color="primary" (click)="navigateToLanding()">
+      Back
+    </button>
+    <button mat-raised-button color="accent" (click)="contactLandlord()">
+      Contact Landlord
+    </button>
+  </div>
+</div>
+
+
+<section id="stats" class="stats-section">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item" *ngFor="let stat of stats">
+        <div class="stat-number">{{ stat.current }}{{ stat.suffix }}</div>
+        <div class="stat-label">{{ stat.label }}</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section id="services" class="services-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">Our <span class="gradient-text">Services</span></h2>
+      <p class="section-description">
+        Comprehensive digital solutions addressing Kenya's rental challenges with innovative technology
+      </p>
+    </div>
+
+    <div class="services-carousel-wrapper" 
+         (mouseenter)="onServiceCarouselMouseEnter()" 
+         (mouseleave)="onServiceCarouselMouseLeave()">
+      <div class="services-carousel-container">
+        <div class="services-carousel-track" 
+             [ngClass]="getServiceCarouselClass()"
+             [style.transform]="getServiceCarouselTransform()">
+          
+         
+          <div *ngFor="let service of getFirstThreeServices()" 
+               class="service-card"
+               (click)="onServiceCardClick(service.id)">
+            <div class="service-background" 
+                 [style.background-image]="'url(' + service.backgroundImage + ')'">
+            </div>
+            <div class="service-content">
+              <div class="service-header">
+                <mat-icon>{{ service.icon }}</mat-icon>
+                <span *ngIf="service.badge" 
+                      class="service-badge"
+                      [ngClass]="service.badge === 'New' ? 'new' : 'popular'">
+                  {{ service.badge }}
+                </span>
+              </div>
+              <h3 class="service-title">{{ service.title }}</h3>
+              <p class="service-description">{{ service.description }}</p>
+            </div>
+          </div>
+
+   
+          <div *ngFor="let service of getLastThreeServices()" 
+               class="service-card"
+               (click)="onServiceCardClick(service.id)">
+            <div class="service-background" 
+                 [style.background-image]="'url(' + service.backgroundImage + ')'">
+            </div>
+            <div class="service-content">
+              <div class="service-header">
+                <mat-icon>{{ service.icon }}</mat-icon>
+                <span *ngIf="service.badge" 
+                      class="service-badge"
+                      [ngClass]="service.badge === 'New' ? 'new' : 'popular'">
+                  {{ service.badge }}
+                </span>
+              </div>
+              <h3 class="service-title">{{ service.title }}</h3>
+              <p class="service-description">{{ service.description }}</p>
+            </div>
+          </div>
+
+
+          <div *ngFor="let service of getFirstThreeServices()" 
+               class="service-card"
+               (click)="onServiceCardClick(service.id)">
+            <div class="service-background" 
+                 [style.background-image]="'url(' + service.backgroundImage + ')'">
+            </div>
+            <div class="service-content">
+              <div class="service-header">
+                <mat-icon>{{ service.icon }}</mat-icon>
+                <span *ngIf="service.badge" 
+                      class="service-badge"
+                      [ngClass]="service.badge === 'New' ? 'new' : 'popular'">
+                  {{ service.badge }}
+                </span>
+              </div>
+              <h3 class="service-title">{{ service.title }}</h3>
+              <p class="service-description">{{ service.description }}</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+     
+      <div class="carousel-navigation">
+        <button class="carousel-nav-btn" (click)="prevServiceSlide()" aria-label="Previous services">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+
+        <div class="carousel-dots-container">
+          <button class="nav-dot" 
+                  [class.active]="currentServiceSlide === 0"
+                  (click)="goToServiceSlide(0)"
+                  aria-label="Go to first service group"></button>
+          <button class="nav-dot" 
+                  [class.active]="currentServiceSlide === 1"
+                  (click)="goToServiceSlide(1)"
+                  aria-label="Go to second service group"></button>
+        </div>
+
+        <button class="carousel-nav-btn" (click)="nextServiceSlide()" aria-label="Next services">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="benefits-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">
+        Why Choose <span class="gradient-text">RentEase</span>?
+      </h2>
+      <p class="section-description">
+        Transform your rental experience with Kenya's most advanced property management platform
+      </p>
+    </div>
+
+    <div class="benefits-grid">
+      <div class="benefit-item" *ngFor="let benefit of benefits">
+        <div class="benefit-icon"
+             [style.--icon-color]="benefit.iconColor"
+             [style.--icon-color-light]="benefit.iconColor + '80'">
+          <mat-icon>{{ benefit.icon }}</mat-icon>
+        </div>
+        
+        <div class="benefit-content">
+          <h3>{{ benefit.title }}</h3>
+          <p>{{ benefit.description }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-content">
+      <h2 class="cta-title">Ready to Transform Your Rental Experience?</h2>
+      <p class="cta-description">
+        Join thousands of landlords and tenants who trust RentEase for secure, transparent property management
+      </p>
+      <div class="cta-buttons">
+        <button class="btn btn-primary large" (click)="navigateToContact()">
+         Get Started 
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+        <p class="cta-note">No setup fees • Cancel anytime • 24/7 support</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<app-footer></app-footer>

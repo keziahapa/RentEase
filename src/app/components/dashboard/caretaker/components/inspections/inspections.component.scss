@@ -1,0 +1,170 @@
+.inspections-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+
+  h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.view-stats {
+  display: flex;
+  gap: 12px;
+}
+
+.stat-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+
+  &.scheduled {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+  }
+}
+
+.table-container {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.inspection-table {
+  width: 100%;
+}
+
+.mat-header-cell {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.mat-cell, .mat-header-cell {
+  padding: 16px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.inspection-type {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+
+  &.type-move-in {
+    background: #d1ecf1;
+    color: #0c5460;
+  }
+
+  &.type-move-out {
+    background: #e2e3e5;
+    color: #383d41;
+  }
+
+  &.type-routine {
+    background: #d4edda;
+    color: #155724;
+  }
+}
+
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+
+  &.status-scheduled {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  &.status-completed {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  &.status-cancelled {
+    background: #f8d7da;
+    color: #721c24;
+  }
+}
+
+.no-deposit {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-success, .btn-secondary {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+
+  &:hover {
+    background: #1e7e34;
+  }
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+
+  &:hover {
+    background: #5a6268;
+  }
+}
+
+@media (max-width: 768px) {
+  .view-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .mat-table {
+    font-size: 12px;
+  }
+
+  .mat-cell, .mat-header-cell {
+    padding: 8px;
+  }
+}

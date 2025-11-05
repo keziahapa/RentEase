@@ -1,0 +1,79 @@
+<div class="approved-ads-container">
+  <div class="header">
+    <div class="header-content">
+      <h2>Approved Advertisements</h2>
+      <p>View all active and approved advertisements</p>
+    </div>
+    <div class="header-actions">
+      <button mat-raised-button color="primary" (click)="loadApprovedAdvertisements()" [disabled]="isLoading">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-bar" *ngIf="!isLoading && advertisements.length > 0">
+    <div class="stat-item">
+      <span class="stat-number">{{ advertisements.length }}</span>
+      <span class="stat-label">Active Advertisements</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div *ngIf="isLoading" class="loading-section">
+      <mat-progress-spinner diameter="40" mode="indeterminate"></mat-progress-spinner>
+      <p>Loading approved advertisements...</p>
+    </div>
+
+    <div *ngIf="!isLoading && advertisements.length === 0" class="empty-state">
+      <mat-icon>campaign</mat-icon>
+      <h3>No Approved Advertisements</h3>
+      <p>There are no approved advertisements in the system yet.</p>
+    </div>
+
+    <div *ngIf="!isLoading && advertisements.length > 0" class="approved-ads-grid">
+      <mat-card *ngFor="let ad of advertisements" class="approved-ad-card">
+        <div class="ad-media" *ngIf="ad.mediaUrl">
+          <img *ngIf="ad.mediaType === 'IMAGE'" [src]="ad.mediaUrl" alt="Advertisement">
+          <video *ngIf="ad.mediaType === 'VIDEO'" [src]="ad.mediaUrl" controls></video>
+        </div>
+        
+        <mat-card-header>
+          <mat-card-title>{{ ad.title }}</mat-card-title>
+          <mat-card-subtitle>Business: {{ ad.businessName || 'Unknown' }}</mat-card-subtitle>
+          <div class="spacer"></div>
+          <mat-chip color="primary" class="approved-chip">
+            ACTIVE
+          </mat-chip>
+        </mat-card-header>
+
+        <mat-card-content>
+          <p class="ad-description">{{ ad.description }}</p>
+          
+          <div class="ad-stats">
+            <div class="stat">
+              <span class="stat-value">{{ ad.views || 0 }}</span>
+              <span class="stat-label">Views</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">{{ ad.clicks || 0 }}</span>
+              <span class="stat-label">Clicks</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" *ngIf="ad.views && ad.clicks">
+                {{ ((ad.clicks / ad.views) * 100).toFixed(1) }}%
+              </span>
+              <span class="stat-value" *ngIf="!ad.views || !ad.clicks">0%</span>
+              <span class="stat-label">CTR</span>
+            </div>
+          </div>
+
+          <div class="ad-meta">
+            <span>Created: {{ ad.createdAt | date }}</span>
+            <span>Last Updated: {{ ad.updatedAt | date }}</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>
