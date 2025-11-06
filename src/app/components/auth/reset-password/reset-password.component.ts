@@ -1,3 +1,4 @@
+// src/app/components/auth/reset-password/reset-password.component.ts
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors, ReactiveFormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Subscription } from 'rxjs';
+import { Subscription, firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 
 @Component({
@@ -64,7 +65,6 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
   ngOnInit() {
     console.log(' ResetPasswordComponent Initializing...');
     
-   
     this.email = sessionStorage.getItem('resetEmail') || '';
     this.otpCode = sessionStorage.getItem('resetOtp') || '';
     const isOtpVerified = sessionStorage.getItem('otpVerified') === 'true';
@@ -75,7 +75,6 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
       isOtpVerified: isOtpVerified
     });
 
-   
     if (!this.email || !this.otpCode) {
       console.log('Falling back to query params...');
       this.routeSub = this.route.queryParams.subscribe(params => {
@@ -377,9 +376,11 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
     });
 
     try {
-      const response = await this.authService.resetPassword(payload).toPromise();
+      // FIXED: Use firstValueFrom instead of toPromise for better type safety
+      const response = await firstValueFrom(this.authService.resetPassword(payload));
       console.log('Reset password response:', response);
 
+      // FIXED: Response is now guaranteed to exist
       if (response.success) {
         this.showSnackBar('Password reset successfully! Redirecting to login...', 'success');
         
@@ -427,17 +428,17 @@ export class ResetPasswordComponent implements OnInit, OnDestroy {
     
     if (typeof error === 'string') {
       errorMessage = error;
-    } else if (error.error?.message) {
+    } else if (error?.error?.message) {
       errorMessage = this.parseBackendError(error.error.message);
-    } else if (error.message) {
+    } else if (error?.message) {
       errorMessage = error.message;
-    } else if (error.status === 400) {
+    } else if (error?.status === 400) {
       errorMessage = 'Invalid request. Please check your inputs.';
-    } else if (error.status === 401) {
+    } else if (error?.status === 401) {
       errorMessage = 'Invalid or expired OTP. Please request a new password reset.';
-    } else if (error.status === 404) {
+    } else if (error?.status === 404) {
       errorMessage = 'Reset password endpoint not found. Please contact support.';
-    } else if (error.status === 500) {
+    } else if (error?.status === 500) {
       errorMessage = 'Server error. Please try again later.';
     }
     

@@ -302,16 +302,12 @@ export class CaretakerService {
     }).pipe(catchError(this.handleError));
   }
 
-  // Helper method to get current user ID
   getCurrentUserId(): number {
-    try {
-      const currentUser = this.authService.getCurrentUser();
-      return currentUser?.id ? parseInt(currentUser.id, 10) : 0;
-    } catch (error) {
-      console.error('Error getting current user ID:', error);
-      return 0;
-    }
-  }
+  const currentUser = this.authService.getCurrentUser();
+  // FIX: Ensure we're working with a string before parsing
+  const userId = currentUser?.id?.toString();
+  return userId ? parseInt(userId, 10) : 0;
+}
 
   // Helper method to get current user role
   getCurrentUserRole(): string {
