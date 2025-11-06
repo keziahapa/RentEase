@@ -293,6 +293,7 @@ export class AuthService {
     }).pipe(catchError(this.handleError));
   }
 
+  // ✅ FIXED: Complete verifyOtp method with proper token handling
   verifyOtp(request: any): Observable<any> {
     const cleanRequest = {
       email: request.email.trim().toLowerCase(),
@@ -300,35 +301,64 @@ export class AuthService {
       type: request.type
     };
     
+    console.log('🔐 Verifying OTP with:', cleanRequest);
+
     return this.http.post<any>(`${this.apiUrl}/verify-otp`, cleanRequest, {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
     }).pipe(
       tap(res => {
-        if (res.success && res.token) {
-          const userData = res.user || {
-            id: res.userId?.toString(),
+        console.log('🔐 OTP Verification FULL Response:', res);
+        
+        // ✅ CRITICAL: Extract token from ANY possible location
+        let token = null;
+        let userData = null;
+
+        // Check ALL possible token locations
+        if (res.token) {
+          token = res.token;
+        } else if (res.data?.token) {
+          token = res.data.token;
+        } else if (res.access_token) {
+          token = res.access_token;
+        } else if (res.authToken) {
+          token = res.authToken;
+        } else if (res.jwt) {
+          token = res.jwt;
+        }
+
+        console.log('🔐 Extracted token:', token ? 'TOKEN FOUND' : 'NO TOKEN');
+
+        // Check ALL possible user data locations
+        if (res.user) {
+          userData = res.user;
+        } else if (res.data?.user) {
+          userData = res.data.user;
+        } else {
+          // Create user data from response fields
+          userData = {
+            id: res.userId?.toString() || res.id?.toString(),
             fullName: res.fullName,
             email: res.email,
             role: res.role,
             verified: res.verified,
-            emailVerified: res.emailVerified
+            emailVerified: res.emailVerified,
+            phoneNumber: res.phoneNumber
           };
+        }
 
-          if (!userData.role) {
-            throw new Error('User role not provided in verification response');
-          }
-          
-          const phoneNumber = this.extractPhoneNumberFromMultipleSources(res);
+        if (!userData.role) {
+          console.error('❌ User role not provided in verification response');
+          throw new Error('User role not provided in verification response');
+        }
+        
+        const phoneNumber = this.extractPhoneNumberFromMultipleSources(res);
+        
+        // ✅ STORE THE TOKEN AND USER DATA
+        if (token) {
+          console.log('✅ Storing token and user data after OTP verification');
           
           const enhancedResponse = {
-            token: res.token,
-            tokenType: 'Bearer',
-            userId: res.userId,
-            fullName: userData.fullName,
-            email: userData.email,
-            role: userData.role,
-            verified: userData.verified,
-            phoneNumber: phoneNumber,
+            token: token,
             user: {
               ...userData,
               phoneNumber: phoneNumber
@@ -336,6 +366,9 @@ export class AuthService {
           };
           
           this.handleAuthSuccess(enhancedResponse, false);
+        } else {
+          console.error('❌ No token found in OTP verification response');
+          throw new Error('No authentication token received after verification');
         }
       }),
       catchError(this.handleOtpError)
