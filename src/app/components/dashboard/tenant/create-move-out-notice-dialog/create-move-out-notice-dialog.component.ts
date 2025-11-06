@@ -81,6 +81,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    console.log('🔍 MoveOut Dialog Initialized');
     this.loadCurrentPropertyData();
   }
 
@@ -137,8 +138,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
 
     // Debug form status
     this.noticeForm.statusChanges.subscribe(status => {
-      console.log('Form status:', status);
-      console.log('Form valid:', this.noticeForm.valid);
+      console.log('Form status:', status, 'Valid:', this.noticeForm.valid);
     });
   }
 
@@ -147,9 +147,15 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   onSubmit(): void {
-    console.log('Submit clicked - Form valid:', this.noticeForm.valid, 'Terms accepted:', this.termsAccepted);
+    console.log('🔘 Submit clicked - Form valid:', this.noticeForm.valid, 'Terms accepted:', this.termsAccepted);
     
-    if (this.noticeForm.valid && this.termsAccepted && !this.isSubmitting) {
+    // 🟢 STRONG DOUBLE SUBMISSION PROTECTION
+    if (this.isSubmitting) {
+      console.warn('⚠️ Submission already in progress, ignoring duplicate click');
+      return;
+    }
+    
+    if (this.noticeForm.valid && this.termsAccepted) {
       this.isSubmitting = true;
       
       const formValue = this.noticeForm.value;
@@ -158,12 +164,12 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
         moveOutDate: this.formatDate(formValue.moveOutDate)
       };
 
-      console.log('Submitting move-out notice:', noticeData);
+      console.log('📤 Submitting move-out notice:', noticeData);
 
       this.tenantService.submitMoveOutNotice(noticeData).subscribe({
         next: (response: any) => {
           this.isSubmitting = false;
-          console.log('Move-out notice response:', response);
+          console.log('📥 Move-out notice response:', response);
           
           if (response.success) {
             this.snackBar.open('Move-out notice submitted successfully!', 'Close', { 
@@ -175,6 +181,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
               data: response.data || noticeData 
             });
           } else {
+            // Handle backend success: false responses
             this.snackBar.open(response.message || 'Failed to submit move-out notice', 'Close', { 
               duration: 5000,
               panelClass: ['error-snackbar']
@@ -183,9 +190,9 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
         },
         error: (error) => {
           this.isSubmitting = false;
-          console.error('Error submitting move-out notice:', error);
+          console.error('❌ Error submitting move-out notice:', error);
           
-          if (error.status === 401) {
+          if (error.status === 401 || error.sessionExpired) {
             this.snackBar.open('Session expired. Please login again.', 'Close', { 
               duration: 5000,
               panelClass: ['error-snackbar']
@@ -200,7 +207,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
         }
       });
     } else {
-      console.log('Form validation failed - marking fields as touched');
+      console.log('❌ Form validation failed - marking fields as touched');
       this.markFormGroupTouched();
       
       if (!this.termsAccepted) {
@@ -249,11 +256,19 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   isFormValid(): boolean {
-    return this.noticeForm.valid && this.termsAccepted && !this.isSubmitting;
+    const isValid = this.noticeForm.valid && this.termsAccepted && !this.isSubmitting;
+    console.log('✅ isFormValid check:', {
+      formValid: this.noticeForm.valid,
+      termsAccepted: this.termsAccepted,
+      notSubmitting: !this.isSubmitting,
+      finalResult: isValid
+    });
+    return isValid;
   }
 
   onTermsChange(checked: boolean): void {
     this.termsAccepted = checked;
+    console.log('📝 Terms accepted:', checked);
   }
 
   isDateValid(): boolean {
@@ -261,9 +276,12 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     return dateControl?.valid && dateControl.value;
   }
 
- 
   getReasonDisplayName(reasonValue: string): string {
     const reason = this.moveOutReasons.find(r => r.value === reasonValue);
     return reason ? reason.label : reasonValue;
+  }
+
+  ngOnDestroy(): void {
+    console.log('🔍 MoveOut Dialog Destroyed');
   }
 }

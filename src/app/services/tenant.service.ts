@@ -76,8 +76,8 @@ export class TenantService {
       `${this.apiUrl}/tenant/move-out-notices`,
       request,
       { 
-        headers: this.createHeaders(),
-        observe: 'response' // Get full response including status
+        headers: this.createHeaders()
+        // 🟢 REMOVED observe: 'response' - This was causing the issue
       }
     ).pipe(
       map(response => {
@@ -85,7 +85,7 @@ export class TenantService {
         return {
           success: true,
           message: 'Move-out notice submitted successfully!',
-          data: response.body?.data || request
+          data: response?.data || request // 🟢 FIXED: response is now the actual API response
         };
       }),
       catchError(error => {
@@ -93,8 +93,12 @@ export class TenantService {
         
         // Handle 401 specifically
         if (error.status === 401) {
-          console.warn('🔄 Token expired, logging out...');
-          this.authService.logoutSync();
+          console.warn('🔄 Token expired during submission');
+          return of({ 
+            success: false, 
+            message: 'Session expired. Please login again.',
+            sessionExpired: true 
+          });
         }
         
         return of({ 

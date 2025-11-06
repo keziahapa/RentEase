@@ -1,145 +1,109 @@
-<div class="dashboard-container">
-  <div class="mobile-menu-overlay" [class.active]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
-  
-  <nav class="sidebar" [class.mobile-open]="isMobileMenuOpen">
-    <div class="sidebar-header">
-      <div class="logo" (click)="navigateToSection('dashboard')">
-        <img src="/images/logo.png" alt="RentEase Logo" class="logo-image">
-      </div>
+<div class="move-out-dialog">
+  <h2 mat-dialog-title>Submit Move-Out Notice</h2>
+
+  <mat-dialog-content>
+    <!-- Loading State -->
+    <div *ngIf="isLoadingData" class="loading-section">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading your property information...</p>
     </div>
 
-    <div class="nav-menu">
-      <div class="nav-item" 
-           [class.active]="isNavActive('dashboard')" 
-           (click)="navigateToSection('dashboard')">
-        <mat-icon class="nav-icon">dashboard</mat-icon>
-        <span>Dashboard</span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('properties')" 
-           (click)="navigateToSection('properties')">
-        <mat-icon class="nav-icon">apartment</mat-icon>
-        <span>Properties</span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('tenants')" 
-           (click)="navigateToSection('tenants')">
-        <mat-icon class="nav-icon">groups</mat-icon>
-        <span>Tenants</span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('financials')" 
-           (click)="navigateToSection('financials')">
-        <mat-icon class="nav-icon">payments</mat-icon>
-        <span>Financials</span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('maintenance')" 
-           (click)="navigateToSection('maintenance')">
-        <mat-icon class="nav-icon">handyman</mat-icon>
-        <span>Maintenance</span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('chat')" 
-           (click)="navigateToSection('chat')">
-        <mat-icon class="nav-icon">chat</mat-icon>
-        <span>Chat</span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('messages')" 
-           (click)="navigateToSection('messages')">
-        <mat-icon class="nav-icon">message</mat-icon>
-        <span>Messages</span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('marketplace')" 
-           (click)="navigateToSection('marketplace')">
-        <mat-icon class="nav-icon">store</mat-icon>
-        <span>Marketplace</span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('move-out')" 
-           (click)="viewMoveOutNotices()">
-        <mat-icon class="nav-icon">exit_to_app</mat-icon>
-        <span>Move Out Requests</span>
-        <span class="notification-badge" *ngIf="hasPendingMoveOuts()">
-          {{ unreadMoveOutCount > 99 ? '99+' : unreadMoveOutCount }}
-        </span>
-      </div>
-
-      <div class="nav-item" 
-           [class.active]="isNavActive('profile')" 
-           (click)="viewProfile()">
-        <mat-icon class="nav-icon">account_circle</mat-icon>
-        <span>Profile</span>
-      </div>
-    </div>
-  </nav>
-
-  <main class="main-content">
-    <div class="top-header">
-      <div class="header-left">
-        <button class="mobile-menu-btn" (click)="toggleMobileMenu()" aria-label="Toggle menu">
-          <mat-icon>menu</mat-icon>
-        </button>
-        <div class="greeting-section">
-          <h1>{{ getGreetingMessage() }}</h1>
-          <p>Here's what's happening with your properties today</p>
+    <!-- Property Information -->
+    <div *ngIf="!isLoadingData && currentProperty" class="property-info">
+      <h3>Property Details</h3>
+      <div class="property-details">
+        <div class="detail-item">
+          <strong>Property:</strong> {{ currentProperty.name }}
         </div>
-      </div>
-
-      <div class="header-right">
-        <div class="header-actions">
-          <button class="notification-btn" (click)="viewNotifications()" 
-                  [class.has-notifications]="unreadNotificationsCount > 0"
-                  matTooltip="{{ unreadNotificationsCount > 0 ? unreadNotificationsCount + ' unread notifications' : 'No new notifications' }}"
-                  matTooltipPosition="below">
-            <mat-icon>notifications</mat-icon>
-            <span class="notification-badge" *ngIf="unreadNotificationsCount > 0">
-              {{ unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount }}
-            </span>
-          </button>
+        <div class="detail-item">
+          <strong>Unit:</strong> {{ currentProperty.unitNumber }}
         </div>
-
-        <div class="profile-section">
-          <div class="user-avatar-wrapper" (click)="toggleProfileMenu(); $event.stopPropagation()">
-            <div class="user-avatar">
-              <img *ngIf="profileImage" [src]="profileImage" alt="Profile" class="avatar-image" (error)="onLogoError($event)">
-              <div *ngIf="!profileImage" class="avatar-placeholder">
-                <mat-icon>account_circle</mat-icon>
-              </div>
-            </div>
-          </div>
-
-          <div class="dropdown-trigger" (click)="toggleProfileMenu(); $event.stopPropagation()">
-            <mat-icon class="dropdown-chevron" [class.rotated]="isProfileMenuOpen">expand_more</mat-icon>
-          </div>
-
-          <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
-            <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
-              <mat-icon>edit</mat-icon>
-              <span>Edit Profile</span>
-            </button>
-            <div class="dropdown-divider"></div>
-            <button class="dropdown-item logout-item" 
-                    (click)="logout(); $event.stopPropagation()"
-                    [disabled]="isLoggingOut">
-              <mat-icon>logout</mat-icon>
-              <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
-            </button>
-          </div>
+        <div class="detail-item">
+          <strong>Address:</strong> {{ currentProperty.address }}
         </div>
       </div>
     </div>
 
-    <router-outlet></router-outlet>
-  </main>
+    <!-- Move-Out Form -->
+    <form [formGroup]="noticeForm" *ngIf="!isLoadingData">
+      <!-- Move-Out Date -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Move-Out Date</mat-label>
+        <input matInput 
+               [matDatepicker]="picker" 
+               formControlName="moveOutDate" 
+               [min]="minDate" 
+               [max]="maxDate"
+               placeholder="Select your move-out date"
+               class="date-input">
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+        <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('required')">
+          Move-out date is required
+        </mat-error>
+        <mat-hint>Select your intended move-out date (minimum 1 day from today)</mat-hint>
+      </mat-form-field>
+
+      <!-- Reason for Moving -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Reason for Moving Out</mat-label>
+        <mat-select formControlName="reason">
+          <mat-option *ngFor="let reason of moveOutReasons" [value]="reason.value">
+            {{ reason.label }}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="noticeForm.get('reason')?.hasError('required')">
+          Please select a reason for moving out
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Additional Notes -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Additional Notes (Optional)</mat-label>
+        <textarea matInput 
+                  formControlName="notes" 
+                  rows="4" 
+                  placeholder="Provide any additional information for your landlord..."
+                  maxlength="1000"
+                  class="notes-textarea"></textarea>
+        <mat-hint align="end">{{ getNotesLength() }}/1000</mat-hint>
+      </mat-form-field>
+
+      <!-- Terms and Conditions -->
+      <div class="terms-section" [class.terms-invalid]="!termsAccepted && noticeForm.touched">
+        <mat-checkbox (change)="onTermsChange($event.checked)" 
+                     [checked]="termsAccepted"
+                     color="primary">
+          I understand that:
+        </mat-checkbox>
+        <ul class="terms-list">
+          <li>This move-out notice is a formal request to terminate my tenancy</li>
+          <li>I am required to provide at least 30 days notice (or as per my lease agreement)</li>
+          <li>I am responsible for rent until the move-out date</li>
+          <li>I must leave the property in clean and good condition</li>
+          <li>My security deposit will be processed after the final inspection</li>
+        </ul>
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button 
+            (click)="onCancel()" 
+            [disabled]="isSubmitting"
+            class="cancel-btn">
+      Cancel
+    </button>
+    <button mat-raised-button 
+            color="primary" 
+            (click)="onSubmit(); $event.stopPropagation()" 
+            [disabled]="!isFormValid() || isSubmitting"
+            class="submit-button">
+      <span *ngIf="!isSubmitting">Submit Move-Out Notice</span>
+      <span *ngIf="isSubmitting" class="button-loading">
+        <mat-spinner diameter="20"></mat-spinner>
+        Submitting...
+      </span>
+    </button>
+  </mat-dialog-actions>
 </div>
