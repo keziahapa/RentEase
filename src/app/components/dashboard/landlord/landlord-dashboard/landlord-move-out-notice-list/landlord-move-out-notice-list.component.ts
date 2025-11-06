@@ -18,7 +18,6 @@ import { LandlordMoveOutNotice, LandlordMoveOutNoticeResponse, MoveOutActionRequ
 import { PropertyService } from '../../../../../services/property.service';
 import { MoveOutActionDialogComponent } from '../move-out-action-dialog/move-out-action-dialog.component';
 
-
 @Component({
   selector: 'app-landlord-move-out-notice-list',
   standalone: true,
@@ -79,24 +78,61 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
     this.propertyService.getLandlordMoveOutNotices(page, this.pageSize, this.filterStatus).subscribe({
       next: (response: LandlordMoveOutNoticeResponse) => {
         if (response.success) {
-          this.moveOutNotices = Array.isArray(response.data) ? response.data : [response.data];
+          let notices = Array.isArray(response.data) ? response.data : [response.data];
+          
+          // ✅ TRANSFORM DATA TO ENSURE ALL FIELDS ARE AVAILABLE
+          this.moveOutNotices = notices.map(notice => this.transformNoticeData(notice));
           this.filteredNotices = [...this.moveOutNotices];
+          
           this.currentPage = response.pagination?.currentPage || 1;
           this.totalPages = response.pagination?.totalPages || 1;
           this.totalItems = response.pagination?.totalItems || 0;
           this.hasNext = response.pagination?.hasNext || false;
           this.hasPrev = response.pagination?.hasPrev || false;
           this.calculateStats();
+          
+          console.log('📋 Loaded notices:', this.moveOutNotices);
         } else {
           this.snackBar.open(response.message || 'Failed to load move-out notices', 'Close', { duration: 5000 });
         }
         this.isLoading = false;
       },
       error: (error) => {
+        console.error('❌ Error loading notices:', error);
         this.snackBar.open('Failed to load move-out notices', 'Close', { duration: 5000 });
         this.isLoading = false;
       }
     });
+  }
+
+  // ✅ TRANSFORM NOTICE DATA TO ENSURE ALL FIELDS EXIST
+  private transformNoticeData(notice: any): LandlordMoveOutNotice {
+    return {
+      ...notice,
+      // ✅ Ensure tenant data exists with fallbacks
+      tenant: notice.tenant || {
+        fullName: notice.tenantName || notice.tenantFullName || 'Unknown Tenant',
+        email: notice.tenantEmail || 'N/A',
+        phone: notice.tenantPhone || 'N/A'
+      },
+      // ✅ Ensure property data exists with fallbacks
+      property: notice.property || {
+        name: notice.propertyName || 'Unknown Property',
+        address: notice.propertyAddress || 'Address not available',
+        id: notice.propertyId
+      },
+      // ✅ Ensure unit data exists with fallbacks
+      unit: notice.unit || {
+        unitNumber: notice.unitNumber || 'Unknown Unit',
+        id: notice.unitId
+      },
+      // ✅ Ensure all required fields have fallbacks
+      moveOutDate: notice.moveOutDate || '',
+      reason: notice.reason || 'OTHER',
+      notes: notice.notes || '',
+      submittedAt: notice.submittedAt || notice.createdAt || new Date().toISOString(),
+      status: notice.status || 'PENDING'
+    };
   }
 
   calculateStats(): void {
@@ -163,12 +199,6 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
       case 'REJECTED': return 'Rejected';
       case 'CANCELLED': return 'Cancelled';
       default: return status;
-    }
-  }
-
-  viewNotice(notice: LandlordMoveOutNotice): void {
-    if (notice.id) {
-      this.router.navigate(['/landlord-dashboard/move-out-notices', notice.id]);
     }
   }
 
@@ -302,6 +332,7 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
       'PERSONAL': 'Personal Reasons',
       'PROPERTY_ISSUES': 'Property Issues',
       'LEASE_END': 'Lease End',
+      'PURCHASED_HOME': 'Purchased a Home',
       'OTHER': 'Other'
     };
     return reasonMap[reason] || reason;
