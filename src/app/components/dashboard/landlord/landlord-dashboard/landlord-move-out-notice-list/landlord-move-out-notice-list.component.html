@@ -1,58 +1,52 @@
 <div class="move-out-notices-container">
-  <!-- Header Section -->
   <div class="header-section">
     <div class="header-content">
       <h1 class="page-title">Move Out Notices</h1>
       <p class="page-subtitle">Review and manage tenant move-out requests</p>
     </div>
-    <div class="header-actions">
-      <button class="export-btn" (click)="exportToCSV()">
-        <mat-icon>download</mat-icon>
-        <span>Export CSV</span>
-      </button>
-    </div>
+    <button class="export-btn" (click)="exportToCSV()">
+      <mat-icon>download</mat-icon>
+      <span>Export CSV</span>
+    </button>
   </div>
 
-  <!-- Statistics Cards -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-header">
-        <span class="stat-title">Total Notices</span>
-        <div class="stat-icon total">
-          <mat-icon>list_alt</mat-icon>
+  <!-- Stats Cards -->
+  <div class="stats-section">
+    <div class="stat-card pending">
+      <div class="stat-content">
+        <mat-icon>schedule</mat-icon>
+        <div class="stat-info">
+          <span class="stat-number">{{ stats.pending }}</span>
+          <span class="stat-label">Pending</span>
         </div>
       </div>
-      <div class="stat-value">{{ stats.total }}</div>
     </div>
-
-    <div class="stat-card">
-      <div class="stat-header">
-        <span class="stat-title">Pending Review</span>
-        <div class="stat-icon pending">
-          <mat-icon>schedule</mat-icon>
+    <div class="stat-card approved">
+      <div class="stat-content">
+        <mat-icon>check_circle</mat-icon>
+        <div class="stat-info">
+          <span class="stat-number">{{ stats.approved }}</span>
+          <span class="stat-label">Approved</span>
         </div>
       </div>
-      <div class="stat-value">{{ stats.pending }}</div>
     </div>
-
-    <div class="stat-card">
-      <div class="stat-header">
-        <span class="stat-title">Approved</span>
-        <div class="stat-icon approved">
-          <mat-icon>check_circle</mat-icon>
+    <div class="stat-card rejected">
+      <div class="stat-content">
+        <mat-icon>cancel</mat-icon>
+        <div class="stat-info">
+          <span class="stat-number">{{ stats.rejected }}</span>
+          <span class="stat-label">Rejected</span>
         </div>
       </div>
-      <div class="stat-value">{{ stats.approved }}</div>
     </div>
-
-    <div class="stat-card">
-      <div class="stat-header">
-        <span class="stat-title">Rejected</span>
-        <div class="stat-icon rejected">
-          <mat-icon>cancel</mat-icon>
+    <div class="stat-card total">
+      <div class="stat-content">
+        <mat-icon>list_alt</mat-icon>
+        <div class="stat-info">
+          <span class="stat-number">{{ stats.total }}</span>
+          <span class="stat-label">Total</span>
         </div>
       </div>
-      <div class="stat-value">{{ stats.rejected }}</div>
     </div>
   </div>
 
@@ -71,19 +65,8 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="filter-field">
-        <mat-label>Property</mat-label>
-        <mat-select [(value)]="propertyFilter" (selectionChange)="applyFilters()">
-          <mat-option value="">All Properties</mat-option>
-          <mat-option *ngFor="let property of getUniqueProperties()" [value]="property">
-            {{ property }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="search-field">
         <mat-label>Search</mat-label>
-        <input matInput [(ngModel)]="searchTerm" (input)="onSearchChange()" 
-               placeholder="Search by tenant, property, or unit...">
+        <input matInput [(ngModel)]="searchTerm" (input)="onSearchChange()" placeholder="Search by tenant, property, or unit...">
         <mat-icon matSuffix>search</mat-icon>
       </mat-form-field>
 
@@ -94,34 +77,33 @@
     </div>
   </div>
 
-  <!-- Content Section -->
   <div class="content-section">
+    <!-- Loading State -->
     <div *ngIf="isLoading" class="loading-state">
       <mat-spinner diameter="50"></mat-spinner>
       <p>Loading move-out notices...</p>
     </div>
 
+    <!-- Content when not loading -->
     <div *ngIf="!isLoading">
+      <!-- Empty State -->
       <div *ngIf="filteredNotices.length === 0" class="empty-state">
         <mat-icon>exit_to_app</mat-icon>
         <h3>No Move Out Notices</h3>
-        <p *ngIf="filterStatus || searchTerm || propertyFilter">
-          No notices match your current filters. Try adjusting your search criteria.
-        </p>
-        <p *ngIf="!filterStatus && !searchTerm && !propertyFilter">
-          You don't have any move-out notices at the moment.
-        </p>
-        <button class="clear-filters-btn" (click)="clearFilters()" *ngIf="filterStatus || searchTerm || propertyFilter">
-          Clear Filters
+        <p>No move-out notices found matching your criteria.</p>
+        <button class="clear-filters-btn" (click)="clearFilters()" *ngIf="filterStatus || searchTerm">
+          <mat-icon>clear</mat-icon>
+          <span>Clear Filters</span>
         </button>
       </div>
 
+      <!-- Notices Grid -->
       <div *ngIf="filteredNotices.length > 0" class="notices-grid">
         <div *ngFor="let notice of filteredNotices" class="notice-card">
           <div class="notice-header">
             <div class="notice-info">
               <h3 class="notice-title">{{ notice.tenant?.fullName || 'Unknown Tenant' }}</h3>
-              <p class="notice-property">{{ notice.property?.name }} - {{ notice.unit?.unitNumber }}</p>
+              <p class="notice-date">Move Out: {{ formatDate(notice.moveOutDate) }}</p>
             </div>
             <div class="notice-status" [style.background]="getStatusColor(notice.status)">
               <mat-icon>{{ getStatusIcon(notice.status) }}</mat-icon>
@@ -131,55 +113,53 @@
 
           <div class="notice-content">
             <div class="notice-details">
-              <div class="detail-row">
-                <div class="detail-item">
-                  <span class="detail-label">Move Out Date:</span>
-                  <span class="detail-value">{{ formatDate(notice.moveOutDate) }}</span>
-                  <span class="urgency-badge" [class]="'urgency-' + getMoveOutUrgency(notice.moveOutDate)">
-                    {{ getDaysUntilMoveOut(notice.moveOutDate) }} days
-                  </span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Reason:</span>
-                  <span class="detail-value">{{ getMoveOutReasonDisplay(notice.reason) }}</span>
-                </div>
+              <div class="detail-item">
+                <span class="detail-label">Property:</span>
+                <span class="detail-value">{{ notice.property?.name || 'N/A' }}</span>
               </div>
-              
-              <div class="detail-row">
-                <div class="detail-item">
-                  <span class="detail-label">Submitted:</span>
-                  <span class="detail-value">{{ formatDate(notice.submittedAt || '') }}</span>
-                </div>
-                <div class="detail-item" *ngIf="notice.notes">
-                  <span class="detail-label">Tenant Notes:</span>
-                  <span class="detail-value notes">{{ notice.notes }}</span>
-                </div>
+              <div class="detail-item">
+                <span class="detail-label">Unit:</span>
+                <span class="detail-value">{{ notice.unit?.unitNumber || 'N/A' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Reason:</span>
+                <span class="detail-value">{{ getMoveOutReasonDisplay(notice.reason) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Submitted:</span>
+                <span class="detail-value">{{ formatDate(notice.submittedAt || '') }}</span>
+              </div>
+              <div class="detail-item" *ngIf="notice.notes">
+                <span class="detail-label">Tenant Notes:</span>
+                <span class="detail-value">{{ notice.notes }}</span>
               </div>
             </div>
           </div>
 
+          <!-- ACTION BUTTONS SECTION - THIS IS WHAT YOU'RE MISSING -->
           <div class="notice-actions">
+            <!-- View Details Button -->
             <button class="action-btn view-btn" (click)="viewNotice(notice)">
               <mat-icon>visibility</mat-icon>
               <span>View Details</span>
             </button>
-            
-            <div class="action-buttons" *ngIf="notice.status === 'PENDING'">
+
+            <!-- Approve/Reject Buttons (only show for pending notices) -->
+            <div class="action-buttons-group" *ngIf="notice.status === 'PENDING'">
               <button class="action-btn approve-btn" (click)="approveNotice(notice)">
-                <mat-icon>check</mat-icon>
+                <mat-icon>check_circle</mat-icon>
                 <span>Approve</span>
               </button>
+              
               <button class="action-btn reject-btn" (click)="rejectNotice(notice)">
-                <mat-icon>close</mat-icon>
+                <mat-icon>cancel</mat-icon>
                 <span>Reject</span>
               </button>
             </div>
 
-            <div class="action-buttons" *ngIf="notice.status !== 'PENDING'">
-              <button class="action-btn disabled-btn" disabled>
-                <mat-icon>{{ getStatusIcon(notice.status) }}</mat-icon>
-                <span>{{ getStatusText(notice.status) }}</span>
-              </button>
+            <!-- Status Display for non-pending notices -->
+            <div class="status-display" *ngIf="notice.status !== 'PENDING'">
+              <span class="status-text">Decision Made</span>
             </div>
           </div>
         </div>
@@ -187,14 +167,25 @@
 
       <!-- Pagination -->
       <div *ngIf="filteredNotices.length > 0" class="pagination-section">
-        <mat-paginator
-          [length]="totalItems"
-          [pageSize]="pageSize"
-          [pageIndex]="currentPage - 1"
-          [pageSizeOptions]="[5, 10, 25, 50]"
-          (page)="onPageChange($event)"
-          aria-label="Select page">
-        </mat-paginator>
+        <button class="pagination-btn" 
+                (click)="prevPage()" 
+                [disabled]="!hasPrev"
+                [class.disabled]="!hasPrev">
+          <mat-icon>chevron_left</mat-icon>
+          <span>Previous</span>
+        </button>
+        
+        <span class="pagination-info">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+        
+        <button class="pagination-btn" 
+                (click)="nextPage()" 
+                [disabled]="!hasNext"
+                [class.disabled]="!hasNext">
+          <span>Next</span>
+          <mat-icon>chevron_right</mat-icon>
+        </button>
       </div>
     </div>
   </div>

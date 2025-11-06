@@ -1,0 +1,178 @@
+<div class="details-container">
+  <!-- Back Button -->
+  <div class="back-section">
+    <button mat-stroked-button (click)="goBack()" class="back-btn">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Back to Notices</span>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Loading move-out notice details...</p>
+  </div>
+
+  <!-- Notice Details -->
+  <div *ngIf="!isLoading && notice" class="notice-details">
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="header-content">
+        <h1 class="page-title">Move Out Notice Details</h1>
+        <div class="status-chip" [style.background]="getStatusColor(notice.status)">
+          <mat-icon>{{ getStatusIcon(notice.status) }}</mat-icon>
+          <span>{{ notice.status }}</span>
+        </div>
+      </div>
+      
+      <div class="action-buttons" *ngIf="canCancel()">
+        <button mat-stroked-button color="warn" (click)="cancelNotice()" class="cancel-btn">
+          <mat-icon>cancel</mat-icon>
+          <span>Cancel Notice</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content-grid">
+      <!-- Property Information Card -->
+      <mat-card class="info-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>home</mat-icon>
+          <mat-card-title>Property Information</mat-card-title>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Property Name:</span>
+              <span class="detail-value">{{ notice.property?.name || notice.propertyName || 'N/A' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Unit Number:</span>
+              <span class="detail-value">{{ notice.unit?.unitNumber || notice.unitNumber || 'N/A' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Address:</span>
+              <span class="detail-value">{{ notice.property?.address || notice.propertyAddress || 'Address not available' }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Move Out Details Card -->
+      <mat-card class="info-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>exit_to_app</mat-icon>
+          <mat-card-title>Move Out Details</mat-card-title>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Move Out Date:</span>
+              <span class="detail-value highlight">{{ formatDate(notice.moveOutDate) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Reason:</span>
+              <span class="detail-value">{{ getMoveOutReasonDisplay(notice.reason) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Submitted On:</span>
+              <span class="detail-value">{{ formatDate(notice.submittedAt || notice.createdAt || '') }}</span>
+            </div>
+            <div class="detail-item" *ngIf="notice.updatedAt">
+              <span class="detail-label">Last Updated:</span>
+              <span class="detail-value">{{ formatDate(notice.updatedAt) }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Additional Notes Card -->
+      <mat-card class="info-card" *ngIf="notice.notes">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>notes</mat-icon>
+          <mat-card-title>Additional Notes</mat-card-title>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content>
+          <p class="notes-content">{{ notice.notes }}</p>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Landlord Response Card -->
+      <mat-card class="info-card" *ngIf="notice.landlordNotes">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>feedback</mat-icon>
+          <mat-card-title>Landlord Response</mat-card-title>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content>
+          <p class="landlord-notes">{{ notice.landlordNotes }}</p>
+          <div class="response-date" *ngIf="notice.respondedAt">
+            <small>Responded on: {{ formatDate(notice.respondedAt) }}</small>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Next Steps Card -->
+      <mat-card class="info-card next-steps-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar>info</mat-icon>
+          <mat-card-title>Next Steps</mat-card-title>
+        </mat-card-header>
+        <mat-divider></mat-divider>
+        <mat-card-content>
+          <div *ngIf="notice.status === 'PENDING'" class="next-steps">
+            <p>Your move-out notice is under review by your landlord.</p>
+            <ul>
+              <li>Your landlord will respond within 3-5 business days</li>
+              <li>You can cancel this notice until it's approved</li>
+              <li>Prepare for a final inspection before move-out</li>
+            </ul>
+          </div>
+          
+          <div *ngIf="notice.status === 'APPROVED'" class="next-steps">
+            <p>Your move-out notice has been approved!</p>
+            <ul>
+              <li>Schedule your final inspection with the property manager</li>
+              <li>Ensure all rent payments are up to date</li>
+              <li>Prepare the unit for move-out inspection</li>
+              <li>Your security deposit will be processed after inspection</li>
+            </ul>
+          </div>
+
+          <div *ngIf="notice.status === 'REJECTED'" class="next-steps">
+            <p>Your move-out notice was not approved.</p>
+            <ul>
+              <li>Contact your landlord for more information</li>
+              <li>You may need to submit a new notice with different dates</li>
+              <li>Review your lease agreement for move-out requirements</li>
+            </ul>
+          </div>
+
+          <div *ngIf="notice.status === 'CANCELLED'" class="next-steps">
+            <p>This move-out notice has been cancelled.</p>
+            <ul>
+              <li>You can submit a new move-out notice if needed</li>
+              <li>Your lease agreement remains in effect</li>
+              <li>Contact your landlord if you have questions</li>
+            </ul>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="!isLoading && !notice" class="error-state">
+    <mat-icon>error_outline</mat-icon>
+    <h3>Notice Not Found</h3>
+    <p>The move-out notice you're looking for doesn't exist or you don't have permission to view it.</p>
+    <button mat-raised-button (click)="goBack()" class="back-btn">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Back to Notices</span>
+    </button>
+  </div>
+</div>

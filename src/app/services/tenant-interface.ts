@@ -53,6 +53,9 @@ export interface MoveOutNoticeRequest {
   moveOutDate: string;
   reason: string;
   notes?: string;
+  propertyName?: string;
+  unitNumber?: string;
+  propertyAddress?: string;
 }
 
 export interface MoveOutNotice {

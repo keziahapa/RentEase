@@ -58,6 +58,8 @@ import { BusinessManagementComponent } from './components/dashboard/admin/admin-
 import { AdvertisementManagementComponent } from './components/dashboard/admin/admin-dashboard/components/advertisement-management/advertisement-management.component';
 import { ExternalBusinessManagementComponent } from './components/dashboard/admin/admin-dashboard/components/external-business-management/external-business-management.component';
 import { MoveOutNoticeListComponent } from './components/dashboard/tenant/move-out-notice-list/move-out-notice-list.component';
+import { LandlordMoveOutNoticeDetailsComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-move-out-notice-details/landlord-move-out-notice-details.component';
+import { MoveOutNoticeDetailsComponent } from './components/dashboard/tenant/move -out-notice-details/move-out-notice-details.component';
 import { LandlordMoveOutNoticeListComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-move-out-notice-list/landlord-move-out-notice-list.component';
 import { MoveOutActionDialogComponent } from './components/dashboard/landlord/landlord-dashboard/move-out-action-dialog/move-out-action-dialog.component';
 import { LandlordDashboardComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-dashboard.component';
@@ -116,7 +118,12 @@ export const routes: Routes = [
     { path: 'chat', component: ChatComponent },
     { path: 'reviews', component: ReviewComponent },
     { path: 'settings', component: SettingsComponent },
+    { path: 'move-out-notices/:id', component: MoveOutNoticeDetailsComponent },
+
     { path: 'move-out-notices', component: MoveOutNoticeListComponent },
+
+    
+    
     { 
       path: 'profile',
       children: [
@@ -153,7 +160,9 @@ export const routes: Routes = [
       { path: 'chat', component: ChatComponent },
       { path: 'marketplace', component: LandlordMarketplaceComponent },
       { path: 'move-out-notices', component: LandlordMoveOutNoticeListComponent },
+      { path: 'move-out-notices/:id', component: LandlordMoveOutNoticeDetailsComponent },
       { path: 'move-out-action/:id', component: MoveOutActionDialogComponent },
+      
       { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' }
     ]
   },

@@ -51,11 +51,17 @@ export class MoveOutNoticeListComponent implements OnInit {
     this.propertyService.getTenantMoveOutNotices(page, 10).subscribe({
       next: (response: TenantMoveOutNoticeResponse) => {
         if (response.success) {
-          this.moveOutNotices = Array.isArray(response.data) ? response.data : [response.data];
+          let notices = Array.isArray(response.data) ? response.data : [response.data];
+          
+          // ✅ TRANSFORM DATA STRUCTURE TO MATCH TEMPLATE
+          this.moveOutNotices = notices.map(notice => this.transformNoticeData(notice));
+          
           this.currentPage = response.pagination?.currentPage || 1;
           this.totalPages = response.pagination?.totalPages || 1;
           this.hasNext = response.pagination?.hasNext || false;
           this.hasPrev = response.pagination?.hasPrev || false;
+          
+          console.log('📋 Transformed notices:', this.moveOutNotices);
         } else {
           this.snackBar.open(response.message || 'Failed to load move-out notices', 'Close', { duration: 5000 });
         }
@@ -67,6 +73,30 @@ export class MoveOutNoticeListComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  // ✅ TRANSFORM NOTICE DATA TO MATCH TEMPLATE STRUCTURE
+  private transformNoticeData(notice: any): TenantMoveOutNotice {
+    return {
+      ...notice,
+      // ✅ Create nested property object if it doesn't exist
+      property: notice.property || {
+        name: notice.propertyName || 'Unknown Property',
+        address: notice.propertyAddress || 'Address not available',
+        id: notice.propertyId
+      },
+      // ✅ Create nested unit object if it doesn't exist
+      unit: notice.unit || {
+        unitNumber: notice.unitNumber || 'Unknown Unit',
+        id: notice.unitId
+      },
+      // ✅ Ensure all required fields have fallbacks
+      moveOutDate: notice.moveOutDate || '',
+      reason: notice.reason || 'OTHER',
+      notes: notice.notes || '',
+      submittedAt: notice.submittedAt || new Date().toISOString(),
+      status: notice.status || 'PENDING'
+    };
   }
 
   getStatusColor(status: string): string {
@@ -95,22 +125,34 @@ export class MoveOutNoticeListComponent implements OnInit {
       maxWidth: '90vw',
       disableClose: false,
       data: {
-        propertyId: 1, // You can pass current property ID if available
+        propertyId: 1,
         unitId: null
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        // result contains the form data from the dialog
-        this.submitMoveOutNotice(result);
+      console.log('🔍 Dialog closed with result:', result);
+      
+      if (result && result.success === true) {
+        // ✅ Pass the complete data including property info
+        this.submitMoveOutNotice(result.data);
       }
+      // If result is null/undefined, dialog was cancelled - do nothing
     });
   }
 
   private submitMoveOutNotice(noticeData: MoveOutNoticeRequest): void {
+    console.log('📤 Submitting move-out notice from list:', noticeData);
+    console.log('🏠 Property data in submission:', {
+      propertyId: noticeData.propertyId,
+      propertyName: noticeData.propertyName,
+      unitNumber: noticeData.unitNumber,
+      address: noticeData.propertyAddress
+    });
+    
     this.propertyService.submitMoveOutNotice(noticeData).subscribe({
       next: (response: TenantMoveOutNoticeResponse) => {
+        console.log('📥 Backend response:', response);
         if (response.success) {
           this.snackBar.open('Move-out notice submitted successfully', 'Close', { 
             duration: 3000 
@@ -189,6 +231,7 @@ export class MoveOutNoticeListComponent implements OnInit {
       'PERSONAL': 'Personal Reasons',
       'PROPERTY_ISSUES': 'Property Issues',
       'LEASE_END': 'Lease End',
+      'PURCHASED_HOME': 'Purchased a Home',
       'OTHER': 'Other'
     };
     return reasonMap[reason] || reason;

@@ -20,6 +20,10 @@ export interface MoveOutNoticeRequest {
   moveOutDate: string;
   reason: string;
   notes?: string;
+  // ✅ Include display fields for property information
+  propertyName?: string;
+  unitNumber?: string;
+  propertyAddress?: string;
 }
 
 @Component({
@@ -131,45 +135,14 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     this.noticeForm = this.fb.group({
       propertyId: [this.currentProperty.propertyId, Validators.required],
       unitId: [this.currentProperty.unitId || null],
-      moveOutDate: [null, [Validators.required]], // 🟢 Use null instead of empty string
+      moveOutDate: [null, [Validators.required]],
       reason: ['', Validators.required],
       notes: ['', [Validators.maxLength(1000)]]
     });
 
-    // 🟢 ADD COMPREHENSIVE DEBUG LOGGING
     console.log('📝 Form initialized with values:', this.noticeForm.value);
     console.log('✅ Form valid after init:', this.noticeForm.valid);
-
-    // Debug form status changes
-    this.noticeForm.statusChanges.subscribe(status => {
-      console.log('🔄 Form status changed:', status);
-      console.log('✅ Form valid:', this.noticeForm.valid);
-      console.log('❌ Form errors:', this.noticeForm.errors);
-    });
-
-    // Debug value changes
-    this.noticeForm.valueChanges.subscribe(values => {
-      console.log('📊 Form values changed:', values);
-      console.log('✅ Form valid:', this.noticeForm.valid);
-      
-      // Log individual field status
-      this.logFieldStatus();
-    });
-  }
-
-  // 🟢 ADD METHOD TO LOG FIELD STATUS
-  private logFieldStatus(): void {
-    const fields = ['propertyId', 'unitId', 'moveOutDate', 'reason', 'notes'];
-    fields.forEach(field => {
-      const control = this.noticeForm.get(field);
-      console.log(`📋 ${field}:`, {
-        value: control?.value,
-        valid: control?.valid,
-        errors: control?.errors,
-        touched: control?.touched,
-        dirty: control?.dirty
-      });
-    });
+    console.log('🏠 Current property data:', this.currentProperty);
   }
 
   onCancel(): void {
@@ -179,25 +152,35 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   onSubmit(): void {
     console.log('🔘 Submit clicked - Form valid:', this.noticeForm.valid, 'Terms accepted:', this.termsAccepted);
     
-    // 🟢 STRONG DOUBLE SUBMISSION PROTECTION
+    // Double submission protection
     if (this.isSubmitting) {
       console.warn('⚠️ Submission already in progress, ignoring duplicate click');
       return;
     }
     
-    // 🟢 MARK ALL FIELDS AS TOUCHED TO SHOW ERRORS
+    // Mark all fields as touched to show errors
     this.markFormGroupTouched();
     
     if (this.noticeForm.valid && this.termsAccepted) {
       this.isSubmitting = true;
       
       const formValue = this.noticeForm.value;
+      
+      // ✅ INCLUDE COMPLETE PROPERTY AND UNIT DATA
       const noticeData: MoveOutNoticeRequest = {
         ...formValue,
-        moveOutDate: this.formatDate(formValue.moveOutDate)
+        moveOutDate: this.formatDate(formValue.moveOutDate),
+        // ✅ Ensure propertyId and unitId come from the loaded data
+        propertyId: this.currentProperty.propertyId,
+        unitId: this.currentProperty.unitId,
+        // ✅ Include property display information
+        propertyName: this.currentProperty.name,
+        unitNumber: this.currentProperty.unitNumber,
+        propertyAddress: this.currentProperty.address
       };
 
-      console.log('📤 Submitting move-out notice:', noticeData);
+      console.log('📤 Submitting move-out notice with complete data:', noticeData);
+      console.log('🏠 Current property info:', this.currentProperty);
 
       this.tenantService.submitMoveOutNotice(noticeData).subscribe({
         next: (response: any) => {
@@ -209,12 +192,14 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
               duration: 5000,
               panelClass: ['success-snackbar']
             });
+            
+            // ✅ RETURN COMPLETE DATA INCLUDING PROPERTY INFO
             this.dialogRef.close({ 
               success: true, 
-              data: response.data || noticeData 
+              data: noticeData, // This now includes property/unit data
+              response: response.data
             });
           } else {
-            // Handle backend success: false responses
             this.snackBar.open(response.message || 'Failed to submit move-out notice', 'Close', { 
               duration: 5000,
               panelClass: ['error-snackbar']
@@ -290,32 +275,12 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   isFormValid(): boolean {
-    const formValid = this.noticeForm.valid;
-    const termsValid = this.termsAccepted;
-    const notSubmitting = !this.isSubmitting;
-    const isValid = formValid && termsValid && notSubmitting;
-    
-    console.log('🔍 isFormValid() called:', {
-      formValid: formValid,
-      termsAccepted: termsValid,
-      notSubmitting: notSubmitting,
-      finalResult: isValid
-    });
-
-    return isValid;
+    return this.noticeForm.valid && this.termsAccepted && !this.isSubmitting;
   }
 
   onTermsChange(checked: boolean): void {
     this.termsAccepted = checked;
     console.log('📝 Terms accepted:', checked);
-    console.log('🔍 Form valid after terms change:', this.noticeForm.valid);
-  }
-
-  isDateValid(): boolean {
-    const dateControl = this.noticeForm.get('moveOutDate');
-    const isValid = dateControl?.valid && dateControl.value;
-    console.log('📅 Date valid:', isValid, 'Value:', dateControl?.value);
-    return isValid;
   }
 
   getReasonDisplayName(reasonValue: string): string {
@@ -323,15 +288,14 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     return reason ? reason.label : reasonValue;
   }
 
-  // 🟢 ADD METHOD TO CHECK IF FORM IS READY
-  isFormReady(): void {
-    console.log('🚀 FORM READY CHECK:');
-    console.log('📝 Form valid:', this.noticeForm.valid);
-    console.log('✅ Terms accepted:', this.termsAccepted);
-    console.log('⏳ Not submitting:', !this.isSubmitting);
-    console.log('🎯 Final result:', this.isFormValid());
-    
-    this.logFieldStatus();
+
+  getPropertyDisplay(): string {
+    if (!this.currentProperty) return 'Loading...';
+    return `${this.currentProperty.name} - ${this.currentProperty.unitNumber}`;
+  }
+
+  getAddressDisplay(): string {
+    return this.currentProperty?.address || 'Address not available';
   }
 
   ngOnDestroy(): void {
