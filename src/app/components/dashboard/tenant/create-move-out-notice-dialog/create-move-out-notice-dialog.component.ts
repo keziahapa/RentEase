@@ -131,14 +131,44 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     this.noticeForm = this.fb.group({
       propertyId: [this.currentProperty.propertyId, Validators.required],
       unitId: [this.currentProperty.unitId || null],
-      moveOutDate: ['', [Validators.required]],
+      moveOutDate: [null, [Validators.required]], // 🟢 Use null instead of empty string
       reason: ['', Validators.required],
       notes: ['', [Validators.maxLength(1000)]]
     });
 
-    // Debug form status
+    // 🟢 ADD COMPREHENSIVE DEBUG LOGGING
+    console.log('📝 Form initialized with values:', this.noticeForm.value);
+    console.log('✅ Form valid after init:', this.noticeForm.valid);
+
+    // Debug form status changes
     this.noticeForm.statusChanges.subscribe(status => {
-      console.log('Form status:', status, 'Valid:', this.noticeForm.valid);
+      console.log('🔄 Form status changed:', status);
+      console.log('✅ Form valid:', this.noticeForm.valid);
+      console.log('❌ Form errors:', this.noticeForm.errors);
+    });
+
+    // Debug value changes
+    this.noticeForm.valueChanges.subscribe(values => {
+      console.log('📊 Form values changed:', values);
+      console.log('✅ Form valid:', this.noticeForm.valid);
+      
+      // Log individual field status
+      this.logFieldStatus();
+    });
+  }
+
+  // 🟢 ADD METHOD TO LOG FIELD STATUS
+  private logFieldStatus(): void {
+    const fields = ['propertyId', 'unitId', 'moveOutDate', 'reason', 'notes'];
+    fields.forEach(field => {
+      const control = this.noticeForm.get(field);
+      console.log(`📋 ${field}:`, {
+        value: control?.value,
+        valid: control?.valid,
+        errors: control?.errors,
+        touched: control?.touched,
+        dirty: control?.dirty
+      });
     });
   }
 
@@ -154,6 +184,9 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
       console.warn('⚠️ Submission already in progress, ignoring duplicate click');
       return;
     }
+    
+    // 🟢 MARK ALL FIELDS AS TOUCHED TO SHOW ERRORS
+    this.markFormGroupTouched();
     
     if (this.noticeForm.valid && this.termsAccepted) {
       this.isSubmitting = true;
@@ -207,8 +240,9 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
         }
       });
     } else {
-      console.log('❌ Form validation failed - marking fields as touched');
-      this.markFormGroupTouched();
+      console.log('❌ Form validation failed');
+      console.log('📊 Form valid:', this.noticeForm.valid);
+      console.log('📝 Terms accepted:', this.termsAccepted);
       
       if (!this.termsAccepted) {
         this.snackBar.open('Please accept the terms and conditions', 'Close', { 
@@ -226,7 +260,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     });
   }
 
-  private formatDate(date: Date): string {
+  private formatDate(date: Date | null): string {
     if (!date) return '';
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -237,7 +271,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   // Helper methods for template
   getMoveOutDateError(): string {
     const control = this.noticeForm.get('moveOutDate');
-    if (control?.hasError('required')) {
+    if (control?.hasError('required') && control.touched) {
       return 'Move-out date is required';
     }
     return '';
@@ -245,7 +279,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
 
   getReasonError(): string {
     const control = this.noticeForm.get('reason');
-    if (control?.hasError('required')) {
+    if (control?.hasError('required') && control.touched) {
       return 'Please select a reason for moving out';
     }
     return '';
@@ -256,29 +290,48 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   isFormValid(): boolean {
-    const isValid = this.noticeForm.valid && this.termsAccepted && !this.isSubmitting;
-    console.log('✅ isFormValid check:', {
-      formValid: this.noticeForm.valid,
-      termsAccepted: this.termsAccepted,
-      notSubmitting: !this.isSubmitting,
+    const formValid = this.noticeForm.valid;
+    const termsValid = this.termsAccepted;
+    const notSubmitting = !this.isSubmitting;
+    const isValid = formValid && termsValid && notSubmitting;
+    
+    console.log('🔍 isFormValid() called:', {
+      formValid: formValid,
+      termsAccepted: termsValid,
+      notSubmitting: notSubmitting,
       finalResult: isValid
     });
+
     return isValid;
   }
 
   onTermsChange(checked: boolean): void {
     this.termsAccepted = checked;
     console.log('📝 Terms accepted:', checked);
+    console.log('🔍 Form valid after terms change:', this.noticeForm.valid);
   }
 
   isDateValid(): boolean {
     const dateControl = this.noticeForm.get('moveOutDate');
-    return dateControl?.valid && dateControl.value;
+    const isValid = dateControl?.valid && dateControl.value;
+    console.log('📅 Date valid:', isValid, 'Value:', dateControl?.value);
+    return isValid;
   }
 
   getReasonDisplayName(reasonValue: string): string {
     const reason = this.moveOutReasons.find(r => r.value === reasonValue);
     return reason ? reason.label : reasonValue;
+  }
+
+  // 🟢 ADD METHOD TO CHECK IF FORM IS READY
+  isFormReady(): void {
+    console.log('🚀 FORM READY CHECK:');
+    console.log('📝 Form valid:', this.noticeForm.valid);
+    console.log('✅ Terms accepted:', this.termsAccepted);
+    console.log('⏳ Not submitting:', !this.isSubmitting);
+    console.log('🎯 Final result:', this.isFormValid());
+    
+    this.logFieldStatus();
   }
 
   ngOnDestroy(): void {
