@@ -1,18 +1,20 @@
-// Move Out Notice Dialog Styles
+// Move Out Notice Dialog Styles - Fixed Version
 .move-out-dialog {
   min-width: 500px;
   max-width: 600px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  background: white;
 
   // Dialog Title
   mat-dialog-title {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: white;
+    color: #333;
     margin: -24px -24px 20px -24px;
     padding: 20px 24px;
     border-radius: 4px 4px 0 0;
+    border-bottom: 2px solid #f0f0f0;
     
     h2 {
       margin: 0;
@@ -21,6 +23,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      color: #333;
       
       &::before {
         content: "🚚";
@@ -35,6 +38,7 @@
     overflow-y: auto;
     padding: 0 8px;
     margin: 0 -8px;
+    background: white;
 
     // Loading Section
     .loading-section {
@@ -44,6 +48,7 @@
       flex-direction: column;
       align-items: center;
       gap: 1rem;
+      background: white;
       
       mat-spinner {
         margin: 0 auto;
@@ -59,12 +64,12 @@
 
     // Property Information Section
     .property-info {
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      background: #f8f9fa;
       padding: 1.25rem;
-      border-radius: 12px;
+      border-radius: 8px;
       margin-bottom: 1.5rem;
-      border-left: 4px solid #667eea;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid #007bff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
       h3 {
         margin: 0 0 1rem 0;
@@ -107,33 +112,50 @@
     // Form Styles
     form {
       margin-top: 1rem;
+      background: white;
 
       .full-width {
         width: 100%;
         margin-bottom: 1.5rem;
 
+        // ✅ FIX: Date input specific styles
+        .date-input {
+          color: #333 !important;
+          background: white !important;
+          caret-color: #333;
+          
+          &::placeholder {
+            color: #999 !important;
+          }
+          
+          &:focus {
+            color: #333 !important;
+            background: white !important;
+          }
+        }
+
+        // ✅ FIX: Textarea specific styles
+        .notes-textarea {
+          color: #333 !important;
+          background: white !important;
+          resize: vertical;
+          min-height: 80px;
+          line-height: 1.5;
+          
+          &::placeholder {
+            color: #999 !important;
+          }
+        }
+
         // Material form field customization
         .mat-form-field-outline {
-          border-radius: 8px;
+          border-radius: 4px;
+          color: #ccc;
         }
 
         .mat-form-field-label {
           font-weight: 500;
-        }
-
-        // Date picker specific styles
-        &.move-out-date-field {
-          .mat-form-field-flex {
-            background: rgba(102, 126, 234, 0.05);
-            border-radius: 8px;
-          }
-        }
-
-        // Textarea specific styles
-        textarea {
-          resize: vertical;
-          min-height: 80px;
-          line-height: 1.5;
+          color: #666;
         }
 
         // Error states
@@ -146,7 +168,7 @@
         // Focus states
         &.mat-form-field-focused {
           .mat-form-field-outline-thick {
-            color: #667eea;
+            color: #007bff;
           }
         }
 
@@ -154,19 +176,6 @@
         .mat-hint {
           font-size: 0.8rem;
           color: #666;
-          
-          &.character-count {
-            color: #4a5568;
-            font-weight: 500;
-            
-            &.near-limit {
-              color: #f39c12;
-            }
-            
-            &.over-limit {
-              color: #e74c3c;
-            }
-          }
         }
 
         // Error styles
@@ -175,6 +184,7 @@
           display: flex;
           align-items: center;
           gap: 4px;
+          color: #f44336;
           
           &::before {
             content: "⚠️";
@@ -187,6 +197,8 @@
       .reason-select {
         .mat-select-value {
           font-weight: 500;
+          color: #333 !important;
+          background: white;
         }
       }
 
@@ -194,14 +206,14 @@
       .terms-section {
         margin: 2rem 0 1rem 0;
         padding: 1.5rem;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
         border: 1px solid #e2e8f0;
         transition: all 0.3s ease;
 
-        &:hover {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          transform: translateY(-2px);
+        &.terms-invalid {
+          border-color: #f44336;
+          background: #fee;
         }
 
         mat-checkbox {
@@ -216,13 +228,13 @@
             }
 
             .mat-checkbox-frame {
-              border-color: #667eea;
+              border-color: #007bff;
               border-width: 2px;
             }
 
             .mat-checkbox-checked {
               .mat-checkbox-background {
-                background-color: #667eea;
+                background-color: #007bff;
               }
             }
           }
@@ -243,7 +255,7 @@
 
             &::before {
               content: "•";
-              color: #667eea;
+              color: #007bff;
               font-weight: bold;
               font-size: 1.2rem;
               position: absolute;
@@ -256,26 +268,13 @@
             }
           }
         }
-
-        // Terms validation state
-        &.terms-invalid {
-          border-color: #f44336;
-          background: linear-gradient(135deg, #fee 0%, #fdd 100%);
-          animation: shake 0.5s ease-in-out;
-
-          @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-          }
-        }
       }
     }
   }
 
   // Dialog Actions
   mat-dialog-actions {
-    padding: 1.5rem 0 0 0;
+    padding: 1.5rem 24px;
     margin: 0 -24px -24px -24px;
     background: #f8f9fa;
     border-top: 1px solid #e2e8f0;
@@ -284,69 +283,121 @@
     gap: 1rem;
     border-radius: 0 0 4px 4px;
 
-    button {
+    .cancel-btn {
       min-width: 120px;
-      border-radius: 25px;
+      border-radius: 4px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      transition: all 0.3s ease;
+      transition: all 0.2s ease;
       padding: 0 2rem;
       height: 44px;
-
-      // Cancel button
-      &[mat-button] {
-        border: 2px solid #667eea;
-        color: #667eea;
-        
-        &:hover:not([disabled]) {
-          background: rgba(102, 126, 234, 0.1);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        &:disabled {
-          border-color: #ccc;
-          color: #ccc;
-          cursor: not-allowed;
-        }
+      border: 1px solid #007bff;
+      color: #007bff;
+      background: white;
+      
+      &:hover:not([disabled]) {
+        background: rgba(0, 123, 255, 0.1);
       }
 
-      // Submit button
-      &[mat-raised-button] {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        
-        &:hover:not([disabled]) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
+      &:disabled {
+        border-color: #ccc;
+        color: #ccc;
+        cursor: not-allowed;
+      }
+    }
 
-        &:active:not([disabled]) {
-          transform: translateY(0);
-        }
+    .submit-button {
+      min-width: 120px;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s ease;
+      padding: 0 2rem;
+      height: 44px;
+      background: #007bff;
+      color: white;
+      
+      &:hover:not([disabled]) {
+        background: #0056b3;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+      }
 
-        &:disabled {
-          background: #ccc;
-          box-shadow: none;
-          transform: none;
-          cursor: not-allowed;
-        }
+      &:active:not([disabled]) {
+        transform: translateY(0);
+      }
 
-        // Loading state
-        .button-loading {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          font-size: 0.9rem;
+      &:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
 
-          mat-spinner {
-            ::ng-deep circle {
-              stroke: white;
-            }
+      // Loading state
+      .button-loading {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.9rem;
+
+        mat-spinner {
+          ::ng-deep circle {
+            stroke: white;
           }
         }
+      }
+    }
+  }
+}
+
+// ✅ FIX: Global Material Overrides for Date Input
+::ng-deep {
+  // Fix date input text visibility
+  .mat-form-field .mat-input-element {
+    color: #333 !important;
+    background: white !important;
+  }
+  
+  // Fix date picker popup
+  .mat-datepicker-content {
+    background: white;
+    color: #333;
+    
+    .mat-calendar {
+      background: white;
+      color: #333;
+    }
+    
+    .mat-calendar-body-cell-content {
+      color: #333;
+    }
+  }
+  
+  // Fix form field appearance
+  .mat-form-field-appearance-outline {
+    .mat-form-field-outline {
+      color: #ccc;
+    }
+    
+    .mat-form-field-outline-thick {
+      color: #007bff;
+    }
+    
+    &.mat-form-field-invalid {
+      .mat-form-field-outline-thick {
+        color: #f44336;
+      }
+    }
+    
+    // Ensure input text is visible
+    .mat-input-element {
+      color: #333 !important;
+      
+      &::placeholder {
+        color: #999 !important;
       }
     }
   }
@@ -400,60 +451,13 @@
     mat-dialog-actions {
       flex-direction: column-reverse;
       gap: 0.75rem;
-      padding: 1rem 0;
+      padding: 1rem 16px;
       
-      button {
+      .cancel-btn,
+      .submit-button {
         min-width: 100%;
         margin: 0;
       }
-    }
-  }
-}
-
-// Dark theme support
-@media (prefers-color-scheme: dark) {
-  .move-out-dialog {
-    background: #1a202c;
-    color: #e2e8f0;
-
-    mat-dialog-title {
-      background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-    }
-
-    mat-dialog-content {
-      .property-info {
-        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
-        
-        h3 {
-          color: #e2e8f0;
-        }
-        
-        .property-details .detail-item {
-          color: #cbd5e0;
-          
-          strong {
-            color: #e2e8f0;
-          }
-        }
-      }
-
-      form .terms-section {
-        background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
-        border-color: #4a5568;
-        
-        ::ng-deep .mat-checkbox-label {
-          color: #e2e8f0;
-        }
-        
-        .terms-list {
-          color: #cbd5e0;
-        }
-      }
-    }
-
-    mat-dialog-actions {
-      background: #2d3748;
-      border-color: #4a5568;
     }
   }
 }
@@ -471,19 +475,10 @@
 }
 
 .move-out-dialog {
-  animation: fadeInUp 0.5s ease-out;
+  animation: fadeInUp 0.3s ease-out;
 }
 
-mat-dialog-content > * {
-  animation: fadeInUp 0.5s ease-out;
-  
-  &:nth-child(1) { animation-delay: 0.1s; }
-  &:nth-child(2) { animation-delay: 0.2s; }
-  &:nth-child(3) { animation-delay: 0.3s; }
-  &:nth-child(4) { animation-delay: 0.4s; }
-}
-
-// Scrollbar styling for webkit browsers
+// Scrollbar styling
 mat-dialog-content::-webkit-scrollbar {
   width: 6px;
 }
@@ -494,63 +489,10 @@ mat-dialog-content::-webkit-scrollbar-track {
 }
 
 mat-dialog-content::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007bff;
   border-radius: 3px;
 }
 
 mat-dialog-content::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-}
-
-// Print styles
-@media print {
-  .move-out-dialog {
-    box-shadow: none;
-    border: 2px solid #000;
-    
-    mat-dialog-actions {
-      display: none;
-    }
-    
-    .terms-section {
-      break-inside: avoid;
-    }
-  }
-}
-
-// High contrast mode support
-@media (prefers-contrast: high) {
-  .move-out-dialog {
-    border: 2px solid #000;
-    
-    mat-dialog-title {
-      background: #000;
-      color: #fff;
-    }
-    
-    .property-info {
-      border: 2px solid #000;
-      background: #fff;
-    }
-    
-    form .terms-section {
-      border: 2px solid #000;
-      background: #fff;
-    }
-  }
-}
-
-// Reduced motion support
-@media (prefers-reduced-motion: reduce) {
-  .move-out-dialog,
-  mat-dialog-content > *,
-  .terms-section,
-  button {
-    animation: none;
-    transition: none;
-  }
-  
-  .terms-section.terms-invalid {
-    animation: none;
-  }
+  background: #0056b3;
 }
