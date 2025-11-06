@@ -186,6 +186,13 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (this.isLoading) return;
     const passwordToUse = passwordOverride ?? this.loginData.password;
 
+    console.log('🔐 onSubmit - Password details:', {
+      passwordToUse,
+      loginDataPassword: this.loginData.password,
+      passwordOverride,
+      hasPendingAutoPassword: !!this.pendingAutoPassword
+    });
+
     if (!this.validateForm(passwordToUse)) return;
     
     this.isLoading = true;
@@ -199,9 +206,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       password: passwordToUse,
       rememberMe: this.rememberMe
     };
-
-    // Store the ACTUAL password being used for retry
-    const passwordForRetry = passwordToUse;
 
     console.log('🔐 Login attempt with:', { 
       email: loginRequest.email, 
@@ -256,12 +260,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.isLoading = false;
         console.error('🔐 Login error:', error);
-        
-        // Don't clear password on error for manual retry
-        // Use the stored password instead of the form password
-        if (!passwordOverride) {
-          this.loginData.password = passwordForRetry;
-        }
         
         this.handleApiError(error);
       }
@@ -336,13 +334,15 @@ export class LoginComponent implements OnInit, OnDestroy {
         errorMessage = 'Request timed out. Please try again';
       } else if (error.status === 500) {
         errorMessage = 'Temporary server issue. Please try again';
+      } else if (error.status === 0) {
+        errorMessage = 'Cannot connect to server. Please check your internet connection or try again later.';
       } else {
         errorMessage = error.error.message;
       }
     } else if (error.message) {
       errorMessage = error.message;
     } else if (error.status === 0) {
-      errorMessage = 'Cannot connect to server. Check your internet';
+      errorMessage = 'Cannot connect to server. Check your internet connection.';
     } else if (error.status === 401) {
       this.emailError = 'Incorrect email or password';
       this.passwordError = 'Incorrect email or password';

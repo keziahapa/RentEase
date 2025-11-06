@@ -10,6 +10,14 @@
       <span>Auto-login in {{countdown}} seconds...</span>
     </div>
 
+    <!-- SIMPLIFIED DEBUG DISPLAY -->
+    <div class="debug-simple" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 8px; margin: 10px 0; font-size: 12px; color: #856404;">
+      <strong>Live Debug:</strong> 
+      Password: "{{ loginData.password }}" | 
+      Length: {{ loginData.password?.length }} | 
+      Loading: {{ isLoading }}
+    </div>
+
     <form (ngSubmit)="onSubmit()" #loginForm="ngForm" novalidate>
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Email Address</mat-label>
