@@ -192,7 +192,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (!this.validateForm(passwordToUse)) return;
     
     this.isLoading = true;
-   
+ 
     this.emailError = '';
     this.passwordError = '';
     this.pendingAutoPassword = null;
@@ -203,34 +203,59 @@ export class LoginComponent implements OnInit, OnDestroy {
       rememberMe: this.rememberMe
     };
 
+    // Store password temporarily for retry
+    const tempPassword = this.loginData.password;
     this.loginData.password = '';
     
+    console.log('🔐 Login attempt with:', { email: loginRequest.email, rememberMe: loginRequest.rememberMe });
+    
     this.authService.login(loginRequest).subscribe({
-      next: (response: AuthResponse) => {
+      next: (response: any) => {
         this.isLoading = false;
+        console.log('🔐 Login successful, response:', response);
         
-        const user = this.authService.getCurrentUser();
+        // Check if token was stored properly
+        const token = this.authService.getToken();
+        console.log('🔐 Token after login:', token ? 'Token stored successfully' : 'NO TOKEN STORED');
         
-        let userRole: string | undefined;
-        
-        if (user?.role) {
-          userRole = user.role;
-        } else if (response.role) {
-          userRole = response.role;
-        } else if (response.user?.role) {
-          userRole = response.user.role;
+        if (!token) {
+          console.error('❌ Token was not stored properly after login');
+          this.showSnackbar('Login failed: Authentication token missing', 'error');
+          return;
         }
         
-        if (userRole) {
-          this.showSnackbar('Login successful!', 'success');
-          this.redirectBasedOnRole(userRole);
-        } else {
-          this.showSnackbar('Login successful!', 'success');
-          this.router.navigate(['/dashboard']);
-        }
+        // Get user data with delay to ensure storage is updated
+        setTimeout(() => {
+          const user = this.authService.getCurrentUser();
+          console.log('🔐 User after login:', user);
+          
+          let userRole: string | undefined;
+          
+          if (user?.role) {
+            userRole = user.role;
+          } else if (response.role) {
+            userRole = response.role;
+          } else if (response.user?.role) {
+            userRole = response.user.role;
+          } else if (response.data?.user?.role) {
+            userRole = response.data.user.role;
+          }
+          
+          console.log('🔐 Detected user role:', userRole);
+          
+          if (userRole) {
+            this.showSnackbar('Login successful!', 'success');
+            this.redirectBasedOnRole(userRole);
+          } else {
+            console.warn('⚠️ No user role found, redirecting to default dashboard');
+            this.showSnackbar('Login successful!', 'success');
+            this.router.navigate(['/dashboard']);
+          }
+        }, 100);
       },
       error: (error) => {
         this.isLoading = false;
+        console.error('🔐 Login error:', error);
         this.handleApiError(error);
       }
     });
@@ -243,6 +268,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     
     let errorMessage = 'Login failed. Please try again.';
     let showSnackbar = true;
+    
+    console.log('🔐 Full error object:', error);
     
     if (typeof error === 'string') {
       errorMessage = error;
@@ -352,6 +379,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       // Normal redirect to dashboard
       this.router.navigate([dashboardRoute]).then(success => {
         if (!success) {
+          console.warn(`⚠️ Failed to navigate to ${dashboardRoute}, falling back to /dashboard`);
           this.router.navigate(['/dashboard']);
         }
       });
