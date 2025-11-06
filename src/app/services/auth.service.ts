@@ -26,6 +26,7 @@ export class AuthService {
   private snackBar = inject(MatSnackBar);
   private isBrowser: boolean;
 
+  // ✅ TEMPORARY CORS WORKAROUND - Using full backend URL
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com/api/auth';
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);
@@ -41,7 +42,15 @@ export class AuthService {
     }
   }
 
-  
+  // ✅ TEMPORARY CORS HEADERS
+  private getCorsHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Accept': 'application/json'
+    });
+  }
+
   login(credentials: LoginRequest): Observable<AuthResponse> {
     console.log('🔐 Sending login request - FULL CREDENTIALS:', { 
       email: credentials.email, 
@@ -58,8 +67,9 @@ export class AuthService {
 
     console.log('🔐 Final login payload being sent:', loginPayload);
 
+    // ✅ USE CORS HEADERS TEMPORARILY
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, loginPayload, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+      headers: this.getCorsHeaders()
     }).pipe(
       tap(response => {
         console.log('🔐 Login SUCCESS - Full response:', response);
@@ -83,8 +93,9 @@ export class AuthService {
 
     console.log('🔐 Sending registration:', normalizedData);
 
+    // ✅ USE CORS HEADERS TEMPORARILY
     return this.http.post<ApiResponse>(`${this.apiUrl}/signup`, normalizedData, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+      headers: this.getCorsHeaders()
     }).pipe(
       tap(response => {
         console.log('🔐 Registration response:', response);
@@ -120,8 +131,9 @@ export class AuthService {
 
     console.log('🔐 Verifying OTP:', cleanRequest);
 
+    // ✅ USE CORS HEADERS TEMPORARILY
     return this.http.post<ApiResponse>(`${this.apiUrl}/verify-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+      headers: this.getCorsHeaders()
     }).pipe(
       tap(response => {
         console.log('🔐 OTP verification response:', response);
@@ -145,8 +157,9 @@ export class AuthService {
     
     console.log('🔐 Resending OTP:', cleanRequest);
 
+    // ✅ USE CORS HEADERS TEMPORARILY
     return this.http.post<ApiResponse>(`${this.apiUrl}/resend-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+      headers: this.getCorsHeaders()
     }).pipe(
       tap(response => {
         console.log('🔐 Resend OTP response:', response);
@@ -161,6 +174,7 @@ export class AuthService {
     this.performLocalLogout();
     
     if (token) {
+      // ✅ USE CORS HEADERS TEMPORARILY
       return this.http.post<ApiResponse>(`${this.apiUrl}/logout`, {}, {
         headers: this.getAuthHeaders()
       }).pipe(
@@ -177,6 +191,7 @@ export class AuthService {
     this.performLocalLogout();
     
     if (token) {
+      // ✅ USE CORS HEADERS TEMPORARILY
       this.http.post<ApiResponse>(
         `${this.apiUrl}/logout`,
         {},
@@ -194,10 +209,11 @@ export class AuthService {
   // PASSWORD MANAGEMENT
   requestPasswordReset(request: { email: string }): Observable<ApiResponse> {
     const normalizedRequest = { email: request.email.trim().toLowerCase() };
+    // ✅ USE CORS HEADERS TEMPORARILY
     return this.http.post<ApiResponse>(
       `${this.apiUrl}/forgot-password`,
       normalizedRequest,
-      { headers: new HttpHeaders({ 'Content-Type': 'application/json' }) }
+      { headers: this.getCorsHeaders() }
     ).pipe(catchError(this.handleError));
   }
 
@@ -208,13 +224,12 @@ export class AuthService {
       newPassword: request.newPassword
     };
     
+    // ✅ USE CORS HEADERS TEMPORARILY
     return this.http.post<ApiResponse>(
       `${this.apiUrl}/reset-password`,
       payload,
       { 
-        headers: new HttpHeaders({ 
-          'Content-Type': 'application/json'
-        })
+        headers: this.getCorsHeaders()
       }
     ).pipe(catchError(this.handleError));
   }
@@ -226,8 +241,9 @@ export class AuthService {
       type: 'password_reset'
     };
     
+    // ✅ USE CORS HEADERS TEMPORARILY
     return this.http.post<ApiResponse>(`${this.apiUrl}/verify-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+      headers: this.getCorsHeaders()
     }).pipe(catchError(this.handleError));
   }
 
@@ -282,8 +298,9 @@ export class AuthService {
       type: request.type 
     };
     
+    // ✅ USE CORS HEADERS TEMPORARILY
     return this.http.post<ApiResponse>(`${this.apiUrl}/send-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+      headers: this.getCorsHeaders()
     }).pipe(catchError(this.handleError));
   }
 
@@ -643,6 +660,8 @@ export class AuthService {
         message = 'Account already exists with this email';
       } else if (error.status >= 500) {
         message = 'Server error. Please try again later.';
+      } else if (error.status === 0) {
+        message = 'Network error: Cannot connect to server. Check CORS configuration.';
       }
     }
     
