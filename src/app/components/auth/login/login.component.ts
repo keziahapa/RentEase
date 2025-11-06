@@ -169,7 +169,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.emailError = emailError;
     }
 
-    const passwordToValidate = passwordOverride ?? this.loginData.password;
+    // ✅ FIX: Trim password for validation
+    const passwordToValidate = (passwordOverride ?? this.loginData.password).trim();
 
     if (!passwordToValidate) {
       this.passwordError = 'Password is required';
@@ -185,15 +186,15 @@ export class LoginComponent implements OnInit, OnDestroy {
     
     if (this.isLoading) return;
     
-    // ✅ FIX: Use the override OR the actual form password
-    const passwordToUse = passwordOverride ?? this.loginData.password;
+    // ✅ FIX: Trim the password to remove leading/trailing spaces
+    const passwordToUse = (passwordOverride ?? this.loginData.password).trim();
 
     console.log('🔐 DEBUG - Form state before validation:', {
       formEmail: this.loginData.email,
       formPassword: this.loginData.password,
       formPasswordLength: this.loginData.password?.length,
       passwordOverride: passwordOverride,
-      passwordToUse: passwordToUse,
+      passwordToUse: passwordToUse, // ✅ Now trimmed
       passwordToUseLength: passwordToUse?.length,
       pendingAutoPassword: this.pendingAutoPassword
     });
@@ -211,14 +212,14 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     const loginRequest: LoginRequest = {
       email: this.loginData.email.trim().toLowerCase(),
-      password: passwordToUse, // ✅ This now has the actual password
+      password: passwordToUse, // ✅ Using trimmed password
       rememberMe: this.rememberMe
     };
 
     console.log('🔐 FINAL Login payload being sent:', { 
       email: loginRequest.email, 
       passwordLength: loginRequest.password?.length,
-      passwordValue: loginRequest.password, // ✅ Show actual password for debugging
+      passwordValue: `"${loginRequest.password}"`, // ✅ Shows exact value with quotes
       rememberMe: loginRequest.rememberMe 
     });
     
@@ -227,7 +228,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         console.log('🔐 Login successful, response:', response);
         
-        // ✅ FIX: Only clear password AFTER successful login
+        // Clear password only after successful login
         this.loginData.password = '';
         
         // Check if token was stored properly
@@ -269,9 +270,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         console.error('🔐 Login error:', error);
         
-        // ✅ FIX: Don't clear password on error so user can retry
-        // this.loginData.password = ''; // REMOVED - keep password for retry
-        
+        // Don't clear password on error so user can retry
         this.handleApiError(error);
       }
     });
@@ -427,10 +426,12 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   get isFormValid(): boolean {
     const passwordValue = this.pendingAutoPassword ?? this.loginData.password;
+    // ✅ FIX: Trim password for validation
+    const trimmedPassword = passwordValue ? passwordValue.trim() : '';
     return (
       this.loginData.email.trim() !== '' &&
-      passwordValue !== '' &&
-      passwordValue.length >= 6 &&
+      trimmedPassword !== '' &&
+      trimmedPassword.length >= 6 &&
       !this.emailError
     );
   }

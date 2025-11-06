@@ -53,6 +53,7 @@
           placeholder="Enter your password"
           (input)="onPasswordInput()"
           (blur)="onPasswordBlur()"
+          (keydown.space)="$event.preventDefault()" 
           required
           minlength="6"
           [disabled]="isLoading"
