@@ -12,7 +12,8 @@ import {
   OtpRequest,
   ApiResponse,
   User,
-  UserRole
+  UserRole,
+  AuthResponse
 } from './auth-interfaces';
 
 @Injectable({
@@ -40,29 +41,33 @@ export class AuthService {
     }
   }
 
-  // AUTHENTICATION METHODS
-  login(credentials: LoginRequest): Observable<ApiResponse> {
-    console.log('🔐 Sending login request:', { 
+  
+  login(credentials: LoginRequest): Observable<AuthResponse> {
+    console.log('🔐 Sending login request - FULL CREDENTIALS:', { 
       email: credentials.email, 
-      passwordLength: credentials.password?.length,
+      password: credentials.password ? `[${credentials.password.length} chars]` : 'MISSING',
       rememberMe: credentials.rememberMe 
     });
-    
-    return this.http.post<ApiResponse>(`${this.apiUrl}/login`, credentials, {
+
+    const loginPayload = {
+      email: credentials.email.trim().toLowerCase(),
+      password: credentials.password,
+      rememberMe: credentials.rememberMe || false
+    };
+
+    console.log('🔐 Final login payload being sent:', loginPayload);
+
+    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, loginPayload, {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
     }).pipe(
       tap(response => {
         console.log('🔐 Login SUCCESS - Full response:', response);
         
-        if (response.success) {
-          if (response.token || response.data?.token) {
-            this.handleAuthSuccess(response, credentials.rememberMe || false);
-          } else {
-            console.error('❌ Login successful but no token received');
-            throw new Error('Authentication error: No token received');
-          }
+        if (response.token) {
+          this.storeAuthDataDirectly(response, credentials.rememberMe || false);
         } else {
-          throw new Error(response.message || 'Login failed');
+          console.error('❌ Login successful but no token received');
+          throw new Error('Authentication error: No token received');
         }
       }),
       catchError(this.handleError)
@@ -105,7 +110,6 @@ export class AuthService {
     );
   }
 
-  // FIXED: OTP verification doesn't return token - just verifies email
   verifyOtp(request: OtpVerifyRequest): Observable<ApiResponse> {
     const cleanRequest = {
       email: request.email.trim().toLowerCase(),
@@ -412,6 +416,48 @@ export class AuthService {
     if (!this.isBrowser) return;
     const keys = ['authToken', 'refreshToken', 'userData', 'profileImage'];
     keys.forEach(key => this.removeFromStorage(key));
+  }
+
+  private storeAuthDataDirectly(authResponse: AuthResponse, rememberMe: boolean): void {
+    if (!this.isBrowser) return;
+
+    console.log('🔐 Storing auth data directly from AuthResponse:', authResponse);
+
+    const user: User = {
+      id: authResponse.userId,
+      email: authResponse.email,
+      fullName: authResponse.fullName,
+      role: authResponse.role,
+      verified: authResponse.verified,
+      emailVerified: authResponse.verified
+    };
+
+    const token = authResponse.token;
+
+    if (!user || !token) {
+      console.error('❌ Missing user or token in auth success');
+      return;
+    }
+
+    let cleanToken = token.trim();
+    if (cleanToken.startsWith('Bearer ')) {
+      cleanToken = cleanToken.substring(7).trim();
+    }
+
+    if (rememberMe) {
+      localStorage.setItem('authToken', cleanToken);
+      localStorage.setItem('userData', JSON.stringify(user));
+    } else {
+      sessionStorage.setItem('authToken', cleanToken);
+      sessionStorage.setItem('userData', JSON.stringify(user));
+    }
+
+    this.currentUserSubject.next(user);
+    this.isAuthenticatedSubject.next(true);
+    
+    this.clearPendingVerification();
+    
+    console.log('🔐 Auth storage completed - User:', user);
   }
 
   private handleAuthSuccess(response: ApiResponse, rememberMe: boolean = false): void {

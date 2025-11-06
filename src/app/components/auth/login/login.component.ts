@@ -50,7 +50,6 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (this.authService.isAuthenticated()) {
-      // ✅ ADDED: Check if authenticated user came from invitation
       const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
       const returnUrl = this.route.snapshot.queryParams['returnUrl'];
       
@@ -89,11 +88,9 @@ export class LoginComponent implements OnInit, OnDestroy {
       
       if (this.countdown <= 0) {
         this.stopAutoSubmit();
-        if (!this.isLoading) {
-          const autoPassword = this.pendingAutoPassword ?? this.loginData.password;
-          if (this.validateForm(autoPassword)) {
-            this.onSubmit(autoPassword);
-          }
+        if (!this.isLoading && this.pendingAutoPassword) {
+          console.log('🔐 Auto-login with password length:', this.pendingAutoPassword.length);
+          this.onSubmit(this.pendingAutoPassword);
         }
       }
     }, 1000);
@@ -192,7 +189,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (!this.validateForm(passwordToUse)) return;
     
     this.isLoading = true;
- 
+
     this.emailError = '';
     this.passwordError = '';
     this.pendingAutoPassword = null;
@@ -203,16 +200,23 @@ export class LoginComponent implements OnInit, OnDestroy {
       rememberMe: this.rememberMe
     };
 
-    // Store password temporarily for retry
-    const tempPassword = this.loginData.password;
-    this.loginData.password = '';
-    
-    console.log('🔐 Login attempt with:', { email: loginRequest.email, rememberMe: loginRequest.rememberMe });
+    // Store the ACTUAL password being used for retry
+    const passwordForRetry = passwordToUse;
+
+    console.log('🔐 Login attempt with:', { 
+      email: loginRequest.email, 
+      passwordLength: loginRequest.password?.length,
+      passwordValue: loginRequest.password ? `[${loginRequest.password.substring(0, 2)}...]` : 'MISSING',
+      rememberMe: loginRequest.rememberMe 
+    });
     
     this.authService.login(loginRequest).subscribe({
-      next: (response: any) => {
+      next: (response: AuthResponse) => {
         this.isLoading = false;
         console.log('🔐 Login successful, response:', response);
+        
+        // Clear password only after successful login
+        this.loginData.password = '';
         
         // Check if token was stored properly
         const token = this.authService.getToken();
@@ -235,10 +239,6 @@ export class LoginComponent implements OnInit, OnDestroy {
             userRole = user.role;
           } else if (response.role) {
             userRole = response.role;
-          } else if (response.user?.role) {
-            userRole = response.user.role;
-          } else if (response.data?.user?.role) {
-            userRole = response.data.user.role;
           }
           
           console.log('🔐 Detected user role:', userRole);
@@ -256,6 +256,13 @@ export class LoginComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.isLoading = false;
         console.error('🔐 Login error:', error);
+        
+        // Don't clear password on error for manual retry
+        // Use the stored password instead of the form password
+        if (!passwordOverride) {
+          this.loginData.password = passwordForRetry;
+        }
+        
         this.handleApiError(error);
       }
     });
@@ -349,8 +356,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       errorMessage = 'Access denied. Please contact support';
     }
     
-    this.loginData.password = '';
-    
     if (showSnackbar) {
       this.showSnackbar(errorMessage, 'error');
     }
@@ -368,15 +373,12 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     const dashboardRoute = roleMap[normalizedRole] || '/tenant-dashboard/home';
     
-    // ✅ ADDED: Check if user came from invitation
     const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
     const returnUrl = this.route.snapshot.queryParams['returnUrl'];
     
     if (hasPendingInvitation && returnUrl) {
-      // Redirect back to invitation page with token
       this.router.navigateByUrl(returnUrl);
     } else {
-      // Normal redirect to dashboard
       this.router.navigate([dashboardRoute]).then(success => {
         if (!success) {
           console.warn(`⚠️ Failed to navigate to ${dashboardRoute}, falling back to /dashboard`);
