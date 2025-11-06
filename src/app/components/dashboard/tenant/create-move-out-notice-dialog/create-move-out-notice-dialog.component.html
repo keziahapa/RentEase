@@ -5,7 +5,13 @@
   </h2>
   
   <mat-dialog-content>
-    <form [formGroup]="noticeForm" class="notice-form" (ngSubmit)="onSubmit()">
+    <!-- Loading State -->
+    <div *ngIf="isLoadingData" class="loading-state">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Loading your property information...</p>
+    </div>
+
+    <form [formGroup]="noticeForm" class="notice-form" (ngSubmit)="onSubmit()" *ngIf="!isLoadingData">
       
       <!-- Current Property Info -->
       <div class="property-info-section">
@@ -16,15 +22,15 @@
         <div class="property-details">
           <div class="property-item">
             <span class="label">Property:</span>
-            <span class="value">Sunrise Apartments</span>
+            <span class="value">{{ currentProperty?.name }}</span>
           </div>
           <div class="property-item">
             <span class="label">Unit:</span>
-            <span class="value">A101</span>
+            <span class="value">{{ currentProperty?.unitNumber }}</span>
           </div>
           <div class="property-item">
             <span class="label">Address:</span>
-            <span class="value">123 Main Street, Nairobi</span>
+            <span class="value">{{ currentProperty?.address }}</span>
           </div>
         </div>
       </div>
@@ -110,28 +116,27 @@
         </mat-checkbox>
       </div>
 
+      <!-- 🟢 MOVED: Dialog Actions INSIDE the form -->
+      <div class="dialog-actions">
+        <button mat-stroked-button 
+                type="button" 
+                (click)="onCancel()"
+                [disabled]="isSubmitting"
+                class="cancel-btn">
+          <mat-icon>close</mat-icon>
+          Cancel
+        </button>
+        <button mat-raised-button 
+                color="warn" 
+                type="submit"
+                [disabled]="!isFormValid()"
+                class="submit-btn">
+          <mat-spinner *ngIf="isSubmitting" diameter="20" class="button-spinner"></mat-spinner>
+          <mat-icon *ngIf="!isSubmitting">send</mat-icon>
+          <span>{{ isSubmitting ? 'Submitting...' : 'Submit Move-Out Notice' }}</span>
+        </button>
+      </div>
+
     </form>
   </mat-dialog-content>
-
-  <!-- Dialog Actions -->
-  <mat-dialog-actions>
-    <button mat-stroked-button 
-            type="button" 
-            (click)="onCancel()"
-            [disabled]="isSubmitting"
-            class="cancel-btn">
-      <mat-icon>close</mat-icon>
-      Cancel
-    </button>
-    <button mat-raised-button 
-            color="warn" 
-            type="button"
-            (click)="onSubmit()"
-            [disabled]="!isFormValid()"
-            class="submit-btn">
-      <mat-spinner *ngIf="isSubmitting" diameter="20" class="button-spinner"></mat-spinner>
-      <mat-icon *ngIf="!isSubmitting">send</mat-icon>
-      <span>{{ isSubmitting ? 'Submitting...' : 'Submit Move-Out Notice' }}</span>
-    </button>
-  </mat-dialog-actions>
 </div>

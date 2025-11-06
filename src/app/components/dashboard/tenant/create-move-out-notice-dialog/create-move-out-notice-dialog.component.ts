@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { Component, Inject, OnInit } from '@angular/core';
+import { TenantService } from '../../../../services/tenant.service';
 
 export interface MoveOutNoticeRequest {
   propertyId: number;
@@ -46,6 +47,11 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   maxDate: Date;
   isSubmitting = false;
   termsAccepted = false;
+  isLoadingData = true;
+
+  // 🟢 ADD REAL PROPERTY DATA
+  currentProperty: any = null;
+  currentUnit: any = null;
 
   moveOutReasons = [
     { value: 'RELOCATION', label: 'Relocation to another area' },
@@ -61,7 +67,8 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     public dialogRef: MatDialogRef<CreateMoveOutNoticeDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
+    @Inject(MAT_DIALOG_DATA) public data: any,
+    private tenantService: TenantService // 🟢 ADD SERVICE
   ) {
     // Set minimum date to tomorrow
     this.minDate = new Date();
@@ -73,16 +80,67 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.initializeForm();
+    this.loadCurrentPropertyData(); // 🟢 LOAD REAL DATA FIRST
+  }
+
+  // 🟢 ADD METHOD TO LOAD REAL DATA
+  private loadCurrentPropertyData(): void {
+    this.isLoadingData = true;
+    
+    this.tenantService.getTenantUnits().subscribe({
+      next: (response: any) => {
+        this.isLoadingData = false;
+        
+        if (response.success && response.data && response.data.length > 0) {
+          const primaryUnit = response.data[0];
+          this.currentUnit = primaryUnit;
+          this.currentProperty = {
+            name: primaryUnit.propertyName || 'Unknown Property',
+            unitNumber: primaryUnit.unitNumber || 'Unknown Unit',
+            address: primaryUnit.propertyAddress || 'Address not available',
+            propertyId: primaryUnit.propertyId || 1,
+            unitId: primaryUnit.unitId || null
+          };
+          
+          this.initializeForm(); // 🟢 INITIALIZE FORM AFTER DATA LOAD
+        } else {
+          this.setFallbackData();
+        }
+      },
+      error: (error) => {
+        this.isLoadingData = false;
+        console.error('Error loading property data:', error);
+        this.setFallbackData();
+      }
+    });
+  }
+
+  private setFallbackData(): void {
+    this.currentProperty = {
+      name: 'Unknown Property',
+      unitNumber: 'Unknown Unit',
+      address: 'Address not available',
+      propertyId: 1,
+      unitId: null
+    };
+    this.initializeForm(); // 🟢 INITIALIZE FORM WITH FALLBACK DATA
   }
 
   private initializeForm(): void {
     this.noticeForm = this.fb.group({
-      propertyId: [this.data?.propertyId || 1, Validators.required],
-      unitId: [this.data?.unitId || null],
+      propertyId: [this.currentProperty.propertyId, Validators.required],
+      unitId: [this.currentProperty.unitId || null],
       moveOutDate: ['', [Validators.required]],
       reason: ['', Validators.required],
       notes: ['', [Validators.maxLength(1000)]]
+    });
+
+    // 🟢 DEBUG: Log form status changes
+    this.noticeForm.statusChanges.subscribe(status => {
+      console.log('Form status:', status);
+      console.log('Form valid:', this.noticeForm.valid);
+      console.log('Form values:', this.noticeForm.value);
+      console.log('Terms accepted:', this.termsAccepted);
     });
   }
 
@@ -91,6 +149,8 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   onSubmit(): void {
+    console.log('Submit clicked - Form valid:', this.noticeForm.valid, 'Terms accepted:', this.termsAccepted);
+    
     if (this.noticeForm.valid && this.termsAccepted && !this.isSubmitting) {
       this.isSubmitting = true;
       
@@ -100,14 +160,27 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
         moveOutDate: this.formatDate(formValue.moveOutDate)
       };
 
-      // Simulate API call with timeout
-      setTimeout(() => {
-        console.log('Submitting move-out notice:', noticeData);
-        this.dialogRef.close({ success: true, data: noticeData });
-        this.isSubmitting = false;
-      }, 1500);
+      console.log('Submitting move-out notice:', noticeData);
+
+      // 🟢 USE REAL SERVICE CALL
+      this.tenantService.submitMoveOutNotice(noticeData).subscribe({
+        next: (response: any) => {
+          this.isSubmitting = false;
+          if (response.success) {
+            this.dialogRef.close({ success: true, data: noticeData });
+          } else {
+            console.error('Failed to submit move-out notice:', response.message);
+            // Handle API error
+          }
+        },
+        error: (error) => {
+          this.isSubmitting = false;
+          console.error('Error submitting move-out notice:', error);
+          // Handle error
+        }
+      });
     } else {
-      // Mark all fields as touched to show validation errors
+      console.log('Form validation failed - marking fields as touched');
       this.markFormGroupTouched();
     }
   }
@@ -149,10 +222,24 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   isFormValid(): boolean {
-    return this.noticeForm.valid && this.termsAccepted && !this.isSubmitting;
+    const isValid = this.noticeForm.valid && this.termsAccepted && !this.isSubmitting;
+    console.log('isFormValid check:', {
+      formValid: this.noticeForm.valid,
+      termsAccepted: this.termsAccepted,
+      notSubmitting: !this.isSubmitting,
+      finalResult: isValid
+    });
+    return isValid;
   }
 
   onTermsChange(checked: boolean): void {
     this.termsAccepted = checked;
+    console.log('Terms accepted:', checked);
+  }
+
+  // 🟢 ADD METHOD TO CHECK IF DATE IS VALID
+  isDateValid(): boolean {
+    const dateControl = this.noticeForm.get('moveOutDate');
+    return dateControl?.valid && dateControl.value;
   }
 }
