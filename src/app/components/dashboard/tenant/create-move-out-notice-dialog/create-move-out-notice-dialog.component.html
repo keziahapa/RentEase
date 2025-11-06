@@ -96,8 +96,8 @@
     </button>
     <button mat-raised-button 
             color="primary" 
-            (click)="onSubmit()" 
-            [disabled]="!isFormValid()"
+            (click)="onSubmit(); $event.stopPropagation()" 
+            [disabled]="!isFormValid() || isSubmitting"
             class="submit-button">
       <span *ngIf="!isSubmitting">Submit Move-Out Notice</span>
       <span *ngIf="isSubmitting" class="button-loading">
