@@ -10,6 +10,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Component, Inject, OnInit } from '@angular/core';
 import { TenantService } from '../../../../services/tenant.service';
 
@@ -49,7 +50,6 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   termsAccepted = false;
   isLoadingData = true;
 
-  // 🟢 ADD REAL PROPERTY DATA
   currentProperty: any = null;
   currentUnit: any = null;
 
@@ -68,7 +68,8 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     private fb: FormBuilder,
     public dialogRef: MatDialogRef<CreateMoveOutNoticeDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any,
-    private tenantService: TenantService // 🟢 ADD SERVICE
+    private tenantService: TenantService,
+    private snackBar: MatSnackBar
   ) {
     // Set minimum date to tomorrow
     this.minDate = new Date();
@@ -80,10 +81,9 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadCurrentPropertyData(); // 🟢 LOAD REAL DATA FIRST
+    this.loadCurrentPropertyData();
   }
 
-  // 🟢 ADD METHOD TO LOAD REAL DATA
   private loadCurrentPropertyData(): void {
     this.isLoadingData = true;
     
@@ -98,11 +98,11 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
             name: primaryUnit.propertyName || 'Unknown Property',
             unitNumber: primaryUnit.unitNumber || 'Unknown Unit',
             address: primaryUnit.propertyAddress || 'Address not available',
-            propertyId: primaryUnit.propertyId || 1,
-            unitId: primaryUnit.unitId || null
+            propertyId: primaryUnit.propertyId || primaryUnit.id || 1,
+            unitId: primaryUnit.unitId || primaryUnit.id || null
           };
           
-          this.initializeForm(); // 🟢 INITIALIZE FORM AFTER DATA LOAD
+          this.initializeForm();
         } else {
           this.setFallbackData();
         }
@@ -123,7 +123,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
       propertyId: 1,
       unitId: null
     };
-    this.initializeForm(); // 🟢 INITIALIZE FORM WITH FALLBACK DATA
+    this.initializeForm();
   }
 
   private initializeForm(): void {
@@ -135,17 +135,15 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
       notes: ['', [Validators.maxLength(1000)]]
     });
 
-    // 🟢 DEBUG: Log form status changes
+    // Debug form status
     this.noticeForm.statusChanges.subscribe(status => {
       console.log('Form status:', status);
       console.log('Form valid:', this.noticeForm.valid);
-      console.log('Form values:', this.noticeForm.value);
-      console.log('Terms accepted:', this.termsAccepted);
     });
   }
 
   onCancel(): void {
-    this.dialogRef.close();
+    this.dialogRef.close({ success: false });
   }
 
   onSubmit(): void {
@@ -162,26 +160,55 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
 
       console.log('Submitting move-out notice:', noticeData);
 
-      // 🟢 USE REAL SERVICE CALL
       this.tenantService.submitMoveOutNotice(noticeData).subscribe({
         next: (response: any) => {
           this.isSubmitting = false;
+          console.log('Move-out notice response:', response);
+          
           if (response.success) {
-            this.dialogRef.close({ success: true, data: noticeData });
+            this.snackBar.open('Move-out notice submitted successfully!', 'Close', { 
+              duration: 5000,
+              panelClass: ['success-snackbar']
+            });
+            this.dialogRef.close({ 
+              success: true, 
+              data: response.data || noticeData 
+            });
           } else {
-            console.error('Failed to submit move-out notice:', response.message);
-            // Handle API error
+            this.snackBar.open(response.message || 'Failed to submit move-out notice', 'Close', { 
+              duration: 5000,
+              panelClass: ['error-snackbar']
+            });
           }
         },
         error: (error) => {
           this.isSubmitting = false;
           console.error('Error submitting move-out notice:', error);
-          // Handle error
+          
+          if (error.status === 401) {
+            this.snackBar.open('Session expired. Please login again.', 'Close', { 
+              duration: 5000,
+              panelClass: ['error-snackbar']
+            });
+            this.dialogRef.close({ success: false, sessionExpired: true });
+          } else {
+            this.snackBar.open('Failed to submit move-out notice. Please try again.', 'Close', { 
+              duration: 5000,
+              panelClass: ['error-snackbar']
+            });
+          }
         }
       });
     } else {
       console.log('Form validation failed - marking fields as touched');
       this.markFormGroupTouched();
+      
+      if (!this.termsAccepted) {
+        this.snackBar.open('Please accept the terms and conditions', 'Close', { 
+          duration: 3000,
+          panelClass: ['warning-snackbar']
+        });
+      }
     }
   }
 
@@ -222,24 +249,21 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   isFormValid(): boolean {
-    const isValid = this.noticeForm.valid && this.termsAccepted && !this.isSubmitting;
-    console.log('isFormValid check:', {
-      formValid: this.noticeForm.valid,
-      termsAccepted: this.termsAccepted,
-      notSubmitting: !this.isSubmitting,
-      finalResult: isValid
-    });
-    return isValid;
+    return this.noticeForm.valid && this.termsAccepted && !this.isSubmitting;
   }
 
   onTermsChange(checked: boolean): void {
     this.termsAccepted = checked;
-    console.log('Terms accepted:', checked);
   }
 
-  // 🟢 ADD METHOD TO CHECK IF DATE IS VALID
   isDateValid(): boolean {
     const dateControl = this.noticeForm.get('moveOutDate');
     return dateControl?.valid && dateControl.value;
+  }
+
+ 
+  getReasonDisplayName(reasonValue: string): string {
+    const reason = this.moveOutReasons.find(r => r.value === reasonValue);
+    return reason ? reason.label : reasonValue;
   }
 }

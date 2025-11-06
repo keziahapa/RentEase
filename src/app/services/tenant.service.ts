@@ -70,39 +70,37 @@ export class TenantService {
   }
 
   submitMoveOutNotice(request: MoveOutNoticeRequest): Observable<any> {
-    const token = this.authService.getToken();
+    console.log('🚀 Submitting move-out notice with data:', request);
     
-    // For demo purposes - simulate API call with proper Observable
-    if (!token) {
-      return new Observable(observer => {
-        setTimeout(() => {
-          observer.next({
-            success: true,
-            message: 'Move-out notice submitted successfully!',
-            data: {
-              id: Math.floor(Math.random() * 1000) + 1,
-              ...request,
-              status: 'PENDING',
-              submittedDate: new Date().toISOString(),
-              unitNumber: 'A101',
-              propertyName: 'Sunrise Apartments'
-            }
-          });
-          observer.complete();
-        }, 1500);
-      });
-    }
-
     return this.http.post<any>(
       `${this.apiUrl}/tenant/move-out-notices`,
       request,
-      { headers: this.createHeaders() }
+      { 
+        headers: this.createHeaders(),
+        observe: 'response' // Get full response including status
+      }
     ).pipe(
+      map(response => {
+        console.log('✅ Move-out notice submitted successfully:', response);
+        return {
+          success: true,
+          message: 'Move-out notice submitted successfully!',
+          data: response.body?.data || request
+        };
+      }),
       catchError(error => {
-        console.error('Error submitting move-out notice:', error);
+        console.error('❌ Error submitting move-out notice:', error);
+        
+        // Handle 401 specifically
+        if (error.status === 401) {
+          console.warn('🔄 Token expired, logging out...');
+          this.authService.logoutSync();
+        }
+        
         return of({ 
           success: false, 
-          message: error.error?.message || 'Failed to submit move-out notice' 
+          message: error.error?.message || 'Failed to submit move-out notice',
+          error: error
         });
       })
     );
@@ -121,6 +119,11 @@ export class TenantService {
     ).pipe(
       catchError(error => {
         console.error('Error cancelling move-out notice:', error);
+        
+        if (error.status === 401) {
+          this.authService.logoutSync();
+        }
+        
         return of({ 
           success: false, 
           message: error.error?.message || 'Failed to cancel move-out notice' 
@@ -141,9 +144,55 @@ export class TenantService {
     ).pipe(
       catchError(error => {
         console.error('Error fetching move-out notice:', error);
+        
+        if (error.status === 401) {
+          this.authService.logoutSync();
+        }
+        
         return of({ 
           success: false, 
           message: error.error?.message || 'Failed to fetch move-out notice' 
+        });
+      })
+    );
+  }
+
+  getMoveOutNoticeDetails(noticeId: number): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/tenant/move-out-notices/${noticeId}/details`,
+      { headers: this.createHeaders() }
+    ).pipe(
+      catchError(error => {
+        console.error('Error fetching move-out notice details:', error);
+        
+        if (error.status === 401) {
+          this.authService.logoutSync();
+        }
+        
+        return of({ 
+          success: false, 
+          message: error.error?.message || 'Failed to fetch move-out notice details' 
+        });
+      })
+    );
+  }
+
+  updateMoveOutNotice(noticeId: number, updates: any): Observable<any> {
+    return this.http.put<any>(
+      `${this.apiUrl}/tenant/move-out-notices/${noticeId}`,
+      updates,
+      { headers: this.createHeaders() }
+    ).pipe(
+      catchError(error => {
+        console.error('Error updating move-out notice:', error);
+        
+        if (error.status === 401) {
+          this.authService.logoutSync();
+        }
+        
+        return of({ 
+          success: false, 
+          message: error.error?.message || 'Failed to update move-out notice' 
         });
       })
     );
