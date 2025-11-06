@@ -7,12 +7,49 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
- 
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
 <body>
   <app-root></app-root>
+
+  <!-- Add this polyfill script to fix "global is not defined" error -->
+  <script>
+    // Fix for WebSocket libraries (SockJS, StompJS) that need Node.js globals
+    if (typeof global === 'undefined') {
+      window.global = window;
+    }
+    
+    if (typeof globalThis === 'undefined') {
+      window.globalThis = window;
+    }
+    
+    // Process polyfill for libraries that expect Node.js process object
+    if (typeof process === 'undefined') {
+      window.process = {
+        env: { 
+          DEBUG: undefined,
+          NODE_ENV: 'production'
+        },
+        version: '',
+        versions: {},
+        platform: 'browser',
+        browser: true,
+        nextTick: function(callback) {
+          setTimeout(callback, 0);
+        }
+      };
+    }
+    
+    // Buffer polyfill fallback
+    if (typeof Buffer === 'undefined') {
+      window.Buffer = {
+        isBuffer: function() { return false; },
+        from: function(data) { return data; },
+        alloc: function(size) { return new Uint8Array(size); }
+      };
+    }
+  </script>
 </body>
 </html>

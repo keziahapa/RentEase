@@ -295,7 +295,7 @@ export class CaretakerService {
     );
   }
 
-  // ===== UTILITY METHODS =====
+
   logout(): Observable<any> {
     return this.http.post(`${this.apiUrl}/auth/logout`, {}, {
       headers: this.createHeaders()
@@ -304,12 +304,12 @@ export class CaretakerService {
 
   getCurrentUserId(): number {
   const currentUser = this.authService.getCurrentUser();
-  // FIX: Ensure we're working with a string before parsing
+ 
   const userId = currentUser?.id?.toString();
   return userId ? parseInt(userId, 10) : 0;
 }
 
-  // Helper method to get current user role
+ 
   getCurrentUserRole(): string {
     try {
       const currentUser = this.authService.getCurrentUser();
