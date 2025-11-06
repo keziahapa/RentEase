@@ -22,7 +22,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   let clonedReq = req;
   const token = authService.getToken();
   
-  // ✅ ADD DEBUG LOGGING
   console.log('🔐 Interceptor - URL:', req.url);
   console.log('🔐 Interceptor - Token exists:', !!token);
   console.log('🔐 Interceptor - Skip auth:', skipAuth);
@@ -38,7 +37,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(clonedReq).pipe(
     catchError((error: HttpErrorResponse) => {
-     
       const isInvitationRequest = 
         req.url.includes('/invite-tenant') || 
         req.url.includes('/invite-caretaker') ||

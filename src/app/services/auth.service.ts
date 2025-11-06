@@ -5,6 +5,7 @@ import { tap, catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { environment } from '../../environments/environment';
 import {
   LoginRequest,
   RegisterRequest,
@@ -26,8 +27,8 @@ export class AuthService {
   private snackBar = inject(MatSnackBar);
   private isBrowser: boolean;
 
-  // ✅ TEMPORARY CORS WORKAROUND - Using full backend URL
-  private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com/api/auth';
+  // ✅ CORRECT: Use environment variable
+  private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
@@ -42,12 +43,10 @@ export class AuthService {
     }
   }
 
-  // ✅ TEMPORARY CORS HEADERS
-  private getCorsHeaders(): HttpHeaders {
+  // ✅ CORRECT: Simple headers - NO CORS headers!
+  private getBasicHeaders(): HttpHeaders {
     return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Accept': 'application/json'
+      'Content-Type': 'application/json'
     });
   }
 
@@ -58,19 +57,20 @@ export class AuthService {
       rememberMe: credentials.rememberMe 
     });
 
-    // ✅ FIX: TRIM THE PASSWORD HERE TOO!
     const loginPayload = {
       email: credentials.email.trim().toLowerCase(),
-      password: credentials.password.trim(), // ✅ ADD .trim() HERE
+      password: credentials.password.trim(),
       rememberMe: credentials.rememberMe || false
     };
 
     console.log('🔐 Final login payload being sent:', loginPayload);
 
-    // ✅ USE CORS HEADERS TEMPORARILY
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, loginPayload, {
-      headers: this.getCorsHeaders()
-    }).pipe(
+    // ✅ CORRECT FETCH: No CORS headers!
+    return this.http.post<AuthResponse>(
+      `${this.apiUrl}/login`, 
+      loginPayload,
+      { headers: this.getBasicHeaders() }
+    ).pipe(
       tap(response => {
         console.log('🔐 Login SUCCESS - Full response:', response);
         
@@ -93,10 +93,12 @@ export class AuthService {
 
     console.log('🔐 Sending registration:', normalizedData);
 
-    // ✅ USE CORS HEADERS TEMPORARILY
-    return this.http.post<ApiResponse>(`${this.apiUrl}/signup`, normalizedData, {
-      headers: this.getCorsHeaders()
-    }).pipe(
+    // ✅ CORRECT: No CORS headers!
+    return this.http.post<ApiResponse>(
+      `${this.apiUrl}/signup`, 
+      normalizedData,
+      { headers: this.getBasicHeaders() }
+    ).pipe(
       tap(response => {
         console.log('🔐 Registration response:', response);
         
@@ -131,10 +133,12 @@ export class AuthService {
 
     console.log('🔐 Verifying OTP:', cleanRequest);
 
-    // ✅ USE CORS HEADERS TEMPORARILY
-    return this.http.post<ApiResponse>(`${this.apiUrl}/verify-otp`, cleanRequest, {
-      headers: this.getCorsHeaders()
-    }).pipe(
+    // ✅ CORRECT: No CORS headers!
+    return this.http.post<ApiResponse>(
+      `${this.apiUrl}/verify-otp`, 
+      cleanRequest,
+      { headers: this.getBasicHeaders() }
+    ).pipe(
       tap(response => {
         console.log('🔐 OTP verification response:', response);
         
@@ -157,10 +161,12 @@ export class AuthService {
     
     console.log('🔐 Resending OTP:', cleanRequest);
 
-    // ✅ USE CORS HEADERS TEMPORARILY
-    return this.http.post<ApiResponse>(`${this.apiUrl}/resend-otp`, cleanRequest, {
-      headers: this.getCorsHeaders()
-    }).pipe(
+    // ✅ CORRECT: No CORS headers!
+    return this.http.post<ApiResponse>(
+      `${this.apiUrl}/resend-otp`, 
+      cleanRequest,
+      { headers: this.getBasicHeaders() }
+    ).pipe(
       tap(response => {
         console.log('🔐 Resend OTP response:', response);
       }),
@@ -174,10 +180,11 @@ export class AuthService {
     this.performLocalLogout();
     
     if (token) {
-      // ✅ USE CORS HEADERS TEMPORARILY
-      return this.http.post<ApiResponse>(`${this.apiUrl}/logout`, {}, {
-        headers: this.getAuthHeaders()
-      }).pipe(
+      return this.http.post<ApiResponse>(
+        `${this.apiUrl}/logout`, 
+        {},
+        { headers: this.getAuthHeaders() }
+      ).pipe(
         catchError(() => of({ success: true, message: 'Logged out locally' }))
       );
     }
@@ -191,7 +198,6 @@ export class AuthService {
     this.performLocalLogout();
     
     if (token) {
-      // ✅ USE CORS HEADERS TEMPORARILY
       this.http.post<ApiResponse>(
         `${this.apiUrl}/logout`,
         {},
@@ -209,11 +215,10 @@ export class AuthService {
   // PASSWORD MANAGEMENT
   requestPasswordReset(request: { email: string }): Observable<ApiResponse> {
     const normalizedRequest = { email: request.email.trim().toLowerCase() };
-    // ✅ USE CORS HEADERS TEMPORARILY
     return this.http.post<ApiResponse>(
       `${this.apiUrl}/forgot-password`,
       normalizedRequest,
-      { headers: this.getCorsHeaders() }
+      { headers: this.getBasicHeaders() }
     ).pipe(catchError(this.handleError));
   }
 
@@ -224,13 +229,10 @@ export class AuthService {
       newPassword: request.newPassword
     };
     
-    // ✅ USE CORS HEADERS TEMPORARILY
     return this.http.post<ApiResponse>(
       `${this.apiUrl}/reset-password`,
       payload,
-      { 
-        headers: this.getCorsHeaders()
-      }
+      { headers: this.getBasicHeaders() }
     ).pipe(catchError(this.handleError));
   }
 
@@ -241,10 +243,11 @@ export class AuthService {
       type: 'password_reset'
     };
     
-    // ✅ USE CORS HEADERS TEMPORARILY
-    return this.http.post<ApiResponse>(`${this.apiUrl}/verify-otp`, cleanRequest, {
-      headers: this.getCorsHeaders()
-    }).pipe(catchError(this.handleError));
+    return this.http.post<ApiResponse>(
+      `${this.apiUrl}/verify-otp`, 
+      cleanRequest,
+      { headers: this.getBasicHeaders() }
+    ).pipe(catchError(this.handleError));
   }
 
   changePassword(request: { currentPassword: string; newPassword: string }): Observable<ApiResponse> {
@@ -262,18 +265,22 @@ export class AuthService {
       confirmNewPassword
     };
     
-    return this.http.put<ApiResponse>(`${this.apiUrl}/update-password`, payload, {
-      headers: this.getAuthHeaders()
-    }).pipe(catchError(this.handleError));
+    return this.http.put<ApiResponse>(
+      `${this.apiUrl}/update-password`, 
+      payload,
+      { headers: this.getAuthHeaders() }
+    ).pipe(catchError(this.handleError));
   }
 
   // PROFILE MANAGEMENT
   updatePhone(newPhoneNumber: string): Observable<ApiResponse> {
     const payload = { newPhoneNumber };
     
-    return this.http.put<ApiResponse>(`${this.apiUrl}/update-phone`, payload, {
-      headers: this.getAuthHeaders()
-    }).pipe(
+    return this.http.put<ApiResponse>(
+      `${this.apiUrl}/update-phone`, 
+      payload,
+      { headers: this.getAuthHeaders() }
+    ).pipe(
       tap(response => {
         if (response.success) {
           const currentUser = this.getCurrentUser();
@@ -298,10 +305,11 @@ export class AuthService {
       type: request.type 
     };
     
-    // ✅ USE CORS HEADERS TEMPORARILY
-    return this.http.post<ApiResponse>(`${this.apiUrl}/send-otp`, cleanRequest, {
-      headers: this.getCorsHeaders()
-    }).pipe(catchError(this.handleError));
+    return this.http.post<ApiResponse>(
+      `${this.apiUrl}/send-otp`, 
+      cleanRequest,
+      { headers: this.getBasicHeaders() }
+    ).pipe(catchError(this.handleError));
   }
 
   // TOKEN & USER MANAGEMENT
@@ -443,7 +451,7 @@ export class AuthService {
 
     // ✅ FIX: Convert userId from number to string properly
     const user: User = {
-      id: authResponse.userId.toString(), // ✅ Convert number to string
+      id: authResponse.userId.toString(),
       email: authResponse.email,
       fullName: authResponse.fullName,
       role: authResponse.role,
