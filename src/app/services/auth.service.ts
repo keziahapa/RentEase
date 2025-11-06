@@ -31,6 +31,71 @@ export class AuthService {
     }
   }
 
+  // ADD MISSING METHODS
+  logoutSync(): void {
+    const token = this.getToken();
+    
+    this.performLocalLogout();
+    
+    if (token) {
+      this.http.post<any>(
+        `${this.apiUrl}/logout`,
+        {},
+        { 
+          headers: this.getAuthHeaders(),
+          responseType: 'json'
+        }
+      ).subscribe({
+        next: () => console.log('Backend logout completed'),
+        error: (err) => console.warn('Backend logout failed:', err)
+      });
+    }
+  }
+
+  isLoggedIn(): boolean {
+    const token = this.getToken(); 
+    return !!token;
+  }
+
+  getPhoneNumber(): string {
+    if (!this.isBrowser) return '';
+    
+    try {
+      const currentUser = this.currentUserSubject.value;
+      if (currentUser?.phoneNumber) {
+        return currentUser.phoneNumber;
+      }
+      
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        if (parsedUser?.phoneNumber) {
+          return parsedUser.phoneNumber;
+        }
+      }
+      
+      const sessionUser = sessionStorage.getItem('userData');
+      if (sessionUser) {
+        const parsedSessionUser = JSON.parse(sessionUser);
+        if (parsedSessionUser?.phoneNumber) {
+          return parsedSessionUser.phoneNumber;
+        }
+      }
+      
+      return '';
+    } catch (error) {
+      console.error('Error getting phone number from storage:', error);
+      return '';
+    }
+  }
+
+  clearCorruptedStorage(): void {
+    this.clearAllStorage();
+    this.currentUserSubject.next(null);
+    this.isAuthenticatedSubject.next(false);
+  }
+
+  // EXISTING METHODS
   login(credentials: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/login`, credentials, {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
