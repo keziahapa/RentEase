@@ -183,15 +183,23 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         type: 'email_verification'
       };
 
+      console.log('🔐 Verifying OTP:', verifyRequest);
+
       const response = await firstValueFrom(this.authService.verifyOtp(verifyRequest));
 
-      if (response.success) {
+      console.log('🔐 OTP Verification Response:', response);
+
+      // FIXED: Check for success in different response formats
+      if (response?.success || response?.status === 'success' || response?.verified) {
         this.showMessage('Verification successful! Redirecting...', 'success');
         await this.handleSuccessfulVerification(response);
       } else {
-        throw new Error(response.message || 'Verification failed');
+        // FIXED: Better error message extraction
+        const errorMessage = response?.message || 'Verification failed. Please try again.';
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
+      console.error('🔐 OTP Verification Error:', error);
       this.handleVerificationError(error);
       this.shakeInputs();
       this.clearOtpInputs();
@@ -210,17 +218,40 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   private async handleSuccessfulVerification(response: any) {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // FIXED: Wait for token to be stored
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     console.log('🔍 Verification Response:', response);
     console.log('🔍 Query param userType:', this.userType);
     
-    const userRole = this.userType || response.user?.role || '';
+    // FIXED: Better role extraction with fallbacks
+    const userRole = this.userType || 
+                    response.user?.role || 
+                    response.role || 
+                    '';
+    
     console.log('🔍 Final determined role for navigation:', userRole);
 
     if (!userRole) {
+      console.warn('⚠️ No user role found, checking auth service...');
+      
+      // FIXED: Check if user is authenticated and get role from auth service
+      const currentUser = this.authService.getCurrentUser();
+      const authToken = this.authService.getToken();
+      
+      console.log('🔍 Auth Service - Current User:', currentUser);
+      console.log('🔍 Auth Service - Token:', authToken ? 'PRESENT' : 'MISSING');
+      
+      if (currentUser?.role) {
+        await this.navigateBasedOnUserRole(currentUser.role);
+        return;
+      }
+      
       this.showMessage('User role not found. Please contact support.', 'error');
-      await this.router.navigate(['/login'], { replaceUrl: true });
+      await this.router.navigate(['/login'], { 
+        replaceUrl: true,
+        queryParams: { message: 'verification_success_but_role_missing' }
+      });
       return;
     }
 
@@ -232,49 +263,74 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     
     console.log('🔍 Navigating based on role:', normalizedRole);
     
+    // FIXED: Updated route map with proper paths
     const routeMap: { [key: string]: string } = {
-      'LANDLORD': '/landlord-dashboard',
-      'TENANT': '/tenant-dashboard',
-      'CARETAKER': '/caretaker-dashboard',
-      'BUSINESS': '/bussiness/register', // Fixed to match "bussiness" spelling
+      'LANDLORD': '/landlord-dashboard/home',
+      'TENANT': '/tenant-dashboard/dashboard', 
+      'CARETAKER': '/caretaker-dashboard/overview',
+      'BUSINESS': '/business-dashboard', // Fixed spelling
       'ADMIN': '/admin-dashboard'
     };
 
     const targetRoute = routeMap[normalizedRole];
 
     if (targetRoute) {
-      await this.router.navigate([targetRoute], { 
-        replaceUrl: true,
-        state: { 
-          email: this.email,
-          userType: userRole,
-          phoneNumber: this.phoneNumber
-        }
-      });
+      console.log('🔍 Navigating to:', targetRoute);
+      
+      // FIXED: Add delay to ensure token is stored
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      try {
+        await this.router.navigate([targetRoute], { 
+          replaceUrl: true
+        });
+      } catch (navigationError) {
+        console.error('❌ Navigation error:', navigationError);
+        // FIXED: Fallback navigation
+        this.showMessage('Navigation issue. Redirecting to dashboard...', 'info');
+        await this.router.navigate(['/dashboard'], { replaceUrl: true });
+      }
     } else {
       console.error('❌ Unknown role for navigation:', normalizedRole);
-      this.showMessage('Unknown user role. Please contact support.', 'error');
-      await this.router.navigate(['/login'], { replaceUrl: true });
+      this.showMessage(`Unknown user role: ${userRole}. Redirecting to login.`, 'error');
+      
+      // FIXED: Better error handling with query params
+      await this.router.navigate(['/login'], { 
+        replaceUrl: true,
+        queryParams: { 
+          message: 'unknown_user_role',
+          role: userRole
+        }
+      });
     }
   }
 
   private handleVerificationError(error: any) {
-    const errorMsg = (error.message || '').toLowerCase();
+    console.error('🔐 Verification Error Details:', error);
     
+    const errorMsg = (error.message || error.toString() || '').toLowerCase();
+    
+    // FIXED: Better error message handling
     if (errorMsg.includes('expired')) {
-      this.showMessage('Code has expired. Please request a new one.', 'error');
+      this.showMessage('Verification code has expired. Please request a new one.', 'error');
       this.canResend = true;
-    } else if (errorMsg.includes('invalid')) {
-      this.showMessage('Invalid code. Please check and try again.', 'error');
+    } else if (errorMsg.includes('invalid') || errorMsg.includes('incorrect')) {
+      this.showMessage('Invalid verification code. Please check and try again.', 'error');
     } else if (errorMsg.includes('not found') || errorMsg.includes('does not exist')) {
-      this.showMessage('Account not found. Please check your email or register.', 'error');
-    } else if (errorMsg.includes('already verified')) {
-      this.showMessage('Account already verified. Redirecting...', 'info');
-      const userRole = this.userType || '';
-      
-      this.navigateBasedOnUserRole(userRole);
+      this.showMessage('Account not found. Please check your email or register again.', 'error');
+    } else if (errorMsg.includes('already verified') || errorMsg.includes('already active')) {
+      this.showMessage('Your account is already verified. Redirecting to login...', 'info');
+      setTimeout(() => {
+        this.router.navigate(['/login'], { 
+          replaceUrl: true,
+          queryParams: { message: 'account_already_verified' }
+        });
+      }, 2000);
+    } else if (errorMsg.includes('too many attempts') || errorMsg.includes('rate limit')) {
+      this.showMessage('Too many attempts. Please wait before trying again.', 'error');
     } else {
-      this.showMessage(error.message || 'Verification failed. Please try again.', 'error');
+      // FIXED: More user-friendly generic error
+      this.showMessage('Verification failed. Please check your code and try again.', 'error');
     }
   }
 
@@ -289,16 +345,20 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         type: 'email_verification'
       };
 
+      console.log('🔐 Resending OTP:', resendRequest);
+
       const response = await firstValueFrom(this.authService.resendOtp(resendRequest));
 
-      if (response.success) {
-        this.showMessage('New code sent! Check your email.', 'success');
+      // FIXED: Better success detection
+      if (response?.success || response?.status === 'success' || response?.message?.toLowerCase().includes('sent')) {
+        this.showMessage('New verification code sent! Please check your email.', 'success');
         this.startResendTimer();
         this.clearOtpInputs();
       } else {
-        throw new Error(response.message || 'Failed to resend code');
+        throw new Error(response?.message || 'Failed to resend verification code');
       }
     } catch (error: any) {
+      console.error('🔐 Resend OTP Error:', error);
       this.showMessage(error.message || 'Failed to resend code. Please try again.', 'error');
     } finally {
       this.isResending = false;

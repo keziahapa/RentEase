@@ -31,37 +31,6 @@ export class AuthService {
     }
   }
 
-  private getFromStorage(key: string): string | null {
-    if (!this.isBrowser) return null;
-    try {
-      const value = localStorage.getItem(key) || sessionStorage.getItem(key);
-      if (value === 'undefined' || value === 'null') return null;
-      return value;
-    } catch {
-      return null;
-    }
-  }
-
-  private removeFromStorage(key: string): void {
-    if (!this.isBrowser) return;
-    try {
-      localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
-    } catch {}
-  }
-
-  private clearAllStorage(): void {
-    if (!this.isBrowser) return;
-    const keys = ['authToken', 'refreshToken', 'userData', 'profileImage'];
-    keys.forEach(key => this.removeFromStorage(key));
-  }
-
-  clearCorruptedStorage(): void {
-    this.clearAllStorage();
-    this.currentUserSubject.next(null);
-    this.isAuthenticatedSubject.next(false);
-  }
-
   login(credentials: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/login`, credentials, {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
@@ -81,14 +50,10 @@ export class AuthService {
           emailVerified: res.emailVerified
         };
 
-        const phoneNumber = userData.phoneNumber || 
-                           res.phoneNumber || 
-                           this.getPendingPhoneNumber() || 
-                           '';
+        const phoneNumber = userData.phoneNumber || res.phoneNumber || this.getPendingPhoneNumber() || '';
         
         const enhancedResponse = {
-          ...res,
-          phoneNumber: phoneNumber,
+          token: res.token,
           user: {
             ...userData,
             phoneNumber: phoneNumber
@@ -130,6 +95,75 @@ export class AuthService {
     );
   }
 
+  verifyOtp(request: any): Observable<any> {
+    const cleanRequest = {
+      email: request.email.trim().toLowerCase(),
+      otpCode: request.otpCode.toString().trim(),
+      type: request.type
+    };
+
+    return this.http.post<any>(`${this.apiUrl}/verify-otp`, cleanRequest, {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    }).pipe(
+      tap(res => {
+        let token = null;
+        let userData = null;
+
+        if (res.token) token = res.token;
+        else if (res.data?.token) token = res.data.token;
+        else if (res.access_token) token = res.access_token;
+        else if (res.authToken) token = res.authToken;
+        else if (res.jwt) token = res.jwt;
+
+        if (res.user) userData = res.user;
+        else if (res.data?.user) userData = res.data.user;
+        else {
+          userData = {
+            id: res.userId?.toString() || res.id?.toString(),
+            fullName: res.fullName,
+            email: res.email,
+            role: res.role,
+            verified: res.verified,
+            emailVerified: res.emailVerified,
+            phoneNumber: res.phoneNumber
+          };
+        }
+
+        if (!userData.role) {
+          throw new Error('User role not provided in verification response');
+        }
+        
+        const phoneNumber = this.extractPhoneNumberFromMultipleSources(res);
+        
+        if (token) {
+          const enhancedResponse = {
+            token: token,
+            user: {
+              ...userData,
+              phoneNumber: phoneNumber
+            }
+          };
+          
+          this.handleAuthSuccess(enhancedResponse, false);
+        } else {
+          throw new Error('No authentication token received after verification');
+        }
+      }),
+      catchError(this.handleOtpError)
+    );
+  }
+
+  resendOtp(request: any): Observable<any> {
+    const cleanRequest = { 
+      email: request.email.trim().toLowerCase(), 
+      type: request.type 
+    };
+    
+    return this.http.post<any>(`${this.apiUrl}/resend-otp`, cleanRequest, {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    }).pipe(catchError(this.handleError));
+  }
+
   logout(): Observable<any> {
     const token = this.getToken();
     
@@ -159,33 +193,6 @@ export class AuthService {
     );
   }
 
-  private performLocalLogout(): void {
-    this.clearAllStorage();
-    this.currentUserSubject.next(null);
-    this.isAuthenticatedSubject.next(false);
-    this.router.navigate(['/login']);
-  }
-
-  logoutSync(): void {
-    const token = this.getToken();
-    
-    this.performLocalLogout();
-    
-    if (token) {
-      this.http.post<any>(
-        `${this.apiUrl}/logout`,
-        {},
-        { 
-          headers: this.getAuthHeaders(),
-          responseType: 'json'
-        }
-      ).subscribe({
-        next: () => console.log('Backend logout completed'),
-        error: (err) => console.warn('Backend logout failed:', err)
-      });
-    }
-  }
-
   requestPasswordReset(request: any): Observable<any> {
     const normalizedRequest = { email: request.email.trim().toLowerCase() };
     return this.http.post<any>(
@@ -210,12 +217,7 @@ export class AuthService {
           'Content-Type': 'application/json'
         })
       }
-    ).pipe(
-      tap(response => {
-        console.log('RESET PASSWORD SUCCESS:', response);
-      }),
-      catchError(this.handleError)
-    );
+    ).pipe(catchError(this.handleError));
   }
 
   verifyPasswordResetOtp(request: any): Observable<any> {
@@ -227,12 +229,7 @@ export class AuthService {
     
     return this.http.post<any>(`${this.apiUrl}/verify-otp`, cleanRequest, {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(
-      tap(res => {
-        console.log('Password reset OTP verified:', res);
-      }),
-      catchError(this.handlePasswordResetError)
-    );
+    }).pipe(catchError(this.handlePasswordResetError));
   }
 
   changePassword(request: any): Observable<any> {
@@ -276,207 +273,12 @@ export class AuthService {
     
     return this.http.put<any>(`${this.apiUrl}/update-password`, payload, {
       headers: this.getAuthHeaders()
-    }).pipe(
-      tap(response => {
-        if (response.success) {
-          this.snackBar.open('Password updated successfully!', 'Close', { duration: 3000 });
-        }
-      }),
-      catchError(this.handleError)
-    );
+    }).pipe(catchError(this.handleError));
   }
 
   sendOtp(request: any): Observable<any> {
     const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
     return this.http.post<any>(`${this.apiUrl}/send-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(catchError(this.handleError));
-  }
-
-  // ✅ FIXED: Complete verifyOtp method with proper token handling
-  verifyOtp(request: any): Observable<any> {
-    const cleanRequest = {
-      email: request.email.trim().toLowerCase(),
-      otpCode: request.otpCode.toString().trim(),
-      type: request.type
-    };
-    
-    console.log('🔐 Verifying OTP with:', cleanRequest);
-
-    return this.http.post<any>(`${this.apiUrl}/verify-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(
-      tap(res => {
-        console.log('🔐 OTP Verification FULL Response:', res);
-        
-        // ✅ CRITICAL: Extract token from ANY possible location
-        let token = null;
-        let userData = null;
-
-        // Check ALL possible token locations
-        if (res.token) {
-          token = res.token;
-        } else if (res.data?.token) {
-          token = res.data.token;
-        } else if (res.access_token) {
-          token = res.access_token;
-        } else if (res.authToken) {
-          token = res.authToken;
-        } else if (res.jwt) {
-          token = res.jwt;
-        }
-
-        console.log('🔐 Extracted token:', token ? 'TOKEN FOUND' : 'NO TOKEN');
-
-        // Check ALL possible user data locations
-        if (res.user) {
-          userData = res.user;
-        } else if (res.data?.user) {
-          userData = res.data.user;
-        } else {
-          // Create user data from response fields
-          userData = {
-            id: res.userId?.toString() || res.id?.toString(),
-            fullName: res.fullName,
-            email: res.email,
-            role: res.role,
-            verified: res.verified,
-            emailVerified: res.emailVerified,
-            phoneNumber: res.phoneNumber
-          };
-        }
-
-        if (!userData.role) {
-          console.error('❌ User role not provided in verification response');
-          throw new Error('User role not provided in verification response');
-        }
-        
-        const phoneNumber = this.extractPhoneNumberFromMultipleSources(res);
-        
-        // ✅ STORE THE TOKEN AND USER DATA
-        if (token) {
-          console.log('✅ Storing token and user data after OTP verification');
-          
-          const enhancedResponse = {
-            token: token,
-            user: {
-              ...userData,
-              phoneNumber: phoneNumber
-            }
-          };
-          
-          this.handleAuthSuccess(enhancedResponse, false);
-        } else {
-          console.error('❌ No token found in OTP verification response');
-          throw new Error('No authentication token received after verification');
-        }
-      }),
-      catchError(this.handleOtpError)
-    );
-  }
-
-  getPhoneNumber(): string {
-    if (!this.isBrowser) return '';
-    
-    try {
-      const currentUser = this.currentUserSubject.value;
-      if (currentUser?.phoneNumber) {
-        return currentUser.phoneNumber;
-      }
-      
-      const userData = localStorage.getItem('userData');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        if (parsedUser?.phoneNumber) {
-          return parsedUser.phoneNumber;
-        }
-      }
-      
-      const sessionUser = sessionStorage.getItem('userData');
-      if (sessionUser) {
-        const parsedSessionUser = JSON.parse(sessionUser);
-        if (parsedSessionUser?.phoneNumber) {
-          return parsedSessionUser.phoneNumber;
-        }
-      }
-      
-      return '';
-    } catch (error) {
-      console.error('Error getting phone number from storage:', error);
-      return '';
-    }
-  }
-
-  updatePhoneNumberInStorage(phoneNumber: string): void {
-    if (!this.isBrowser) return;
-    
-    try {
-      const currentUser = this.getCurrentUser();
-      if (currentUser) {
-        const updatedUser = { ...currentUser, phoneNumber };
-        
-        const localStorageUser = localStorage.getItem('userData');
-        if (localStorageUser) {
-          localStorage.setItem('userData', JSON.stringify(updatedUser));
-        }
-        
-        const sessionStorageUser = sessionStorage.getItem('userData');
-        if (sessionStorageUser) {
-          sessionStorage.setItem('userData', JSON.stringify(updatedUser));
-        }
-        
-        this.currentUserSubject.next(updatedUser);
-      }
-    } catch (error) {
-      console.error('Error updating phone number in storage:', error);
-    }
-  }
-
-  private getPendingPhoneNumber(): string {
-    if (!this.isBrowser) return '';
-    
-    try {
-      const pendingUser = sessionStorage.getItem('pendingUser');
-      if (pendingUser) {
-        const userData = JSON.parse(pendingUser);
-        if (userData.phoneNumber) {
-          return userData.phoneNumber;
-        }
-      }
-      
-      const pendingPhone = sessionStorage.getItem('pendingPhoneNumber');
-      if (pendingPhone) {
-        return pendingPhone;
-      }
-      
-      return '';
-    } catch (error) {
-      console.error('Error getting pending phone number:', error);
-      return '';
-    }
-  }
-
-  private updateUserStorage(userData: any): void {
-    if (!this.isBrowser) return;
-    
-    try {
-      const localStorageUser = localStorage.getItem('userData');
-      if (localStorageUser) {
-        localStorage.setItem('userData', JSON.stringify(userData));
-      }
-      
-      const sessionStorageUser = sessionStorage.getItem('userData');
-      if (sessionStorageUser) {
-        sessionStorage.setItem('userData', JSON.stringify(userData));
-      }
-    } catch (error) {
-      console.error('Error updating user storage:', error);
-    }
-  }
-
-  resendOtp(request: any): Observable<any> {
-    const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
-    return this.http.post<any>(`${this.apiUrl}/resend-otp`, cleanRequest, {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
     }).pipe(catchError(this.handleError));
   }
@@ -505,13 +307,10 @@ export class AuthService {
   getCurrentUser(): any {
     const userData = this.getFromStorage('userData');
     
-    if (!userData) {
-      return null;
-    }
+    if (!userData) return null;
     
     try { 
-      const user = JSON.parse(userData);
-      return user;
+      return JSON.parse(userData);
     } catch (error) { 
       this.removeFromStorage('userData'); 
       return null; 
@@ -523,29 +322,20 @@ export class AuthService {
     return !!token;
   }
 
-  isLoggedIn(): boolean {
-    const token = this.getToken(); 
-    return !!token;
-  }
-
   getAuthHeaders(includeContentType: boolean = true): HttpHeaders {
     const token = this.getToken();
     
-    if (!token) {
-      return new HttpHeaders(
-        includeContentType ? { 'Content-Type': 'application/json' } : {}
-      );
-    }
-
-    const headers: { [key: string]: string } = {
-      'Authorization': `Bearer ${token}`
-    };
+    let headersConfig: { [name: string]: string } = {};
 
     if (includeContentType) {
-      headers['Content-Type'] = 'application/json';
+      headersConfig['Content-Type'] = 'application/json';
+    }
+
+    if (token) {
+      headersConfig['Authorization'] = `Bearer ${token}`;
     }
     
-    return new HttpHeaders(headers);
+    return new HttpHeaders(headersConfig);
   }
 
   hasRole(role: string): boolean {
@@ -576,50 +366,29 @@ export class AuthService {
     sessionStorage.removeItem('pendingPhoneNumber');
   }
 
-  private extractPhoneNumberFromMultipleSources(response: any): string {
-    const sources = [
-      () => {
-        try {
-          const pendingUser = sessionStorage.getItem('pendingUser');
-          if (pendingUser) {
-            const userData = JSON.parse(pendingUser);
-            return userData.phoneNumber || '';
-          }
-        } catch (e) {
-          console.error('Error parsing pendingUser:', e);
-        }
-        return '';
-      },
-      () => sessionStorage.getItem('pendingPhoneNumber') || '',
-      () => response.user?.phoneNumber || response.phoneNumber || '',
-      () => {
-        try {
-          const verificationEmail = sessionStorage.getItem('pendingVerificationEmail');
-          if (verificationEmail) {
-            const pendingUser = sessionStorage.getItem('pendingUser');
-            return pendingUser ? JSON.parse(pendingUser).phoneNumber : '';
-          }
-        } catch (e) {
-          console.error('Error extracting from verification storage:', e);
-        }
-        return '';
-      }
-    ];
-
-    for (const source of sources) {
-      const phone = source();
-      if (phone && phone.trim() !== '' && this.isValidPhoneNumber(phone)) {
-        return phone;
-      }
+  private getFromStorage(key: string): string | null {
+    if (!this.isBrowser) return null;
+    try {
+      const value = localStorage.getItem(key) || sessionStorage.getItem(key);
+      if (value === 'undefined' || value === 'null') return null;
+      return value;
+    } catch {
+      return null;
     }
-
-    return '';
   }
 
-  private isValidPhoneNumber(phone: string): boolean {
-    if (!phone || typeof phone !== 'string') return false;
-    const cleanPhone = phone.replace(/\s/g, '');
-    return /^(\+254|0)[1-9]\d{8}$/.test(cleanPhone);
+  private removeFromStorage(key: string): void {
+    if (!this.isBrowser) return;
+    try {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    } catch {}
+  }
+
+  private clearAllStorage(): void {
+    if (!this.isBrowser) return;
+    const keys = ['authToken', 'refreshToken', 'userData', 'profileImage'];
+    keys.forEach(key => this.removeFromStorage(key));
   }
 
   private handleAuthSuccess(response: any, rememberMe: boolean = false): void {
@@ -637,10 +406,7 @@ export class AuthService {
 
     const token = response.token;
 
-    if (!user || !token) {
-      console.error('Missing user or token in auth success');
-      return;
-    }
+    if (!user || !token) return;
 
     let cleanToken = token.trim();
     if (cleanToken.startsWith('Bearer ')) {
@@ -678,22 +444,17 @@ export class AuthService {
       
       return payloadObj.role || null;
     } catch (error) {
-      console.error('Error extracting role from token:', error);
       return null;
     }
   }
 
   private hasValidToken(): boolean {
     const token = this.getToken();
-    if (!token) {
-      return false;
-    }
+    if (!token) return false;
     
     try {
       const tokenParts = token.split('.');
-      if (tokenParts.length !== 3) {
-        return false;
-      }
+      if (tokenParts.length !== 3) return false;
       
       const payload = tokenParts[1];
       const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
@@ -701,15 +462,12 @@ export class AuthService {
       const decodedPayload = atob(paddedBase64);
       const payloadObj = JSON.parse(decodedPayload);
       
-      if (!payloadObj.exp) {
-        return true;
-      }
+      if (!payloadObj.exp) return true;
       
       const currentTime = Math.floor(Date.now() / 1000);
       return payloadObj.exp > currentTime;
       
     } catch (error) {
-      console.error('Error validating token:', error);
       return false;
     }
   }
@@ -730,9 +488,7 @@ export class AuthService {
         return;
       }
     } else {
-      if (user && !token) {
-        this.clearAllStorage();
-      }
+      if (user && !token) this.clearAllStorage();
       isAuthenticated = false;
     }
     
@@ -740,24 +496,104 @@ export class AuthService {
     this.isAuthenticatedSubject.next(isAuthenticated);
   }
 
+  private extractPhoneNumberFromMultipleSources(response: any): string {
+    const sources = [
+      () => {
+        try {
+          const pendingUser = sessionStorage.getItem('pendingUser');
+          if (pendingUser) {
+            const userData = JSON.parse(pendingUser);
+            return userData.phoneNumber || '';
+          }
+        } catch (e) {}
+        return '';
+      },
+      () => sessionStorage.getItem('pendingPhoneNumber') || '',
+      () => response.user?.phoneNumber || response.phoneNumber || '',
+      () => {
+        try {
+          const verificationEmail = sessionStorage.getItem('pendingVerificationEmail');
+          if (verificationEmail) {
+            const pendingUser = sessionStorage.getItem('pendingUser');
+            return pendingUser ? JSON.parse(pendingUser).phoneNumber : '';
+          }
+        } catch (e) {}
+        return '';
+      }
+    ];
+
+    for (const source of sources) {
+      const phone = source();
+      if (phone && phone.trim() !== '' && this.isValidPhoneNumber(phone)) {
+        return phone;
+      }
+    }
+
+    return '';
+  }
+
+  private isValidPhoneNumber(phone: string): boolean {
+    if (!phone || typeof phone !== 'string') return false;
+    const cleanPhone = phone.replace(/\s/g, '');
+    return /^(\+254|0)[1-9]\d{8}$/.test(cleanPhone);
+  }
+
+  private updateUserStorage(userData: any): void {
+    if (!this.isBrowser) return;
+    
+    try {
+      const localStorageUser = localStorage.getItem('userData');
+      if (localStorageUser) {
+        localStorage.setItem('userData', JSON.stringify(userData));
+      }
+      
+      const sessionStorageUser = sessionStorage.getItem('userData');
+      if (sessionStorageUser) {
+        sessionStorage.setItem('userData', JSON.stringify(userData));
+      }
+    } catch (error) {}
+  }
+
+  private getPendingPhoneNumber(): string {
+    if (!this.isBrowser) return '';
+    
+    try {
+      const pendingUser = sessionStorage.getItem('pendingUser');
+      if (pendingUser) {
+        const userData = JSON.parse(pendingUser);
+        if (userData.phoneNumber) {
+          return userData.phoneNumber;
+        }
+      }
+      
+      const pendingPhone = sessionStorage.getItem('pendingPhoneNumber');
+      if (pendingPhone) {
+        return pendingPhone;
+      }
+      
+      return '';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  private performLocalLogout(): void {
+    this.clearAllStorage();
+    this.currentUserSubject.next(null);
+    this.isAuthenticatedSubject.next(false);
+    this.router.navigate(['/login']);
+  }
+
   private handlePasswordResetError = (error: HttpErrorResponse): Observable<never> => {
     let message = 'Password reset verification failed';
     
-    if (error.status === 400) {
-      message = error.error?.message || 'Invalid OTP format or data.';
-    } else if (error.status === 401) {
-      message = error.error?.message || 'Invalid or expired OTP code.';
-    } else if (error.status === 404) {
-      message = 'OTP not found or has expired. Please request a new one.';
-    } else if (error.status === 422) {
-      message = error.error?.message || 'Invalid OTP data format.';
-    } else if (error.status === 429) {
-      message = 'Too many verification attempts. Please wait before trying again.';
-    } else if (error.status >= 500) {
-      message = 'Server error during OTP verification. Please try again later.';
-    } else if (error.error?.message) {
-      message = error.error.message;
-    }
+    if (error.status === 400) message = error.error?.message || 'Invalid OTP format or data.';
+    else if (error.status === 401) message = error.error?.message || 'Invalid or expired OTP code.';
+    else if (error.status === 404) message = 'OTP not found or has expired. Please request a new one.';
+    else if (error.status === 422) message = error.error?.message || 'Invalid OTP data format.';
+    else if (error.status === 429) message = 'Too many verification attempts. Please wait before trying again.';
+    else if (error.status >= 500) message = 'Server error during OTP verification. Please try again later.';
+    else if (error.error?.message) message = error.error.message;
     
     return throwError(() => new Error(message));
   };
@@ -776,8 +612,6 @@ export class AuthService {
   };
 
   private handleError = (error: HttpErrorResponse): Observable<never> => {
-    console.error('AuthService Error:', error);
-    
     let message = 'An unexpected error occurred';
     
     if (error.error instanceof ErrorEvent) {
