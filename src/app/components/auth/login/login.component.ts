@@ -160,6 +160,42 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Handle paste events to trim spaces from pasted passwords
+  onPasswordPaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    const pastedText = event.clipboardData?.getData('text') || '';
+    // Trim spaces from pasted content
+    const cleanText = pastedText.trim();
+    this.loginData.password = cleanText;
+  }
+
+  // Quick test with known working credentials
+  testCorrectCredentials(): void {
+    this.loginData.email = 'muhammadjnr0@gmail.com';
+    this.loginData.password = 'Tomsam12'; // No spaces!
+    this.rememberMe = true;
+    console.log('🎯 Testing with known working credentials');
+  }
+
+  // Clear form completely
+  clearForm(): void {
+    this.loginData = { email: '', password: '' };
+    this.rememberMe = false;
+    this.emailError = '';
+    this.passwordError = '';
+    console.log('🧹 Form cleared');
+  }
+
+  // Test login with spaces (for debugging)
+  testLoginWithSpaces(): void {
+    this.loginData.email = 'muhammadjnr0@gmail.com';
+    this.loginData.password = ' Tomsam12'; // With space on purpose
+    this.rememberMe = true;
+    
+    console.log('🎯 Testing with credentials (with space)');
+    this.onSubmit();
+  }
+
   validateForm(passwordOverride?: string): boolean {
     this.emailError = '';
     this.passwordError = '';
@@ -241,30 +277,25 @@ export class LoginComponent implements OnInit, OnDestroy {
           return;
         }
         
-        // Get user data with delay to ensure storage is updated
-        setTimeout(() => {
-          const user = this.authService.getCurrentUser();
-          console.log('🔐 User after login:', user);
-          
-          let userRole: string | undefined;
-          
-          if (user?.role) {
-            userRole = user.role;
-          } else if (response.role) {
-            userRole = response.role;
-          }
-          
-          console.log('🔐 Detected user role:', userRole);
-          
-          if (userRole) {
-            this.showSnackbar('Login successful!', 'success');
-            this.redirectBasedOnRole(userRole);
-          } else {
-            console.warn('⚠️ No user role found, redirecting to default dashboard');
-            this.showSnackbar('Login successful!', 'success');
-            this.router.navigate(['/dashboard']);
-          }
-        }, 100);
+        // ✅ Use the role directly from the response (as shown in Postman)
+        const userRole = response.role;
+        
+        console.log('🔐 User role from response:', userRole);
+        console.log('🔐 Full user data:', {
+          userId: response.userId,
+          fullName: response.fullName,
+          email: response.email,
+          role: response.role,
+          verified: response.verified
+        });
+        
+        if (userRole) {
+          this.showSnackbar('Login successful!', 'success');
+          this.redirectBasedOnRole(userRole);
+        } else {
+          console.error('❌ No user role found in response');
+          this.showSnackbar('Login failed: No user role received', 'error');
+        }
       },
       error: (error) => {
         this.isLoading = false;

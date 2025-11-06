@@ -49,9 +49,10 @@ export class AuthService {
       rememberMe: credentials.rememberMe 
     });
 
+    // ✅ FIX: TRIM THE PASSWORD HERE TOO!
     const loginPayload = {
       email: credentials.email.trim().toLowerCase(),
-      password: credentials.password,
+      password: credentials.password.trim(), // ✅ ADD .trim() HERE
       rememberMe: credentials.rememberMe || false
     };
 
@@ -423,8 +424,9 @@ export class AuthService {
 
     console.log('🔐 Storing auth data directly from AuthResponse:', authResponse);
 
+    // ✅ FIX: Convert userId from number to string properly
     const user: User = {
-      id: authResponse.userId,
+      id: authResponse.userId.toString(), // ✅ Convert number to string
       email: authResponse.email,
       fullName: authResponse.fullName,
       role: authResponse.role,
@@ -458,6 +460,7 @@ export class AuthService {
     this.clearPendingVerification();
     
     console.log('🔐 Auth storage completed - User:', user);
+    console.log('🔐 Token stored:', cleanToken ? 'YES' : 'NO');
   }
 
   private handleAuthSuccess(response: ApiResponse, rememberMe: boolean = false): void {

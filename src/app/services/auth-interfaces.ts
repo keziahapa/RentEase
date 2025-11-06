@@ -9,7 +9,7 @@ export enum UserRole {
 export type UserRoleType = keyof typeof UserRole;
 
 export interface User {
-  id: string | number;
+  id: string | number;  // ✅ Allow both string and number
   email: string;
   fullName: string;
   phoneNumber?: string;
