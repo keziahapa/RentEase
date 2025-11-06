@@ -1,4 +1,4 @@
-<!-- Error Display Component -->
+<!-- src/app/components/chat/chat.component.html -->
 <app-error-display></app-error-display>
 
 <div class="chat-container">
@@ -6,7 +6,7 @@
   <div class="chat-header">
     <div class="header-content">
       <div class="header-left">
-        <button class="back-button" *ngIf="currentRoom" (click)="currentRoom = null">
+        <button class="back-button" *ngIf="currentRoom" (click)="chatService.setCurrentRoom(null); selectedRoomId = null; router.navigate(['/chat'])">
           <span class="material-icons">arrow_back</span>
         </button>
         <div class="app-brand">
@@ -15,6 +15,16 @@
           <span class="unread-badge" *ngIf="getTotalUnreadCount() > 0">
             {{ getTotalUnreadCount() }}
           </span>
+        </div>
+        
+        <!-- Connection Status -->
+        <div class="connection-status" 
+             [class.connected]="webSocketConnected" 
+             [class.disconnected]="!webSocketConnected"
+             (click)="reconnectWebSocket()"
+             matTooltip="{{webSocketConnected ? 'Real-time connection' : 'Click to reconnect'}}">
+          <span class="status-dot"></span>
+          {{ webSocketConnected ? 'Real-time' : 'Connecting...' }}
         </div>
       </div>
       
@@ -35,12 +45,16 @@
           </div>
         </div>
         
-        <button class="header-action" (click)="refreshChatRooms()" matTooltip="Refresh">
+        <button class="header-action" (click)="refreshChatRooms()" matTooltip="Refresh conversations">
           <span class="material-icons">refresh</span>
         </button>
         
         <button class="header-action" (click)="toggleTheme()" matTooltip="Toggle theme">
           <span class="material-icons">dark_mode</span>
+        </button>
+        
+        <button class="header-action" (click)="startNewChat()" matTooltip="New chat">
+          <span class="material-icons">add</span>
         </button>
       </div>
     </div>
@@ -52,7 +66,7 @@
     <div class="conversation-list" *ngIf="!currentRoom">
       <div class="list-header">
         <h3>Conversations</h3>
-        <span class="conversation-count">{{ chatRooms.length }} chats</span>
+        <span class="conversation-count">{{ chatRooms.length }} {{ chatRooms.length === 1 ? 'chat' : 'chats' }}</span>
       </div>
 
       <!-- Loading State -->
@@ -77,7 +91,7 @@
       <!-- Conversation Items -->
       <div class="conversations">
         <div 
-          *ngFor="let room of chatRooms" 
+          *ngFor="let room of getFilteredRooms(); trackBy: trackByRoomId" 
           class="conversation-item"
           [class.active]="room.id === selectedRoomId"
           (click)="selectRoom(room)"
@@ -99,7 +113,7 @@
               <p class="last-message">{{ getLastMessagePreview(room) }}</p>
               <div class="conversation-meta">
                 <span class="conversation-type">{{ getRoomTypeDisplay(room) }}</span>
-                <span class="unread-count" *ngIf="room.unreadCount > 0">
+                <span class="unread-count" *ngIf="room.unreadCount && room.unreadCount > 0">
                   {{ room.unreadCount }}
                 </span>
               </div>
@@ -126,6 +140,7 @@
             <div class="user-status">
               <span class="status-text">
                 {{ getOtherParticipants(currentRoom)[0]?.isOnline ? 'Online' : 'Offline' }}
+                • {{ getConnectionStatusText() }}
               </span>
               <span class="user-role">{{ getParticipantRole(getOtherParticipants(currentRoom)[0]) }}</span>
             </div>
@@ -158,6 +173,15 @@
 
       <!-- Messages Container -->
       <div class="messages-container" #messagesContainer>
+        <!-- Connection Warning -->
+        <div *ngIf="shouldShowConnectionWarning()" class="connection-warning">
+          <div class="warning-content">
+            <span class="material-icons warning-icon">wifi_off</span>
+            <span class="warning-text">Using standard connection. Some features may be delayed.</span>
+            <button class="reconnect-btn" (click)="reconnectWebSocket()">Reconnect</button>
+          </div>
+        </div>
+
         <!-- No Messages State -->
         <div *ngIf="messages.length === 0 && !loading" class="no-messages">
           <div class="no-messages-icon">
@@ -190,7 +214,7 @@
             <!-- Message Content -->
             <div class="message-content">
               <!-- Sender Name -->
-              <div *ngIf="!isMyMessage(message)" class="sender-name">
+              <div *ngIf="!isMyMessage(message) && !message.deleted" class="sender-name">
                 {{ message.sender?.name || 'Unknown User' }}
               </div>
 
@@ -206,9 +230,7 @@
                   
                   <!-- Message Status -->
                   <span *ngIf="isMyMessage(message) && !message.deleted" class="message-status">
-                    <span *ngIf="message.status === 'SENT'" class="status-icon sent">✓</span>
-                    <span *ngIf="message.status === 'DELIVERED'" class="status-icon delivered">✓✓</span>
-                    <span *ngIf="message.status === 'READ'" class="status-icon read">✓✓</span>
+                    <span class="status-icon sent">✓</span>
                   </span>
                   
                   <!-- Delete Button -->
@@ -230,7 +252,7 @@
         <div *ngIf="typingUsers.length > 0" class="typing-indicator">
           <div class="typing-avatar">
             <div class="avatar-small" [style.background]="getAvatarColor(typingUsers[0].userId)">
-              {{ typingUsers[0].name?.charAt(0)?.toUpperCase() || 'U' }}
+              {{ typingUsers[0].userName?.charAt(0)?.toUpperCase() || 'U' }}
             </div>
           </div>
           <div class="typing-content">
@@ -239,7 +261,7 @@
               <span></span>
               <span></span>
             </div>
-            <span class="typing-text">{{ typingUsers[0].name }} is typing...</span>
+            <span class="typing-text">{{ typingUsers[0].userName }} is typing...</span>
           </div>
         </div>
       </div>
@@ -252,7 +274,7 @@
             <span class="material-icons">attach_file</span>
           </button>
           
-          <button class="input-action" (click)="showEmojiPicker = !showEmojiPicker" matTooltip="Add emoji">
+          <button class="input-action" (click)="toggleEmojiPicker()" matTooltip="Add emoji">
             <span class="material-icons">emoji_emotions</span>
           </button>
 
@@ -298,7 +320,7 @@
           </div>
           <div class="emoji-grid">
             <span 
-              *ngFor="let emoji of emojis" 
+              *ngFor="let emoji of emojis; let i = index" 
               class="emoji-item" 
               (click)="addEmoji(emoji)"
             >

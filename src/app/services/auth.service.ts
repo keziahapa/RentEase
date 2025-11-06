@@ -5,6 +5,15 @@ import { tap, catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import {
+  LoginRequest,
+  RegisterRequest,
+  OtpVerifyRequest,
+  OtpRequest,
+  ApiResponse,
+  User,
+  UserRole
+} from './auth-interfaces';
 
 @Injectable({
   providedIn: 'root'
@@ -18,7 +27,7 @@ export class AuthService {
 
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com/api/auth';
 
-  private currentUserSubject = new BehaviorSubject<any>(null);
+  private currentUserSubject = new BehaviorSubject<User | null>(null);
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
 
   public currentUser$ = this.currentUserSubject.asObservable();
@@ -31,14 +40,139 @@ export class AuthService {
     }
   }
 
-  // ADD MISSING METHODS
+  // AUTHENTICATION METHODS
+  login(credentials: LoginRequest): Observable<ApiResponse> {
+    console.log('🔐 Sending login request:', { 
+      email: credentials.email, 
+      passwordLength: credentials.password?.length,
+      rememberMe: credentials.rememberMe 
+    });
+    
+    return this.http.post<ApiResponse>(`${this.apiUrl}/login`, credentials, {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    }).pipe(
+      tap(response => {
+        console.log('🔐 Login SUCCESS - Full response:', response);
+        
+        if (response.success) {
+          if (response.token || response.data?.token) {
+            this.handleAuthSuccess(response, credentials.rememberMe || false);
+          } else {
+            console.error('❌ Login successful but no token received');
+            throw new Error('Authentication error: No token received');
+          }
+        } else {
+          throw new Error(response.message || 'Login failed');
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  register(userData: RegisterRequest): Observable<ApiResponse> {
+    const normalizedData = {
+      ...userData,
+      email: userData.email.trim().toLowerCase()
+    };
+
+    console.log('🔐 Sending registration:', normalizedData);
+
+    return this.http.post<ApiResponse>(`${this.apiUrl}/signup`, normalizedData, {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    }).pipe(
+      tap(response => {
+        console.log('🔐 Registration response:', response);
+        
+        if (response.success) {
+          if (this.isBrowser) {
+            const tempUser: User = {
+              id: response.user?.id || '',
+              email: normalizedData.email,
+              fullName: normalizedData.fullName,
+              phoneNumber: normalizedData.phoneNumber,
+              role: normalizedData.role,
+              verified: false,
+              emailVerified: false
+            };
+            
+            sessionStorage.setItem('pendingUser', JSON.stringify(tempUser));
+            sessionStorage.setItem('pendingEmail', normalizedData.email);
+            sessionStorage.setItem('pendingPhoneNumber', normalizedData.phoneNumber);
+          }
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  // FIXED: OTP verification doesn't return token - just verifies email
+  verifyOtp(request: OtpVerifyRequest): Observable<ApiResponse> {
+    const cleanRequest = {
+      email: request.email.trim().toLowerCase(),
+      otpCode: request.otpCode.toString().trim(),
+      type: request.type || 'email_verification'
+    };
+
+    console.log('🔐 Verifying OTP:', cleanRequest);
+
+    return this.http.post<ApiResponse>(`${this.apiUrl}/verify-otp`, cleanRequest, {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    }).pipe(
+      tap(response => {
+        console.log('🔐 OTP verification response:', response);
+        
+        if (response.success) {
+          console.log('🔐 OTP verified successfully - email confirmed');
+          this.clearPendingVerification();
+        } else {
+          throw new Error(response.message || 'OTP verification failed');
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  resendOtp(request: OtpRequest): Observable<ApiResponse> {
+    const cleanRequest = { 
+      email: request.email.trim().toLowerCase(), 
+      type: request.type || 'email_verification'
+    };
+    
+    console.log('🔐 Resending OTP:', cleanRequest);
+
+    return this.http.post<ApiResponse>(`${this.apiUrl}/resend-otp`, cleanRequest, {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
+    }).pipe(
+      tap(response => {
+        console.log('🔐 Resend OTP response:', response);
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  logout(): Observable<ApiResponse> {
+    const token = this.getToken();
+    
+    this.performLocalLogout();
+    
+    if (token) {
+      return this.http.post<ApiResponse>(`${this.apiUrl}/logout`, {}, {
+        headers: this.getAuthHeaders()
+      }).pipe(
+        catchError(() => of({ success: true, message: 'Logged out locally' }))
+      );
+    }
+    
+    return of({ success: true, message: 'Logged out locally' });
+  }
+
   logoutSync(): void {
     const token = this.getToken();
     
     this.performLocalLogout();
     
     if (token) {
-      this.http.post<any>(
+      this.http.post<ApiResponse>(
         `${this.apiUrl}/logout`,
         {},
         { 
@@ -52,229 +186,24 @@ export class AuthService {
     }
   }
 
-  isLoggedIn(): boolean {
-    const token = this.getToken(); 
-    return !!token;
-  }
-
-  getPhoneNumber(): string {
-    if (!this.isBrowser) return '';
-    
-    try {
-      const currentUser = this.currentUserSubject.value;
-      if (currentUser?.phoneNumber) {
-        return currentUser.phoneNumber;
-      }
-      
-      const userData = localStorage.getItem('userData');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        if (parsedUser?.phoneNumber) {
-          return parsedUser.phoneNumber;
-        }
-      }
-      
-      const sessionUser = sessionStorage.getItem('userData');
-      if (sessionUser) {
-        const parsedSessionUser = JSON.parse(sessionUser);
-        if (parsedSessionUser?.phoneNumber) {
-          return parsedSessionUser.phoneNumber;
-        }
-      }
-      
-      return '';
-    } catch (error) {
-      console.error('Error getting phone number from storage:', error);
-      return '';
-    }
-  }
-
-  clearCorruptedStorage(): void {
-    this.clearAllStorage();
-    this.currentUserSubject.next(null);
-    this.isAuthenticatedSubject.next(false);
-  }
-
-  // EXISTING METHODS
-  login(credentials: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/login`, credentials, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(
-      tap(res => {
-        if (res.success === false) {
-          throw new Error(res.message || 'Login failed');
-        }
-
-        const userData = res.user || {
-          id: res.userId?.toString(),
-          fullName: res.fullName,
-          email: res.email,
-          role: res.role,
-          phoneNumber: res.phoneNumber,
-          verified: res.verified,
-          emailVerified: res.emailVerified
-        };
-
-        const phoneNumber = userData.phoneNumber || res.phoneNumber || this.getPendingPhoneNumber() || '';
-        
-        const enhancedResponse = {
-          token: res.token,
-          user: {
-            ...userData,
-            phoneNumber: phoneNumber
-          }
-        };
-        
-        this.handleAuthSuccess(enhancedResponse, credentials.rememberMe);
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  register(userData: any): Observable<any> {
-    const normalizedData = {
-      ...userData,
-      email: userData.email.trim().toLowerCase()
-    };
-
-    return this.http.post<any>(`${this.apiUrl}/signup`, normalizedData, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(
-      tap(res => {
-        if (res.success && res.user) {
-          const tempUser = {
-            ...res.user,
-            phoneNumber: userData.phoneNumber,
-            verified: false,
-            emailVerified: false
-          };
-          
-          if (this.isBrowser) {
-            sessionStorage.setItem('pendingUser', JSON.stringify(tempUser));
-            sessionStorage.setItem('pendingEmail', normalizedData.email);
-            sessionStorage.setItem('pendingPhoneNumber', userData.phoneNumber);
-          }
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  verifyOtp(request: any): Observable<any> {
-    const cleanRequest = {
-      email: request.email.trim().toLowerCase(),
-      otpCode: request.otpCode.toString().trim(),
-      type: request.type
-    };
-
-    return this.http.post<any>(`${this.apiUrl}/verify-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(
-      tap(res => {
-        let token = null;
-        let userData = null;
-
-        if (res.token) token = res.token;
-        else if (res.data?.token) token = res.data.token;
-        else if (res.access_token) token = res.access_token;
-        else if (res.authToken) token = res.authToken;
-        else if (res.jwt) token = res.jwt;
-
-        if (res.user) userData = res.user;
-        else if (res.data?.user) userData = res.data.user;
-        else {
-          userData = {
-            id: res.userId?.toString() || res.id?.toString(),
-            fullName: res.fullName,
-            email: res.email,
-            role: res.role,
-            verified: res.verified,
-            emailVerified: res.emailVerified,
-            phoneNumber: res.phoneNumber
-          };
-        }
-
-        if (!userData.role) {
-          throw new Error('User role not provided in verification response');
-        }
-        
-        const phoneNumber = this.extractPhoneNumberFromMultipleSources(res);
-        
-        if (token) {
-          const enhancedResponse = {
-            token: token,
-            user: {
-              ...userData,
-              phoneNumber: phoneNumber
-            }
-          };
-          
-          this.handleAuthSuccess(enhancedResponse, false);
-        } else {
-          throw new Error('No authentication token received after verification');
-        }
-      }),
-      catchError(this.handleOtpError)
-    );
-  }
-
-  resendOtp(request: any): Observable<any> {
-    const cleanRequest = { 
-      email: request.email.trim().toLowerCase(), 
-      type: request.type 
-    };
-    
-    return this.http.post<any>(`${this.apiUrl}/resend-otp`, cleanRequest, {
-      headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(catchError(this.handleError));
-  }
-
-  logout(): Observable<any> {
-    const token = this.getToken();
-    
-    if (!token) {
-      this.performLocalLogout();
-      return of({ success: true, message: 'Logged out locally' });
-    }
-
-    return this.http.post<any>(
-      `${this.apiUrl}/logout`,
-      {},
-      { 
-        headers: this.getAuthHeaders(),
-        responseType: 'json'
-      }
-    ).pipe(
-      tap(response => {
-        this.performLocalLogout();
-      }),
-      catchError(error => {
-        this.performLocalLogout();
-        return of({ 
-          success: true, 
-          message: 'Logged out locally (backend unavailable)' 
-        });
-      })
-    );
-  }
-
-  requestPasswordReset(request: any): Observable<any> {
+  // PASSWORD MANAGEMENT
+  requestPasswordReset(request: { email: string }): Observable<ApiResponse> {
     const normalizedRequest = { email: request.email.trim().toLowerCase() };
-    return this.http.post<any>(
+    return this.http.post<ApiResponse>(
       `${this.apiUrl}/forgot-password`,
       normalizedRequest,
       { headers: new HttpHeaders({ 'Content-Type': 'application/json' }) }
     ).pipe(catchError(this.handleError));
   }
 
-  resetPassword(request: any): Observable<any> {
+  resetPassword(request: { email: string; otpCode: string; newPassword: string }): Observable<ApiResponse> {
     const payload = {
       email: request.email.trim().toLowerCase(),
       otpCode: request.otpCode,
       newPassword: request.newPassword
     };
     
-    return this.http.post<any>(
+    return this.http.post<ApiResponse>(
       `${this.apiUrl}/reset-password`,
       payload,
       { 
@@ -285,30 +214,43 @@ export class AuthService {
     ).pipe(catchError(this.handleError));
   }
 
-  verifyPasswordResetOtp(request: any): Observable<any> {
+  verifyPasswordResetOtp(request: OtpVerifyRequest): Observable<ApiResponse> {
     const cleanRequest = {
       email: request.email.trim().toLowerCase(),
       otpCode: request.otpCode.toString().trim(),
       type: 'password_reset'
     };
     
-    return this.http.post<any>(`${this.apiUrl}/verify-otp`, cleanRequest, {
+    return this.http.post<ApiResponse>(`${this.apiUrl}/verify-otp`, cleanRequest, {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-    }).pipe(catchError(this.handlePasswordResetError));
+    }).pipe(catchError(this.handleError));
   }
 
-  changePassword(request: any): Observable<any> {
-    return this.http.post<any>(
+  changePassword(request: { currentPassword: string; newPassword: string }): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(
       `${this.apiUrl}/change-password`,
       request,
       { headers: this.getAuthHeaders() }
     ).pipe(catchError(this.handleError));
   }
 
-  updatePhone(newPhoneNumber: string): Observable<any> {
+  updatePassword(currentPassword: string, newPassword: string, confirmNewPassword: string): Observable<ApiResponse> {
+    const payload = {
+      currentPassword,
+      newPassword,
+      confirmNewPassword
+    };
+    
+    return this.http.put<ApiResponse>(`${this.apiUrl}/update-password`, payload, {
+      headers: this.getAuthHeaders()
+    }).pipe(catchError(this.handleError));
+  }
+
+  // PROFILE MANAGEMENT
+  updatePhone(newPhoneNumber: string): Observable<ApiResponse> {
     const payload = { newPhoneNumber };
     
-    return this.http.put<any>(`${this.apiUrl}/update-phone`, payload, {
+    return this.http.put<ApiResponse>(`${this.apiUrl}/update-phone`, payload, {
       headers: this.getAuthHeaders()
     }).pipe(
       tap(response => {
@@ -329,25 +271,18 @@ export class AuthService {
     );
   }
 
-  updatePassword(currentPassword: string, newPassword: string, confirmNewPassword: string): Observable<any> {
-    const payload = {
-      currentPassword,
-      newPassword,
-      confirmNewPassword
+  sendOtp(request: OtpRequest): Observable<ApiResponse> {
+    const cleanRequest = { 
+      email: request.email.trim().toLowerCase(), 
+      type: request.type 
     };
     
-    return this.http.put<any>(`${this.apiUrl}/update-password`, payload, {
-      headers: this.getAuthHeaders()
-    }).pipe(catchError(this.handleError));
-  }
-
-  sendOtp(request: any): Observable<any> {
-    const cleanRequest = { email: request.email.trim().toLowerCase(), type: request.type };
-    return this.http.post<any>(`${this.apiUrl}/send-otp`, cleanRequest, {
+    return this.http.post<ApiResponse>(`${this.apiUrl}/send-otp`, cleanRequest, {
       headers: new HttpHeaders({ 'Content-Type': 'application/json' })
     }).pipe(catchError(this.handleError));
   }
 
+  // TOKEN & USER MANAGEMENT
   getToken(): string | null {
     if (!this.isBrowser) return null;
     
@@ -357,11 +292,13 @@ export class AuthService {
     
     let cleanToken = token.trim();
     
+    // Remove quotes if present
     if ((cleanToken.startsWith('"') && cleanToken.endsWith('"')) || 
         (cleanToken.startsWith("'") && cleanToken.endsWith("'"))) {
       cleanToken = cleanToken.slice(1, -1);
     }
     
+    // Remove Bearer prefix if present
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
     }
@@ -369,22 +306,31 @@ export class AuthService {
     return cleanToken;
   }
 
-  getCurrentUser(): any {
-    const userData = this.getFromStorage('userData');
+  getCurrentUser(): User | null {
+    if (!this.isBrowser) return null;
+    
+    const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
     
     if (!userData) return null;
     
     try { 
       return JSON.parse(userData);
     } catch (error) { 
-      this.removeFromStorage('userData'); 
+      console.error('Error parsing user data:', error);
+      this.removeFromStorage('userData');
       return null; 
     }
   }
 
   isAuthenticated(): boolean { 
     const token = this.getToken();
-    return !!token;
+    const isAuth = !!token;
+    console.log('🔐 isAuthenticated check:', isAuth);
+    return isAuth;
+  }
+
+  isLoggedIn(): boolean {
+    return this.isAuthenticated();
   }
 
   getAuthHeaders(includeContentType: boolean = true): HttpHeaders {
@@ -403,16 +349,21 @@ export class AuthService {
     return new HttpHeaders(headersConfig);
   }
 
+  getPhoneNumber(): string {
+    const user = this.getCurrentUser();
+    return user?.phoneNumber || '';
+  }
+
   hasRole(role: string): boolean {
     const user = this.getCurrentUser();
     return user?.role?.toUpperCase() === role.toUpperCase();
   }
 
-  isBusiness(): boolean { return this.hasRole('BUSINESS'); }
-  isTenant(): boolean { return this.hasRole('TENANT'); }
-  isLandlord(): boolean { return this.hasRole('LANDLORD'); }
-  isCaretaker(): boolean { return this.hasRole('CARETAKER'); }
-  isAdmin(): boolean { return this.hasRole('ADMIN'); }
+  isBusiness(): boolean { return this.hasRole(UserRole.BUSINESS); }
+  isTenant(): boolean { return this.hasRole(UserRole.TENANT); }
+  isLandlord(): boolean { return this.hasRole(UserRole.LANDLORD); }
+  isCaretaker(): boolean { return this.hasRole(UserRole.CARETAKER); }
+  isAdmin(): boolean { return this.hasRole(UserRole.ADMIN); }
 
   needsEmailVerification(): boolean {
     const user = this.getCurrentUser();
@@ -431,6 +382,13 @@ export class AuthService {
     sessionStorage.removeItem('pendingPhoneNumber');
   }
 
+  clearCorruptedStorage(): void {
+    this.clearAllStorage();
+    this.currentUserSubject.next(null);
+    this.isAuthenticatedSubject.next(false);
+  }
+
+  // PRIVATE METHODS
   private getFromStorage(key: string): string | null {
     if (!this.isBrowser) return null;
     try {
@@ -456,30 +414,31 @@ export class AuthService {
     keys.forEach(key => this.removeFromStorage(key));
   }
 
-  private handleAuthSuccess(response: any, rememberMe: boolean = false): void {
+  private handleAuthSuccess(response: ApiResponse, rememberMe: boolean = false): void {
     if (!this.isBrowser) return;
     
-    const user = response.user || {
-      id: response.userId?.toString(),
-      email: response.email,
-      fullName: response.fullName,
-      role: response.role,
-      verified: response.verified,
-      emailVerified: response.emailVerified,
-      phoneNumber: response.phoneNumber
+    console.log('🔐 Handling auth success:', response);
+
+    const user: User = response.user || {
+      id: response.data?.userId || '',
+      email: response.data?.email || '',
+      fullName: response.data?.fullName || '',
+      role: response.data?.role || UserRole.TENANT,
+      phoneNumber: response.data?.phoneNumber || '',
+      verified: response.data?.verified || true,
+      emailVerified: response.data?.emailVerified || true
     };
 
-    const token = response.token;
+    const token = response.token || response.data?.token;
 
-    if (!user || !token) return;
+    if (!user || !token) {
+      console.error('❌ Missing user or token in auth success');
+      return;
+    }
 
     let cleanToken = token.trim();
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
-    }
-
-    if (!user.role) {
-      user.role = this.extractRoleFromToken(cleanToken);
     }
 
     if (rememberMe) {
@@ -494,6 +453,8 @@ export class AuthService {
     this.isAuthenticatedSubject.next(true);
     
     this.clearPendingVerification();
+    
+    console.log('🔐 Auth storage completed');
   }
 
   private extractRoleFromToken(token: string): string | null {
@@ -561,49 +522,7 @@ export class AuthService {
     this.isAuthenticatedSubject.next(isAuthenticated);
   }
 
-  private extractPhoneNumberFromMultipleSources(response: any): string {
-    const sources = [
-      () => {
-        try {
-          const pendingUser = sessionStorage.getItem('pendingUser');
-          if (pendingUser) {
-            const userData = JSON.parse(pendingUser);
-            return userData.phoneNumber || '';
-          }
-        } catch (e) {}
-        return '';
-      },
-      () => sessionStorage.getItem('pendingPhoneNumber') || '',
-      () => response.user?.phoneNumber || response.phoneNumber || '',
-      () => {
-        try {
-          const verificationEmail = sessionStorage.getItem('pendingVerificationEmail');
-          if (verificationEmail) {
-            const pendingUser = sessionStorage.getItem('pendingUser');
-            return pendingUser ? JSON.parse(pendingUser).phoneNumber : '';
-          }
-        } catch (e) {}
-        return '';
-      }
-    ];
-
-    for (const source of sources) {
-      const phone = source();
-      if (phone && phone.trim() !== '' && this.isValidPhoneNumber(phone)) {
-        return phone;
-      }
-    }
-
-    return '';
-  }
-
-  private isValidPhoneNumber(phone: string): boolean {
-    if (!phone || typeof phone !== 'string') return false;
-    const cleanPhone = phone.replace(/\s/g, '');
-    return /^(\+254|0)[1-9]\d{8}$/.test(cleanPhone);
-  }
-
-  private updateUserStorage(userData: any): void {
+  private updateUserStorage(userData: User): void {
     if (!this.isBrowser) return;
     
     try {
@@ -616,7 +535,9 @@ export class AuthService {
       if (sessionStorageUser) {
         sessionStorage.setItem('userData', JSON.stringify(userData));
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error('Error updating user storage:', error);
+    }
   }
 
   private getPendingPhoneNumber(): string {
@@ -649,34 +570,15 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
-  private handlePasswordResetError = (error: HttpErrorResponse): Observable<never> => {
-    let message = 'Password reset verification failed';
-    
-    if (error.status === 400) message = error.error?.message || 'Invalid OTP format or data.';
-    else if (error.status === 401) message = error.error?.message || 'Invalid or expired OTP code.';
-    else if (error.status === 404) message = 'OTP not found or has expired. Please request a new one.';
-    else if (error.status === 422) message = error.error?.message || 'Invalid OTP data format.';
-    else if (error.status === 429) message = 'Too many verification attempts. Please wait before trying again.';
-    else if (error.status >= 500) message = 'Server error during OTP verification. Please try again later.';
-    else if (error.error?.message) message = error.error.message;
-    
-    return throwError(() => new Error(message));
-  };
-
-  private handleOtpError = (error: HttpErrorResponse): Observable<never> => {
-    let message = 'OTP operation failed';
-    if (error.status === 400) message = error.error?.message || 'Invalid OTP format or data.';
-    else if (error.status === 401) message = error.error?.message || 'Invalid or expired OTP code.';
-    else if (error.status === 404) message = 'OTP not found. Please request a new code.';
-    else if (error.status === 422) message = error.error?.message || 'Invalid OTP data format.';
-    else if (error.status === 429) message = 'Too many attempts. Please wait.';
-    else if (error.status >= 500) message = 'Server error during OTP operation.';
-    else if (error.error?.message) message = error.error.message;
-    
-    return throwError(() => new Error(message));
-  };
-
   private handleError = (error: HttpErrorResponse): Observable<never> => {
+    console.error('🔐 Auth Service Error:', {
+      status: error.status,
+      statusText: error.statusText,
+      url: error.url,
+      error: error.error,
+      message: error.message
+    });
+    
     let message = 'An unexpected error occurred';
     
     if (error.error instanceof ErrorEvent) {

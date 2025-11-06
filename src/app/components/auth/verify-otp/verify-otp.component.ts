@@ -77,68 +77,41 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         this.phoneNumber = params['phoneNumber'] || '';
 
         console.log('🔍 OTP Component - Query Params:', params);
-        console.log('🔍 OTP Component - userType:', this.userType);
 
         if (!this.email) {
-          this.showMessage('No email found. Please restart the process.', 'error');
-          setTimeout(() => this.router.navigate(['/registration']), 3000);
-          return;
+          // Try to get email from session storage as fallback
+          const pendingEmail = this.authService.getPendingEmail();
+          if (pendingEmail) {
+            this.email = pendingEmail;
+          } else {
+            this.showMessage('No email found. Please restart the process.', 'error');
+            setTimeout(() => this.router.navigate(['/registration']), 3000);
+            return;
+          }
         }
 
         this.phoneNumber = this.extractPhoneNumber();
         this.updateUIText();
+        
+        // Auto-start resend timer if needed
+        if (!this.canResend) {
+          this.startResendTimer();
+        }
       })
     );
   }
 
   private extractPhoneNumber(): string {
-    const sources = [
-      () => this.route.snapshot.queryParams['phoneNumber'],
-      () => {
-        try {
-          const pendingUser = sessionStorage.getItem('pendingUser');
-          return pendingUser ? JSON.parse(pendingUser).phoneNumber : null;
-        } catch {
-          return null;
-        }
-      },
-      () => sessionStorage.getItem('pendingPhoneNumber'),
-      () => {
-        try {
-          const navigation = this.router.getCurrentNavigation();
-          return navigation?.extras?.state?.['phoneNumber'] || null;
-        } catch {
-          return null;
-        }
-      },
-      () => {
-        try {
-          const pendingVerification = sessionStorage.getItem('pendingVerificationEmail');
-          if (pendingVerification) {
-            const pendingUser = sessionStorage.getItem('pendingUser');
-            return pendingUser ? JSON.parse(pendingUser).phoneNumber : null;
-          }
-          return null;
-        } catch {
-          return null;
-        }
+    try {
+      const pendingUser = sessionStorage.getItem('pendingUser');
+      if (pendingUser) {
+        const userData = JSON.parse(pendingUser);
+        return userData.phoneNumber || '';
       }
-    ];
-
-    for (const source of sources) {
-      const phone = source();
-      if (phone && this.isValidPhoneNumber(phone)) {
-        return phone;
-      }
+      return this.route.snapshot.queryParams['phoneNumber'] || '';
+    } catch {
+      return '';
     }
-
-    return '';
-  }
-
-  private isValidPhoneNumber(phone: string): boolean {
-    if (!phone || typeof phone !== 'string') return false;
-    const cleanPhone = phone.replace(/\s/g, '');
-    return /^(\+254|0)[1-9]\d{8}$/.test(cleanPhone);
   }
 
   private updateUIText() {
@@ -189,14 +162,24 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
 
       console.log('🔐 OTP Verification Response:', response);
 
-      // FIXED: Check for success in different response formats
-      if (response?.success || response?.status === 'success' || response?.verified) {
-        this.showMessage('Verification successful! Redirecting...', 'success');
-        await this.handleSuccessfulVerification(response);
+      if (response.success) {
+        this.showMessage('Email verified successfully! Redirecting to login...', 'success');
+        
+        // Clear any pending verification data
+        this.authService.clearPendingVerification();
+        
+        // Redirect to login after OTP verification
+        setTimeout(() => {
+          this.router.navigate(['/login'], {
+            queryParams: {
+              email: this.email,
+              message: 'email_verified_please_login'
+            },
+            replaceUrl: true
+          });
+        }, 2000);
       } else {
-        // FIXED: Better error message extraction
-        const errorMessage = response?.message || 'Verification failed. Please try again.';
-        throw new Error(errorMessage);
+        throw new Error(response.message || 'Verification failed');
       }
     } catch (error: any) {
       console.error('🔐 OTP Verification Error:', error);
@@ -217,120 +200,25 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     return null;
   }
 
-  private async handleSuccessfulVerification(response: any) {
-    // FIXED: Wait for token to be stored
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    console.log('🔍 Verification Response:', response);
-    console.log('🔍 Query param userType:', this.userType);
-    
-    // FIXED: Better role extraction with fallbacks
-    const userRole = this.userType || 
-                    response.user?.role || 
-                    response.role || 
-                    '';
-    
-    console.log('🔍 Final determined role for navigation:', userRole);
-
-    if (!userRole) {
-      console.warn('⚠️ No user role found, checking auth service...');
-      
-      // FIXED: Check if user is authenticated and get role from auth service
-      const currentUser = this.authService.getCurrentUser();
-      const authToken = this.authService.getToken();
-      
-      console.log('🔍 Auth Service - Current User:', currentUser);
-      console.log('🔍 Auth Service - Token:', authToken ? 'PRESENT' : 'MISSING');
-      
-      if (currentUser?.role) {
-        await this.navigateBasedOnUserRole(currentUser.role);
-        return;
-      }
-      
-      this.showMessage('User role not found. Please contact support.', 'error');
-      await this.router.navigate(['/login'], { 
-        replaceUrl: true,
-        queryParams: { message: 'verification_success_but_role_missing' }
-      });
-      return;
-    }
-
-    await this.navigateBasedOnUserRole(userRole);
-  }
-
-  private async navigateBasedOnUserRole(userRole: string) {
-    const normalizedRole = userRole.toUpperCase().trim();
-    
-    console.log('🔍 Navigating based on role:', normalizedRole);
-    
-    // FIXED: Updated route map with proper paths
-    const routeMap: { [key: string]: string } = {
-      'LANDLORD': '/landlord-dashboard/home',
-      'TENANT': '/tenant-dashboard/dashboard', 
-      'CARETAKER': '/caretaker-dashboard/overview',
-      'BUSINESS': '/business-dashboard', // Fixed spelling
-      'ADMIN': '/admin-dashboard'
-    };
-
-    const targetRoute = routeMap[normalizedRole];
-
-    if (targetRoute) {
-      console.log('🔍 Navigating to:', targetRoute);
-      
-      // FIXED: Add delay to ensure token is stored
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      try {
-        await this.router.navigate([targetRoute], { 
-          replaceUrl: true
-        });
-      } catch (navigationError) {
-        console.error('❌ Navigation error:', navigationError);
-        // FIXED: Fallback navigation
-        this.showMessage('Navigation issue. Redirecting to dashboard...', 'info');
-        await this.router.navigate(['/dashboard'], { replaceUrl: true });
-      }
-    } else {
-      console.error('❌ Unknown role for navigation:', normalizedRole);
-      this.showMessage(`Unknown user role: ${userRole}. Redirecting to login.`, 'error');
-      
-      // FIXED: Better error handling with query params
-      await this.router.navigate(['/login'], { 
-        replaceUrl: true,
-        queryParams: { 
-          message: 'unknown_user_role',
-          role: userRole
-        }
-      });
-    }
-  }
-
   private handleVerificationError(error: any) {
-    console.error('🔐 Verification Error Details:', error);
+    const errorMsg = (error.message || '').toLowerCase();
     
-    const errorMsg = (error.message || error.toString() || '').toLowerCase();
-    
-    // FIXED: Better error message handling
     if (errorMsg.includes('expired')) {
-      this.showMessage('Verification code has expired. Please request a new one.', 'error');
+      this.showMessage('Code has expired. Please request a new one.', 'error');
       this.canResend = true;
-    } else if (errorMsg.includes('invalid') || errorMsg.includes('incorrect')) {
-      this.showMessage('Invalid verification code. Please check and try again.', 'error');
+    } else if (errorMsg.includes('invalid')) {
+      this.showMessage('Invalid code. Please check and try again.', 'error');
     } else if (errorMsg.includes('not found') || errorMsg.includes('does not exist')) {
-      this.showMessage('Account not found. Please check your email or register again.', 'error');
-    } else if (errorMsg.includes('already verified') || errorMsg.includes('already active')) {
-      this.showMessage('Your account is already verified. Redirecting to login...', 'info');
+      this.showMessage('Account not found. Please check your email or register.', 'error');
+    } else if (errorMsg.includes('already verified')) {
+      this.showMessage('Account already verified. Redirecting to login...', 'info');
       setTimeout(() => {
         this.router.navigate(['/login'], { 
-          replaceUrl: true,
-          queryParams: { message: 'account_already_verified' }
+          queryParams: { email: this.email }
         });
       }, 2000);
-    } else if (errorMsg.includes('too many attempts') || errorMsg.includes('rate limit')) {
-      this.showMessage('Too many attempts. Please wait before trying again.', 'error');
     } else {
-      // FIXED: More user-friendly generic error
-      this.showMessage('Verification failed. Please check your code and try again.', 'error');
+      this.showMessage(error.message || 'Verification failed. Please try again.', 'error');
     }
   }
 
@@ -345,17 +233,14 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         type: 'email_verification'
       };
 
-      console.log('🔐 Resending OTP:', resendRequest);
-
       const response = await firstValueFrom(this.authService.resendOtp(resendRequest));
 
-      // FIXED: Better success detection
-      if (response?.success || response?.status === 'success' || response?.message?.toLowerCase().includes('sent')) {
-        this.showMessage('New verification code sent! Please check your email.', 'success');
+      if (response.success) {
+        this.showMessage('New code sent! Check your email.', 'success');
         this.startResendTimer();
         this.clearOtpInputs();
       } else {
-        throw new Error(response?.message || 'Failed to resend verification code');
+        throw new Error(response.message || 'Failed to resend code');
       }
     } catch (error: any) {
       console.error('🔐 Resend OTP Error:', error);
@@ -386,24 +271,31 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     }
   }
 
-  onDigitInput(event: any, position: number) {
+  onDigitInput(event: Event, position: number) {
     const input = event.target as HTMLInputElement;
     let value = input.value.toUpperCase();
     
+    // Validate input based on position
     if (position === 1) {
+      // First character must be a letter
       value = value.replace(/[^A-Z]/g, '');
     } else {
+      // Remaining characters must be numbers
       value = value.replace(/[^0-9]/g, '');
     }
 
     const digitKey = `digit${position}` as keyof typeof this.otpData;
     this.otpData[digitKey] = value.slice(-1);
 
+    // Auto-focus next input
     if (value && position < 7) {
       const nextInput = this.otpInputs.toArray()[position];
-      if (nextInput) nextInput.nativeElement.focus();
+      if (nextInput) {
+        setTimeout(() => nextInput.nativeElement.focus(), 10);
+      }
     }
 
+    // Auto-submit when complete
     if (this.isOtpComplete() && !this.isLoading) {
       setTimeout(() => this.verifyOtp(), 300);
     }
@@ -414,16 +306,29 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     
     if (event.key === 'Backspace') {
       event.preventDefault();
-      if (this.otpData[digitKey]) {
-        this.otpData[digitKey] = '';
-      } else if (position > 1) {
-        const prevKey = `digit${position - 1}` as keyof typeof this.otpData;
-        this.otpData[prevKey] = '';
+      if (!this.otpData[digitKey] && position > 1) {
+        // Move to previous input if current is empty
         const prevInput = this.otpInputs.toArray()[position - 2];
-        if (prevInput) prevInput.nativeElement.focus();
+        if (prevInput) {
+          prevInput.nativeElement.focus();
+          // Clear the previous input
+          const prevKey = `digit${position - 1}` as keyof typeof this.otpData;
+          this.otpData[prevKey] = '';
+        }
+      } else {
+        // Clear current input
+        this.otpData[digitKey] = '';
       }
     } else if (event.key === 'Enter' && this.isOtpComplete() && !this.isLoading) {
       this.verifyOtp();
+    } else if (event.key === 'ArrowLeft' && position > 1) {
+      event.preventDefault();
+      const prevInput = this.otpInputs.toArray()[position - 2];
+      if (prevInput) prevInput.nativeElement.focus();
+    } else if (event.key === 'ArrowRight' && position < 7) {
+      event.preventDefault();
+      const nextInput = this.otpInputs.toArray()[position];
+      if (nextInput) nextInput.nativeElement.focus();
     }
   }
 
@@ -432,14 +337,21 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     const pastedData = event.clipboardData?.getData('text') || '';
     const cleanOtp = pastedData.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
 
-    for (let i = 0; i < cleanOtp.length && i < 7; i++) {
-      const key = `digit${i + 1}` as keyof typeof this.otpData;
-      const char = cleanOtp[i];
-      this.otpData[key] = i === 0 ? (/[A-Z]/.test(char) ? char : '') : (/[0-9]/.test(char) ? char : '');
-    }
-
-    if (cleanOtp.length === 7) {
-      setTimeout(() => this.verifyOtp(), 300);
+    if (cleanOtp.length === 7 && /^[A-Z][0-9]{6}$/.test(cleanOtp)) {
+      // Fill all inputs with pasted data
+      for (let i = 0; i < 7; i++) {
+        const key = `digit${i + 1}` as keyof typeof this.otpData;
+        this.otpData[key] = cleanOtp[i];
+      }
+      
+      // Auto-verify after paste
+      setTimeout(() => {
+        if (this.isOtpComplete() && !this.isLoading) {
+          this.verifyOtp();
+        }
+      }, 300);
+    } else {
+      this.showMessage('Invalid code format. Must be 1 letter + 6 numbers.', 'error');
     }
   }
 
@@ -482,6 +394,14 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       ? localPart.substring(0, 2) + '*'.repeat(Math.min(localPart.length - 2, 3))
       : localPart;
     return `${maskedLocal}@${domain}`;
+  }
+
+  getResendButtonDisabled(): boolean {
+    return !this.canResend || this.isLoading || this.isResending;
+  }
+
+  getVerifyButtonDisabled(): boolean {
+    return !this.isOtpComplete() || this.isLoading;
   }
 
   private showMessage(message: string, type: 'success' | 'error' | 'info' = 'info') {

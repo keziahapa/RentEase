@@ -104,6 +104,7 @@ export interface MarkReadRequest {
   roomId: number;
 }
 
+
 export interface MarkDeliveredRequest {
   messageIds: number[];
   roomId: number;

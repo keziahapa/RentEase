@@ -1,20 +1,18 @@
+// src/app/components/chat/chat.component.ts
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
+
+// Material imports
+import { MatTooltipModule } from '@angular/material/tooltip';
+
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { ErrorHandlerService } from '../../services/error-handler.service';
 import { ErrorAction } from '../../services/error-handler.interface';
-
-import { 
-  ChatRoom, 
-  ChatMessage, 
-  CreateMessageRequest, 
-  BasicResponse,
-  User  
-} from '../../services/chat.interface';
+import { ChatRoom, ChatMessage, CreateMessageRequest, BasicResponse, User } from '../../services/chat.interface';
 import { ErrorDisplayComponent } from '../error-display.component/error-display.component';
 
 @Component({
@@ -22,12 +20,18 @@ import { ErrorDisplayComponent } from '../error-display.component/error-display.
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, ErrorDisplayComponent]
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    ErrorDisplayComponent,
+    MatTooltipModule
+  ]
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
   @ViewChild('messageInput') private messageInput!: ElementRef;
 
+  // Component state
   chatRooms: ChatRoom[] = [];
   currentRoom: ChatRoom | null = null;
   messages: ChatMessage[] = [];
@@ -35,67 +39,109 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentUserId: number = 0;
   userRole: string = '';
   
+  // UI state
   loading = false;
   sending = false;
   selectedRoomId: number | null = null;
   showMenu = false;
   showEmojiPicker = false;
   searchQuery = '';
+  webSocketConnected = false;
   
-  typingUsers: {userId: number, name: string}[] = [];
+  // Typing indicators
+  typingUsers: {userId: number, userName: string}[] = [];
   isTyping = false;
   typingTimeout: any;
   
+  // Emojis
   emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '👍', '👎', '👏', '🙌', '👋', '🤝', '🙏', '❤️', '💕', '💖', '💗', '💙', '💚', '💛', '🧡', '💜', '🖤', '💯', '🔥', '✨', '💫', '⭐'];
   
+  // Subscriptions
   private subscriptions: Subscription[] = [];
+  private webSocketSubscription?: Subscription;
+  private connectionCheckSubscription?: Subscription;
   
-  private chatService = inject(ChatService);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+  // Services - Make chatService and router public for template access
+  public chatService = inject(ChatService);
+  public authService = inject(AuthService);
+  public router = inject(Router);
   private route = inject(ActivatedRoute);
   private errorHandler = inject(ErrorHandlerService);
 
   ngOnInit(): void {
     try {
-      this.currentUserId = this.chatService.getCurrentUserId();
-      this.userRole = this.authService.getCurrentUser()?.role || '';
+      this.initializeUser();
       this.loadChatRooms();
-      
-      this.subscriptions.push(
-        this.chatService.currentRoom$.subscribe(room => {
-          this.currentRoom = room;
-          if (room) {
-            this.selectedRoomId = room.id;
-          }
-        }),
-        
-        this.chatService.messages$.subscribe(messages => {
-          this.messages = messages || [];
-          setTimeout(() => this.scrollToBottom(), 100);
-        }),
-        
-        this.chatService.chatRooms$.subscribe(rooms => {
-          this.chatRooms = rooms || [];
-        }),
-        
-        this.chatService.typingUsers$.subscribe(users => {
-          this.typingUsers = users || [];
-        })
-      );
-
-      this.route.params.subscribe(params => {
-        if (params['roomId']) {
-          const roomId = parseInt(params['roomId'], 10);
-          if (!isNaN(roomId)) {
-            this.selectRoomById(roomId);
-          }
-        }
-      });
-
+      this.subscribeToObservables();
+      this.setupRouteListener();
+      this.startConnectionHealthCheck();
     } catch (error) {
       console.error('Error initializing chat component:', error);
       this.errorHandler.error('Failed to initialize chat', 'Please refresh the page');
+    }
+  }
+
+  private initializeUser(): void {
+    const currentUser = this.authService.getCurrentUser();
+    if (currentUser) {
+      this.currentUserId = this.chatService.getCurrentUserId();
+      this.userRole = currentUser.role || '';
+    }
+  }
+
+  private subscribeToObservables(): void {
+    // WebSocket connection status
+    this.webSocketSubscription = this.chatService.getConnectionStatus().subscribe(connected => {
+      this.webSocketConnected = connected;
+      if (connected) {
+        console.log('✅ WebSocket connected - real-time messaging enabled');
+        this.errorHandler.info('Real-time chat connected', 2000);
+      } else {
+        console.warn('❌ WebSocket disconnected - using HTTP fallback');
+      }
+    });
+
+    // Chat room changes
+    this.subscriptions.push(
+      this.chatService.currentRoom$.subscribe(room => {
+        this.currentRoom = room;
+        if (room) {
+          this.selectedRoomId = room.id;
+        }
+      }),
+      
+      this.chatService.messages$.subscribe(messages => {
+        this.messages = messages || [];
+        setTimeout(() => this.scrollToBottom(), 100);
+      }),
+      
+      this.chatService.chatRooms$.subscribe(rooms => {
+        this.chatRooms = rooms || [];
+        this.autoSelectRoomIfNeeded();
+      }),
+      
+      // Fixed: Corrected typingUsers$ subscription
+      this.chatService.typingUsers$.subscribe(users => {
+        this.typingUsers = users || [];
+      })
+    );
+  }
+
+  private setupRouteListener(): void {
+    this.route.params.subscribe(params => {
+      if (params['roomId']) {
+        const roomId = parseInt(params['roomId'], 10);
+        if (!isNaN(roomId)) {
+          this.selectRoomById(roomId);
+        }
+      }
+    });
+  }
+
+  private autoSelectRoomIfNeeded(): void {
+    // Auto-select first room if no room is selected and no route parameter
+    if (this.chatRooms.length > 0 && !this.selectedRoomId && !this.route.snapshot.params['roomId']) {
+      this.selectRoom(this.chatRooms[0]);
     }
   }
 
@@ -104,12 +150,44 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   ngOnDestroy(): void {
+    this.cleanupSubscriptions();
+    this.cleanupTyping();
+  }
+
+  private cleanupSubscriptions(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.webSocketSubscription?.unsubscribe();
+    this.connectionCheckSubscription?.unsubscribe();
+  }
+
+  private cleanupTyping(): void {
     if (this.typingTimeout) {
       clearTimeout(this.typingTimeout);
     }
-    this.chatService.stopAllPolling();
+    
+    // Stop typing when leaving
+    if (this.isTyping && this.currentRoom) {
+      this.chatService.stopTyping(this.currentRoom.id).subscribe();
+    }
   }
+
+  // ===== CONNECTION MANAGEMENT =====
+
+  private startConnectionHealthCheck(): void {
+    this.connectionCheckSubscription = timer(0, 30000).subscribe(() => {
+      if (!this.webSocketConnected && this.currentRoom) {
+        console.log('🔄 Attempting to reconnect WebSocket...');
+        this.chatService.reconnectWebSocket();
+      }
+    });
+  }
+
+  reconnectWebSocket(): void {
+    this.chatService.reconnectWebSocket();
+    this.errorHandler.info('Reconnecting to chat...', 1000);
+  }
+
+  // ===== EVENT HANDLERS =====
 
   @HostListener('document:click', ['$event'])
   handleMenuClickOutside(event: MouseEvent): void {
@@ -127,25 +205,30 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
+  @HostListener('window:beforeunload')
+  onBeforeUnload(): void {
+    this.cleanupTyping();
+  }
+
+  // ===== CHAT ROOM MANAGEMENT =====
+
   loadChatRooms(): void {
     this.loading = true;
 
     this.chatService.getChatRooms().subscribe({
       next: (response) => {
+        this.loading = false;
         if (response.success) {
           this.chatRooms = response.data || [];
-          if (this.chatRooms.length > 0 && !this.selectedRoomId && !this.route.snapshot.params['roomId']) {
-            this.selectRoom(this.chatRooms[0]);
-          }
+          this.autoSelectRoomIfNeeded();
         } else {
           this.errorHandler.warning(response.message || 'Failed to load chat rooms');
         }
-        this.loading = false;
       },
       error: (error: any) => {
-        console.error('Error loading chat rooms:', error);
         this.loading = false;
         this.chatRooms = [];
+        console.error('Error loading chat rooms:', error);
         
         const retryAction: ErrorAction = {
           label: 'Retry',
@@ -177,8 +260,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     const room = this.chatRooms.find(r => r.id === roomId);
     if (room) {
       this.selectRoom(room);
+    } else {
+      // Room not found in current list, try to load it
+      this.errorHandler.info('Loading chat room...', 1000);
+      this.loadChatRooms();
     }
   }
+
+  // ===== MESSAGE MANAGEMENT =====
 
   sendMessage(): void {
     if (!this.newMessage.trim() || !this.currentRoom || this.sending) {
@@ -200,18 +289,21 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.chatService.sendMessage(messageData).subscribe({
       next: (response: BasicResponse) => {
+        this.sending = false;
         if (response.success) {
           this.newMessage = '';
           this.stopTyping();
-          if (this.messageInput?.nativeElement) {
-            this.messageInput.nativeElement.focus();
+          this.focusMessageInput();
+          
+          // Show success feedback for HTTP fallback
+          if (!this.webSocketConnected) {
+            this.errorHandler.info('Message sent', 1000);
           }
         }
-        this.sending = false;
       },
       error: (error: any) => {
-        console.error('Error sending message:', error);
         this.sending = false;
+        console.error('Error sending message:', error);
         
         const retryAction: ErrorAction = {
           label: 'Retry',
@@ -225,6 +317,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         );
       }
     });
+  }
+
+  private focusMessageInput(): void {
+    if (this.messageInput?.nativeElement) {
+      setTimeout(() => {
+        this.messageInput.nativeElement.focus();
+      }, 0);
+    }
   }
 
   deleteMessage(messageId: number): void {
@@ -246,13 +346,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   onMessageInput(): void {
-    if (!this.isTyping && this.currentRoom) {
+    if (!this.currentRoom) return;
+
+    if (!this.isTyping) {
       this.isTyping = true;
       this.chatService.startTyping(this.currentRoom.id).subscribe({
         error: (error) => console.error('Error starting typing:', error)
       });
     }
 
+    // Reset typing timeout
     if (this.typingTimeout) {
       clearTimeout(this.typingTimeout);
     }
@@ -270,6 +373,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       });
     }
   }
+
+  // ===== UI CONTROLS =====
 
   toggleMenu(event?: Event): void {
     if (event) {
@@ -291,23 +396,25 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   clearChat(): void {
     this.showMenu = false;
     
+    if (!this.currentRoom) return;
+    
     if (confirm('Are you sure you want to clear this chat? This will delete all messages in this conversation.')) {
-      if (this.currentRoom) {
-        const messageIds = this.messages.map(msg => msg.id);
-        if (messageIds.length > 0) {
-          this.chatService.deleteMessagesBatch(messageIds).subscribe({
-            next: (response: BasicResponse) => {
-              if (response.success) {
-                this.messages = [];
-                this.errorHandler.info('Chat cleared', 2000);
-              }
-            },
-            error: (error: any) => {
-              console.error('Error clearing chat:', error);
-              this.errorHandler.error('Failed to clear chat', 'Please try again');
+      const messageIds = this.messages.map(msg => msg.id);
+      if (messageIds.length > 0) {
+        this.chatService.deleteMessagesBatch(messageIds).subscribe({
+          next: (response: BasicResponse) => {
+            if (response.success) {
+              this.messages = [];
+              this.errorHandler.info('Chat cleared', 2000);
             }
-          });
-        }
+          },
+          error: (error: any) => {
+            console.error('Error clearing chat:', error);
+            this.errorHandler.error('Failed to clear chat', 'Please try again');
+          }
+        });
+      } else {
+        this.errorHandler.info('No messages to clear', 2000);
       }
     }
   }
@@ -322,9 +429,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   addEmoji(emoji: string): void {
     this.newMessage += emoji;
     this.showEmojiPicker = false;
-    if (this.messageInput?.nativeElement) {
-      this.messageInput.nativeElement.focus();
-    }
+    this.focusMessageInput();
+  }
+
+  toggleEmojiPicker(): void {
+    this.showEmojiPicker = !this.showEmojiPicker;
   }
 
   triggerFileInput(): void {
@@ -333,7 +442,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   searchRooms(): void {
     if (this.searchQuery.trim()) {
-      this.errorHandler.info('Search functionality coming soon!', 2000);
+      // Filter rooms locally for now
+      const filteredRooms = this.chatRooms.filter(room => 
+        this.getRoomDisplayName(room).toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+        room.propertyName?.toLowerCase().includes(this.searchQuery.toLowerCase())
+      );
+      
+      if (filteredRooms.length === 0) {
+        this.errorHandler.info('No conversations found', 2000);
+      }
     }
   }
 
@@ -354,6 +471,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.errorHandler.info('New chat functionality coming soon!', 2000);
   }
 
+  // ===== UTILITY METHODS =====
+
   getRoomDisplayName(room: ChatRoom): string {
     return this.chatService.generateRoomDisplayName(room, this.currentUserId) || 'Unknown User';
   }
@@ -363,7 +482,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   isMyMessage(message: ChatMessage): boolean {
-    return message.senderId === this.currentUserId;
+    return this.chatService.isMyMessage(message);
   }
 
   formatMessageTime(timestamp: string): string {
@@ -418,6 +537,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       case 'LANDLORD': return 'Landlord';
       case 'CARETAKER': return 'Caretaker';
       case 'TENANT': return 'Tenant';
+      case 'ADMIN': return 'Admin';
+      case 'EXTERNAL_BUSINESS': return 'Business';
       default: return participant.role;
     }
   }
@@ -479,5 +600,31 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   trackByRoomId(index: number, room: ChatRoom): number {
     return room.id;
+  }
+
+  getConnectionStatusText(): string {
+    return this.webSocketConnected ? 'Real-time' : 'Standard';
+  }
+
+  getConnectionStatusColor(): string {
+    return this.webSocketConnected ? 'var(--success-color)' : 'var(--warning-color)';
+  }
+
+  shouldShowConnectionWarning(): boolean {
+    return !this.webSocketConnected && this.currentRoom !== null;
+  }
+
+  // Added method to get filtered rooms for search
+  getFilteredRooms(): ChatRoom[] {
+    if (!this.searchQuery.trim()) {
+      return this.chatRooms;
+    }
+    
+    const query = this.searchQuery.toLowerCase();
+    return this.chatRooms.filter(room => 
+      this.getRoomDisplayName(room).toLowerCase().includes(query) ||
+      room.propertyName?.toLowerCase().includes(query) ||
+      room.lastMessage?.content.toLowerCase().includes(query)
+    );
   }
 }
