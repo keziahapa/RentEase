@@ -7,17 +7,69 @@
         <p>Loading invitation...</p>
       </div>
 
+      <!-- Manual Type Selection State -->
+      <div *ngIf="needsTypeSelection()" class="type-selection-state">
+        <mat-icon class="selection-icon">help_outline</mat-icon>
+        <h2>Select Invitation Type</h2>
+        <p>We couldn't automatically determine what type of invitation this is. Please select the correct type below:</p>
+        
+        <div class="type-buttons">
+          <button mat-raised-button color="primary" (click)="setInvitationType('caretaker')" class="type-button">
+            <mat-icon>engineering</mat-icon>
+            <div class="type-content">
+              <strong>Caretaker Invitation</strong>
+              <small>Property management and maintenance access</small>
+            </div>
+          </button>
+          
+          <button mat-raised-button color="accent" (click)="setInvitationType('tenant')" class="type-button">
+            <mat-icon>apartment</mat-icon>
+            <div class="type-content">
+              <strong>Tenant Invitation</strong>
+              <small>Rental unit access and tenancy management</small>
+            </div>
+          </button>
+        </div>
+
+        <div class="secondary-actions">
+          <button mat-button (click)="navigateToHome()">
+            <mat-icon>home</mat-icon>
+            Return to Home
+          </button>
+        </div>
+      </div>
+
       <!-- Error State -->
-      <div *ngIf="error && !loading" class="error-state">
+      <div *ngIf="error && !loading && !needsTypeSelection()" class="error-state">
         <mat-icon class="error-icon">error_outline</mat-icon>
         <h2>Invitation Error</h2>
         <p>{{ error }}</p>
-        <div class="actions">
-          <button mat-raised-button color="primary" (click)="navigateToHome()">
+        
+        <div class="actions" *ngIf="canRetryManually() || canQueueForLater()">
+          <button *ngIf="canRetryManually()" mat-raised-button color="primary" (click)="retryAcceptance()">
+            <mat-icon>refresh</mat-icon>
+            Try Again
+          </button>
+          
+          <button *ngIf="canQueueForLater()" mat-stroked-button color="primary" (click)="queueForLater()">
+            <mat-icon>schedule</mat-icon>
+            Try Later
+          </button>
+          
+          <button mat-button (click)="navigateToHome()">
+            <mat-icon>home</mat-icon>
             Go Home
           </button>
-          <button *ngIf="error.includes('log in')" mat-button (click)="retryAcceptance()">
-            Try Again
+        </div>
+
+        <div class="actions" *ngIf="!canRetryManually() && !canQueueForLater()">
+          <button mat-raised-button color="primary" (click)="navigateToHome()">
+            <mat-icon>home</mat-icon>
+            Go Home
+          </button>
+          <button *ngIf="error.includes('log in')" mat-button (click)="navigateToLogin()">
+            <mat-icon>login</mat-icon>
+            Login
           </button>
         </div>
       </div>
@@ -25,18 +77,25 @@
       <!-- Processing State (Auto-accepting) -->
       <div *ngIf="processing" class="processing-state">
         <mat-progress-spinner diameter="50" mode="indeterminate"></mat-progress-spinner>
-        <p>Accepting invitation...</p>
+        <h2>Accepting Invitation</h2>
+        <p>Please wait while we process your invitation...</p>
       </div>
 
       <!-- Success State (Redirecting to Dashboard) -->
       <div *ngIf="success" class="success-state">
         <mat-icon class="success-icon">check_circle</mat-icon>
         <h2>Invitation Accepted!</h2>
+        <p>{{ getSuccessMessage() }}</p>
         <p>Redirecting you to your dashboard...</p>
+        
+        <div class="redirect-info">
+          <mat-progress-spinner diameter="30" mode="indeterminate"></mat-progress-spinner>
+          <span>Preparing your dashboard...</span>
+        </div>
       </div>
 
       <!-- Invitation Page for Non-Logged-In Users -->
-      <div *ngIf="needsAuthentication()" class="invitation-state">
+      <div *ngIf="needsAuthentication() && !needsTypeSelection()" class="invitation-state">
         <!-- Tenant Icon -->
         <mat-icon *ngIf="invitationType === 'tenant'" class="invitation-icon tenant-icon">
           apartment
@@ -58,22 +117,26 @@
         
         <div *ngIf="invitationDetails" class="invitation-details">
           <div class="detail-item">
+            <mat-icon>apartment</mat-icon>
             <strong>Property:</strong> {{ invitationDetails.propertyName }}
           </div>
           <div *ngIf="invitationDetails.unitNumber" class="detail-item">
+            <mat-icon>door</mat-icon>
             <strong>Unit:</strong> {{ invitationDetails.unitNumber }}
           </div>
           <div class="detail-item">
+            <mat-icon>badge</mat-icon>
             <strong>Role:</strong> {{ getRoleName() }}
           </div>
-          <!-- FIXED: Use inviterName instead of invitedBy -->
           <div class="detail-item">
+            <mat-icon>person</mat-icon>
             <strong>Invited by:</strong> {{ invitationDetails.inviterName }}
           </div>
         </div>
 
         <div *ngIf="!invitationDetails" class="invitation-details">
           <div class="detail-item">
+            <mat-icon>badge</mat-icon>
             <strong>Role:</strong> {{ getRoleName() }}
           </div>
           <p>You've been invited to join a property management system.</p>
@@ -95,9 +158,16 @@
 
         <div class="secondary-actions">
           <button mat-button (click)="navigateToHome()">
+            <mat-icon>home</mat-icon>
             Return to Home
           </button>
         </div>
+      </div>
+
+      <!-- Network Status Indicator -->
+      <div *ngIf="!isOnline" class="network-status">
+        <mat-icon>wifi_off</mat-icon>
+        <span>You are currently offline. Some features may be unavailable.</span>
       </div>
     </mat-card-content>
   </mat-card>

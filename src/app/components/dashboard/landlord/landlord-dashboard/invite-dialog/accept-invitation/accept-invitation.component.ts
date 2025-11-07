@@ -78,25 +78,30 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
 
     this.userIsLoggedIn = this.authService.isLoggedIn();
     
-    // 🟢 FIXED: Proper token extraction with URL cleaning
+    // 🟢 FIXED: Better token extraction
     let rawToken = this.route.snapshot.queryParamMap.get('token');
     
-    // If token contains full URL, extract just the token
-    if (rawToken && rawToken.includes('accept-invitation')) {
-      console.log('🔄 Cleaning token from URL:', rawToken);
-      const tokenMatch = rawToken.match(/[?&]token=([^&]+)/);
+    console.log('🔄 Raw token from URL:', rawToken);
+
+    // If token contains extra text, extract just the token part
+    if (rawToken) {
+      // Clean the token - remove any non-token characters
+      // Token should be 32 characters (hex) - extract only that part
+      const tokenMatch = rawToken.match(/([a-f0-9]{32})/i);
       if (tokenMatch) {
         rawToken = tokenMatch[1];
+        console.log('✅ Extracted clean token:', rawToken);
       } else {
-        // If no token param, try to extract from path
-        const parts = rawToken.split('/');
-        rawToken = parts[parts.length - 1];
+        console.error('❌ Cannot extract valid token from:', rawToken);
+        this.error = 'Invalid invitation token format. Please check your invitation link.';
+        this.loading = false;
+        return;
       }
     }
     
     this.invitationToken = rawToken;
 
-    console.log('🔄 Cleaned invitation token:', this.invitationToken);
+    console.log('🔄 Final cleaned invitation token:', this.invitationToken);
     console.log('👤 User logged in:', this.userIsLoggedIn);
     console.log('🌐 Online status:', this.isOnline);
 
@@ -105,6 +110,9 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
       this.loading = false;
       return;
     }
+
+    // 🚨 Clear any previous queued invitations first
+    this.clearPendingInvitation();
 
     // Store token for potential retry scenarios
     this.storePendingInvitation();
@@ -196,26 +204,19 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check if we have a previously failed invitation to recover
-    const pendingInvitation = this.getPendingInvitation();
-    if (pendingInvitation && pendingInvitation.status === 'queued') {
-      console.log('Recovering previously queued invitation');
-      this.invitationType = pendingInvitation.invitationType;
-      this.retryCount = pendingInvitation.attemptCount;
-    } else {
-      this.invitationType = this.guessInvitationType();
-    }
-
-    // ✅ FIXED: Check if type is determined
+    // 🟢 FIXED: Multiple strategies to determine invitation type
+    this.invitationType = this.determineInvitationType();
+    
+    // If still cannot determine, try to get from backend
     if (!this.invitationType) {
-      this.error = 'Cannot determine invitation type. Please use a valid invitation link.';
-      this.loading = false;
+      console.log('🔄 Could not determine type from URL, attempting to detect from backend...');
+      this.detectTypeFromBackend();
       return;
     }
 
     this.loading = false;
     
-    console.log('Proceeding with invitation type:', this.invitationType);
+    console.log('🎯 Proceeding with invitation type:', this.invitationType);
     
     if (this.userIsLoggedIn) {
       console.log('Auto-accepting invitation as:', this.invitationType);
@@ -223,51 +224,102 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ✅ FIXED: No tenant fallback
-  private guessInvitationType(): 'tenant' | 'caretaker' | null {
+  // 🟢 NEW: Comprehensive invitation type detection
+  private determineInvitationType(): 'tenant' | 'caretaker' | null {
     const url = this.router.url.toLowerCase();
     const path = window.location.pathname.toLowerCase();
+    const fullUrl = window.location.href.toLowerCase();
+    const searchParams = new URLSearchParams(window.location.search);
     
-    console.log('🔍 Analyzing invitation type from:');
-    console.log(' - URL:', url);
-    console.log(' - Path:', path);
+    console.log('🔍 Comprehensive Invitation Type Detection:');
+    console.log(' - Router URL:', url);
+    console.log(' - Window Path:', path);
+    console.log(' - Full HREF:', fullUrl);
+    console.log(' - All Query Params:', Object.fromEntries(searchParams.entries()));
 
-    // Check path first (most reliable)
-    if (path.includes('/caretaker/') || path.includes('caretaker-invitation') || path.includes('invite-caretaker')) {
+    // Strategy 1: Check explicit invitationType query parameter (highest priority)
+    const explicitType = searchParams.get('invitationType');
+    if (explicitType === 'caretaker' || explicitType === 'tenant') {
+      console.log('✅ Detected from explicit invitationType parameter:', explicitType);
+      return explicitType as 'tenant' | 'caretaker';
+    }
+
+    // Strategy 2: Check role query parameter
+    const roleParam = searchParams.get('role');
+    if (roleParam === 'caretaker' || roleParam === 'tenant') {
+      console.log('✅ Detected from role parameter:', roleParam);
+      return roleParam as 'tenant' | 'caretaker';
+    }
+
+    // Strategy 3: Check path patterns
+    if (path.includes('/caretaker/') || path.includes('caretaker-invitation') || path.includes('invite-caretaker') || path.includes('caretaker-invite')) {
       console.log('✅ Detected CARETAKER invitation from path');
       return 'caretaker';
     }
     
-    if (path.includes('/tenant/') || path.includes('tenant-invitation') || path.includes('invite-tenant')) {
+    if (path.includes('/tenant/') || path.includes('tenant-invitation') || path.includes('invite-tenant') || path.includes('tenant-invite')) {
       console.log('✅ Detected TENANT invitation from path');
       return 'tenant';
     }
 
-    // Check full URL as fallback
-    if (url.includes('caretaker')) {
+    // Strategy 4: Check URL patterns
+    if (url.includes('caretaker') || fullUrl.includes('caretaker')) {
       console.log('✅ Detected CARETAKER invitation from URL');
       return 'caretaker';
     }
     
-    if (url.includes('tenant')) {
+    if (url.includes('tenant') || fullUrl.includes('tenant')) {
       console.log('✅ Detected TENANT invitation from URL');
       return 'tenant';
     }
 
-    // Check query parameter
-    const invitationType = this.route.snapshot.queryParamMap.get('invitationType');
-    if (invitationType === 'caretaker') {
-      console.log('✅ Detected CARETAKER invitation from query param');
-      return 'caretaker';
-    }
-    if (invitationType === 'tenant') {
-      console.log('✅ Detected TENANT invitation from query param');
-      return 'tenant';
+    // Strategy 5: Check for userType parameter (common alternative)
+    const userType = searchParams.get('userType');
+    if (userType === 'caretaker' || userType === 'tenant') {
+      console.log('✅ Detected from userType parameter:', userType);
+      return userType as 'tenant' | 'caretaker';
     }
 
-    // ❌ NO DEFAULT - Return null if cannot determine
-    console.error('❌ Cannot determine invitation type from URL:', url);
+    // Strategy 6: Check for type parameter
+    const typeParam = searchParams.get('type');
+    if (typeParam === 'caretaker' || typeParam === 'tenant') {
+      console.log('✅ Detected from type parameter:', typeParam);
+      return typeParam as 'tenant' | 'caretaker';
+    }
+
+    console.error('❌ Cannot determine invitation type from URL analysis');
     return null;
+  }
+
+  // 🟢 NEW: Fallback - detect type from backend
+  private detectTypeFromBackend(): void {
+    console.log('🔄 Attempting to detect invitation type from backend...');
+    
+    // If you have an endpoint to get invitation details, use it here
+    // For now, we'll show an error but you can implement API call
+    
+    this.error = `
+      Cannot determine invitation type automatically. 
+      Please ensure your invitation link includes the type in the URL or query parameters.
+      
+      Examples:
+      - /accept-caretaker-invitation?token=YOUR_TOKEN
+      - /accept-tenant-invitation?token=YOUR_TOKEN  
+      - /accept-invitation?token=YOUR_TOKEN&invitationType=caretaker
+      - /accept-invitation?token=YOUR_TOKEN&invitationType=tenant
+    `;
+    this.loading = false;
+  }
+
+  // 🟢 NEW: Manual type selection for ambiguous invitations
+  setInvitationType(type: 'tenant' | 'caretaker'): void {
+    this.invitationType = type;
+    this.error = null;
+    console.log('🎯 Manually set invitation type to:', type);
+    
+    if (this.userIsLoggedIn) {
+      this.acceptInvitationAndRedirect();
+    }
   }
 
   acceptInvitationAndRedirect(): void {
@@ -292,6 +344,7 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
     this.updatePendingInvitationStatus('processing');
 
     console.log('🔄 Accepting invitation with cleaned token:', this.invitationToken);
+    console.log('🎯 Invitation type:', this.invitationType);
 
     this.invitationService.acceptInvitation(this.invitationToken).subscribe({
       next: (response: any) => {
@@ -322,7 +375,7 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
     });
   }
 
-  private getSuccessMessage(): string {
+ getSuccessMessage(): string {
     switch (this.invitationType) {
       case 'tenant':
         return '🎉 Tenancy invitation accepted! Welcome to your new home! Redirecting to your dashboard...';
@@ -444,7 +497,7 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
       dashboardRoute = '/caretaker-dashboard';
     }
     
-    console.log('Redirecting to:', dashboardRoute);
+    console.log('🎯 Redirecting to:', dashboardRoute);
     
     // Pass invitation context to dashboard for retry monitoring
     setTimeout(() => {
@@ -481,11 +534,17 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
     return this.error?.includes('internet') || this.error?.includes('connection') || !this.isOnline;
   }
 
+  // 🟢 NEW: Check if we need manual type selection
+  needsTypeSelection(): boolean {
+    return !this.invitationType && !this.loading && !this.processing && !this.success && !this.error;
+  }
+
   getStatusMessage(): string {
     if (this.processing) return 'Processing invitation...';
     if (this.success) return 'Invitation accepted successfully!';
     if (this.error) return this.error;
     if (!this.isOnline) return 'Waiting for network connection...';
+    if (this.needsTypeSelection()) return 'Please select invitation type';
     return 'Ready to accept invitation';
   }
 
@@ -494,6 +553,7 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
     if (this.error) return 'error';
     if (this.processing) return 'autorenew';
     if (!this.isOnline) return 'wifi_off';
+    if (this.needsTypeSelection()) return 'help';
     return 'mark_email_read';
   }
 
@@ -501,6 +561,7 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
     if (this.success) return 'primary';
     if (this.error) return 'warn';
     if (this.processing) return 'accent';
+    if (this.needsTypeSelection()) return 'accent';
     return 'primary';
   }
 
