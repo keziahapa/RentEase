@@ -206,21 +206,68 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
       this.invitationType = this.guessInvitationType();
     }
 
+    // ✅ FIXED: Check if type is determined
+    if (!this.invitationType) {
+      this.error = 'Cannot determine invitation type. Please use a valid invitation link.';
+      this.loading = false;
+      return;
+    }
+
     this.loading = false;
     
-    console.log('Proceeding with token only - invitation type:', this.invitationType);
+    console.log('Proceeding with invitation type:', this.invitationType);
     
     if (this.userIsLoggedIn) {
-      console.log('Auto-accepting invitation...');
+      console.log('Auto-accepting invitation as:', this.invitationType);
       this.acceptInvitationAndRedirect();
     }
   }
 
-  private guessInvitationType(): 'tenant' | 'caretaker' {
+  // ✅ FIXED: No tenant fallback
+  private guessInvitationType(): 'tenant' | 'caretaker' | null {
     const url = this.router.url.toLowerCase();
-    if (url.includes('tenant')) return 'tenant';
-    if (url.includes('caretaker')) return 'caretaker';
-    return 'tenant'; // Default to tenant
+    const path = window.location.pathname.toLowerCase();
+    
+    console.log('🔍 Analyzing invitation type from:');
+    console.log(' - URL:', url);
+    console.log(' - Path:', path);
+
+    // Check path first (most reliable)
+    if (path.includes('/caretaker/') || path.includes('caretaker-invitation') || path.includes('invite-caretaker')) {
+      console.log('✅ Detected CARETAKER invitation from path');
+      return 'caretaker';
+    }
+    
+    if (path.includes('/tenant/') || path.includes('tenant-invitation') || path.includes('invite-tenant')) {
+      console.log('✅ Detected TENANT invitation from path');
+      return 'tenant';
+    }
+
+    // Check full URL as fallback
+    if (url.includes('caretaker')) {
+      console.log('✅ Detected CARETAKER invitation from URL');
+      return 'caretaker';
+    }
+    
+    if (url.includes('tenant')) {
+      console.log('✅ Detected TENANT invitation from URL');
+      return 'tenant';
+    }
+
+    // Check query parameter
+    const invitationType = this.route.snapshot.queryParamMap.get('invitationType');
+    if (invitationType === 'caretaker') {
+      console.log('✅ Detected CARETAKER invitation from query param');
+      return 'caretaker';
+    }
+    if (invitationType === 'tenant') {
+      console.log('✅ Detected TENANT invitation from query param');
+      return 'tenant';
+    }
+
+    // ❌ NO DEFAULT - Return null if cannot determine
+    console.error('❌ Cannot determine invitation type from URL:', url);
+    return null;
   }
 
   acceptInvitationAndRedirect(): void {
@@ -380,15 +427,24 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
     this.redirectToDashboard();
   }
 
-  // Enhanced redirect methods with invitation context
+  // ✅ FIXED: No default to tenant dashboard
   private redirectToDashboard(): void {
+    // ❌ DON'T DEFAULT TO TENANT DASHBOARD
+    if (!this.invitationType) {
+      console.error('No invitation type determined, redirecting to home');
+      this.router.navigate(['/']);
+      return;
+    }
+    
     let dashboardRoute = '/dashboard';
-   
+    
     if (this.invitationType === 'tenant') {
       dashboardRoute = '/tenant-dashboard';
     } else if (this.invitationType === 'caretaker') {
       dashboardRoute = '/caretaker-dashboard';
     }
+    
+    console.log('Redirecting to:', dashboardRoute);
     
     // Pass invitation context to dashboard for retry monitoring
     setTimeout(() => {
