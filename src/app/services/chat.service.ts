@@ -15,7 +15,6 @@ import {
   ChatMessageResponse,
   BasicResponse,
   User as ChatUser,
-  CreateChatRoomRequest,
   CreateChatRoomResponse
 } from './chat.interface';
 
@@ -320,6 +319,135 @@ export class ChatService {
     }
   }
 
+  // ===== CREATE CHAT ROOM METHODS (CORRECTED) =====
+
+  /**
+   * Create a tenant-landlord chat room for a property
+   */
+  createTenantLandlordRoom(propertyId: number): Observable<CreateChatRoomResponse> {
+    console.log('💬 Creating tenant-landlord chat room for property:', propertyId);
+    
+    return this.http.post<CreateChatRoomResponse>(
+      `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`,
+      {}, // Empty body since propertyId is in path
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap((response: CreateChatRoomResponse) => {
+        if (response.success && response.data) {
+          console.log('✅ Tenant-landlord chat room created:', response.data);
+          this.addRoomToChatList(response.data);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Create a tenant-caretaker chat room for a property
+   */
+  createTenantCaretakerRoom(propertyId: number): Observable<CreateChatRoomResponse> {
+    console.log('💬 Creating tenant-caretaker chat room for property:', propertyId);
+    
+    return this.http.post<CreateChatRoomResponse>(
+      `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`,
+      {},
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap((response: CreateChatRoomResponse) => {
+        if (response.success && response.data) {
+          console.log('✅ Tenant-caretaker chat room created:', response.data);
+          this.addRoomToChatList(response.data);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Create a landlord-caretaker chat room for a property
+   */
+  createLandlordCaretakerRoom(propertyId: number): Observable<CreateChatRoomResponse> {
+    console.log('💬 Creating landlord-caretaker chat room for property:', propertyId);
+    
+    return this.http.post<CreateChatRoomResponse>(
+      `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`,
+      {},
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap((response: CreateChatRoomResponse) => {
+        if (response.success && response.data) {
+          console.log('✅ Landlord-caretaker chat room created:', response.data);
+          this.addRoomToChatList(response.data);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Smart method to create appropriate chat room based on user roles
+   */
+  createChatRoom(propertyId: number, targetRole?: string): Observable<CreateChatRoomResponse> {
+    const currentUser = this.getCurrentUserSafe();
+    const currentUserRole = currentUser?.role?.toLowerCase();
+    
+    console.log('💬 Smart chat creation:', { 
+      currentUserRole, 
+      targetRole, 
+      propertyId 
+    });
+
+    // Determine which endpoint to call based on roles
+    if (targetRole) {
+      // Specific target role requested
+      switch(targetRole.toLowerCase()) {
+        case 'landlord':
+          return this.createTenantLandlordRoom(propertyId);
+        case 'caretaker':
+          return this.createTenantCaretakerRoom(propertyId);
+        default:
+          return throwError(() => new Error(`Invalid target role: ${targetRole}`));
+      }
+    }
+
+    // Auto-detect based on current user role
+    switch(currentUserRole) {
+      case 'tenant':
+        // Tenant can create chat with landlord or caretaker
+        // Default to landlord for now
+        return this.createTenantLandlordRoom(propertyId);
+      case 'landlord':
+        // Landlord can create chat with caretaker
+        return this.createLandlordCaretakerRoom(propertyId);
+      case 'caretaker':
+        // Caretaker can create chat with landlord
+        return this.createLandlordCaretakerRoom(propertyId);
+      default:
+        return throwError(() => new Error(`Cannot create chat room for role: ${currentUserRole}`));
+    }
+  }
+
+  /**
+   * Add new room to the chat list and subscribe to WebSocket
+   */
+  private addRoomToChatList(room: ChatRoom): void {
+    const currentRooms = this.chatRoomsSubject.value;
+    
+    // Check if room already exists to avoid duplicates
+    const roomExists = currentRooms.some(r => r.id === room.id);
+    if (!roomExists) {
+      const updatedRooms = [room, ...currentRooms];
+      this.chatRoomsSubject.next(updatedRooms);
+      
+      // Subscribe to the new room via WebSocket
+      if (this.stompClient && this.stompClient.connected) {
+        this.subscribeToRoom(room.id);
+      }
+      
+      console.log('✅ Added new room to chat list:', room.id);
+    }
+  }
+
   // ===== PUBLIC METHODS =====
 
   getConnectionStatus(): Observable<boolean> {
@@ -337,29 +465,6 @@ export class ChatService {
     } else {
       this.initializeWebSocketConnection();
     }
-  }
-
-  // ===== CREATE CHAT ROOM METHOD =====
-  createChatRoom(request: CreateChatRoomRequest): Observable<CreateChatRoomResponse> {
-    return this.http.post<CreateChatRoomResponse>(
-      `${this.apiUrl}/rooms`,
-      request,
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap((response: CreateChatRoomResponse) => {
-        if (response.success && response.data) {
-          // Add the new room to the current list
-          const currentRooms = this.chatRoomsSubject.value;
-          this.chatRoomsSubject.next([response.data, ...currentRooms]);
-          
-          // Subscribe to the new room via WebSocket if connected
-          if (this.stompClient && this.stompClient.connected) {
-            this.subscribeToRoom(response.data.id);
-          }
-        }
-      }),
-      catchError(this.handleError)
-    );
   }
 
   // ===== MODIFIED EXISTING METHODS =====
@@ -455,7 +560,7 @@ export class ChatService {
     }
   }
 
-  // ===== TYPING METHODS (FIXED) =====
+  // ===== TYPING METHODS =====
 
   startTyping(roomId: number): Observable<BasicResponse> {
     const currentUser = this.getCurrentUserSafe();
@@ -619,52 +724,7 @@ export class ChatService {
     ).pipe(catchError(this.handleError));
   }
 
-  createTenantLandlordRoom(propertyId: number): Observable<BasicResponse> {
-    return this.http.post<BasicResponse>(
-      `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success) {
-          this.getChatRooms().subscribe();
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  createTenantCaretakerRoom(propertyId: number): Observable<BasicResponse> {
-    return this.http.post<BasicResponse>(
-      `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success) {
-          this.getChatRooms().subscribe();
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  createLandlordCaretakerRoom(propertyId: number): Observable<BasicResponse> {
-    return this.http.post<BasicResponse>(
-      `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success) {
-          this.getChatRooms().subscribe();
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  // ===== UTILITY METHODS (FIXED) =====
+  // ===== UTILITY METHODS =====
 
   generateRoomDisplayName(room: ChatRoom, currentUserId: number): string {
     if (!room) return 'Unknown Chat';
@@ -695,7 +755,7 @@ export class ChatService {
     }
   }
 
-  // NEW: Safe method to convert AuthService user to Chat User interface
+  // Safe method to convert AuthService user to Chat User interface
   private getCurrentUserSafe(): ChatUser | null {
     try {
       const authUser = this.authService.getCurrentUser();
@@ -728,7 +788,7 @@ export class ChatService {
     return 0; // Fallback
   }
 
-  // NEW: Safe method to get user email
+  // Safe method to get user email
   private getCurrentUserEmail(): string {
     const currentUser = this.getCurrentUserSafe();
     return currentUser?.email || '';

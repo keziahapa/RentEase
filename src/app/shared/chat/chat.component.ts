@@ -13,9 +13,9 @@ import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { ErrorHandlerService } from '../../services/error-handler.service';
 import { ErrorAction } from '../../services/error-handler.interface';
-import { ChatRoom, ChatMessage, CreateMessageRequest, BasicResponse, User, CreateChatRoomRequest } from '../../services/chat.interface';
+import { ChatRoom, ChatMessage, CreateMessageRequest, BasicResponse, User } from '../../services/chat.interface';
 import { ErrorDisplayComponent } from '../error-display.component/error-display.component';
-import { NewChatModalComponent } from './new-chat-modal/new-chat-modal.component';
+import { NewChatModalComponent, NewChatModalData } from './new-chat-modal/new-chat-modal.component';
 
 @Component({
   selector: 'app-chat',
@@ -64,7 +64,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private webSocketSubscription?: Subscription;
   private connectionCheckSubscription?: Subscription;
   
-  // Services - Make chatService and router public for template access
+  // Services
   public chatService = inject(ChatService);
   public authService = inject(AuthService);
   public router = inject(Router);
@@ -124,7 +124,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.autoSelectRoomIfNeeded();
       }),
       
-      // Fixed: Corrected typingUsers$ subscription
       this.chatService.typingUsers$.subscribe(users => {
         this.typingUsers = users || [];
       })
@@ -143,7 +142,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private autoSelectRoomIfNeeded(): void {
-    // Auto-select first room if no room is selected and no route parameter
     if (this.chatRooms.length > 0 && !this.selectedRoomId && !this.route.snapshot.params['roomId']) {
       this.selectRoom(this.chatRooms[0]);
     }
@@ -169,7 +167,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       clearTimeout(this.typingTimeout);
     }
     
-    // Stop typing when leaving
     if (this.isTyping && this.currentRoom) {
       this.chatService.stopTyping(this.currentRoom.id).subscribe();
     }
@@ -265,7 +262,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (room) {
       this.selectRoom(room);
     } else {
-      // Room not found in current list, try to load it
       this.errorHandler.info('Loading chat room...', 1000);
       this.loadChatRooms();
     }
@@ -282,7 +278,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       data: {
         currentUserId: this.currentUserId,
         userRole: this.userRole
-      }
+      } as NewChatModalData
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -292,20 +288,47 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
+  // ✅ FIXED: Use the correct chat room creation method
   private createNewChatRoom(chatData: any): void {
     this.loading = true;
 
-    const request: CreateChatRoomRequest = {
-      participantId: chatData.participantId,
-      participantType: chatData.participantType,
-      propertyId: chatData.propertyId || null
-    };
+    // Extract propertyId from the chat data
+    const propertyId = chatData.propertyId ? parseInt(chatData.propertyId, 10) : null;
+    
+    if (!propertyId) {
+      this.errorHandler.error('Property ID is required to create a chat room');
+      this.loading = false;
+      return;
+    }
 
-    this.chatService.createChatRoom(request).subscribe({
+    console.log('💬 Creating chat room with data:', { 
+      propertyId, 
+      participantType: chatData.participantType 
+    });
+
+    // Use the correct chat service method based on participant type
+    let chatObservable;
+    
+    switch(chatData.participantType) {
+      case 'TENANT_LANDLORD':
+        chatObservable = this.chatService.createTenantLandlordRoom(propertyId);
+        break;
+      case 'TENANT_CARETAKER':
+        chatObservable = this.chatService.createTenantCaretakerRoom(propertyId);
+        break;
+      case 'LANDLORD_CARETAKER':
+        chatObservable = this.chatService.createLandlordCaretakerRoom(propertyId);
+        break;
+      default:
+        this.errorHandler.error('Invalid chat type selected');
+        this.loading = false;
+        return;
+    }
+
+    chatObservable.subscribe({
       next: (response) => {
         this.loading = false;
         if (response.success && response.data) {
-          // ✅ FIXED: Use 'info' instead of 'success'
           this.errorHandler.info('New chat started successfully!', 2000);
           
           // Add the new room to the list and select it
@@ -366,7 +389,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.stopTyping();
           this.focusMessageInput();
           
-          // Show success feedback for HTTP fallback
           if (!this.webSocketConnected) {
             this.errorHandler.info('Message sent', 1000);
           }
@@ -426,7 +448,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       });
     }
 
-    // Reset typing timeout
     if (this.typingTimeout) {
       clearTimeout(this.typingTimeout);
     }
@@ -512,17 +533,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   searchRooms(): void {
-    if (this.searchQuery.trim()) {
-   
-      const filteredRooms = this.chatRooms.filter(room => 
-        this.getRoomDisplayName(room).toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-        room.propertyName?.toLowerCase().includes(this.searchQuery.toLowerCase())
-      );
-      
-      if (filteredRooms.length === 0) {
-        this.errorHandler.info('No conversations found', 2000);
-      }
-    }
+    // Search logic handled in getFilteredRooms()
   }
 
   clearSearch(): void {
