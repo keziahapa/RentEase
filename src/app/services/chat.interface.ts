@@ -87,6 +87,13 @@ export interface CreateRoomRequest {
   propertyId?: number;
 }
 
+// NEW: Added for new chat modal functionality
+export interface CreateChatRoomRequest {
+  participantId: string; // Can be user ID or email
+  participantType: string;
+  propertyId?: number | null;
+}
+
 export interface BatchDeleteRequest {
   messageIds: number[];
 }
@@ -103,7 +110,6 @@ export interface MarkReadRequest {
   messageIds: number[];
   roomId: number;
 }
-
 
 export interface MarkDeliveredRequest {
   messageIds: number[];
@@ -148,13 +154,14 @@ export interface PaginatedResponse<T> {
   };
 }
 
-
 export interface ChatRoomResponse extends ApiResponse<ChatRoom[]> {}
 export interface ChatMessageResponse extends ApiResponse<ChatMessage[]> {}
 export interface SingleChatRoomResponse extends ApiResponse<ChatRoom> {}
 export interface SingleMessageResponse extends ApiResponse<ChatMessage> {}
 export interface ChatRoomDetailsResponse extends ApiResponse<ChatRoomDetails> {}
 
+// NEW: Added for new chat creation response
+export interface CreateChatRoomResponse extends ApiResponse<ChatRoom> {}
 
 export interface ChatEvent {
   type: 'MESSAGE_CREATED' | 'MESSAGE_UPDATED' | 'MESSAGE_DELETED' | 
@@ -166,7 +173,6 @@ export interface ChatEvent {
   roomId?: number;
   userId?: number;
 }
-
 
 export interface ChatSearchCriteria {
   query?: string;
@@ -199,7 +205,6 @@ export interface ChatPreferences {
   fontSize: 'small' | 'medium' | 'large';
 }
 
-
 export interface FileUploadResponse {
   success: boolean;
   message: string;
@@ -215,17 +220,326 @@ export interface UploadProgress {
   total: number;
 }
 
-
 export interface TypingState {
   [roomId: number]: {
     users: {userId: number, name: string, startedAt: string}[];
   };
 }
 
-
 export interface ConnectionState {
   isConnected: boolean;
   lastConnected?: string;
   connectionType?: 'websocket' | 'polling' | 'offline';
   retryCount: number;
+}
+
+// NEW: Added for user search and selection
+export interface UserSearchResult {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+  isOnline?: boolean;
+  phoneNumber?: string;
+}
+
+export interface UserSearchResponse extends ApiResponse<UserSearchResult[]> {}
+
+// NEW: Added for property search and selection
+export interface PropertySearchResult {
+  id: number;
+  name: string;
+  address: string;
+  landlordName?: string;
+  caretakerName?: string;
+}
+
+export interface PropertySearchResponse extends ApiResponse<PropertySearchResult[]> {}
+
+// NEW: Added for chat room filters
+export interface ChatRoomFilters {
+  participantType?: string;
+  propertyId?: number;
+  isArchived?: boolean;
+  hasUnread?: boolean;
+  searchQuery?: string;
+}
+
+// NEW: Added for message pagination
+export interface MessagePaginationParams {
+  roomId: number;
+  page?: number;
+  limit?: number;
+  beforeMessageId?: number;
+}
+
+// NEW: Added for chat room settings update
+export interface UpdateRoomSettingsRequest {
+  roomId: number;
+  settings: {
+    allowFiles?: boolean;
+    maxFileSize?: number;
+    allowedFileTypes?: string[];
+    slowMode?: boolean;
+    slowModeInterval?: number;
+  };
+}
+
+// NEW: Added for participant management
+export interface AddParticipantRequest {
+  roomId: number;
+  participantId: number;
+  role?: 'MEMBER' | 'ADMIN';
+}
+
+export interface RemoveParticipantRequest {
+  roomId: number;
+  participantId: number;
+}
+
+export interface UpdateParticipantRoleRequest {
+  roomId: number;
+  participantId: number;
+  role: 'MEMBER' | 'ADMIN' | 'OWNER';
+}
+
+// NEW: Added for chat room archiving
+export interface ArchiveRoomRequest {
+  roomId: number;
+  archive: boolean;
+}
+
+// NEW: Added for message reactions
+export interface MessageReaction {
+  id: number;
+  messageId: number;
+  userId: number;
+  emoji: string;
+  createdAt: string;
+  user?: User;
+}
+
+export interface AddReactionRequest {
+  messageId: number;
+  emoji: string;
+}
+
+export interface RemoveReactionRequest {
+  messageId: number;
+  reactionId: number;
+}
+
+// NEW: Added for message pinning
+export interface PinnedMessage {
+  id: number;
+  messageId: number;
+  roomId: number;
+  pinnedBy: number;
+  pinnedAt: string;
+  message?: ChatMessage;
+  pinnedByUser?: User;
+}
+
+export interface PinMessageRequest {
+  messageId: number;
+  roomId: number;
+}
+
+export interface UnpinMessageRequest {
+  messageId: number;
+  roomId: number;
+}
+
+// NEW: Added for chat room invitations
+export interface ChatInvitation {
+  id: number;
+  roomId: number;
+  inviteeEmail: string;
+  inviterId: number;
+  token: string;
+  status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';
+  expiresAt: string;
+  createdAt: string;
+  inviter?: User;
+  room?: ChatRoom;
+}
+
+export interface CreateInvitationRequest {
+  roomId: number;
+  inviteeEmail: string;
+  expiresInHours?: number;
+}
+
+export interface AcceptInvitationRequest {
+  token: string;
+}
+
+// NEW: Added for chat analytics
+export interface ChatAnalytics {
+  totalMessages: number;
+  messagesByType: {
+    TEXT: number;
+    IMAGE: number;
+    FILE: number;
+  };
+  messagesByHour: { [hour: string]: number };
+  busiestDay: string;
+  averageResponseTime: number;
+  topParticipants: Array<{
+    user: User;
+    messageCount: number;
+  }>;
+}
+
+// NEW: Added for chat exports
+export interface ChatExportRequest {
+  roomId: number;
+  format: 'JSON' | 'CSV' | 'PDF';
+  startDate?: string;
+  endDate?: string;
+  includeMediaInfo?: boolean;
+}
+
+export interface ChatExportResponse {
+  success: boolean;
+  message: string;
+  downloadUrl?: string;
+  fileSize?: number;
+  expiresAt?: string;
+}
+
+// NEW: Added for real-time presence
+export interface UserPresence {
+  userId: number;
+  isOnline: boolean;
+  lastSeen?: string;
+  currentRoom?: number;
+  device?: 'MOBILE' | 'DESKTOP' | 'TABLET';
+}
+
+// NEW: Added for chat search within room
+export interface RoomMessageSearchCriteria {
+  roomId: number;
+  query: string;
+  limit?: number;
+  offset?: number;
+}
+
+// NEW: Added for message context (reply chains)
+export interface MessageContext {
+  originalMessage?: ChatMessage;
+  replyChain: ChatMessage[];
+}
+
+// NEW: Added for chat room templates
+export interface ChatRoomTemplate {
+  id: number;
+  name: string;
+  participantType: string;
+  defaultSettings: {
+    allowFiles: boolean;
+    maxFileSize: number;
+    allowedFileTypes: string[];
+    slowMode: boolean;
+    slowModeInterval: number;
+  };
+  welcomeMessage?: string;
+  autoAddParticipants?: number[];
+}
+
+// NEW: Added for bulk operations
+export interface BulkMessageOperation {
+  messageIds: number[];
+  operation: 'DELETE' | 'MARK_READ' | 'MARK_UNREAD' | 'FORWARD';
+  targetRoomId?: number;
+}
+
+// NEW: Added for chat moderation
+export interface ModerationAction {
+  id: number;
+  roomId: number;
+  moderatorId: number;
+  targetUserId: number;
+  actionType: 'WARN' | 'MUTE' | 'KICK' | 'BAN';
+  reason: string;
+  duration?: number; // in minutes
+  createdAt: string;
+  expiresAt?: string;
+  moderator?: User;
+  targetUser?: User;
+}
+
+export interface CreateModerationActionRequest {
+  roomId: number;
+  targetUserId: number;
+  actionType: 'WARN' | 'MUTE' | 'KICK' | 'BAN';
+  reason: string;
+  duration?: number;
+}
+
+// NEW: Added for chat room backup
+export interface ChatBackup {
+  id: number;
+  roomId: number;
+  backupDate: string;
+  messageCount: number;
+  fileSize: number;
+  downloadUrl: string;
+  expiresAt: string;
+}
+
+export interface CreateBackupRequest {
+  roomId: number;
+  includeMedia?: boolean;
+}
+
+// NEW: Added for chat room merge
+export interface MergeRoomsRequest {
+  sourceRoomId: number;
+  targetRoomId: number;
+  preserveSource?: boolean;
+}
+
+// NEW: Added for chat room duplication
+export interface DuplicateRoomRequest {
+  sourceRoomId: number;
+  newName?: string;
+  includeMessages?: boolean;
+  includeParticipants?: boolean;
+  includeSettings?: boolean;
+}
+
+// NEW: Added for chat room import
+export interface ImportMessagesRequest {
+  roomId: number;
+  messages: Array<{
+    content: string;
+    messageType: 'TEXT' | 'IMAGE' | 'FILE';
+    senderId: number;
+    timestamp: string;
+    attachments?: string[];
+  }>;
+}
+
+// NEW: Added for chat room cleanup
+export interface CleanupRequest {
+  roomId: number;
+  olderThan: string;
+  messageTypes?: ('TEXT' | 'IMAGE' | 'FILE')[];
+  keepPinned?: boolean;
+}
+
+// NEW: Added for chat room statistics
+export interface RoomStatistics {
+  roomId: number;
+  totalMessages: number;
+  activeParticipants: number;
+  averageMessagesPerDay: number;
+  lastActivity: string;
+  messageDistribution: {
+    byType: { [key: string]: number };
+    byUser: { [key: number]: number };
+    byHour: { [key: number]: number };
+  };
 }

@@ -15,7 +15,6 @@ export class PropertyService {
   
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
 
-
   getCurrentUserProfile(): Observable<any> {
     return this.profileService.getCurrentUserProfile();
   }
@@ -39,8 +38,6 @@ export class PropertyService {
   deleteProfilePicture(): Observable<any> {
     return this.profileService.deleteProfilePicture();
   }
-
-  
 
   getTenantUnits(): Observable<any> {
     const token = this.authService.getToken();
@@ -70,8 +67,6 @@ export class PropertyService {
       catchError(error => this.handleTenantError(error))
     );
   }
-
-  
 
   createProperty(request: any): Observable<any> {
     const backendRequest = {
@@ -206,8 +201,7 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
-  
-
+  // MOVE OUT NOTICES - LANDLORD
   getLandlordMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
@@ -233,6 +227,7 @@ export class PropertyService {
     );
   }
 
+  // ✅ FIXED: Approve without body (backend expects no body)
   approveMoveOutNotice(noticeId: number, request?: any): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
@@ -241,23 +236,33 @@ export class PropertyService {
 
     return this.http.post<any>(
       `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}/approve`,
-      request || {},
+      null, // No body - backend doesn't expect any data
       { headers: this.createHeaders() }
     ).pipe(
       catchError(error => this.handleMoveOutError(error))
     );
   }
 
+  // ✅ FIXED: Reject with reason as query parameter (not in body)
   rejectMoveOutNotice(noticeId: number, request?: any): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
+    // Extract reason from request, with fallback
+    const reason = request?.notes || request?.landlordNotes || 'No reason provided';
+    
+    // Send reason as query parameter
+    const params = new HttpParams().set('reason', reason);
+
     return this.http.post<any>(
       `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}/reject`,
-      request || {},
-      { headers: this.createHeaders() }
+      null, // No body needed
+      { 
+        headers: this.createHeaders(),
+        params // Query parameter with reason
+      }
     ).pipe(
       catchError(error => this.handleMoveOutError(error))
     );
@@ -291,7 +296,7 @@ export class PropertyService {
     );
   }
 
-
+  // MOVE OUT NOTICES - TENANT
   getTenantMoveOutNotices(page: number = 1, limit: number = 10): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
@@ -357,8 +362,7 @@ export class PropertyService {
     );
   }
 
-  
-
+  // PRIVATE HELPER METHODS
   private normalizePropertiesResponse(response: any): any[] {
     if (Array.isArray(response)) {
       return response;
@@ -458,7 +462,6 @@ export class PropertyService {
     });
   }
 
-  
   private handleError = (error: HttpErrorResponse): Observable<never> => {
     let errorMessage = 'An unexpected error occurred';
 

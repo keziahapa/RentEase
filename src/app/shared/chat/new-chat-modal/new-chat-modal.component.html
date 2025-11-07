@@ -1,0 +1,45 @@
+<div class="new-chat-modal">
+  <h2 mat-dialog-title>Start New Chat</h2>
+  
+  <div mat-dialog-content>
+    <p>Enter the details to start a new conversation</p>
+    
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>User ID or Email</mat-label>
+      <input matInput 
+             [(ngModel)]="participantId" 
+             placeholder="Enter user ID or email" 
+             required
+             (keyup.enter)="isFormValid() && onStartChat()">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Chat Type</mat-label>
+      <mat-select [(ngModel)]="participantType" required>
+        <mat-option value="TENANT_LANDLORD">Tenant ↔ Landlord</mat-option>
+        <mat-option value="TENANT_CARETAKER">Tenant ↔ Caretaker</mat-option>
+        <mat-option value="LANDLORD_CARETAKER">Landlord ↔ Caretaker</mat-option>
+        <mat-option value="TENANT_EXTERNAL_BUSINESS">Tenant ↔ Business</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Property ID (Optional)</mat-label>
+      <input matInput 
+             type="number" 
+             [(ngModel)]="propertyId" 
+             placeholder="Enter property ID if applicable"
+             min="0">
+    </mat-form-field>
+  </div>
+
+  <div mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()">Cancel</button>
+    <button mat-raised-button 
+            color="primary" 
+            (click)="onStartChat()" 
+            [disabled]="!isFormValid()">
+      Start Chat
+    </button>
+  </div>
+</div>

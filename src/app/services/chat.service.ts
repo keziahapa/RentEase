@@ -14,7 +14,9 @@ import {
   ChatRoomResponse,
   ChatMessageResponse,
   BasicResponse,
-  User as ChatUser // Rename to avoid conflict
+  User as ChatUser,
+  CreateChatRoomRequest,
+  CreateChatRoomResponse
 } from './chat.interface';
 
 // WebSocket message interfaces
@@ -335,6 +337,29 @@ export class ChatService {
     } else {
       this.initializeWebSocketConnection();
     }
+  }
+
+  // ===== CREATE CHAT ROOM METHOD =====
+  createChatRoom(request: CreateChatRoomRequest): Observable<CreateChatRoomResponse> {
+    return this.http.post<CreateChatRoomResponse>(
+      `${this.apiUrl}/rooms`,
+      request,
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap((response: CreateChatRoomResponse) => {
+        if (response.success && response.data) {
+          // Add the new room to the current list
+          const currentRooms = this.chatRoomsSubject.value;
+          this.chatRoomsSubject.next([response.data, ...currentRooms]);
+          
+          // Subscribe to the new room via WebSocket if connected
+          if (this.stompClient && this.stompClient.connected) {
+            this.subscribeToRoom(response.data.id);
+          }
+        }
+      }),
+      catchError(this.handleError)
+    );
   }
 
   // ===== MODIFIED EXISTING METHODS =====

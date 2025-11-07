@@ -7,13 +7,15 @@ import { Subscription, timer } from 'rxjs';
 
 // Material imports
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { ErrorHandlerService } from '../../services/error-handler.service';
 import { ErrorAction } from '../../services/error-handler.interface';
-import { ChatRoom, ChatMessage, CreateMessageRequest, BasicResponse, User } from '../../services/chat.interface';
+import { ChatRoom, ChatMessage, CreateMessageRequest, BasicResponse, User, CreateChatRoomRequest } from '../../services/chat.interface';
 import { ErrorDisplayComponent } from '../error-display.component/error-display.component';
+import { NewChatModalComponent } from './new-chat-modal/new-chat-modal.component';
 
 @Component({
   selector: 'app-chat',
@@ -24,7 +26,8 @@ import { ErrorDisplayComponent } from '../error-display.component/error-display.
     CommonModule, 
     FormsModule, 
     ErrorDisplayComponent,
-    MatTooltipModule
+    MatTooltipModule,
+    MatDialogModule
   ]
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
@@ -67,6 +70,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   public router = inject(Router);
   private route = inject(ActivatedRoute);
   private errorHandler = inject(ErrorHandlerService);
+  private dialog = inject(MatDialog);
 
   ngOnInit(): void {
     try {
@@ -267,6 +271,73 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
+  // ===== NEW CHAT FUNCTIONALITY =====
+
+  startNewChat(): void {
+    const dialogRef = this.dialog.open(NewChatModalComponent, {
+      width: '500px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      panelClass: 'new-chat-modal',
+      data: {
+        currentUserId: this.currentUserId,
+        userRole: this.userRole
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.createNewChatRoom(result);
+      }
+    });
+  }
+
+  private createNewChatRoom(chatData: any): void {
+    this.loading = true;
+
+    const request: CreateChatRoomRequest = {
+      participantId: chatData.participantId,
+      participantType: chatData.participantType,
+      propertyId: chatData.propertyId || null
+    };
+
+    this.chatService.createChatRoom(request).subscribe({
+      next: (response) => {
+        this.loading = false;
+        if (response.success && response.data) {
+          // ✅ FIXED: Use 'info' instead of 'success'
+          this.errorHandler.info('New chat started successfully!', 2000);
+          
+          // Add the new room to the list and select it
+          this.chatRooms.unshift(response.data);
+          this.selectRoom(response.data);
+          
+          // Refresh the room list to ensure consistency
+          setTimeout(() => {
+            this.loadChatRooms();
+          }, 500);
+        } else {
+          this.errorHandler.error(response.message || 'Failed to start new chat');
+        }
+      },
+      error: (error) => {
+        this.loading = false;
+        console.error('Error creating chat room:', error);
+        
+        let errorMessage = 'Failed to start new chat';
+        if (error.error?.message) {
+          errorMessage = error.error.message;
+        } else if (error.status === 404) {
+          errorMessage = 'User not found';
+        } else if (error.status === 409) {
+          errorMessage = 'Chat room already exists';
+        }
+
+        this.errorHandler.error(errorMessage, 'Please try again');
+      }
+    });
+  }
+
   // ===== MESSAGE MANAGEMENT =====
 
   sendMessage(): void {
@@ -442,7 +513,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   searchRooms(): void {
     if (this.searchQuery.trim()) {
-      // Filter rooms locally for now
+   
       const filteredRooms = this.chatRooms.filter(room => 
         this.getRoomDisplayName(room).toLowerCase().includes(this.searchQuery.toLowerCase()) ||
         room.propertyName?.toLowerCase().includes(this.searchQuery.toLowerCase())
@@ -465,10 +536,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   toggleTheme(): void {
     this.errorHandler.info('Theme toggle coming soon!', 2000);
-  }
-
-  startNewChat(): void {
-    this.errorHandler.info('New chat functionality coming soon!', 2000);
   }
 
   // ===== UTILITY METHODS =====
@@ -614,7 +681,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return !this.webSocketConnected && this.currentRoom !== null;
   }
 
-  // Added method to get filtered rooms for search
   getFilteredRooms(): ChatRoom[] {
     if (!this.searchQuery.trim()) {
       return this.chatRooms;
