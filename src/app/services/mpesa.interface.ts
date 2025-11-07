@@ -1,5 +1,3 @@
-
-
 export interface STKPushRequest {
   phoneNumber: string;
   amount: number;
@@ -15,6 +13,11 @@ export interface STKPushResponse {
   CustomerMessage: string;
 }
 
+export interface CallbackMetadataItem {
+  Name: string;
+  Value: any;
+}
+
 export interface STKCallback {
   Body: {
     StkCallback: {
@@ -27,27 +30,6 @@ export interface STKCallback {
       };
     };
   };
-}
-
-export interface CallbackMetadataItem {
-  Name: string;
-  Value: any;
-}
-
-export interface TransactionResults {
-  TransactionType: string;
-  TransID: string;
-  TransTime: string;
-  TransAmount: string;
-  BusinessShortCode: string;
-  BillRefNumber: string;
-  InvoiceNumber: string;
-  OrgAccountBalance: string;
-  ThirdPartyTransID: string;
-  MSISDN: string;
-  FirstName: string;
-  MiddleName: string;
-  LastName: string;
 }
 
 export interface ValidationRequest {
@@ -77,4 +59,20 @@ export interface PaymentStatus {
   transactionId?: string;
   amount?: number;
   timestamp?: Date;
+}
+
+export interface TransactionResults {
+  TransactionType: string;
+  TransID: string;
+  TransTime: string;
+  TransAmount: string;
+  BusinessShortCode: string;
+  BillRefNumber: string;
+  InvoiceNumber: string;
+  OrgAccountBalance: string;
+  ThirdPartyTransID: string;
+  MSISDN: string;
+  FirstName: string;
+  MiddleName: string;
+  LastName: string;
 }

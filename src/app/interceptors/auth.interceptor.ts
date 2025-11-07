@@ -8,6 +8,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   
+  // ✅ ADD M-PESA ENDPOINTS TO SKIP AUTH
   const skipAuth = [
     '/api/auth/login',
     '/api/auth/signup', 
@@ -16,7 +17,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     '/api/auth/forgot-password',
     '/api/auth/verify-reset-otp',
     '/api/auth/reset-password',
-    '/api/auth/resend-otp'
+    '/api/auth/resend-otp',
+    // ✅ ADD THESE M-PESA ENDPOINTS
+    '/api/open/mobile-money/stk-push',
+    '/api/open/mobile-money/stk-push/callback', 
+    '/api/open/mobile-money/validation',
+    '/api/open/mobile-money/confirmation',
+    '/api/open/mobile-money/transaction-status'
   ].some(endpoint => req.url.includes(endpoint));
 
   let clonedReq = req;

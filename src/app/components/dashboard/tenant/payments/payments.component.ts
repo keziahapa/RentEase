@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { MpesaService } from '../../../../services/mpesa.service';
-import { PaymentService } from '../../../../services/payment Service'; 
+import { PaymentService } from '../../../../services/payment.service'; 
 import { STKPushRequest, PaymentStatus } from '../../../../services/mpesa.interface';
 
 @Component({
