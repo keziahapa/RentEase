@@ -1,70 +1,69 @@
-// services/mpesa.service.ts
-import { Injectable } from '@angular/core';
+
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { 
-  ValidationRequest, 
-  STKPushCallback, 
-  AcknowledgeResponse, 
   STKPushRequest, 
-  STKPushResponse,
-  PaymentStatus 
-} from '../services/mpesa.interface';
+  STKPushResponse, 
+  STKCallback, 
+  ValidationRequest,
+  AcknowledgeResponse 
+} from './mpesa.interface';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MpesaService {
-  private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com/api/open/mobile-money';
+  private http = inject(HttpClient);
+  private apiUrl = 'https://rentease-3-sfgx.onrender.com/api/open/mobile-money';
 
-  constructor(private http: HttpClient) { }
-
-  // Handle validation callback from M-Pesa
-  handleValidation(validationData: ValidationRequest): Observable<any> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-    
-    return this.http.post(`${this.apiUrl}/validation`, validationData, { headers });
-  }
-
-  // Handle STK Push callback
-  handleSTKPushCallback(callbackData: STKPushCallback): Observable<AcknowledgeResponse> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-    
-    return this.http.post<AcknowledgeResponse>(
-      `${this.apiUrl}/stk-push/callback`, 
-      callbackData, 
-      { headers }
-    );
-  }
-
-  // Handle confirmation callback
-  handleConfirmation(confirmationData: any): Observable<any> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-    
-    return this.http.post(`${this.apiUrl}/confirmation`, confirmationData, { headers });
-  }
-
-  // Initiate STK Push
-  initiateSTKPush(stkPushData: STKPushRequest): Observable<STKPushResponse> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
+  
+  initiateSTKPush(request: STKPushRequest): Observable<STKPushResponse> {
     return this.http.post<STKPushResponse>(
-      `${this.apiUrl}/stk-push`, 
-      stkPushData, 
-      { headers }
+      `${this.apiUrl}/stk-push`,
+      request,
+      { headers: this.createHeaders() }
     );
   }
 
   
-  checkPaymentStatus(checkoutRequestId: string): Observable<PaymentStatus> {
-    return this.http.get<PaymentStatus>(`${this.apiUrl}/payment-status/${checkoutRequestId}`);
+  handleSTKCallback(callback: STKCallback): Observable<AcknowledgeResponse> {
+    return this.http.post<AcknowledgeResponse>(
+      `${this.apiUrl}/stk-push/callback`,
+      callback,
+      { headers: this.createHeaders() }
+    );
+  }
+
+ 
+  validateTransaction(validation: ValidationRequest): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/validation`,
+      validation,
+      { headers: this.createHeaders() }
+    );
+  }
+
+ 
+  confirmTransaction(confirmation: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/confirmation`,
+      confirmation,
+      { headers: this.createHeaders() }
+    );
+  }
+
+ 
+  checkTransactionStatus(checkoutRequestID: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/transaction-status/${checkoutRequestID}`,
+      { headers: this.createHeaders() }
+    );
+  }
+
+  private createHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
   }
 }
