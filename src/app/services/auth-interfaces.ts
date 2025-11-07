@@ -28,7 +28,7 @@ export interface ExtendedUser extends User {
 export interface LoginRequest {
   email: string;
   password: string;
-  rememberMe?: boolean;
+  rememberMe?: boolean; // ✅ Used only in frontend, not sent to API
 }
 
 export interface RegisterRequest {

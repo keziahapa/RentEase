@@ -50,6 +50,7 @@ export class AuthService {
     });
   }
 
+  // ✅ FIXED: Login method - removed rememberMe from API payload
   login(credentials: LoginRequest): Observable<AuthResponse> {
     console.log('🔐 Sending login request - FULL CREDENTIALS:', { 
       email: credentials.email, 
@@ -57,15 +58,14 @@ export class AuthService {
       rememberMe: credentials.rememberMe 
     });
 
+    // ✅ FIX: Backend only expects email and password (no rememberMe)
     const loginPayload = {
       email: credentials.email.trim().toLowerCase(),
-      password: credentials.password.trim(),
-      rememberMe: credentials.rememberMe || false
+      password: credentials.password.trim()
     };
 
     console.log('🔐 Final login payload being sent:', loginPayload);
 
-    // ✅ CORRECT FETCH: No CORS headers!
     return this.http.post<AuthResponse>(
       `${this.apiUrl}/login`, 
       loginPayload,
@@ -75,6 +75,7 @@ export class AuthService {
         console.log('🔐 Login SUCCESS - Full response:', response);
         
         if (response.token) {
+          // ✅ rememberMe used only for frontend storage
           this.storeAuthDataDirectly(response, credentials.rememberMe || false);
         } else {
           console.error('❌ Login successful but no token received');
@@ -471,6 +472,7 @@ export class AuthService {
       cleanToken = cleanToken.substring(7).trim();
     }
 
+    // ✅ rememberMe still controls localStorage vs sessionStorage
     if (rememberMe) {
       localStorage.setItem('authToken', cleanToken);
       localStorage.setItem('userData', JSON.stringify(user));
