@@ -45,8 +45,19 @@ export class BusinessService {
     );
   }
 
-  // ✅ FIXED: Business Registration Status - Handles empty responses
+  // ✅ FIXED: Business Registration Status - With Comprehensive Debugging
   getRegistrationStatus(): Observable<BusinessStatusResponse> {
+    console.log('🔍 [1] Starting getRegistrationStatus()...');
+    console.log('🔍 [1a] API URL:', `${this.apiUrl}/api/external-business/registration-status`);
+    
+    // Check local storage first for quick fallback
+    const localBusiness = this.getLocalBusinessData();
+    if (localBusiness) {
+      console.log('🔍 [1b] Found local business data:', localBusiness);
+    } else {
+      console.log('🔍 [1c] No local business data found');
+    }
+    
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/registration-status`,
       { 
@@ -55,107 +66,183 @@ export class BusinessService {
       }
     ).pipe(
       map(response => {
-        console.log('🔍 Registration status full response:', response);
+        console.log('🔍 [2] Full HTTP Response received:');
+        console.log('🔍 [2a] Status:', response.status);
+        console.log('🔍 [2b] Status Text:', response.statusText);
+        console.log('🔍 [2c] Headers:', response.headers);
+        console.log('🔍 [2d] Body exists:', !!response.body);
+        console.log('🔍 [2e] Body type:', typeof response.body);
+        console.log('🔍 [2f] Body content:', response.body);
         
-        // Handle empty response body
-        if (!response.body || response.status === 204) {
-          console.log('🔍 No business registration found (empty response)');
-          return this.getBusinessProfileAsFallback();
+        if (response.body) {
+          console.log('🔍 [2g] Body keys:', Object.keys(response.body));
+          console.log('🔍 [2h] Body stringified:', JSON.stringify(response.body, null, 2));
         }
-        
-        // Handle response with data
-        const responseBody = response.body;
-        
-        if (responseBody.success && responseBody.data) {
-          this.updateLocalBusinessData(responseBody.data);
-          return responseBody;
-        }
-        
-        // Handle direct business data (without success wrapper)
-        if (responseBody.businessName || responseBody.registrationStatus) {
-          console.log('🔍 Found direct business data in response');
-          const businessData: BusinessRegistration = responseBody;
-          this.updateLocalBusinessData(businessData);
-          return {
-            success: true,
-            message: 'Business registration found',
-            data: businessData
-          } as BusinessStatusResponse;
-        }
-        
-        // No valid data found
-        console.log('🔍 No valid business data in response');
-        return this.getBusinessProfileAsFallback();
-      }),
-      catchError(error => {
-        console.log('🔍 Registration status error:', error);
-        
-        // Handle 404 - No business found
-        if (error.status === 404) {
-          console.log('🔍 No business registration found (404)');
-          return this.getBusinessProfileAsFallback();
-        }
-        
-        // Handle empty response with 200 status
-        if (error.status === 200 && !error.error) {
-          console.log('🔍 No business registration found (empty 200)');
-          return this.getBusinessProfileAsFallback();
-        }
-        
-        const localBusiness = this.getLocalBusinessData();
-        if (localBusiness) {
-          return of({
-            success: true,
-            message: 'Using local business data',
-            data: localBusiness
-          } as BusinessStatusResponse);
-        }
-        
-        return this.getBusinessProfileAsFallback();
-      })
-    );
-  }
 
-  // ✅ FIXED: Fallback method to get business profile
-  private getBusinessProfileAsFallback(): Observable<BusinessStatusResponse> {
-    console.log('🔄 Falling back to business profile endpoint...');
-    
-    return this.getBusinessProfile().pipe(
-      map(profileResponse => {
-        if (profileResponse.success && profileResponse.data) {
-          console.log('🔍 Found business profile data:', profileResponse.data);
-          this.updateLocalBusinessData(profileResponse.data);
-          return {
-            success: true,
-            message: 'Business profile found',
-            data: profileResponse.data
-          } as BusinessStatusResponse;
-        } else {
-          console.log('🔍 No business profile found either');
+        // Handle empty response body
+        if (!response.body) {
+          console.log('🔍 [3] EMPTY RESPONSE BODY - No business registration found');
+          console.log('🔍 [3a] Response status:', response.status);
+          
+          if (response.status === 204) {
+            console.log('🔍 [3b] 204 No Content - Explicitly no business data');
+          } else if (response.status === 200) {
+            console.log('🔍 [3c] 200 OK but empty body - No business data');
+          }
+          
+          console.log('🔍 [3d] Checking local storage for business data...');
+          
+          if (localBusiness) {
+            console.log('🔍 [3e] Found local business data, using as fallback');
+            return {
+              success: true,
+              message: 'Using local business data (empty response)',
+              data: localBusiness
+            } as BusinessStatusResponse;
+          }
+          
+          console.log('🔍 [3f] No local business data either');
           return {
             success: false,
-            message: 'No business registration found',
+            message: 'No business registration found (empty response)',
             data: null
           } as BusinessStatusResponse;
         }
+
+        // Handle response with success wrapper
+        if (response.body.success !== undefined) {
+          console.log('🔍 [4] Response has success wrapper:', response.body.success);
+          console.log('🔍 [4a] Response message:', response.body.message);
+          console.log('🔍 [4b] Response data exists:', !!response.body.data);
+          
+          if (response.body.success && response.body.data) {
+            console.log('🔍 [4c] ✅ Valid business data found in response:');
+            console.log('🔍 [4d] Business data:', response.body.data);
+            console.log('🔍 [4e] Business data type:', typeof response.body.data);
+            console.log('🔍 [4f] Business data keys:', Object.keys(response.body.data));
+            
+            // Check for status fields in the data
+            const businessData = response.body.data;
+            const verificationStatus = businessData.verificationStatus;
+            const registrationStatus = businessData.registrationStatus;
+            const status = businessData.status;
+            
+            console.log('🔍 [4g] Status fields:', {
+              verificationStatus,
+              registrationStatus,
+              status
+            });
+            
+            this.updateLocalBusinessData(businessData);
+            return response.body;
+          } else {
+            console.log('🔍 [4h] ❌ Response success is false or no data');
+            console.log('🔍 [4i] Success:', response.body.success);
+            console.log('🔍 [4j] Data:', response.body.data);
+            console.log('🔍 [4k] Message:', response.body.message);
+            return this.handleNoBusinessData(localBusiness);
+          }
+        }
+
+        // Handle direct business data (without wrapper)
+        if (response.body.businessName || response.body.registrationStatus || response.body.verificationStatus || response.body.id) {
+          console.log('🔍 [5] Found direct business data in response (no wrapper):');
+          console.log('🔍 [5a] Business data:', response.body);
+          console.log('🔍 [5b] Business name:', response.body.businessName);
+          console.log('🔍 [5c] Registration status:', response.body.registrationStatus);
+          console.log('🔍 [5d] Verification status:', response.body.verificationStatus);
+          console.log('🔍 [5e] Status:', response.body.status);
+          console.log('🔍 [5f] ID:', response.body.id);
+          
+          this.updateLocalBusinessData(response.body);
+          return {
+            success: true,
+            message: 'Business registration found (direct data)',
+            data: response.body
+          } as BusinessStatusResponse;
+        }
+
+        // Check if it's an array (unexpected but possible)
+        if (Array.isArray(response.body)) {
+          console.log('🔍 [6] Response body is an array (unexpected):', response.body);
+          if (response.body.length > 0) {
+            console.log('🔍 [6a] Using first item in array as business data');
+            this.updateLocalBusinessData(response.body[0]);
+            return {
+              success: true,
+              message: 'Business registration found (array data)',
+              data: response.body[0]
+            } as BusinessStatusResponse;
+          }
+        }
+
+        // Unknown response structure
+        console.log('🔍 [7] ❌ Unknown response structure:');
+        console.log('🔍 [7a] Body:', response.body);
+        console.log('🔍 [7b] Body type:', typeof response.body);
+        console.log('🔍 [7c] All body keys:', Object.keys(response.body));
+        
+        return this.handleNoBusinessData(localBusiness);
       }),
-      catchError(profileError => {
-        console.log('🔍 Business profile fallback also failed:', profileError);
-        const localBusiness = this.getLocalBusinessData();
+      catchError(error => {
+        console.log('🔍 [8] ❌ ERROR in getRegistrationStatus():');
+        console.log('🔍 [8a] Error name:', error.name);
+        console.log('🔍 [8b] Error message:', error.message);
+        console.log('🔍 [8c] Error status:', error.status);
+        console.log('🔍 [8d] Error status text:', error.statusText);
+        console.log('🔍 [8e] Error URL:', error.url);
+        console.log('🔍 [8f] Full error:', error);
+
+        if (error.status === 404) {
+          console.log('🔍 [8g] 404 - Business registration not found');
+        } else if (error.status === 401) {
+          console.log('🔍 [8h] 401 - Authentication failed');
+        } else if (error.status === 403) {
+          console.log('🔍 [8i] 403 - Access denied');
+        } else if (error.status === 500) {
+          console.log('🔍 [8j] 500 - Server error');
+        } else {
+          console.log('🔍 [8k] Other error status:', error.status);
+        }
+
         if (localBusiness) {
+          console.log('🔍 [8l] Using local business data after error');
           return of({
             success: true,
-            message: 'Using local business data',
+            message: 'Using local business data (after error)',
             data: localBusiness
           } as BusinessStatusResponse);
         }
+
+        console.log('🔍 [8m] No business data available after error');
         return of({
           success: false,
-          message: 'No business registration found',
+          message: `No business registration found: ${error.message || 'Unknown error'}`,
           data: null
         } as BusinessStatusResponse);
       })
     );
+  }
+
+  // Helper method for no business data
+  private handleNoBusinessData(localBusiness: any): BusinessStatusResponse {
+    console.log('🔍 [9] No business data found in response');
+    
+    if (localBusiness) {
+      console.log('🔍 [9a] Using local business data as fallback');
+      return {
+        success: true,
+        message: 'Using local business data',
+        data: localBusiness
+      } as BusinessStatusResponse;
+    }
+    
+    console.log('🔍 [9b] No business data anywhere');
+    return {
+      success: false,
+      message: 'No business registration found',
+      data: null
+    } as BusinessStatusResponse;
   }
 
   // Business Profile
