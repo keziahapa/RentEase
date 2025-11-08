@@ -56,7 +56,6 @@ import { ChatComponent } from './shared/chat/chat.component';
 import { AdminLoginComponent } from './components/auth/admin-login/admin-login.component';
 import { BusinessManagementComponent } from './components/dashboard/admin/admin-dashboard/components/business-management/business-management.component';
 import { AdvertisementManagementComponent } from './components/dashboard/admin/admin-dashboard/components/advertisement-management/advertisement-management.component';
-import { ExternalBusinessManagementComponent } from './components/dashboard/admin/admin-dashboard/components/external-business-management/external-business-management.component';
 import { MoveOutNoticeListComponent } from './components/dashboard/tenant/move-out-notice-list/move-out-notice-list.component';
 import { LandlordMoveOutNoticeDetailsComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-move-out-notice-details/landlord-move-out-notice-details.component';
 import { MoveOutNoticeDetailsComponent } from './components/dashboard/tenant/move -out-notice-details/move-out-notice-details.component';
@@ -238,7 +237,6 @@ export const routes: Routes = [
       { path: 'overview', component: AdminOverviewComponent },
       { path: 'businesses', component: BusinessManagementComponent },
       { path: 'advertisements', component: AdvertisementManagementComponent },
-      { path: 'external-businesses', component: ExternalBusinessManagementComponent },
       { path: 'users', component: AdminDashboardComponent },
       { path: 'disputes', component: AdminDashboardComponent },
       { path: 'transactions', component: AdminDashboardComponent },

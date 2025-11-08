@@ -41,6 +41,8 @@ export interface Business {
   contactEmail?: string;
   createdAt?: string;
   updatedAt?: string;
+  hasActiveDispute?: boolean;
+  disputeStatus?: string;
 }
 
 export interface Advertisement {
