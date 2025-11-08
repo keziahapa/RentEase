@@ -51,7 +51,7 @@ export class AuthService {
   }
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    console.log('🔐 Sending login request - FULL CREDENTIALS:', { 
+    console.log('🔐 Sending login request:', { 
       email: credentials.email, 
       password: credentials.password ? `[${credentials.password.length} chars]` : 'MISSING',
       rememberMe: credentials.rememberMe 
@@ -534,6 +534,129 @@ export class AuthService {
     this.isAuthenticatedSubject.next(false);
   }
 
+  // ✅ NEW: Debug token method
+  debugToken(): void {
+    const token = this.getToken();
+    
+    if (!token) {
+      console.log('❌ No token found in storage');
+      return;
+    }
+    
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.error('❌ Invalid token format - should have 3 parts separated by dots');
+        return;
+      }
+      
+      const base64Payload = parts[1];
+      const base64 = base64Payload.replace(/-/g, '+').replace(/_/g, '/');
+      const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      const decodedPayload = atob(paddedBase64);
+      const payload = JSON.parse(decodedPayload);
+      
+      console.group('🔍 Token Debug Information');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('User ID:', payload.userId || payload.sub || payload.id || 'NOT FOUND');
+      console.log('Email:', payload.email || 'NOT FOUND');
+      console.log('Role:', payload.role || 'NOT FOUND ⚠️');
+      console.log('Full Name:', payload.fullName || payload.name || 'NOT FOUND');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('Issued At:', payload.iat ? new Date(payload.iat * 1000).toISOString() : 'NOT FOUND');
+      console.log('Expires At:', payload.exp ? new Date(payload.exp * 1000).toISOString() : 'NOT FOUND');
+      
+      if (payload.exp) {
+        const secondsUntilExpiry = Math.floor((payload.exp * 1000 - Date.now()) / 1000);
+        const minutesUntilExpiry = Math.floor(secondsUntilExpiry / 60);
+        console.log('Time Until Expiry:', `${secondsUntilExpiry}s (${minutesUntilExpiry} minutes)`);
+        
+        if (secondsUntilExpiry < 0) {
+          console.error('⚠️ TOKEN IS EXPIRED!');
+        } else if (secondsUntilExpiry < 300) {
+          console.warn('⚠️ Token expires in less than 5 minutes');
+        }
+      }
+      
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('Full Payload:', payload);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.groupEnd();
+      
+      const warnings: string[] = [];
+      
+      if (!payload.role) {
+        warnings.push('⚠️ No role found in token - Backend authorization will fail!');
+      }
+      
+      if (!payload.userId && !payload.sub && !payload.id) {
+        warnings.push('⚠️ No user ID found in token - Backend may not identify user!');
+      }
+      
+      if (!payload.exp) {
+        warnings.push('⚠️ No expiration time in token - Security risk!');
+      }
+      
+      if (warnings.length > 0) {
+        console.group('🚨 Token Warnings');
+        warnings.forEach(warning => console.warn(warning));
+        console.groupEnd();
+      }
+      
+      const storedUser = this.getCurrentUser();
+      if (storedUser) {
+        console.group('📊 Token vs Stored User Comparison');
+        console.log('Token Role:', payload.role);
+        console.log('Stored Role:', storedUser.role);
+        console.log('Match:', payload.role === storedUser.role ? '✅' : '❌ MISMATCH!');
+        console.groupEnd();
+        
+        if (payload.role !== storedUser.role) {
+          console.error('🚨 CRITICAL: Token role does not match stored user role!');
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ Token decode error:', error);
+      console.log('Raw token (first 50 chars):', token.substring(0, 50) + '...');
+    }
+  }
+
+  // ✅ NEW: Verify role consistency
+  verifyRoleConsistency(): boolean {
+    try {
+      const token = this.getToken();
+      const storedUser = this.getCurrentUser();
+      
+      if (!token || !storedUser) {
+        console.warn('⚠️ Cannot verify role consistency - missing token or user data');
+        return false;
+      }
+      
+      const parts = token.split('.');
+      const payload = JSON.parse(atob(parts[1]));
+      
+      const tokenRole = payload.role?.toUpperCase();
+      const storedRole = storedUser.role?.toUpperCase();
+      
+      if (tokenRole !== storedRole) {
+        console.error('🚨 Role Mismatch Detected!', {
+          tokenRole,
+          storedRole,
+          recommendation: 'User should re-login to sync token with stored data'
+        });
+        return false;
+      }
+      
+      console.log('✅ Role consistency verified:', tokenRole);
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Error verifying role consistency:', error);
+      return false;
+    }
+  }
+
   private getFromStorage(key: string): string | null {
     if (!this.isBrowser) return null;
     try {
@@ -561,6 +684,7 @@ export class AuthService {
     this.refreshTokenSubject.next(null);
   }
 
+  // ✅ FIXED: Added phoneNumber to user object
   private storeAuthDataDirectly(authResponse: AuthResponse, rememberMe: boolean): void {
     if (!this.isBrowser) return;
 
@@ -570,6 +694,7 @@ export class AuthService {
       id: authResponse.userId.toString(),
       email: authResponse.email,
       fullName: authResponse.fullName,
+      phoneNumber: authResponse.phoneNumber || '', // ✅ FIXED: Added phoneNumber
       role: authResponse.role,
       verified: authResponse.verified,
       emailVerified: authResponse.verified
@@ -613,49 +738,6 @@ export class AuthService {
   private isUsingLocalStorage(): boolean {
     if (!this.isBrowser) return false;
     return !!localStorage.getItem('authToken');
-  }
-
-  private handleAuthSuccess(response: ApiResponse, rememberMe: boolean = false): void {
-    if (!this.isBrowser) return;
-    
-    console.log('✅ Handling auth success:', response);
-
-    const user: User = response.user || {
-      id: response.data?.userId || '',
-      email: response.data?.email || '',
-      fullName: response.data?.fullName || '',
-      role: response.data?.role || UserRole.TENANT,
-      phoneNumber: response.data?.phoneNumber || '',
-      verified: response.data?.verified || true,
-      emailVerified: response.data?.emailVerified || true
-    };
-
-    const token = response.token || response.data?.token;
-
-    if (!user || !token) {
-      console.error('❌ Missing user or token in auth success');
-      return;
-    }
-
-    let cleanToken = token.trim();
-    if (cleanToken.startsWith('Bearer ')) {
-      cleanToken = cleanToken.substring(7).trim();
-    }
-
-    if (rememberMe) {
-      localStorage.setItem('authToken', cleanToken);
-      localStorage.setItem('userData', JSON.stringify(user));
-    } else {
-      sessionStorage.setItem('authToken', cleanToken);
-      sessionStorage.setItem('userData', JSON.stringify(user));
-    }
-
-    this.currentUserSubject.next(user);
-    this.isAuthenticatedSubject.next(true);
-    
-    this.clearPendingVerification();
-    
-    console.log('✅ Auth storage completed');
   }
 
   private extractRoleFromToken(token: string): string | null {
@@ -714,29 +796,6 @@ export class AuthService {
       }
     } catch (error) {
       console.error('❌ Error updating user storage:', error);
-    }
-  }
-
-  private getPendingPhoneNumber(): string {
-    if (!this.isBrowser) return '';
-    
-    try {
-      const pendingUser = sessionStorage.getItem('pendingUser');
-      if (pendingUser) {
-        const userData = JSON.parse(pendingUser);
-        if (userData.phoneNumber) {
-          return userData.phoneNumber;
-        }
-      }
-      
-      const pendingPhone = sessionStorage.getItem('pendingPhoneNumber');
-      if (pendingPhone) {
-        return pendingPhone;
-      }
-      
-      return '';
-    } catch (error) {
-      return '';
     }
   }
 

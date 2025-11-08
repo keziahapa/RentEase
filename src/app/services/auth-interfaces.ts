@@ -40,12 +40,14 @@ export interface RegisterRequest {
   role: UserRole | string;
 }
 
+
 export interface AuthResponse {
   token: string;
   tokenType: string;
   userId: number;
   fullName: string;
   email: string;
+  phoneNumber?: string; 
   role: UserRole | string;
   verified: boolean;
   refreshToken?: string;
