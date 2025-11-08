@@ -254,40 +254,65 @@ export class LoginComponent implements OnInit, OnDestroy {
     } else {
       this.showSnackbar('Login successful!', 'success');
       
-      // Always check business registration for EXTERNAL_BUSINESS users
-      if (response.role.toUpperCase() === 'EXTERNAL_BUSINESS') {
-        await this.checkBusinessRegistrationStatus();
-      } else {
-        this.redirectBasedOnRole(response.role);
-      }
+      // NEW: Check business registration for ALL users (not just EXTERNAL_BUSINESS)
+      await this.checkBusinessRegistrationStatus(response.role);
     }
   }
 
-  private async checkBusinessRegistrationStatus(): Promise<void> {
+  // UPDATED: Now accepts userRole parameter and checks for all business users
+  private async checkBusinessRegistrationStatus(userRole?: string): Promise<void> {
     try {
+      // Check if user has any business-related role
+      const normalizedRole = userRole?.toUpperCase() || '';
+      const isBusinessUser = this.isBusinessRole(normalizedRole);
+      
+      if (!isBusinessUser) {
+        // Not a business user, redirect based on role
+        this.redirectBasedOnRole(userRole || '');
+        return;
+      }
+
+      // Business user - check registration status
       const businessStatus = await this.businessService.getRegistrationStatus().toPromise();
       
       if (businessStatus?.success && businessStatus.data) {
-        const status = businessStatus.data.verificationStatus?.toUpperCase();
+        const status = businessStatus.data.verificationStatus?.toUpperCase() || 
+                      businessStatus.data.status?.toUpperCase() ||
+                      businessStatus.data.registrationStatus?.toUpperCase();
+        
+        console.log('Business registration status:', status);
         
         switch (status) {
           case 'APPROVED':
+          case 'ACTIVE':
             // Business is approved, go to business dashboard
+            this.showSnackbar('Business login successful!', 'success');
             this.router.navigate(['/business-dashboard']);
             break;
           case 'PENDING':
+          case 'UNDER_REVIEW':
             // Business is pending approval, show status page
+            this.showSnackbar('Your business registration is under review', 'info');
             this.router.navigate(['/business/registration-status'], {
               queryParams: { status: 'pending' }
             });
             break;
           case 'REJECTED':
+          case 'DECLINED':
             // Business was rejected, redirect to registration to update
-            this.showSnackbar('Your business registration needs updates. Please review and resubmit.', 'warning');
-            this.router.navigate(['/business/register']);
+            this.showSnackbar('Your business registration was rejected. Please update and resubmit.', 'warning');
+            this.router.navigate(['/business/register'], {
+              queryParams: { rejected: true }
+            });
+            break;
+          case 'SUSPENDED':
+            // Business is suspended
+            this.showSnackbar('Your business account has been suspended. Please contact support.', 'error');
+            this.router.navigate(['/business/suspended']);
             break;
           default:
-            // Unknown status, redirect to registration
+            // No business found or unknown status, redirect to registration
+            this.showSnackbar('Please complete your business registration to continue', 'info');
             this.router.navigate(['/business/register']);
             break;
         }
@@ -304,11 +329,29 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.showSnackbar('Please complete your business registration', 'info');
         this.router.navigate(['/business/register']);
       } else {
-        // Other error occurred, redirect to registration as fallback
-        this.showSnackbar('Please complete your business registration', 'info');
-        this.router.navigate(['/business/register']);
+        // Other error occurred, check if user is business role and redirect accordingly
+        const normalizedRole = userRole?.toUpperCase() || '';
+        if (this.isBusinessRole(normalizedRole)) {
+          this.showSnackbar('Please complete your business registration', 'info');
+          this.router.navigate(['/business/register']);
+        } else {
+          // Not a business user, redirect based on role
+          this.redirectBasedOnRole(userRole || '');
+        }
       }
     }
+  }
+
+  // NEW: Helper method to check if user has business-related role
+  private isBusinessRole(role: string): boolean {
+    const businessRoles = [
+      'EXTERNAL_BUSINESS',
+      'BUSINESS',
+      'BUSINESS_OWNER',
+      'COMPANY',
+      'VENDOR'
+    ];
+    return businessRoles.includes(role.toUpperCase());
   }
 
   private acceptPendingInvitation(token: string, userRole: string): void {
@@ -327,31 +370,15 @@ export class LoginComponent implements OnInit, OnDestroy {
         sessionStorage.removeItem('pendingInvitationToken');
         this.showSnackbar('Invitation could not be accepted, but you are logged in.', 'info');
         
-        // Check business registration for EXTERNAL_BUSINESS users even after invitation error
-        if (userRole.toUpperCase() === 'EXTERNAL_BUSINESS') {
-          this.checkBusinessRegistrationStatus();
-        } else {
-          this.redirectBasedOnRole(userRole);
-        }
+        // UPDATED: Check business registration for business users after invitation error
+        this.checkBusinessRegistrationStatus(userRole);
       }
     });
   }
 
   private redirectAfterInvitationAcceptance(userRole: string, invitationResponse: any): void {
-    // For EXTERNAL_BUSINESS users, check business registration even after invitation
-    if (userRole.toUpperCase() === 'EXTERNAL_BUSINESS') {
-      this.checkBusinessRegistrationStatus();
-    } else {
-      const invitationDashboard = this.getInvitationDashboard(invitationResponse);
-      const roleDashboard = this.getRoleBasedDashboard(userRole);
-      const dashboardRoute = invitationDashboard || roleDashboard || '/dashboard';
-      
-      this.router.navigate([dashboardRoute]).then(success => {
-        if (!success) {
-          this.router.navigate(['/dashboard']);
-        }
-      });
-    }
+    // UPDATED: Check business registration for business users even after invitation
+    this.checkBusinessRegistrationStatus(userRole);
   }
 
   private getInvitationDashboard(invitationResponse: any): string | null {
@@ -368,7 +395,11 @@ export class LoginComponent implements OnInit, OnDestroy {
       'TENANT': '/tenant-dashboard/dashboard',
       'LANDLORD': '/landlord-dashboard/home',
       'CARETAKER': '/caretaker-dashboard/overview',
-      'EXTERNAL_BUSINESS': '/business-dashboard' // This will be overridden by checkBusinessRegistrationStatus
+      'EXTERNAL_BUSINESS': '/business-dashboard',
+      'BUSINESS': '/business-dashboard',
+      'BUSINESS_OWNER': '/business-dashboard',
+      'COMPANY': '/business-dashboard',
+      'VENDOR': '/business-dashboard'
     };
     
     const normalizedRole = userRole.toUpperCase();
@@ -380,7 +411,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       'tenant': 'Tenant Dashboard',
       'caretaker': 'Caretaker Dashboard',
       'landlord': 'Landlord Dashboard',
-      'external_business': 'Business Dashboard'
+      'external_business': 'Business Dashboard',
+      'business': 'Business Dashboard'
     };
     return names[invitationType] || 'Dashboard';
   }
@@ -436,7 +468,11 @@ export class LoginComponent implements OnInit, OnDestroy {
     const roleMap: Record<string, string> = {
       'LANDLORD': '/landlord-dashboard/home',
       'TENANT': '/tenant-dashboard/dashboard',
-      'EXTERNAL_BUSINESS': '/business-dashboard', // This will be overridden by checkBusinessRegistrationStatus
+      'EXTERNAL_BUSINESS': '/business-dashboard',
+      'BUSINESS': '/business-dashboard',
+      'BUSINESS_OWNER': '/business-dashboard',
+      'COMPANY': '/business-dashboard',
+      'VENDOR': '/business-dashboard',
       'CARETAKER': '/caretaker-dashboard/overview',
     };
 
@@ -460,12 +496,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     const user = this.authService.getCurrentUser();
     
     if (user?.role) {
-      // For EXTERNAL_BUSINESS users, check business registration status
-      if (user.role.toUpperCase() === 'EXTERNAL_BUSINESS') {
-        this.checkBusinessRegistrationStatus();
-      } else {
-        this.redirectBasedOnRole(user.role);
-      }
+      // UPDATED: Check business registration for all business users
+      this.checkBusinessRegistrationStatus(user.role);
     } else {
       this.router.navigate(['/dashboard']);
     }
