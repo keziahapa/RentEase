@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { HttpInterceptorFn, HttpErrorResponse, HttpRequest, HttpHandlerFn } from '@angular/common/http';
-import { catchError, throwError, switchMap, of } from 'rxjs';
+import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -59,16 +59,22 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
         const isAdminEndpoint = req.url.includes('/admin/');
         const isLogoutEndpoint = req.url.includes('/auth/logout');
         const isProfileEndpoint = req.url.includes('/api/profile');
+        const isBusinessEndpoint = req.url.includes('/external-business/');
         
         console.log('🔐 401 Error Analysis:', {
           isAdminEndpoint,
           isLogoutEndpoint, 
           isProfileEndpoint,
+          isBusinessEndpoint,
           url: req.url
         });
 
         if (isLogoutEndpoint) {
           console.log('🔐 Logout endpoint 401 - Expected behavior');
+          return throwError(() => error);
+        }
+        else if (isBusinessEndpoint) {
+          console.log('🔐 Business endpoint 401 - Allowing component to handle');
           return throwError(() => error);
         }
         else if (isAdminEndpoint) {
