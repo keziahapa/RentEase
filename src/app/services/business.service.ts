@@ -27,30 +27,10 @@ export class BusinessService {
   
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
 
-  // ✅ FIXED: Business Registration - Public endpoint (no auth headers)
-  registerBusiness(formData: FormData): Observable<ApiResponse<BusinessRegistration>> {
-    console.log('📤 Registering business with FormData');
-    
-    return this.http.post<ApiResponse<BusinessRegistration>>(
-      `${this.apiUrl}/api/external-business/register-business`,
-      formData
-    ).pipe(
-      tap(response => {
-        console.log('✅ Registration response:', response);
-        if (response.success && response.data) {
-          this.updateLocalBusinessData(response.data);
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  // ✅ FIXED: Business Registration Status - With Comprehensive Debugging
   getRegistrationStatus(): Observable<BusinessStatusResponse> {
     console.log('🔍 [1] Starting getRegistrationStatus()...');
     console.log('🔍 [1a] API URL:', `${this.apiUrl}/api/external-business/registration-status`);
     
-    // Check local storage first for quick fallback
     const localBusiness = this.getLocalBusinessData();
     if (localBusiness) {
       console.log('🔍 [1b] Found local business data:', localBusiness);
@@ -68,163 +48,108 @@ export class BusinessService {
       map(response => {
         console.log('🔍 [2] Full HTTP Response received:');
         console.log('🔍 [2a] Status:', response.status);
-        console.log('🔍 [2b] Status Text:', response.statusText);
-        console.log('🔍 [2c] Headers:', response.headers);
-        console.log('🔍 [2d] Body exists:', !!response.body);
-        console.log('🔍 [2e] Body type:', typeof response.body);
-        console.log('🔍 [2f] Body content:', response.body);
+        console.log('🔍 [2b] Body exists:', !!response.body);
+        console.log('🔍 [2c] Body content:', response.body);
         
         if (response.body) {
-          console.log('🔍 [2g] Body keys:', Object.keys(response.body));
-          console.log('🔍 [2h] Body stringified:', JSON.stringify(response.body, null, 2));
+          console.log('🔍 [2d] Body keys:', Object.keys(response.body));
         }
 
-        // Handle empty response body
         if (!response.body) {
-          console.log('🔍 [3] EMPTY RESPONSE BODY - No business registration found');
-          console.log('🔍 [3a] Response status:', response.status);
-          
-          if (response.status === 204) {
-            console.log('🔍 [3b] 204 No Content - Explicitly no business data');
-          } else if (response.status === 200) {
-            console.log('🔍 [3c] 200 OK but empty body - No business data');
-          }
-          
-          console.log('🔍 [3d] Checking local storage for business data...');
-          
-          if (localBusiness) {
-            console.log('🔍 [3e] Found local business data, using as fallback');
-            return {
-              success: true,
-              message: 'Using local business data (empty response)',
-              data: localBusiness
-            } as BusinessStatusResponse;
-          }
-          
-          console.log('🔍 [3f] No local business data either');
-          return {
-            success: false,
-            message: 'No business registration found (empty response)',
-            data: null
-          } as BusinessStatusResponse;
+          console.log('🔍 [3] EMPTY RESPONSE BODY');
+          return this.handleNoBusinessData(localBusiness);
         }
 
-        // Handle response with success wrapper
         if (response.body.success !== undefined) {
           console.log('🔍 [4] Response has success wrapper:', response.body.success);
-          console.log('🔍 [4a] Response message:', response.body.message);
-          console.log('🔍 [4b] Response data exists:', !!response.body.data);
+          console.log('🔍 [4a] Response data type:', typeof response.body.data);
           
           if (response.body.success && response.body.data) {
-            console.log('🔍 [4c] ✅ Valid business data found in response:');
-            console.log('🔍 [4d] Business data:', response.body.data);
-            console.log('🔍 [4e] Business data type:', typeof response.body.data);
-            console.log('🔍 [4f] Business data keys:', Object.keys(response.body.data));
+            if (typeof response.body.data === 'string') {
+              console.log('🔍 [4b] String status received:', response.body.data);
+              
+              const businessData: BusinessRegistration = {
+                verificationStatus: response.body.data as any,
+                registrationStatus: response.body.data as any,
+                status: response.body.data as any,
+                businessName: 'Your Business',
+                businessRegistrationNumber: 'N/A'
+              };
+              
+              console.log('🔍 [4c] Created business object:', businessData);
+              this.updateLocalBusinessData(businessData);
+              
+              return {
+                success: true,
+                message: response.body.message,
+                data: businessData
+              } as BusinessStatusResponse;
+            }
             
-            // Check for status fields in the data
-            const businessData = response.body.data;
-            const verificationStatus = businessData.verificationStatus;
-            const registrationStatus = businessData.registrationStatus;
-            const status = businessData.status;
-            
-            console.log('🔍 [4g] Status fields:', {
-              verificationStatus,
-              registrationStatus,
-              status
-            });
-            
-            this.updateLocalBusinessData(businessData);
+            console.log('🔍 [4d] Object business data found:', response.body.data);
+            this.updateLocalBusinessData(response.body.data);
             return response.body;
           } else {
-            console.log('🔍 [4h] ❌ Response success is false or no data');
-            console.log('🔍 [4i] Success:', response.body.success);
-            console.log('🔍 [4j] Data:', response.body.data);
-            console.log('🔍 [4k] Message:', response.body.message);
+            console.log('🔍 [4e] Response success is false or no data');
             return this.handleNoBusinessData(localBusiness);
           }
         }
 
-        // Handle direct business data (without wrapper)
         if (response.body.businessName || response.body.registrationStatus || response.body.verificationStatus || response.body.id) {
-          console.log('🔍 [5] Found direct business data in response (no wrapper):');
-          console.log('🔍 [5a] Business data:', response.body);
-          console.log('🔍 [5b] Business name:', response.body.businessName);
-          console.log('🔍 [5c] Registration status:', response.body.registrationStatus);
-          console.log('🔍 [5d] Verification status:', response.body.verificationStatus);
-          console.log('🔍 [5e] Status:', response.body.status);
-          console.log('🔍 [5f] ID:', response.body.id);
-          
+          console.log('🔍 [5] Found direct business data:', response.body);
           this.updateLocalBusinessData(response.body);
           return {
             success: true,
-            message: 'Business registration found (direct data)',
+            message: 'Business registration found',
             data: response.body
           } as BusinessStatusResponse;
         }
 
-        // Check if it's an array (unexpected but possible)
         if (Array.isArray(response.body)) {
-          console.log('🔍 [6] Response body is an array (unexpected):', response.body);
+          console.log('🔍 [6] Response body is array:', response.body);
           if (response.body.length > 0) {
-            console.log('🔍 [6a] Using first item in array as business data');
             this.updateLocalBusinessData(response.body[0]);
             return {
               success: true,
-              message: 'Business registration found (array data)',
+              message: 'Business registration found',
               data: response.body[0]
             } as BusinessStatusResponse;
           }
         }
 
-        // Unknown response structure
-        console.log('🔍 [7] ❌ Unknown response structure:');
-        console.log('🔍 [7a] Body:', response.body);
-        console.log('🔍 [7b] Body type:', typeof response.body);
-        console.log('🔍 [7c] All body keys:', Object.keys(response.body));
-        
+        console.log('🔍 [7] Unknown response structure:', response.body);
         return this.handleNoBusinessData(localBusiness);
       }),
       catchError(error => {
-        console.log('🔍 [8] ❌ ERROR in getRegistrationStatus():');
-        console.log('🔍 [8a] Error name:', error.name);
-        console.log('🔍 [8b] Error message:', error.message);
-        console.log('🔍 [8c] Error status:', error.status);
-        console.log('🔍 [8d] Error status text:', error.statusText);
-        console.log('🔍 [8e] Error URL:', error.url);
-        console.log('🔍 [8f] Full error:', error);
-
+        console.log('🔍 [8] ERROR in getRegistrationStatus():', error);
+        
         if (error.status === 404) {
-          console.log('🔍 [8g] 404 - Business registration not found');
+          console.log('🔍 [8a] 404 - Business not found');
         } else if (error.status === 401) {
-          console.log('🔍 [8h] 401 - Authentication failed');
+          console.log('🔍 [8b] 401 - Authentication failed');
         } else if (error.status === 403) {
-          console.log('🔍 [8i] 403 - Access denied');
-        } else if (error.status === 500) {
-          console.log('🔍 [8j] 500 - Server error');
-        } else {
-          console.log('🔍 [8k] Other error status:', error.status);
+          console.log('🔍 [8c] 403 - Access denied');
         }
 
         if (localBusiness) {
-          console.log('🔍 [8l] Using local business data after error');
+          console.log('🔍 [8d] Using local business data after error');
           return of({
             success: true,
-            message: 'Using local business data (after error)',
+            message: 'Using local business data',
             data: localBusiness
           } as BusinessStatusResponse);
         }
 
-        console.log('🔍 [8m] No business data available after error');
+        console.log('🔍 [8e] No business data available after error');
         return of({
           success: false,
-          message: `No business registration found: ${error.message || 'Unknown error'}`,
+          message: `No business registration found: ${error.message}`,
           data: null
         } as BusinessStatusResponse);
       })
     );
   }
 
-  // Helper method for no business data
   private handleNoBusinessData(localBusiness: any): BusinessStatusResponse {
     console.log('🔍 [9] No business data found in response');
     
@@ -245,7 +170,20 @@ export class BusinessService {
     } as BusinessStatusResponse;
   }
 
-  // Business Profile
+  registerBusiness(formData: FormData): Observable<ApiResponse<BusinessRegistration>> {
+    return this.http.post<ApiResponse<BusinessRegistration>>(
+      `${this.apiUrl}/api/external-business/register-business`,
+      formData
+    ).pipe(
+      tap(response => {
+        if (response.success && response.data) {
+          this.updateLocalBusinessData(response.data);
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
   getBusinessProfile(): Observable<ApiResponse<ExternalBusiness>> {
     return this.http.get<ApiResponse<ExternalBusiness>>(
       `${this.apiUrl}/api/external-business/my-business`,
@@ -270,7 +208,6 @@ export class BusinessService {
     );
   }
 
-  // Check if business profile exists
   hasBusinessProfile(): Observable<boolean> {
     return this.getBusinessProfile().pipe(
       map(response => !!response.data),
@@ -281,7 +218,6 @@ export class BusinessService {
     );
   }
 
-  // Advertisement Management
   createAdvertisement(advertisement: CreateAdvertisementRequest): Observable<ApiResponse<Advertisement>> {
     const adData = {
       title: advertisement.title.trim(),
@@ -304,7 +240,6 @@ export class BusinessService {
     );
   }
 
-  // Get user's advertisements
   getMyAdvertisements(): Observable<Advertisement[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/advertisements/my-ads`,
@@ -336,7 +271,6 @@ export class BusinessService {
     );
   }
 
-  // Get approved advertisements (PUBLIC - no auth needed)
   getApprovedAdvertisements(): Observable<Advertisement[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/advertisements/approved`
@@ -355,7 +289,6 @@ export class BusinessService {
     );
   }
 
-  // Update advertisement
   updateAdvertisement(advertisementId: string, advertisement: CreateAdvertisementRequest): Observable<ApiResponse<Advertisement>> {
     const adData = {
       title: advertisement.title.trim(),
@@ -378,7 +311,6 @@ export class BusinessService {
     );
   }
 
-  // Delete advertisement
   deleteAdvertisement(advertisementId: string): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(
       `${this.apiUrl}/api/external-business/advertisements/${advertisementId}`,
@@ -393,7 +325,6 @@ export class BusinessService {
     );
   }
 
-  // Get advertisement by ID
   getAdvertisementById(advertisementId: string): Observable<ApiResponse<Advertisement>> {
     return this.http.get<ApiResponse<Advertisement>>(
       `${this.apiUrl}/api/external-business/advertisements/${advertisementId}`,
@@ -403,7 +334,6 @@ export class BusinessService {
     );
   }
 
-  // Dashboard data
   getBusinessDashboardData(): Observable<BusinessDashboardData> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/dashboard`,
@@ -423,7 +353,6 @@ export class BusinessService {
     );
   }
 
-  // Upload media
   uploadAdvertisementMedia(file: File): Observable<UploadResponse> {
     const token = this.authService.getToken();
     if (!token) {
@@ -449,7 +378,6 @@ export class BusinessService {
     );
   }
 
-  // Analytics
   getAdvertisementAnalytics(advertisementId?: string): Observable<AdvertisementAnalytics | BusinessAnalytics> {
     const url = advertisementId 
       ? `${this.apiUrl}/api/external-business/analytics/ads/${advertisementId}`
@@ -473,7 +401,6 @@ export class BusinessService {
     );
   }
 
-  // Billing history
   getBillingHistory(): Observable<BillingRecord[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/billing/history`,
@@ -495,7 +422,6 @@ export class BusinessService {
     );
   }
 
-  // Update business profile
   updateBusinessProfile(profileData: any): Observable<ApiResponse<ExternalBusiness>> {
     return this.http.put<ApiResponse<ExternalBusiness>>(
       `${this.apiUrl}/api/external-business/my-business`,
@@ -511,7 +437,6 @@ export class BusinessService {
     );
   }
 
-  // Delete business account
   deleteBusinessAccount(): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(
       `${this.apiUrl}/api/external-business/my-business`,
@@ -526,7 +451,6 @@ export class BusinessService {
     );
   }
 
-  // Check if business is verified
   isBusinessVerified(): Observable<boolean> {
     return this.getRegistrationStatus().pipe(
       map(response => {
@@ -537,7 +461,6 @@ export class BusinessService {
     );
   }
 
-  // Local storage management
   private updateLocalBusinessData(businessData: any): void {
     localStorage.setItem('businessData', JSON.stringify(businessData));
   }
@@ -582,7 +505,6 @@ export class BusinessService {
     this.updateLocalAdvertisements(filteredAds);
   }
 
-  // Mock data generators
   private generateMockDashboardData(): BusinessDashboardData {
     const localAds = this.getLocalAdvertisements();
     const localBusiness = this.getLocalBusinessData();
@@ -648,7 +570,6 @@ export class BusinessService {
     ];
   }
 
-  // Auth headers for authenticated endpoints
   private createAuthHeaders(): HttpHeaders {
     const token = this.authService.getToken();
     if (!token) {
@@ -661,7 +582,6 @@ export class BusinessService {
     });
   }
 
-  // Error handling
   private handleError = (error: HttpErrorResponse): Observable<never> => {
     console.error('❌ Business Service Error:', error);
     
