@@ -69,7 +69,7 @@
                     <span class="file-name">{{ fileName }}</span>
                     <span class="file-size">{{ selectedFile.size | fileSize }}</span>
                   </div>
-                  <button type="button" mat-icon-button color="warn" (click)="removeFile($event)">
+                  <button type="button" mat-icon-button color="warn" (click)="removeFile()">
                     <mat-icon>delete</mat-icon>
                   </button>
                 </div>
@@ -81,7 +81,7 @@
           <div class="actions">
             <button type="button" mat-stroked-button 
                     [disabled]="isLoading"
-                    (click)="router.navigate(['/dashboard'])">
+                    (click)="navigateToDashboard()">
               Cancel
             </button>
             <button type="submit" mat-raised-button color="primary" 

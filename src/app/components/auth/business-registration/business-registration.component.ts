@@ -1,4 +1,3 @@
-// business-registration.component.ts
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -121,6 +120,11 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
     this.fileName = '';
     const fileInput = document.getElementById('licenseDocument') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
+  }
+
+  // ADD THIS METHOD TO FIX THE ERROR
+  navigateToDashboard(): void {
+    this.router.navigate(['/dashboard']);
   }
 
   async onSubmit(): Promise<void> {
