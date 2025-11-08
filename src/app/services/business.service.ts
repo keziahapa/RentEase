@@ -31,8 +31,6 @@ export class BusinessService {
   registerBusiness(formData: FormData): Observable<ApiResponse<BusinessRegistration>> {
     console.log('📤 Registering business with FormData');
     
-    // ✅ No headers - let browser set Content-Type for FormData
-    // ✅ No Authorization header - this is a public endpoint
     return this.http.post<ApiResponse<BusinessRegistration>>(
       `${this.apiUrl}/api/external-business/register-business`,
       formData
@@ -47,18 +45,63 @@ export class BusinessService {
     );
   }
 
-  // Business Registration Status
+  // ✅ FIXED: Business Registration Status - Handles empty responses
   getRegistrationStatus(): Observable<BusinessStatusResponse> {
-    return this.http.get<BusinessStatusResponse>(
+    return this.http.get<any>(
       `${this.apiUrl}/api/external-business/registration-status`,
-      { headers: this.createAuthHeaders() }
+      { 
+        headers: this.createAuthHeaders(),
+        observe: 'response'
+      }
     ).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          this.updateLocalBusinessData(response.data);
+      map(response => {
+        console.log('🔍 Registration status full response:', response);
+        
+        // Handle empty response body
+        if (!response.body || response.status === 204) {
+          console.log('🔍 No business registration found (empty response)');
+          return this.getBusinessProfileAsFallback();
         }
+        
+        // Handle response with data
+        const responseBody = response.body;
+        
+        if (responseBody.success && responseBody.data) {
+          this.updateLocalBusinessData(responseBody.data);
+          return responseBody;
+        }
+        
+        // Handle direct business data (without success wrapper)
+        if (responseBody.businessName || responseBody.registrationStatus) {
+          console.log('🔍 Found direct business data in response');
+          const businessData: BusinessRegistration = responseBody;
+          this.updateLocalBusinessData(businessData);
+          return {
+            success: true,
+            message: 'Business registration found',
+            data: businessData
+          } as BusinessStatusResponse;
+        }
+        
+        // No valid data found
+        console.log('🔍 No valid business data in response');
+        return this.getBusinessProfileAsFallback();
       }),
       catchError(error => {
+        console.log('🔍 Registration status error:', error);
+        
+        // Handle 404 - No business found
+        if (error.status === 404) {
+          console.log('🔍 No business registration found (404)');
+          return this.getBusinessProfileAsFallback();
+        }
+        
+        // Handle empty response with 200 status
+        if (error.status === 200 && !error.error) {
+          console.log('🔍 No business registration found (empty 200)');
+          return this.getBusinessProfileAsFallback();
+        }
+        
         const localBusiness = this.getLocalBusinessData();
         if (localBusiness) {
           return of({
@@ -67,7 +110,50 @@ export class BusinessService {
             data: localBusiness
           } as BusinessStatusResponse);
         }
-        return throwError(() => error);
+        
+        return this.getBusinessProfileAsFallback();
+      })
+    );
+  }
+
+  // ✅ FIXED: Fallback method to get business profile
+  private getBusinessProfileAsFallback(): Observable<BusinessStatusResponse> {
+    console.log('🔄 Falling back to business profile endpoint...');
+    
+    return this.getBusinessProfile().pipe(
+      map(profileResponse => {
+        if (profileResponse.success && profileResponse.data) {
+          console.log('🔍 Found business profile data:', profileResponse.data);
+          this.updateLocalBusinessData(profileResponse.data);
+          return {
+            success: true,
+            message: 'Business profile found',
+            data: profileResponse.data
+          } as BusinessStatusResponse;
+        } else {
+          console.log('🔍 No business profile found either');
+          return {
+            success: false,
+            message: 'No business registration found',
+            data: null
+          } as BusinessStatusResponse;
+        }
+      }),
+      catchError(profileError => {
+        console.log('🔍 Business profile fallback also failed:', profileError);
+        const localBusiness = this.getLocalBusinessData();
+        if (localBusiness) {
+          return of({
+            success: true,
+            message: 'Using local business data',
+            data: localBusiness
+          } as BusinessStatusResponse);
+        }
+        return of({
+          success: false,
+          message: 'No business registration found',
+          data: null
+        } as BusinessStatusResponse);
       })
     );
   }
@@ -167,7 +253,6 @@ export class BusinessService {
   getApprovedAdvertisements(): Observable<Advertisement[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/advertisements/approved`
-      // No headers - public endpoint
     ).pipe(
       map(response => {
         if (Array.isArray(response)) {
@@ -266,7 +351,6 @@ export class BusinessService {
     
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${token}`
-      // No Content-Type - let browser set it for FormData
     });
 
     return this.http.post<UploadResponse>(
@@ -358,7 +442,10 @@ export class BusinessService {
   // Check if business is verified
   isBusinessVerified(): Observable<boolean> {
     return this.getRegistrationStatus().pipe(
-      map(response => response.data?.verificationStatus === 'APPROVED'),
+      map(response => {
+        const status = response.data?.verificationStatus || response.data?.registrationStatus || response.data?.status;
+        return status === 'APPROVED';
+      }),
       catchError(() => of(false))
     );
   }
