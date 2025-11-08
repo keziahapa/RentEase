@@ -1,85 +1,66 @@
-import { Injectable, inject } from '@angular/core';
-import { CanActivate, Router, ActivatedRouteSnapshot } from '@angular/router';
-import { BusinessService } from '../services/business.service';
+import { inject } from '@angular/core';
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
-import { map, catchError } from 'rxjs/operators';
-import { of, Observable } from 'rxjs';
+import { Router } from '@angular/router';
 
-@Injectable({
-  providedIn: 'root'
-})
-export class BusinessRegistrationGuard implements CanActivate {
-  private businessService = inject(BusinessService);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  
+  // ✅ Public endpoints that don't need authentication
+  const skipAuth = [
+    '/api/auth/login',
+    '/api/auth/signup', 
+    '/api/auth/send-otp',
+    '/api/auth/verify-otp',
+    '/api/auth/forgot-password',
+    '/api/auth/verify-reset-otp',
+    '/api/auth/reset-password',
+    '/api/auth/resend-otp',
+    '/api/external-business/register-business',  // ✅ Business registration
+    '/api/external-business/advertisements/approved'  // ✅ Public ads
+  ].some(endpoint => req.url.includes(endpoint));
 
-  canActivate(route: ActivatedRouteSnapshot): Observable<boolean> {
-    // First check if user is authenticated and is EXTERNAL_BUSINESS
-    if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/login'], { 
-        queryParams: { returnUrl: route.url.join('/') }
-      });
-      return of(false);
-    }
-
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser || currentUser.role?.toUpperCase() !== 'EXTERNAL_BUSINESS') {
-      this.router.navigate(['/dashboard']);
-      return of(false);
-    }
-
-    // Check business registration status
-    return this.businessService.getRegistrationStatus().pipe(
-      map(response => {
-        if (response.success && response.data) {
-          const business = response.data;
-          
-          switch (business.verificationStatus?.toUpperCase()) {
-            case 'APPROVED':
-              this.router.navigate(['/business-dashboard'], {
-                queryParams: { 
-                  message: 'Your business is already approved and active'
-                }
-              });
-              return false;
-              
-            case 'PENDING':
-              this.router.navigate(['/business/registration-status'], {
-                queryParams: { 
-                  message: 'Your business registration is pending approval',
-                  status: 'pending'
-                }
-              });
-              return false;
-              
-            case 'REJECTED':
-              return true;
-              
-            default:
-              return true;
-          }
-        } else {
-          return true;
-        }
-      }),
-      catchError(error => {
-        console.error('Business registration guard error:', error);
-        
-        if (error.status === 404) {
-          return of(true);
-        } else if (error.status === 401 || error.status === 403) {
-          this.router.navigate(['/login'], {
-            queryParams: { 
-              returnUrl: route.url.join('/'),
-              message: 'Session expired. Please login again.'
-            }
-          });
-          return of(false);
-        } else {
-          console.warn('Allowing registration despite error:', error.message);
-          return of(true);
-        }
-      })
-    );
+  let clonedReq = req;
+  const token = authService.getToken();
+  
+  console.log('🔐 Interceptor - URL:', req.url);
+  console.log('🔐 Interceptor - Skip auth:', skipAuth);
+  console.log('🔐 Interceptor - Token exists:', !!token);
+  
+  // ✅ Add auth header only for authenticated endpoints
+  if (token && !skipAuth) {
+    clonedReq = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    console.log('🔐 Interceptor - Added Authorization header');
+  } else if (skipAuth) {
+    console.log('🔐 Interceptor - Skipping auth for public endpoint');
   }
-}
+
+  return next(clonedReq).pipe(
+    catchError((error: HttpErrorResponse) => {
+      const isInvitationRequest = 
+        req.url.includes('/invite-tenant') || 
+        req.url.includes('/invite-caretaker') ||
+        req.url.includes('/invitations/details/'); 
+      
+      console.log('🔐 Interceptor - Request failed:', {
+        url: req.url,
+        status: error.status,
+        statusText: error.statusText,
+        error: error.error
+      });
+      
+      // Handle 401 errors for authenticated endpoints
+      if (error.status === 401 && !skipAuth && !isInvitationRequest) {
+        console.warn('⚠️ 401 Unauthorized for authenticated endpoint');
+      }
+      
+      return throwError(() => error);
+    })
+  );
+};

@@ -42,6 +42,7 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
   isLoading = false;
   selectedFile: File | null = null;
   fileName = '';
+  fileError: string | null = null;
   currentUser: any;
 
   constructor() {
@@ -59,7 +60,6 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check if user already has a business registration
     this.checkExistingBusinessRegistration();
   }
 
@@ -77,7 +77,6 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
           this.showMessage('Your business is already approved', 'info');
           this.router.navigate(['/business-dashboard']);
         } else if (status === 'REJECTED') {
-          // Pre-fill form with rejected business info
           this.businessForm.patchValue({
             businessName: businessStatus.data.businessName,
             businessRegistrationNumber: businessStatus.data.businessRegistrationNumber
@@ -86,14 +85,12 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
         }
       }
     } catch (error) {
-      // No existing business found, continue with registration
       console.log('No existing business registration found');
     }
   }
 
   ngOnDestroy() {}
 
-  // Method to trigger file input programmatically
   triggerFileInput(): void {
     const fileInput = document.getElementById('licenseDocument') as HTMLInputElement;
     if (fileInput) {
@@ -103,29 +100,35 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
 
   onFileSelected(event: any): void {
     const file = event.target.files[0];
-    if (file) {
-      // Validate file type
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-      if (!validTypes.includes(file.type)) {
-        this.showMessage('Please select a JPEG, PNG, or PDF file', 'error');
-        return;
-      }
+    if (!file) return;
 
-      // Validate file size
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        this.showMessage('File size must be less than 5MB', 'error');
-        return;
-      }
+    this.fileError = null;
 
-      this.selectedFile = file;
-      this.fileName = file.name;
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      this.fileError = 'Please select a JPEG, PNG, or PDF file';
+      this.showMessage('Invalid file type. Please select JPG, PNG, or PDF', 'error');
+      return;
     }
+
+    // Validate file size (5MB max)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      this.fileError = 'File size must be less than 5MB';
+      this.showMessage('File too large. Maximum size is 5MB', 'error');
+      return;
+    }
+
+    this.selectedFile = file;
+    this.fileName = file.name;
+    console.log('✅ File selected:', file.name, '(', file.size, 'bytes)');
   }
 
   removeFile(): void {
     this.selectedFile = null;
     this.fileName = '';
+    this.fileError = null;
     const fileInput = document.getElementById('licenseDocument') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
   }
@@ -135,50 +138,65 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
   }
 
   async onSubmit(): Promise<void> {
-    if (this.businessForm.invalid || !this.selectedFile) {
+    if (this.businessForm.invalid) {
       this.markAllFieldsAsTouched();
-      if (!this.selectedFile) {
-        this.showMessage('Please upload your business license document', 'error');
-      }
+      this.showMessage('Please fill in all required fields correctly', 'error');
+      return;
+    }
+
+    if (!this.selectedFile) {
+      this.fileError = 'Business license document is required';
+      this.showMessage('Please upload your business license document', 'error');
       return;
     }
 
     this.isLoading = true;
+    this.fileError = null;
 
     try {
+      // ✅ Prepare business data as JSON
       const businessData = {
-        businessName: this.businessForm.get('businessName')?.value,
-        businessRegistrationNumber: this.businessForm.get('businessRegistrationNumber')?.value
+        businessName: this.businessForm.get('businessName')?.value.trim(),
+        businessRegistrationNumber: this.businessForm.get('businessRegistrationNumber')?.value.trim()
       };
 
-      const businessDataJson = JSON.stringify(businessData);
+      console.log('📤 Submitting business registration:');
+      console.log('Business data:', businessData);
+      console.log('File:', this.selectedFile.name, this.selectedFile.size, 'bytes');
+
+      // ✅ Create FormData with proper structure
       const formData = new FormData();
-      formData.append('data', businessDataJson);
-      formData.append('licenseDocument', this.selectedFile);
+      formData.append('data', JSON.stringify(businessData));
+      formData.append('licenseDocument', this.selectedFile, this.selectedFile.name);
 
-      console.log('Sending business registration data:', businessData);
-
+      // ✅ Send to backend
       const response = await this.businessService.registerBusiness(formData).toPromise();
 
+      this.isLoading = false;
+
       if (response?.success) {
-        // Show success message and redirect to status page
-        this.showMessage('Business registration submitted successfully! Waiting for admin approval.', 'success');
+        this.showMessage(
+          'Business registration submitted successfully! Please wait for admin approval.',
+          'success'
+        );
         
-        // Redirect to status page to see the approval progress
         setTimeout(() => {
-          this.router.navigate(['/business/registration-status']);
+          this.router.navigate(['/business/registration-status'], {
+            queryParams: {
+              message: 'Registration submitted successfully',
+              status: 'pending'
+            }
+          });
         }, 2000);
       } else {
         throw new Error(response?.message || 'Registration failed');
       }
     } catch (error: any) {
-      console.error('Business registration error:', error);
-      this.showMessage(
-        error.error?.message || error.message || 'Registration failed. Please try again.',
-        'error'
-      );
-    } finally {
       this.isLoading = false;
+      console.error('❌ Business registration error:', error);
+      
+      const errorMessage = error.error?.message || error.message || 'Registration failed. Please try again.';
+      this.showMessage(errorMessage, 'error');
     }
   }
 
@@ -198,6 +216,11 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
   }
 
   // Form control getters
-  get businessName() { return this.businessForm.get('businessName'); }
-  get businessRegistrationNumber() { return this.businessForm.get('businessRegistrationNumber'); }
+  get businessName() { 
+    return this.businessForm.get('businessName'); 
+  }
+  
+  get businessRegistrationNumber() { 
+    return this.businessForm.get('businessRegistrationNumber'); 
+  }
 }
