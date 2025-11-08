@@ -1,4 +1,4 @@
-// login.component.ts
+
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -255,7 +255,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     } else {
       this.showSnackbar('Login successful!', 'success');
       
-      // Check if user is EXTERNAL_BUSINESS and needs to check business status
+    
       if (response.role.toUpperCase() === 'EXTERNAL_BUSINESS') {
         await this.checkBusinessRegistrationStatus();
       } else {

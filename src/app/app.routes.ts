@@ -81,13 +81,13 @@ export const routes: Routes = [
   { path: 'about', component: AboutComponent },
  
   { path: 'privacy', component: PrivacyComponent },
-  // { path: 'accept-invitation/:token', component: AcceptInvitationComponent },
   { path: 'accept-invitation', component: AcceptInvitationComponent },
   { path: 'waiting-landlord', component: WaitingLandlordComponent },
   
 
-  { path: 'business/register', component: BusinessDashboardComponent },
-  { path: 'business/registration-status', component: BusinessDashboardComponent },
+  // REMOVED problematic routes - they conflict with your guard logic
+  // { path: 'business/register', component: BusinessDashboardComponent },
+  // { path: 'business/registration-status', component: BusinessDashboardComponent },
   
 
   { 
