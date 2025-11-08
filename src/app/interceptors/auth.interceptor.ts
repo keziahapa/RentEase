@@ -10,7 +10,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   const router = inject(Router);
   const snackBar = inject(MatSnackBar);
   
-  // ✅ SIMPLE & RELIABLE public endpoints list
+  // ✅ FIXED: Business registration REMOVED from public endpoints
   const publicEndpoints = [
     // Auth endpoints
     '/api/auth/login',
@@ -23,35 +23,43 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     '/api/auth/resend-otp',
     '/api/auth/refresh-token',
     
-    // ✅ BUSINESS REGISTRATION - exact match
-    '/api/external-business/register-business',
+    // ❌ BUSINESS REGISTRATION REMOVED - it requires authentication
+    // '/api/external-business/register-business', ← REMOVED THIS LINE
     
     // Public advertisements
     '/api/external-business/advertisements/approved',
     
     // M-Pesa endpoints
-    '/api/open/mobile-money/',
+    '/api/open/mobile-money/stk-push',
+    '/api/open/mobile-money/stk-push/callback', 
+    '/api/open/mobile-money/validation',
+    '/api/open/mobile-money/confirmation',
+    '/api/open/mobile-money/transaction-status',
     
     // Other public endpoints
     '/api/public/',
     '/api/open/'
   ];
 
-  // ✅ SIMPLE CHECK: Is this a public endpoint?
+  // ✅ Check if current URL matches any public endpoint
   const isPublicEndpoint = publicEndpoints.some(endpoint => {
-    // For business registration - exact match
-    if (endpoint === '/api/external-business/register-business') {
-      return req.url.includes('/api/external-business/register-business');
+    const fullUrl = req.url.toLowerCase();
+    const endpointLower = endpoint.toLowerCase();
+    
+    // For exact matches
+    if (endpoint === '/api/external-business/advertisements/approved') {
+      return fullUrl.includes('/api/external-business/advertisements/approved');
     }
-    // For other endpoints - partial match
-    return req.url.includes(endpoint);
+    
+    // For prefix matches
+    return fullUrl.includes(endpointLower);
   });
 
   console.log('🔐 Interceptor:');
   console.log('- URL:', req.url);
   console.log('- Is Public:', isPublicEndpoint);
 
-  // ✅ CRITICAL: SKIP ALL AUTH for public endpoints
+  // ✅ SKIP AUTH only for truly public endpoints
   if (isPublicEndpoint) {
     console.log('🚫 NO AUTH: Public endpoint detected');
     
@@ -63,20 +71,20 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     return next(cleanRequest);
   }
 
-  // ✅ ONLY FOR PRIVATE ENDPOINTS: Continue with auth logic
+  // ✅ BUSINESS REGISTRATION & OTHER PRIVATE ENDPOINTS: Require auth
   console.log('🔑 AUTH REQUIRED: Private endpoint');
   
   const isAuthRequest = req.url.includes('/auth/');
   const isRefreshTokenRequest = req.url.includes('/auth/refresh-token');
 
-  // Token refresh logic (keep your existing code here)
+  // Token refresh logic for authenticated endpoints
   if (!isAuthRequest && !isRefreshTokenRequest && authService.isAuthenticated()) {
     if (authService.isTokenAboutToExpire()) {
-      console.log('🔄 Token refresh needed');
+      console.log('🔄 Token is about to expire, attempting refresh...');
       
       return authService.refreshToken().pipe(
         switchMap((refreshResponse) => {
-          console.log('✅ Token refreshed');
+          console.log('✅ Token refreshed successfully');
           const newToken = authService.getToken();
           const authReq = req.clone({
             setHeaders: {
@@ -86,9 +94,9 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
           return next(authReq);
         }),
         catchError((refreshError) => {
-          console.error('❌ Token refresh failed');
+          console.error('❌ Token refresh failed:', refreshError);
           authService.logoutSync();
-          snackBar.open('Session expired. Please login again.', 'Close', {
+          snackBar.open('Your session has expired. Please log in again.', 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar']
           });
@@ -99,7 +107,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     }
   }
 
-  // Add auth header for private endpoints
+  // ✅ ADD AUTH HEADER for private endpoints (including business registration)
   let finalRequest = req;
   const token = authService.getToken();
   
@@ -109,22 +117,49 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
         Authorization: `Bearer ${token}`
       }
     });
-    console.log('🔑 Auth header added');
+    console.log('🔐 Auth header added for private endpoint');
+  } else if (token && !authService.hasValidToken()) {
+    console.warn('⚠️ Token exists but is invalid');
+    authService.clearCorruptedStorage();
   } else if (!token) {
-    console.warn('⚠️ No token for private endpoint');
+    console.warn('⚠️ No token available for authenticated endpoint');
   }
 
   return next(finalRequest).pipe(
     catchError((error: HttpErrorResponse) => {
-      console.error('❌ Request failed:', error.status, error.url);
+      console.error('❌ Request failed:', {
+        url: req.url,
+        status: error.status,
+        error: error.error
+      });
 
+      // Handle 401 errors for private endpoints
       if (error.status === 401 && !isPublicEndpoint) {
-        authService.logoutSync();
-        snackBar.open('Session expired. Please login again.', 'Close', {
+        console.warn('🔐 401 Unauthorized - Authentication required');
+        
+        if (!isRefreshTokenRequest) {
+          authService.logoutSync();
+          snackBar.open('Authentication required. Please log in again.', 'Close', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+          router.navigate(['/login']);
+        }
+      }
+
+      // Handle other error cases
+      if (error.status === 403) {
+        snackBar.open('Access denied. You do not have permission.', 'Close', {
           duration: 5000,
           panelClass: ['error-snackbar']
         });
-        router.navigate(['/login']);
+      }
+
+      if (error.status >= 500) {
+        snackBar.open('Server error. Please try again later.', 'Close', {
+          duration: 5000,
+          panelClass: ['error-snackbar']
+        });
       }
 
       return throwError(() => error);
