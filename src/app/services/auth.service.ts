@@ -299,8 +299,6 @@ export class AuthService {
     ).pipe(catchError(this.handleError));
   }
 
-  // ==================== TOKEN MANAGEMENT METHODS ====================
-
   getToken(): string | null {
     if (!this.isBrowser) return null;
     
@@ -416,7 +414,7 @@ export class AuthService {
       
       console.log('🔐 Token expires in:', timeUntilExpiry, 'seconds');
       
-      return timeUntilExpiry < 300; // 5 minutes
+      return timeUntilExpiry < 300;
     } catch {
       return false;
     }
@@ -505,8 +503,6 @@ export class AuthService {
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);
   }
-
-  // ==================== PRIVATE METHODS ====================
 
   private getFromStorage(key: string): string | null {
     if (!this.isBrowser) return null;

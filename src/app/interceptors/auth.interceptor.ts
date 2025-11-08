@@ -10,9 +10,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   const router = inject(Router);
   const snackBar = inject(MatSnackBar);
   
-  // ✅ Public endpoints that don't require authentication
   const publicEndpoints = [
-    // Auth endpoints
     '/api/auth/login',
     '/api/auth/signup', 
     '/api/auth/send-otp',
@@ -22,154 +20,80 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     '/api/auth/reset-password',
     '/api/auth/resend-otp',
     '/api/auth/refresh-token',
-    
-    // Public advertisements
     '/api/external-business/advertisements/approved',
-    
-    // M-Pesa endpoints
     '/api/open/mobile-money/stk-push',
     '/api/open/mobile-money/stk-push/callback', 
     '/api/open/mobile-money/validation',
     '/api/open/mobile-money/confirmation',
     '/api/open/mobile-money/transaction-status',
-    
-    // Other public endpoints
     '/api/public/',
     '/api/open/'
   ];
 
-  // ✅ Check if current URL matches any public endpoint
-  const isPublicEndpoint = publicEndpoints.some(endpoint => {
-    const fullUrl = req.url.toLowerCase();
-    const endpointLower = endpoint.toLowerCase();
-    
-    // For exact matches
-    if (endpoint === '/api/external-business/advertisements/approved') {
-      return fullUrl.includes('/api/external-business/advertisements/approved');
-    }
-    
-    // For prefix matches
-    return fullUrl.includes(endpointLower);
-  });
+  const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
 
-  console.log('🔐 Interceptor:');
-  console.log('- URL:', req.url);
-  console.log('- Is Public:', isPublicEndpoint);
+  console.log('🔐 Interceptor - URL:', req.url, 'Public:', isPublicEndpoint);
 
-  // ✅ SKIP AUTH only for truly public endpoints
   if (isPublicEndpoint) {
-    console.log('🚫 NO AUTH: Public endpoint detected');
-    
-    // Remove any existing auth headers
     const cleanRequest = req.clone({
       headers: req.headers.delete('Authorization')
     });
-    
     return next(cleanRequest);
   }
 
-  // ✅ PRIVATE ENDPOINTS: Require auth
-  console.log('🔑 AUTH REQUIRED: Private endpoint');
-  
-  const isAuthRequest = req.url.includes('/auth/');
-  const isRefreshTokenRequest = req.url.includes('/auth/refresh-token');
-
-  // Token refresh logic for authenticated endpoints
-  if (!isAuthRequest && !isRefreshTokenRequest && authService.isAuthenticated()) {
-    if (authService.isTokenAboutToExpire()) {
-      console.log('🔄 Token is about to expire, attempting refresh...');
-      
-      return authService.refreshToken().pipe(
-        switchMap((refreshResponse) => {
-          console.log('✅ Token refreshed successfully');
-          const newToken = authService.getToken();
-          const authReq = req.clone({
-            setHeaders: {
-              Authorization: `Bearer ${newToken}`
-            }
-          });
-          return next(authReq);
-        }),
-        catchError((refreshError) => {
-          console.error('❌ Token refresh failed:', refreshError);
-          authService.logoutSync();
-          snackBar.open('Your session has expired. Please log in again.', 'Close', {
-            duration: 5000,
-            panelClass: ['error-snackbar']
-          });
-          router.navigate(['/login']);
-          return throwError(() => new Error('Session expired'));
-        })
-      );
-    }
-  }
-
-  // ✅ ADD AUTH HEADER for private endpoints
   let finalRequest = req;
   const token = authService.getToken();
   
   if (token && authService.hasValidToken()) {
     finalRequest = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
+      setHeaders: { Authorization: `Bearer ${token}` }
     });
-    console.log('🔐 Auth header added for private endpoint');
-  } else if (token && !authService.hasValidToken()) {
-    console.warn('⚠️ Token exists but is invalid');
-    authService.clearCorruptedStorage();
-  } else if (!token) {
-    console.warn('⚠️ No token available for authenticated endpoint');
   }
 
   return next(finalRequest).pipe(
     catchError((error: HttpErrorResponse) => {
-      console.error('❌ Request failed:', {
-        url: req.url,
-        status: error.status,
-        error: error.error
-      });
+      console.error('❌ Request failed:', { url: req.url, status: error.status });
 
-      // ✅ FIXED: Handle 401 errors differently for admin vs regular endpoints
+      // ✅ FIXED: Handle 401 errors intelligently
       if (error.status === 401 && !isPublicEndpoint) {
         const isAdminEndpoint = req.url.includes('/admin/');
+        const isLogoutEndpoint = req.url.includes('/auth/logout');
+        const isProfileEndpoint = req.url.includes('/api/profile');
         
-        if (isAdminEndpoint) {
-          // ✅ DON'T logout for admin 401 - it's a permission issue, not auth issue
-          console.warn('🛡️ Admin endpoint 401 - Access denied (not logging out)');
-          snackBar.open('Admin access required. You need administrator privileges.', 'Close', {
-            duration: 5000,
-            panelClass: ['error-snackbar']
-          });
-          // Just show error, don't logout
-        } else {
-          // ✅ Regular endpoint 401 - logout user
-          console.warn('🔐 Regular endpoint 401 - Authentication required (logging out)');
-          
-          if (!isRefreshTokenRequest) {
-            authService.logoutSync();
-            snackBar.open('Session expired. Please login again.', 'Close', {
-              duration: 5000,
-              panelClass: ['error-snackbar']
-            });
-            router.navigate(['/login']);
-          }
+        console.log('🔐 401 Error Analysis:', {
+          isAdminEndpoint,
+          isLogoutEndpoint, 
+          isProfileEndpoint,
+          url: req.url
+        });
+
+        if (isLogoutEndpoint) {
+          console.log('🔐 Logout endpoint 401 - Expected behavior');
+          return throwError(() => error);
+        }
+        else if (isAdminEndpoint) {
+          console.warn('🛡️ Admin endpoint 401 - Permission issue');
+          snackBar.open('Admin access required', 'Close', { duration: 5000 });
+          return throwError(() => error);
+        }
+        else if (isProfileEndpoint) {
+          console.warn('👤 Profile endpoint 401 - Data issue');
+          return throwError(() => error);
+        }
+        else {
+          console.warn('🔐 Regular endpoint 401 - Logging out');
+          authService.logoutSync();
+          snackBar.open('Session expired', 'Close', { duration: 5000 });
+          router.navigate(['/login']);
         }
       }
 
-      // Handle other error cases
       if (error.status === 403) {
-        snackBar.open('Access denied. You do not have permission.', 'Close', {
-          duration: 5000,
-          panelClass: ['error-snackbar']
-        });
+        snackBar.open('Access denied', 'Close', { duration: 5000 });
       }
 
       if (error.status >= 500) {
-        snackBar.open('Server error. Please try again later.', 'Close', {
-          duration: 5000,
-          panelClass: ['error-snackbar']
-        });
+        snackBar.open('Server error', 'Close', { duration: 5000 });
       }
 
       return throwError(() => error);
