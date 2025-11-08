@@ -1,4 +1,4 @@
-// business-management.component.scss
+
 .business-management {
   padding: 20px;
   max-width: 1400px;
@@ -18,7 +18,7 @@
         margin: 0 0 8px 0;
         font-size: 32px;
         font-weight: 700;
-        color: #1a237e;
+        color: #1e40af;
       }
 
       p {
@@ -29,7 +29,7 @@
     }
 
     .refresh-btn {
-      background: #1a237e;
+      background: #1e40af;
       color: white;
       border: none;
       border-radius: 8px;
@@ -38,7 +38,7 @@
       transition: background-color 0.3s ease;
 
       &:hover {
-        background: #303f9f;
+        background: #1e40af;
       }
 
       mat-icon {
@@ -58,11 +58,11 @@
       border-radius: 8px;
       margin-bottom: 16px;
       font-size: 14px;
-      color: #1565c0;
+      color: #1e40af;
 
       strong {
         font-size: 18px;
-        color: #0d47a1;
+        color: #1e40af;
       }
     }
   }
@@ -241,11 +241,11 @@
     }
 
     .mat-tab-label-active {
-      color: #1a237e;
+      color: #1e40af;
     }
 
     .mat-ink-bar {
-      background-color: #1a237e !important;
+      background-color: #1e40af !important;
     }
 
     .mat-menu-panel {

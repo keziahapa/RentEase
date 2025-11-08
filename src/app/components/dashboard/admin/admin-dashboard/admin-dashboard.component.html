@@ -168,12 +168,9 @@
       </div>
     </div>
 
-    <!-- Router outlet for different sections -->
-    <router-outlet></router-outlet>
-    
-    <!-- Show overview component when on the base admin route -->
-    <div *ngIf="isOverviewPage()">
-      <app-admin-overview></app-admin-overview>
+    <!-- Router outlet for different sections - REMOVE THE CONDITIONAL OVERVIEW -->
+    <div class="content-area">
+      <router-outlet></router-outlet>
     </div>
   </main>
 </div>

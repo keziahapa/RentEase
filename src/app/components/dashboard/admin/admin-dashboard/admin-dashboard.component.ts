@@ -292,7 +292,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       'properties': ['/admin-dashboard/properties'],
       'businesses': ['/admin-dashboard/businesses'],
       'advertisements': ['/admin-dashboard/advertisements'],
-      'external-businesses': ['/admin-dashboard/external-businesses'],
       'disputes': ['/admin-dashboard/disputes'],
       'transactions': ['/admin-dashboard/transactions'],
       'reports': ['/admin-dashboard/reports'],
@@ -329,8 +328,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'businesses';
     } else if (url.includes('/advertisements')) {
       this.currentSection = 'advertisements';
-    } else if (url.includes('/external-businesses')) {
-      this.currentSection = 'external-businesses';
     } else if (url.includes('/disputes')) {
       this.currentSection = 'disputes';
     } else if (url.includes('/transactions')) {
@@ -388,7 +385,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   refreshDashboard(): void {
     this.loadNotifications();
-    // Let the overview component handle its own refresh
+ 
   }
 
   onLogoError(event: any): void {

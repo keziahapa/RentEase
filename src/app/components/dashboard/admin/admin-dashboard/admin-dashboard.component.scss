@@ -1,4 +1,4 @@
-// admin-dashboard.component.scss
+
 .dashboard-container {
   display: flex;
   min-height: 100vh;
@@ -7,7 +7,7 @@
   overflow-x: hidden;
 }
 
-// Mobile menu overlay
+
 .mobile-menu-overlay {
   display: none;
   position: fixed;
@@ -28,11 +28,11 @@
   }
 }
 
-// Sidebar styles
+
 .sidebar {
   width: clamp(280px, 25vw, 320px);
-  background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
-  border-right: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%) !important;
+  border-right: 1px solid #1e3a8a;
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -41,18 +41,18 @@
   z-index: 999;
   transition: transform 0.3s ease;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f1f5f9;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(30, 58, 138, 0.3);
 
   &::-webkit-scrollbar {
     width: 6px;
   }
 
   &::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: rgba(30, 58, 138, 0.3);
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: rgba(255, 255, 255, 0.3);
     border-radius: 3px;
   }
 
@@ -62,7 +62,7 @@
     
     &.mobile-open {
       transform: translateX(0);
-      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
     }
   }
 
@@ -72,7 +72,7 @@
 
   .sidebar-header {
     padding: clamp(1rem, 3vw, 1.5rem);
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
 
     .logo {
@@ -101,7 +101,7 @@
       .nav-section-label {
         font-size: clamp(0.7rem, 1.5vw, 0.75rem);
         font-weight: 600;
-        color: #94a3b8;
+        color: rgba(255, 255, 255, 0.7);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         padding: 0.5rem clamp(0.75rem, 2vw, 1rem);
@@ -118,7 +118,7 @@
       border-radius: clamp(8px, 1.5vw, 10px);
       cursor: pointer;
       transition: all 0.3s ease;
-      color: #64748b;
+      color: rgba(255, 255, 255, 0.8);
       font-weight: 500;
       font-size: clamp(0.875rem, 2vw, 1rem);
       min-height: 44px;
@@ -128,6 +128,7 @@
         width: clamp(18px, 3vw, 20px);
         height: clamp(18px, 3vw, 20px);
         flex-shrink: 0;
+        color: rgba(255, 255, 255, 0.8);
       }
 
       .nav-label {
@@ -138,18 +139,18 @@
       }
 
       &:hover {
-        background: #f1f5f9;
-        color: #1e40af;
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
         transform: translateX(4px);
       }
 
       &.active {
-        background: #dbeafe;
-        color: #1e40af;
+        background: rgba(255, 255, 255, 0.2);
+        color: #ffffff;
         font-weight: 600;
 
         .nav-icon {
-          color: #1e40af;
+          color: #ffffff;
         }
       }
 
@@ -161,7 +162,7 @@
 
   .sidebar-footer {
     padding: clamp(0.75rem, 2vw, 1rem);
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
     flex-shrink: 0;
 
     .logout-btn {
@@ -171,10 +172,10 @@
       width: 100%;
       padding: clamp(0.75rem, 2vw, 0.875rem) clamp(0.75rem, 2vw, 1rem);
       background: transparent;
-      border: 1px solid #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.3);
       border-radius: clamp(8px, 1.5vw, 10px);
       cursor: pointer;
-      color: #dc2626;
+      color: rgba(255, 255, 255, 0.9);
       font-weight: 500;
       transition: all 0.3s ease;
       font-size: clamp(0.875rem, 2vw, 1rem);
@@ -185,6 +186,7 @@
         width: clamp(18px, 3vw, 20px);
         height: clamp(18px, 3vw, 20px);
         flex-shrink: 0;
+        color: rgba(255, 255, 255, 0.9);
       }
 
       .logout-label {
@@ -196,8 +198,9 @@
       }
 
       &:hover:not(:disabled) {
-        background: #fef2f2;
-        border-color: #dc2626;
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.5);
+        color: #ffffff;
         transform: translateX(4px);
       }
 
@@ -214,7 +217,7 @@
   }
 }
 
-// Main content area
+
 .main-content {
   flex: 1;
   margin-left: clamp(280px, 25vw, 320px);
@@ -645,7 +648,7 @@
   .logout-btn:active,
   .notification-btn:active,
   .refresh-btn:active {
-    background: #e2e8f0 !important;
+    background: rgba(255, 255, 255, 0.2) !important;
     transform: scale(0.98) !important;
   }
 }
@@ -674,7 +677,7 @@
   }
 
   .nav-item.active {
-    border: 2px solid #1e40af;
+    border: 2px solid #ffffff;
   }
 
   .logout-btn {
@@ -688,25 +691,9 @@
     background: #0f172a;
   }
 
-  .sidebar,
-  .top-header {
+  .main-content .top-header {
     background: #1e293b;
     border-color: #334155;
-    color: #e2e8f0;
-  }
-
-  .nav-item {
-    color: #cbd5e1;
-
-    &:hover {
-      background: #334155;
-      color: #60a5fa;
-    }
-
-    &.active {
-      background: #1e40af;
-      color: #ffffff;
-    }
   }
 
   .greeting-section h1 {
@@ -728,6 +715,24 @@
       border-color: #60a5fa;
       color: #60a5fa;
     }
+  }
+
+  .profile-section .user-avatar-wrapper {
+    &:hover {
+      background: #334155;
+    }
+  }
+
+  .profile-section .user-info .user-name {
+    color: #f1f5f9;
+  }
+
+  .profile-section .user-info .user-role {
+    color: #94a3b8;
+  }
+
+  .dropdown-trigger:hover {
+    background: #334155;
   }
 }
 

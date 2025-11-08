@@ -42,9 +42,7 @@ import { PropertiesListComponent } from './components/dashboard/caretaker/compon
 import { LandlordProfileViewComponent } from './components/dashboard/landlord/landlord-dashboard/profile/landlord-profile-view/landlord-profile-view.component';
 import { LandlordTenantsComponent } from './components/dashboard/landlord/landlord-dashboard/tenants/tenants.component';
 import { LandlordMaintenanceComponent } from './components/dashboard/landlord/landlord-dashboard/maintenance/maintenance.component';
-import { LandlordMessagesComponent } from './components/dashboard/landlord/landlord-dashboard/messages/messages.component';
 import { LandlordMarketplaceComponent } from './components/dashboard/landlord/landlord-dashboard/marketplace/marketplace';
-
 import { ApprovedAdvertisementsComponent } from './components/dashboard/bussiness/components/approved-advertisements/approved-advertisements.component';
 import { CreateAdvertisementComponent } from './components/dashboard/bussiness/components/create-advertisement/create-advertisement.component';
 import { MyAdvertisementsComponent } from './components/dashboard/bussiness/components/my-advertisements/my-advertisements.component';
@@ -155,7 +153,6 @@ export const routes: Routes = [
       { path: 'financials/payments', component: PaymentComponent },
       { path: 'maintenance', component: LandlordMaintenanceComponent },
       { path: 'tenants', component: LandlordTenantsComponent },
-      { path: 'messages', component: LandlordMessagesComponent },
       { path: 'chat', component: ChatComponent },
       { path: 'marketplace', component: LandlordMarketplaceComponent },
       { path: 'move-out-notices', component: LandlordMoveOutNoticeListComponent },

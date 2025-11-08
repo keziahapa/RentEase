@@ -347,7 +347,6 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
       'dashboard': ['/caretaker-dashboard'],
       'maintenance': ['/caretaker-dashboard/maintenance'],
       'inspections': ['/caretaker-dashboard/inspections'],
-      'deposits': ['/caretaker-dashboard/deposits'],
       'properties': ['/caretaker-dashboard/properties'],
       'messages': ['/caretaker-dashboard/messages'],
       'chat': ['/caretaker-dashboard/chat'],
@@ -372,8 +371,6 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'maintenance';
     } else if (url.includes('/inspections')) {
       this.currentSection = 'inspections';
-    } else if (url.includes('/deposits')) {
-      this.currentSection = 'deposits';
     } else if (url.includes('/properties')) {
       this.currentSection = 'properties';
     } else if (url.includes('/messages')) {
