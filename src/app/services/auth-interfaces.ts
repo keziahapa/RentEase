@@ -2,14 +2,14 @@ export enum UserRole {
   TENANT = 'TENANT',
   LANDLORD = 'LANDLORD',
   CARETAKER = 'CARETAKER',
-  BUSINESS = 'BUSINESS',
+  EXTERNAL_BUSINESS = 'EXTERNAL_BUSINESS',
   ADMIN = 'ADMIN'
 }
 
 export type UserRoleType = keyof typeof UserRole;
 
 export interface User {
-  id: string | number;  // ✅ Allow both string and number
+  id: string | number; 
   email: string;
   fullName: string;
   phoneNumber?: string;
@@ -28,7 +28,7 @@ export interface ExtendedUser extends User {
 export interface LoginRequest {
   email: string;
   password: string;
-  rememberMe?: boolean; // ✅ Used only in frontend, not sent to API
+  rememberMe?: boolean; 
 }
 
 export interface RegisterRequest {

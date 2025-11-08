@@ -1,4 +1,4 @@
-// business-interfaces.ts
+
 export interface BusinessRegistration {
   id: number;
   businessName: string;

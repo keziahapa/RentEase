@@ -183,7 +183,7 @@
   }
 }
 
-// Network Status
+
 .network-status {
   display: flex;
   align-items: center;
@@ -200,7 +200,7 @@
   }
 }
 
-// Redirect Info
+
 .redirect-info {
   display: flex;
   align-items: center;
@@ -209,7 +209,7 @@
   color: #666;
 }
 
-// Responsive design
+
 @media (max-width: 600px) {
   .invitation-container {
     padding: 10px;
@@ -238,7 +238,7 @@
   }
 }
 
-// Snackbar styles
+
 ::ng-deep .success-snackbar {
   background: #4caf50;
   color: white;

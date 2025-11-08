@@ -27,7 +27,7 @@ export class AuthService {
   private snackBar = inject(MatSnackBar);
   private isBrowser: boolean;
 
-  // ✅ CORRECT: Use environment variable
+ 
   private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);
@@ -43,28 +43,28 @@ export class AuthService {
     }
   }
 
-  // ✅ CORRECT: Simple headers - NO CORS headers!
+ 
   private getBasicHeaders(): HttpHeaders {
     return new HttpHeaders({
       'Content-Type': 'application/json'
     });
   }
 
-  // ✅ FIXED: Login method - removed rememberMe from API payload
+
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    console.log('🔐 Sending login request - FULL CREDENTIALS:', { 
+    console.log('Sending login request - FULL CREDENTIALS:', { 
       email: credentials.email, 
       password: credentials.password ? `[${credentials.password.length} chars]` : 'MISSING',
       rememberMe: credentials.rememberMe 
     });
 
-    // ✅ FIX: Backend only expects email and password (no rememberMe)
+   
     const loginPayload = {
       email: credentials.email.trim().toLowerCase(),
       password: credentials.password.trim()
     };
 
-    console.log('🔐 Final login payload being sent:', loginPayload);
+    console.log('Final login payload being sent:', loginPayload);
 
     return this.http.post<AuthResponse>(
       `${this.apiUrl}/login`, 
@@ -72,13 +72,13 @@ export class AuthService {
       { headers: this.getBasicHeaders() }
     ).pipe(
       tap(response => {
-        console.log('🔐 Login SUCCESS - Full response:', response);
+        console.log(' Login SUCCESS - Full response:', response);
         
         if (response.token) {
-          // ✅ rememberMe used only for frontend storage
+       
           this.storeAuthDataDirectly(response, credentials.rememberMe || false);
         } else {
-          console.error('❌ Login successful but no token received');
+          console.error(' Login successful but no token received');
           throw new Error('Authentication error: No token received');
         }
       }),
@@ -92,16 +92,14 @@ export class AuthService {
       email: userData.email.trim().toLowerCase()
     };
 
-    console.log('🔐 Sending registration:', normalizedData);
-
-    // ✅ CORRECT: No CORS headers!
+    
     return this.http.post<ApiResponse>(
       `${this.apiUrl}/signup`, 
       normalizedData,
       { headers: this.getBasicHeaders() }
     ).pipe(
       tap(response => {
-        console.log('🔐 Registration response:', response);
+        console.log(' Registration response:', response);
         
         if (response.success) {
           if (this.isBrowser) {
@@ -132,19 +130,16 @@ export class AuthService {
       type: request.type || 'email_verification'
     };
 
-    console.log('🔐 Verifying OTP:', cleanRequest);
-
-    // ✅ CORRECT: No CORS headers!
     return this.http.post<ApiResponse>(
       `${this.apiUrl}/verify-otp`, 
       cleanRequest,
       { headers: this.getBasicHeaders() }
     ).pipe(
       tap(response => {
-        console.log('🔐 OTP verification response:', response);
+        console.log(' OTP verification response:', response);
         
         if (response.success) {
-          console.log('🔐 OTP verified successfully - email confirmed');
+          console.log(' OTP verified successfully - email confirmed');
           this.clearPendingVerification();
         } else {
           throw new Error(response.message || 'OTP verification failed');
@@ -160,16 +155,16 @@ export class AuthService {
       type: request.type || 'email_verification'
     };
     
-    console.log('🔐 Resending OTP:', cleanRequest);
+    console.log(' Resending OTP:', cleanRequest);
 
-    // ✅ CORRECT: No CORS headers!
+   
     return this.http.post<ApiResponse>(
       `${this.apiUrl}/resend-otp`, 
       cleanRequest,
       { headers: this.getBasicHeaders() }
     ).pipe(
       tap(response => {
-        console.log('🔐 Resend OTP response:', response);
+        console.log(' Resend OTP response:', response);
       }),
       catchError(this.handleError)
     );
@@ -213,7 +208,7 @@ export class AuthService {
     }
   }
 
-  // PASSWORD MANAGEMENT
+
   requestPasswordReset(request: { email: string }): Observable<ApiResponse> {
     const normalizedRequest = { email: request.email.trim().toLowerCase() };
     return this.http.post<ApiResponse>(
@@ -273,7 +268,7 @@ export class AuthService {
     ).pipe(catchError(this.handleError));
   }
 
-  // PROFILE MANAGEMENT
+ 
   updatePhone(newPhoneNumber: string): Observable<ApiResponse> {
     const payload = { newPhoneNumber };
     
@@ -313,7 +308,7 @@ export class AuthService {
     ).pipe(catchError(this.handleError));
   }
 
-  // TOKEN & USER MANAGEMENT
+
   getToken(): string | null {
     if (!this.isBrowser) return null;
     
@@ -323,13 +318,13 @@ export class AuthService {
     
     let cleanToken = token.trim();
     
-    // Remove quotes if present
+
     if ((cleanToken.startsWith('"') && cleanToken.endsWith('"')) || 
         (cleanToken.startsWith("'") && cleanToken.endsWith("'"))) {
       cleanToken = cleanToken.slice(1, -1);
     }
     
-    // Remove Bearer prefix if present
+   
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
     }
@@ -356,7 +351,7 @@ export class AuthService {
   isAuthenticated(): boolean { 
     const token = this.getToken();
     const isAuth = !!token;
-    console.log('🔐 isAuthenticated check:', isAuth);
+    console.log(' isAuthenticated check:', isAuth);
     return isAuth;
   }
 
@@ -390,7 +385,7 @@ export class AuthService {
     return user?.role?.toUpperCase() === role.toUpperCase();
   }
 
-  isBusiness(): boolean { return this.hasRole(UserRole.BUSINESS); }
+  isExternal_Business(): boolean { return this.hasRole(UserRole.EXTERNAL_BUSINESS); }
   isTenant(): boolean { return this.hasRole(UserRole.TENANT); }
   isLandlord(): boolean { return this.hasRole(UserRole.LANDLORD); }
   isCaretaker(): boolean { return this.hasRole(UserRole.CARETAKER); }
@@ -419,7 +414,7 @@ export class AuthService {
     this.isAuthenticatedSubject.next(false);
   }
 
-  // PRIVATE METHODS
+  
   private getFromStorage(key: string): string | null {
     if (!this.isBrowser) return null;
     try {
@@ -448,9 +443,8 @@ export class AuthService {
   private storeAuthDataDirectly(authResponse: AuthResponse, rememberMe: boolean): void {
     if (!this.isBrowser) return;
 
-    console.log('🔐 Storing auth data directly from AuthResponse:', authResponse);
+    console.log(' Storing auth data directly from AuthResponse:', authResponse);
 
-    // ✅ FIX: Convert userId from number to string properly
     const user: User = {
       id: authResponse.userId.toString(),
       email: authResponse.email,
@@ -463,7 +457,7 @@ export class AuthService {
     const token = authResponse.token;
 
     if (!user || !token) {
-      console.error('❌ Missing user or token in auth success');
+      console.error(' Missing user or token in auth success');
       return;
     }
 
@@ -472,7 +466,7 @@ export class AuthService {
       cleanToken = cleanToken.substring(7).trim();
     }
 
-    // ✅ rememberMe still controls localStorage vs sessionStorage
+   
     if (rememberMe) {
       localStorage.setItem('authToken', cleanToken);
       localStorage.setItem('userData', JSON.stringify(user));
@@ -486,14 +480,14 @@ export class AuthService {
     
     this.clearPendingVerification();
     
-    console.log('🔐 Auth storage completed - User:', user);
-    console.log('🔐 Token stored:', cleanToken ? 'YES' : 'NO');
+    console.log(' Auth storage completed - User:', user);
+    console.log(' Token stored:', cleanToken ? 'YES' : 'NO');
   }
 
   private handleAuthSuccess(response: ApiResponse, rememberMe: boolean = false): void {
     if (!this.isBrowser) return;
     
-    console.log('🔐 Handling auth success:', response);
+    console.log(' Handling auth success:', response);
 
     const user: User = response.user || {
       id: response.data?.userId || '',
@@ -508,7 +502,7 @@ export class AuthService {
     const token = response.token || response.data?.token;
 
     if (!user || !token) {
-      console.error('❌ Missing user or token in auth success');
+      console.error(' Missing user or token in auth success');
       return;
     }
 
@@ -530,7 +524,7 @@ export class AuthService {
     
     this.clearPendingVerification();
     
-    console.log('🔐 Auth storage completed');
+    console.log(' Auth storage completed');
   }
 
   private extractRoleFromToken(token: string): string | null {
@@ -647,7 +641,7 @@ export class AuthService {
   }
 
   private handleError = (error: HttpErrorResponse): Observable<never> => {
-    console.error('🔐 Auth Service Error:', {
+    console.error(' Auth Service Error:', {
       status: error.status,
       statusText: error.statusText,
       url: error.url,

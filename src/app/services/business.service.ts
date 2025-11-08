@@ -1,4 +1,4 @@
-// business.service.ts
+
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
@@ -28,7 +28,7 @@ export class BusinessService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
-  // Business Registration
+  
   registerBusiness(registrationData: any): Observable<ApiResponse<BusinessRegistration>> {
     return this.http.post<ApiResponse<BusinessRegistration>>(
       `${this.apiUrl}/api/external-business/register`,
@@ -45,7 +45,7 @@ export class BusinessService {
     );
   }
 
-  // Get Registration Status
+  
   getRegistrationStatus(): Observable<BusinessStatusResponse> {
     return this.http.get<BusinessStatusResponse>(
       `${this.apiUrl}/api/external-business/registration-status`,
@@ -55,14 +55,14 @@ export class BusinessService {
         if (response.success && response.data) {
           this.updateLocalBusinessData(response.data);
           
-          // If approved, update user role
+       
           if (response.data.verificationStatus === 'APPROVED') {
             this.updateUserBusinessRole();
           }
         }
       }),
       catchError(error => {
-        // Check if we have local business data as fallback
+      
         const localBusiness = this.getLocalBusinessData();
         if (localBusiness) {
           return of({
@@ -76,7 +76,7 @@ export class BusinessService {
     );
   }
 
-  // Get Business Profile
+ 
   getBusinessProfile(): Observable<ApiResponse<ExternalBusiness>> {
     return this.http.get<ApiResponse<ExternalBusiness>>(
       `${this.apiUrl}/api/external-business/my-business`,
@@ -101,10 +101,10 @@ export class BusinessService {
     );
   }
 
-  // Check if user has business profile - FIXED
+  
   hasBusinessProfile(): Observable<boolean> {
     return this.getBusinessProfile().pipe(
-      map(response => !!response.data), // Fixed: properly extract boolean from response
+      map(response => !!response.data), 
       catchError(() => {
         const localBusiness = this.getLocalBusinessData();
         return of(!!localBusiness);
@@ -112,7 +112,7 @@ export class BusinessService {
     );
   }
 
-  // Advertisement Management
+
   createAdvertisement(advertisement: CreateAdvertisementRequest): Observable<ApiResponse<Advertisement>> {
     const adData = {
       title: advertisement.title.trim(),
@@ -135,7 +135,7 @@ export class BusinessService {
     );
   }
 
-  // Get My Advertisements
+ 
   getMyAdvertisements(): Observable<Advertisement[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/advertisements/my-ads`,
@@ -167,7 +167,7 @@ export class BusinessService {
     );
   }
 
-  // Get Approved Advertisements
+ 
   getApprovedAdvertisements(): Observable<Advertisement[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/advertisements/approved`,
@@ -187,7 +187,6 @@ export class BusinessService {
     );
   }
 
-  // Update Advertisement
   updateAdvertisement(advertisementId: string, advertisement: CreateAdvertisementRequest): Observable<ApiResponse<Advertisement>> {
     const adData = {
       title: advertisement.title.trim(),
@@ -210,7 +209,7 @@ export class BusinessService {
     );
   }
 
-  // Delete Advertisement
+  
   deleteAdvertisement(advertisementId: string): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(
       `${this.apiUrl}/api/external-business/advertisements/${advertisementId}`,
@@ -225,7 +224,7 @@ export class BusinessService {
     );
   }
 
-  // Get Advertisement by ID
+ 
   getAdvertisementById(advertisementId: string): Observable<ApiResponse<Advertisement>> {
     return this.http.get<ApiResponse<Advertisement>>(
       `${this.apiUrl}/api/external-business/advertisements/${advertisementId}`,
@@ -235,7 +234,7 @@ export class BusinessService {
     );
   }
 
-  // Business Dashboard Data - FIXED
+  
   getBusinessDashboardData(): Observable<BusinessDashboardData> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/dashboard`,
@@ -255,7 +254,7 @@ export class BusinessService {
     );
   }
 
-  // Upload Advertisement Media
+
   uploadAdvertisementMedia(file: File): Observable<UploadResponse> {
     const token = this.authService.getToken();
     if (!token) {
@@ -281,7 +280,7 @@ export class BusinessService {
     );
   }
 
-  // Analytics and Performance
+ 
   getAdvertisementAnalytics(advertisementId?: string): Observable<AdvertisementAnalytics | BusinessAnalytics> {
     const url = advertisementId 
       ? `${this.apiUrl}/api/external-business/analytics/ads/${advertisementId}`
@@ -305,7 +304,6 @@ export class BusinessService {
     );
   }
 
-  // Billing and Payments
   getBillingHistory(): Observable<BillingRecord[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/billing/history`,
@@ -327,7 +325,7 @@ export class BusinessService {
     );
   }
 
-  // Update Business Profile
+
   updateBusinessProfile(profileData: any): Observable<ApiResponse<ExternalBusiness>> {
     return this.http.put<ApiResponse<ExternalBusiness>>(
       `${this.apiUrl}/api/external-business/my-business`,
@@ -343,7 +341,7 @@ export class BusinessService {
     );
   }
 
-  // Delete Business Account
+
   deleteBusinessAccount(): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(
       `${this.apiUrl}/api/external-business/my-business`,
@@ -358,7 +356,7 @@ export class BusinessService {
     );
   }
 
-  // Check if business is verified
+ 
   isBusinessVerified(): Observable<boolean> {
     return this.getRegistrationStatus().pipe(
       map(response => response.data?.verificationStatus === 'APPROVED'),
@@ -366,7 +364,6 @@ export class BusinessService {
     );
   }
 
-  // Private helper methods
   private updateLocalBusinessData(businessData: any): void {
     localStorage.setItem('businessData', JSON.stringify(businessData));
   }

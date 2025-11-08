@@ -10,7 +10,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../services/auth.service';
-import { LoginRequest, UserRole, AuthResponse } from '../../../services/auth-interfaces';
+import { InvitationService } from '../../../services/invitation.service';
+import { LoginRequest, AuthResponse } from '../../../services/auth-interfaces';
 
 @Component({
   selector: 'app-login',
@@ -33,6 +34,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   private router: Router = inject(Router);
   private route: ActivatedRoute = inject(ActivatedRoute);
   private authService: AuthService = inject(AuthService);
+  private invitationService: InvitationService = inject(InvitationService);
   private snackBar: MatSnackBar = inject(MatSnackBar);
 
   loginData = { email: '', password: '' };
@@ -78,6 +80,17 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (message) {
       this.showSnackbar(message, 'success');
     }
+
+    this.checkPendingInvitation();
+  }
+
+  private checkPendingInvitation(): void {
+    const pendingToken = this.route.snapshot.queryParams['token'];
+    const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
+    
+    if (pendingToken && hasPendingInvitation) {
+      sessionStorage.setItem('pendingInvitationToken', pendingToken);
+    }
   }
 
   startAutoSubmitCountdown(): void {
@@ -89,7 +102,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (this.countdown <= 0) {
         this.stopAutoSubmit();
         if (!this.isLoading && this.pendingAutoPassword) {
-          console.log('🔐 Auto-login with password length:', this.pendingAutoPassword.length);
           this.onSubmit(this.pendingAutoPassword);
         }
       }
@@ -160,40 +172,11 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Handle paste events to trim spaces from pasted passwords
   onPasswordPaste(event: ClipboardEvent): void {
     event.preventDefault();
     const pastedText = event.clipboardData?.getData('text') || '';
-    // Trim spaces from pasted content
     const cleanText = pastedText.trim();
     this.loginData.password = cleanText;
-  }
-
-  // Quick test with known working credentials
-  testCorrectCredentials(): void {
-    this.loginData.email = 'muhammadjnr0@gmail.com';
-    this.loginData.password = 'Tomsam12'; // No spaces!
-    this.rememberMe = true;
-    console.log('🎯 Testing with known working credentials');
-  }
-
-  // Clear form completely
-  clearForm(): void {
-    this.loginData = { email: '', password: '' };
-    this.rememberMe = false;
-    this.emailError = '';
-    this.passwordError = '';
-    console.log('🧹 Form cleared');
-  }
-
-  // Test login with spaces (for debugging)
-  testLoginWithSpaces(): void {
-    this.loginData.email = 'muhammadjnr0@gmail.com';
-    this.loginData.password = ' Tomsam12'; // With space on purpose
-    this.rememberMe = true;
-    
-    console.log('🎯 Testing with credentials (with space)');
-    this.onSubmit();
   }
 
   validateForm(passwordOverride?: string): boolean {
@@ -205,7 +188,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.emailError = emailError;
     }
 
-    // ✅ FIX: Trim password for validation
     const passwordToValidate = (passwordOverride ?? this.loginData.password).trim();
 
     if (!passwordToValidate) {
@@ -222,21 +204,9 @@ export class LoginComponent implements OnInit, OnDestroy {
     
     if (this.isLoading) return;
     
-    // ✅ FIX: Trim the password to remove leading/trailing spaces
     const passwordToUse = (passwordOverride ?? this.loginData.password).trim();
 
-    console.log('🔐 DEBUG - Form state before validation:', {
-      formEmail: this.loginData.email,
-      formPassword: this.loginData.password,
-      formPasswordLength: this.loginData.password?.length,
-      passwordOverride: passwordOverride,
-      passwordToUse: passwordToUse, // ✅ Now trimmed
-      passwordToUseLength: passwordToUse?.length,
-      pendingAutoPassword: this.pendingAutoPassword
-    });
-
     if (!this.validateForm(passwordToUse)) {
-      console.log('❌ Form validation failed');
       return;
     }
     
@@ -248,63 +218,103 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     const loginRequest: LoginRequest = {
       email: this.loginData.email.trim().toLowerCase(),
-      password: passwordToUse, // ✅ Using trimmed password
+      password: passwordToUse,
       rememberMe: this.rememberMe
     };
-
-    console.log('🔐 FINAL Login payload being sent:', { 
-      email: loginRequest.email, 
-      passwordLength: loginRequest.password?.length,
-      passwordValue: `"${loginRequest.password}"`, // ✅ Shows exact value with quotes
-      rememberMe: loginRequest.rememberMe 
-    });
     
     this.authService.login(loginRequest).subscribe({
       next: (response: AuthResponse) => {
-        this.isLoading = false;
-        console.log('🔐 Login successful, response:', response);
-        
-        // Clear password only after successful login
-        this.loginData.password = '';
-        
-        // Check if token was stored properly
-        const token = this.authService.getToken();
-        console.log('🔐 Token after login:', token ? 'Token stored successfully' : 'NO TOKEN STORED');
-        
-        if (!token) {
-          console.error('❌ Token was not stored properly after login');
-          this.showSnackbar('Login failed: Authentication token missing', 'error');
-          return;
-        }
-        
-        // ✅ Use the role directly from the response (as shown in Postman)
-        const userRole = response.role;
-        
-        console.log('🔐 User role from response:', userRole);
-        console.log('🔐 Full user data:', {
-          userId: response.userId,
-          fullName: response.fullName,
-          email: response.email,
-          role: response.role,
-          verified: response.verified
-        });
-        
-        if (userRole) {
-          this.showSnackbar('Login successful!', 'success');
-          this.redirectBasedOnRole(userRole);
-        } else {
-          console.error('❌ No user role found in response');
-          this.showSnackbar('Login failed: No user role received', 'error');
-        }
+        this.handleSuccessfulLogin(response);
       },
       error: (error) => {
         this.isLoading = false;
-        console.error('🔐 Login error:', error);
-        
-        // Don't clear password on error so user can retry
         this.handleApiError(error);
       }
     });
+  }
+
+  private handleSuccessfulLogin(response: AuthResponse): void {
+    this.isLoading = false;
+    
+    this.loginData.password = '';
+    
+    const token = this.authService.getToken();
+    if (!token) {
+      this.showSnackbar('Login failed: Authentication token missing', 'error');
+      return;
+    }
+    
+    const pendingToken = sessionStorage.getItem('pendingInvitationToken');
+    const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
+    
+    if (pendingToken && hasPendingInvitation) {
+      this.acceptPendingInvitation(pendingToken, response.role);
+    } else {
+      this.showSnackbar('Login successful!', 'success');
+      this.redirectBasedOnRole(response.role);
+    }
+  }
+
+  private acceptPendingInvitation(token: string, userRole: string): void {
+    this.invitationService.acceptInvitation(token).subscribe({
+      next: (invitationResponse: any) => {
+        sessionStorage.removeItem('pendingInvitationToken');
+        localStorage.removeItem('pendingInvitation');
+        
+        const invitationType = invitationResponse.invitationType || 'tenant';
+        const dashboardName = this.getDashboardDisplayName(invitationType);
+        this.showSnackbar(`Invitation accepted! Redirecting to your ${dashboardName}...`, 'success');
+        
+        this.redirectAfterInvitationAcceptance(userRole, invitationResponse);
+      },
+      error: (error: any) => {
+        sessionStorage.removeItem('pendingInvitationToken');
+        this.showSnackbar('Invitation could not be accepted, but you are logged in.', 'info');
+        this.redirectBasedOnRole(userRole);
+      }
+    });
+  }
+
+  private redirectAfterInvitationAcceptance(userRole: string, invitationResponse: any): void {
+    const invitationDashboard = this.getInvitationDashboard(invitationResponse);
+    const roleDashboard = this.getRoleBasedDashboard(userRole);
+    const dashboardRoute = invitationDashboard || roleDashboard || '/dashboard';
+    
+    this.router.navigate([dashboardRoute]).then(success => {
+      if (!success) {
+        this.router.navigate(['/dashboard']);
+      }
+    });
+  }
+
+  private getInvitationDashboard(invitationResponse: any): string | null {
+    if (invitationResponse.invitationType === 'tenant') {
+      return '/tenant-dashboard/dashboard';
+    } else if (invitationResponse.invitationType === 'caretaker') {
+      return '/caretaker-dashboard/overview';
+    }
+    return null;
+  }
+
+  private getRoleBasedDashboard(userRole: string): string {
+    const roleMap: Record<string, string> = {
+      'TENANT': '/tenant-dashboard/dashboard',
+      'LANDLORD': '/landlord-dashboard/home',
+      'CARETAKER': '/caretaker-dashboard/overview',
+      'EXTERNAL_BUSINESS': '/business-dashboard'
+    };
+    
+    const normalizedRole = userRole.toUpperCase();
+    return roleMap[normalizedRole] || '/dashboard';
+  }
+
+  private getDashboardDisplayName(invitationType: string): string {
+    const names: Record<string, string> = {
+      'tenant': 'Tenant Dashboard',
+      'caretaker': 'Caretaker Dashboard',
+      'landlord': 'Landlord Dashboard'
+    };
+    return names[invitationType] || 'Dashboard';
   }
 
   private handleApiError(error: any): void {
@@ -315,8 +325,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     let errorMessage = 'Login failed. Please try again.';
     let showSnackbar = true;
     
-    console.log('🔐 Full error object:', error);
-    
     if (typeof error === 'string') {
       errorMessage = error;
     } else if (error.error?.message) {
@@ -325,58 +333,14 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (msg.includes('email') && msg.includes('not found')) {
         this.emailError = 'No account with this email';
         errorMessage = 'This email is not registered';
-      } else if (msg.includes('user') && msg.includes('not found')) {
-        this.emailError = 'Account not found';
-        errorMessage = 'No account exists with this email';
-      } else if (msg.includes('email') && msg.includes('invalid')) {
-        this.emailError = 'Invalid email format';
-        errorMessage = 'Please enter a valid email address';
-      } else if (msg.includes('email') && msg.includes('required')) {
-        this.emailError = 'Email is required';
-        errorMessage = 'Please enter your email address';
-      } else if (msg.includes('email') && msg.includes('exist')) {
-        this.emailError = 'Email not registered';
-        errorMessage = 'This email is not registered with us'; 
       } else if (msg.includes('password') && msg.includes('incorrect')) {
         this.passwordError = 'Wrong password';
         errorMessage = 'The password you entered is incorrect';
-        showSnackbar = false;
-      } else if (msg.includes('password') && msg.includes('invalid')) {
-        this.passwordError = 'Invalid password';
-        errorMessage = 'Please check your password';
-        showSnackbar = false;
-      } else if (msg.includes('password') && msg.includes('required')) {
-        this.passwordError = 'Password required';
-        errorMessage = 'Please enter your password';
         showSnackbar = false;
       } else if (msg.includes('invalid') && msg.includes('credentials')) {
         this.emailError = 'Check email or password';
         this.passwordError = 'Check email or password';
         errorMessage = 'The email or password you entered is incorrect';
-      } else if (msg.includes('authentication') && msg.includes('failed')) {
-        this.emailError = 'Incorrect email or password';
-        this.passwordError = 'Incorrect email or password';
-        errorMessage = 'Please check your email and password';
-        
-      } else if (msg.includes('account') && msg.includes('locked')) {
-        errorMessage = 'Account temporarily locked. Try again in 30 minutes';
-      } else if (msg.includes('account') && msg.includes('suspended')) {
-        errorMessage = 'This account has been suspended';
-      } else if (msg.includes('not verified') || msg.includes('verify')) {
-        errorMessage = 'Please verify your email address before logging in';
-      } else if (msg.includes('disabled')) {
-        errorMessage = 'This account has been deactivated';
-      } else if (msg.includes('inactive')) {
-        errorMessage = 'Your account is not active';
-        
-      } else if (msg.includes('network') || msg.includes('connection')) {
-        errorMessage = 'Connection problem. Check your internet';
-      } else if (msg.includes('timeout')) {
-        errorMessage = 'Request timed out. Please try again';
-      } else if (error.status === 500) {
-        errorMessage = 'Temporary server issue. Please try again';
-      } else if (error.status === 0) {
-        errorMessage = 'Cannot connect to server. Please check your internet connection or try again later.';
       } else {
         errorMessage = error.error.message;
       }
@@ -391,10 +355,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     } else if (error.status === 404) {
       this.emailError = 'Email not registered';
       errorMessage = 'No account found with this email address';
-    } else if (error.status === 429) {
-      errorMessage = 'Too many login attempts. Please wait 15 minutes';
-    } else if (error.status === 403) {
-      errorMessage = 'Access denied. Please contact support';
     }
     
     if (showSnackbar) {
@@ -405,14 +365,14 @@ export class LoginComponent implements OnInit, OnDestroy {
   private redirectBasedOnRole(userRole: string): void {
     const normalizedRole = userRole.toUpperCase().trim();
     
-    const roleMap: { [key: string]: string } = {
+    const roleMap: Record<string, string> = {
       'LANDLORD': '/landlord-dashboard/home',
       'TENANT': '/tenant-dashboard/dashboard',
-      'BUSINESS': '/business-dashboard',
+      'EXTERNAL_BUSINESS': '/business-dashboard',
       'CARETAKER': '/caretaker-dashboard/overview',
     };
 
-    const dashboardRoute = roleMap[normalizedRole] || '/tenant-dashboard/home';
+    const dashboardRoute = roleMap[normalizedRole] || '/dashboard';
     
     const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
     const returnUrl = this.route.snapshot.queryParams['returnUrl'];
@@ -422,7 +382,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     } else {
       this.router.navigate([dashboardRoute]).then(success => {
         if (!success) {
-          console.warn(`⚠️ Failed to navigate to ${dashboardRoute}, falling back to /dashboard`);
           this.router.navigate(['/dashboard']);
         }
       });
@@ -457,7 +416,6 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   get isFormValid(): boolean {
     const passwordValue = this.pendingAutoPassword ?? this.loginData.password;
-    // ✅ FIX: Trim password for validation
     const trimmedPassword = passwordValue ? passwordValue.trim() : '';
     return (
       this.loginData.email.trim() !== '' &&

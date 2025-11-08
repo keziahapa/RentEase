@@ -2,6 +2,7 @@ export interface AdminStats {
   totalUsers: number;
   totalProperties: number;
   activeBusinesses: number;
+  totalBusinesses: number;
   monthlyRevenue: number;
   commissionRevenue: number;
   pendingApprovals: number;
@@ -121,4 +122,14 @@ export interface Activity {
   message: string;
   icon: string;
   time: string;
+}
+
+export interface SearchParams {
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  type?: string;
+  page?: number;
+  limit?: number;
+  [key: string]: any;
 }

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError, forkJoin, of } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -9,7 +9,8 @@ import {
   Advertisement,
   ExternalBusiness,
   RejectionRequest,
-  ApiResponse
+  ApiResponse,
+  SearchParams
 } from './admin-interfaces';
 
 @Injectable({
@@ -22,13 +23,13 @@ export class AdminService {
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
 
   constructor() {
-    console.log('🟢 AdminService initialized');
+    console.log('AdminService initialized');
   }
 
   private createHeaders(): HttpHeaders {
     const token = this.getToken();
     
-    console.log('🔐 AdminService: Creating headers with token:', !!token);
+    console.log('AdminService: Creating headers with token:', !!token);
     
     const headers: any = {
       'Content-Type': 'application/json',
@@ -45,19 +46,17 @@ export class AdminService {
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
     
     if (!token) {
-      console.warn('🔐 AdminService: No token found');
+      console.warn('AdminService: No token found');
       return null;
     }
     
     let cleanToken = token.trim();
     
-    // Remove quotes if present
     if ((cleanToken.startsWith('"') && cleanToken.endsWith('"')) || 
         (cleanToken.startsWith("'") && cleanToken.endsWith("'"))) {
       cleanToken = cleanToken.slice(1, -1);
     }
     
-    // Remove Bearer prefix if present
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
     }
@@ -66,7 +65,7 @@ export class AdminService {
   }
 
   private handleError(error: HttpErrorResponse): Observable<never> {
-    console.error('🔴 AdminService Error:', {
+    console.error('AdminService Error:', {
       status: error.status,
       statusText: error.statusText,
       url: error.url,
@@ -95,25 +94,24 @@ export class AdminService {
     }));
   }
 
-  // Test method to verify admin access
   testAdminAccess(): Observable<any> {
     const url = `${this.apiUrl}/api/admin/test`;
-    console.log('🔄 AdminService: Testing admin access:', url);
+    console.log('AdminService: Testing admin access:', url);
     
     return this.http.get(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ AdminService: Admin access test successful:', response)),
+      tap(response => console.log('AdminService: Admin access test successful:', response)),
       catchError(error => {
-        console.error('❌ AdminService: Admin access test failed:', error);
+        console.error('AdminService: Admin access test failed:', error);
         return this.handleError(error);
       })
     );
   }
 
   getDashboardStats(): Observable<ApiResponse<AdminStats>> {
-    console.log('🔄 AdminService: Loading dashboard stats...');
+    console.log('AdminService: Loading dashboard stats...');
     
     return forkJoin({
       businesses: this.getBusinesses().pipe(catchError(() => of({ success: true, data: [] }))),
@@ -123,7 +121,7 @@ export class AdminService {
     }).pipe(
       map(results => {
         const stats = this.calculateStatsFromData(results);
-        console.log('📊 AdminService: Dashboard stats calculated:', stats);
+        console.log('AdminService: Dashboard stats calculated:', stats);
         return {
           success: true,
           message: 'Dashboard statistics calculated successfully',
@@ -155,8 +153,8 @@ export class AdminService {
     const activeDisputes = this.calculateActiveDisputes(businesses);
     
     const monthlyRevenue = this.calculateMonthlyRevenue(businesses, totalProperties);
-    const platformEarnings = monthlyRevenue * 0.1;    
-    const commissionRevenue = monthlyRevenue * 0.05;  
+    const platformEarnings = monthlyRevenue * 0.1;
+    const commissionRevenue = monthlyRevenue * 0.05;
 
     const userBreakdown = this.calculateUserBreakdown(totalUsers);
     
@@ -165,10 +163,11 @@ export class AdminService {
     return {
       totalUsers,
       totalProperties,
-      activeBusinesses,    
-      monthlyRevenue,      
-      commissionRevenue,   
-      pendingApprovals,    
+      activeBusinesses,
+      totalBusinesses,
+      monthlyRevenue,
+      commissionRevenue,
+      pendingApprovals,
       activeDisputes,
       userGrowth: growthRates.userGrowth,
       revenueGrowth: growthRates.revenueGrowth,
@@ -177,7 +176,7 @@ export class AdminService {
       totalTenants: userBreakdown.tenants,
       totalCaretakers: userBreakdown.caretakers,
       totalAdmins: userBreakdown.admins,
-      platformEarnings,   
+      platformEarnings,
       systemHealth: this.calculateSystemHealth(totalUsers, totalProperties, totalBusinesses)
     };
   }
@@ -233,18 +232,17 @@ export class AdminService {
     return 'developing';
   }
 
-  // Business Management
   getBusinesses(): Observable<ApiResponse<Business[]>> {
     const url = `${this.apiUrl}/api/admin/businesses`;
-    console.log('🔄 AdminService: Calling getBusinesses:', url);
+    console.log('AdminService: Calling getBusinesses:', url);
     
     return this.http.get<ApiResponse<Business[]>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ AdminService: Businesses loaded:', response)),
+      tap(response => console.log('AdminService: Businesses loaded:', response)),
       catchError(error => {
-        console.error('❌ AdminService: Businesses error:', error);
+        console.error('AdminService: Businesses error:', error);
         return this.handleError(error);
       })
     );
@@ -252,15 +250,15 @@ export class AdminService {
 
   getPendingBusinesses(): Observable<ApiResponse<Business[]>> {
     const url = `${this.apiUrl}/api/admin/businesses/pending`;
-    console.log('🔄 AdminService: Calling getPendingBusinesses:', url);
+    console.log('AdminService: Calling getPendingBusinesses:', url);
     
     return this.http.get<ApiResponse<Business[]>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('✅ AdminService: Pending businesses loaded:', response)),
+      tap(response => console.log('AdminService: Pending businesses loaded:', response)),
       catchError(error => {
-        console.error('❌ AdminService: Pending businesses error:', error);
+        console.error('AdminService: Pending businesses error:', error);
         return this.handleError(error);
       })
     );
@@ -313,7 +311,23 @@ export class AdminService {
     );
   }
 
-  // Advertisement Management
+  suspendBusiness(businessId: number, reason: string): Observable<ApiResponse<Business>> {
+    const url = `${this.apiUrl}/api/admin/businesses/${businessId}/suspend`;
+    
+    return this.http.post<ApiResponse<Business>>(
+      url,
+      { reason },
+      { headers: this.createHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success) {
+          this.snackBar.open('Business suspended successfully', 'Close', { duration: 3000 });
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
   getAdvertisements(): Observable<ApiResponse<Advertisement[]>> {
     const url = `${this.apiUrl}/api/admin/advertisements`;
     
@@ -383,7 +397,6 @@ export class AdminService {
     );
   }
 
-  // External Business Management
   getExternalBusinesses(): Observable<ApiResponse<ExternalBusiness[]>> {
     const url = `${this.apiUrl}/api/admin/external-businesses`;
     
@@ -401,6 +414,48 @@ export class AdminService {
     return this.http.get<ApiResponse<ExternalBusiness[]>>(
       url,
       { headers: this.createHeaders() }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  generateReport(reportType: string, params?: SearchParams): Observable<ApiResponse<any>> {
+    let httpParams = new HttpParams();
+    if (params) {
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== null) {
+          httpParams = httpParams.set(key, params[key].toString());
+        }
+      });
+    }
+    
+    const url = `${this.apiUrl}/api/admin/reports/${reportType}`;
+    return this.http.get<ApiResponse<any>>(
+      url,
+      { headers: this.createHeaders(), params: httpParams }
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  exportReport(reportType: string, format: 'csv' | 'pdf', params?: SearchParams): Observable<Blob> {
+    let httpParams = new HttpParams().set('format', format);
+    if (params) {
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== null) {
+          httpParams = httpParams.set(key, params[key].toString());
+        }
+      });
+    }
+    
+    const url = `${this.apiUrl}/api/admin/reports/${reportType}/export`;
+    return this.http.get(
+      url,
+      { 
+        headers: this.createHeaders(),
+        params: httpParams,
+        responseType: 'blob'
+      }
     ).pipe(
       catchError(this.handleError)
     );

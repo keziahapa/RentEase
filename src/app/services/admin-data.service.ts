@@ -6,12 +6,11 @@ import {
   AdminStats,
   Business,
   Advertisement,
+  ExternalBusiness,
   ApiResponse,
   SearchParams
 } from './admin-interfaces';
 import { AdminService } from './admin.service';
-
-interface DashboardResponse extends ApiResponse<AdminStats> {}
 
 @Injectable({ providedIn: 'root' })
 export class AdminDataService {
@@ -21,37 +20,27 @@ export class AdminDataService {
     totalUsers: 0,
     totalProperties: 0,
     activeBusinesses: 0,
+    totalBusinesses: 0,
     monthlyRevenue: 0,
     commissionRevenue: 0,
     pendingApprovals: 0,
     activeDisputes: 0,
+    userGrowth: 0,
+    revenueGrowth: 0,
+    propertiesGrowth: 0,
     totalLandlords: 0,
     totalTenants: 0,
     totalCaretakers: 0,
-    totalBusinesses: 0,
     totalAdmins: 0,
     platformEarnings: 0,
-    systemHealth: 'operational',
-    monthlyActiveUsers: 0,
-    totalTransactions: 0,
-    averageRating: 0,
-    revenueGrowth: 0,
-    userGrowth: 0,
-    propertiesGrowth: 0,
-    newUsersToday: 0,
-    newPropertiesThisWeek: 0,
-    occupancyRate: 0,
-    rentCollectionRate: 0,
-    maintenanceCompletionRate: 0,
-    disputeResolutionRate: 0,
-    reportedIssuesThisWeek: 0,
-    topPerformingZones: []
+    systemHealth: 'unknown'
   };
 
   private businesses: Business[] = [];
   private advertisements: Advertisement[] = [];
+  private externalBusinesses: ExternalBusiness[] = [];
 
-  getDashboardStats(): Observable<DashboardResponse> {
+  getDashboardStats(): Observable<ApiResponse<AdminStats>> {
     return this.adminService.getDashboardStats().pipe(
       tap(response => {
         if (response?.success && response.data) {
@@ -63,7 +52,7 @@ export class AdminDataService {
           return throwError(() => error);
         }
         this.logFallback('dashboard stats', error);
-        return of<DashboardResponse>({
+        return of<ApiResponse<AdminStats>>({
           success: true,
           data: { ...this.dashboardStats },
           message: this.extractErrorMessage(error) || 'Using cached dashboard stats.'
@@ -77,7 +66,7 @@ export class AdminDataService {
           success: true,
           data: { ...this.dashboardStats },
           message: response?.message ?? 'Using cached dashboard stats.'
-        } as DashboardResponse;
+        };
       })
     );
   }
@@ -106,13 +95,13 @@ export class AdminDataService {
             success: true,
             data: this.cloneBusinesses(response.data),
             message: response.message
-          } as ApiResponse<Business[]>;
+          };
         }
         return {
           success: true,
           data: this.cloneBusinesses(this.businesses),
           message: response?.message ?? 'Serving cached businesses.'
-        } as ApiResponse<Business[]>;
+        };
       })
     );
   }
@@ -129,7 +118,9 @@ export class AdminDataService {
           return throwError(() => error);
         }
         this.logFallback('pending business list', error);
-        const pending = this.businesses.filter(business => business.status === 'pending');
+        const pending = this.businesses.filter(business => 
+          business.status === 'pending' || business.registrationStatus === 'PENDING'
+        );
         return of<ApiResponse<Business[]>>({
           success: true,
           data: this.cloneBusinesses(pending),
@@ -142,14 +133,16 @@ export class AdminDataService {
             success: true,
             data: this.cloneBusinesses(response.data),
             message: response.message
-          } as ApiResponse<Business[]>;
+          };
         }
-        const pending = this.businesses.filter(business => business.status === 'pending');
+        const pending = this.businesses.filter(business => 
+          business.status === 'pending' || business.registrationStatus === 'PENDING'
+        );
         return {
           success: true,
           data: this.cloneBusinesses(pending),
           message: response?.message ?? 'Serving cached pending businesses.'
-        } as ApiResponse<Business[]>;
+        };
       })
     );
   }
@@ -166,7 +159,7 @@ export class AdminDataService {
           return throwError(() => error);
         }
         this.logFallback(`approve business ${businessId}`, error);
-        const business = this.updateBusinessStatus(businessId, 'approved');
+        const business = this.updateBusinessStatus(businessId, 'approved', 'APPROVED');
         if (!business) {
           return throwError(() => new Error('Business not found'));
         }
@@ -191,7 +184,7 @@ export class AdminDataService {
           return throwError(() => error);
         }
         this.logFallback(`reject business ${businessId}`, error);
-        const business = this.updateBusinessStatus(businessId, 'rejected', rejectionReason);
+        const business = this.updateBusinessStatus(businessId, 'rejected', 'REJECTED', rejectionReason);
         if (!business) {
           return throwError(() => new Error('Business not found'));
         }
@@ -216,7 +209,7 @@ export class AdminDataService {
           return throwError(() => error);
         }
         this.logFallback(`suspend business ${businessId}`, error);
-        const business = this.updateBusinessStatus(businessId, 'suspended', undefined, reason);
+        const business = this.updateBusinessStatus(businessId, 'suspended', 'SUSPENDED', undefined, reason);
         if (!business) {
           return throwError(() => new Error('Business not found'));
         }
@@ -253,13 +246,13 @@ export class AdminDataService {
             success: true,
             data: this.cloneAdvertisements(response.data),
             message: response.message
-          } as ApiResponse<Advertisement[]>;
+          };
         }
         return {
           success: true,
           data: this.cloneAdvertisements(this.advertisements),
           message: response?.message ?? 'Serving cached advertisements.'
-        } as ApiResponse<Advertisement[]>;
+        };
       })
     );
   }
@@ -289,14 +282,14 @@ export class AdminDataService {
             success: true,
             data: this.cloneAdvertisements(response.data),
             message: response.message
-          } as ApiResponse<Advertisement[]>;
+          };
         }
         const pending = this.advertisements.filter(ad => ad.status === 'PENDING');
         return {
           success: true,
           data: this.cloneAdvertisements(pending),
           message: response?.message ?? 'Serving cached pending advertisements.'
-        } as ApiResponse<Advertisement[]>;
+        };
       })
     );
   }
@@ -346,6 +339,49 @@ export class AdminDataService {
           success: true,
           data: advertisement,
           message: this.extractErrorMessage(error) || 'Advertisement rejected locally.'
+        });
+      })
+    );
+  }
+
+  getExternalBusinesses(): Observable<ApiResponse<ExternalBusiness[]>> {
+    return this.adminService.getExternalBusinesses().pipe(
+      tap(response => {
+        if (response?.success && response.data) {
+          this.setExternalBusinesses(response.data);
+        }
+      }),
+      catchError(error => {
+        if (!this.shouldFallback(error)) {
+          return throwError(() => error);
+        }
+        this.logFallback('external business list', error);
+        return of<ApiResponse<ExternalBusiness[]>>({
+          success: true,
+          data: this.cloneExternalBusinesses(this.externalBusinesses),
+          message: this.extractErrorMessage(error) || 'Serving cached external businesses.'
+        });
+      })
+    );
+  }
+
+  getPendingExternalBusinesses(): Observable<ApiResponse<ExternalBusiness[]>> {
+    return this.adminService.getPendingExternalBusinesses().pipe(
+      tap(response => {
+        if (response?.success && response.data) {
+          this.setExternalBusinesses(response.data, true);
+        }
+      }),
+      catchError(error => {
+        if (!this.shouldFallback(error)) {
+          return throwError(() => error);
+        }
+        this.logFallback('pending external business list', error);
+        const pending = this.externalBusinesses.filter(business => business.registrationStatus === 'PENDING');
+        return of<ApiResponse<ExternalBusiness[]>>({
+          success: true,
+          data: this.cloneExternalBusinesses(pending),
+          message: this.extractErrorMessage(error) || 'Serving cached pending external businesses.'
         });
       })
     );
@@ -411,6 +447,7 @@ export class AdminDataService {
   private updateBusinessStatus(
     businessId: number,
     status: Business['status'],
+    registrationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED',
     rejectionReason?: string,
     suspensionReason?: string
   ): Business | null {
@@ -419,6 +456,9 @@ export class AdminDataService {
       return null;
     }
     const business = { ...this.businesses[index], status };
+    if (registrationStatus) {
+      business.registrationStatus = registrationStatus;
+    }
     if (rejectionReason !== undefined) {
       business.rejectionReason = rejectionReason;
     } else if (status !== 'rejected') {
@@ -484,12 +524,33 @@ export class AdminDataService {
     return advertisement;
   }
 
+  private setExternalBusinesses(businesses: ExternalBusiness[], merge = false): void {
+    if (merge) {
+      const merged = [...this.externalBusinesses];
+      businesses.forEach(business => {
+        const index = merged.findIndex(existing => existing.id === business.id);
+        if (index === -1) {
+          merged.push({ ...business });
+        } else {
+          merged[index] = { ...business };
+        }
+      });
+      this.externalBusinesses = this.cloneExternalBusinesses(merged);
+    } else {
+      this.externalBusinesses = this.cloneExternalBusinesses(businesses);
+    }
+  }
+
   private cloneBusinesses(businesses: Business[]): Business[] {
     return businesses.map(business => ({ ...business }));
   }
 
   private cloneAdvertisements(advertisements: Advertisement[]): Advertisement[] {
     return advertisements.map(advertisement => ({ ...advertisement }));
+  }
+
+  private cloneExternalBusinesses(businesses: ExternalBusiness[]): ExternalBusiness[] {
+    return businesses.map(business => ({ ...business }));
   }
 
   private shouldFallback(error: unknown): boolean {
