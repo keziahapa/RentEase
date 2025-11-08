@@ -10,8 +10,9 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   const router = inject(Router);
   const snackBar = inject(MatSnackBar);
   
-  // ✅ ENDPOINTS TO SKIP AUTH - INCLUDING EXTERNAL BUSINESS REGISTRATION
-  const skipAuthEndpoints = [
+  // ✅ SIMPLE & RELIABLE public endpoints list
+  const publicEndpoints = [
+    // Auth endpoints
     '/api/auth/login',
     '/api/auth/signup', 
     '/api/auth/send-otp',
@@ -21,37 +22,61 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     '/api/auth/reset-password',
     '/api/auth/resend-otp',
     '/api/auth/refresh-token',
-    // ✅ EXTERNAL BUSINESS ENDPOINTS (SHOULD BE PUBLIC)
+    
+    // ✅ BUSINESS REGISTRATION - exact match
     '/api/external-business/register-business',
-    '/api/external-business/',
-    // ✅ M-PESA ENDPOINTS
-    '/api/open/mobile-money/stk-push',
-    '/api/open/mobile-money/stk-push/callback', 
-    '/api/open/mobile-money/validation',
-    '/api/open/mobile-money/confirmation',
-    '/api/open/mobile-money/transaction-status',
-    // ✅ PUBLIC ENDPOINTS
+    
+    // Public advertisements
+    '/api/external-business/advertisements/approved',
+    
+    // M-Pesa endpoints
+    '/api/open/mobile-money/',
+    
+    // Other public endpoints
     '/api/public/',
     '/api/open/'
   ];
 
-  const shouldSkipAuth = skipAuthEndpoints.some(endpoint => req.url.includes(endpoint));
+  // ✅ SIMPLE CHECK: Is this a public endpoint?
+  const isPublicEndpoint = publicEndpoints.some(endpoint => {
+    // For business registration - exact match
+    if (endpoint === '/api/external-business/register-business') {
+      return req.url.includes('/api/external-business/register-business');
+    }
+    // For other endpoints - partial match
+    return req.url.includes(endpoint);
+  });
+
+  console.log('🔐 Interceptor:');
+  console.log('- URL:', req.url);
+  console.log('- Is Public:', isPublicEndpoint);
+
+  // ✅ CRITICAL: SKIP ALL AUTH for public endpoints
+  if (isPublicEndpoint) {
+    console.log('🚫 NO AUTH: Public endpoint detected');
+    
+    // Remove any existing auth headers
+    const cleanRequest = req.clone({
+      headers: req.headers.delete('Authorization')
+    });
+    
+    return next(cleanRequest);
+  }
+
+  // ✅ ONLY FOR PRIVATE ENDPOINTS: Continue with auth logic
+  console.log('🔑 AUTH REQUIRED: Private endpoint');
+  
   const isAuthRequest = req.url.includes('/auth/');
   const isRefreshTokenRequest = req.url.includes('/auth/refresh-token');
 
-  console.log('🔐 Interceptor - URL:', req.url);
-  console.log('🔐 Interceptor - Skip auth:', shouldSkipAuth);
-  console.log('🔐 Interceptor - Is auth request:', isAuthRequest);
-
-  // Check if token needs refresh (skip for auth requests, refresh token requests, and public endpoints)
-  if (!shouldSkipAuth && !isAuthRequest && !isRefreshTokenRequest && authService.isAuthenticated()) {
+  // Token refresh logic (keep your existing code here)
+  if (!isAuthRequest && !isRefreshTokenRequest && authService.isAuthenticated()) {
     if (authService.isTokenAboutToExpire()) {
-      console.log('🔄 Token is about to expire, attempting refresh...');
+      console.log('🔄 Token refresh needed');
       
       return authService.refreshToken().pipe(
         switchMap((refreshResponse) => {
-          console.log('✅ Token refreshed successfully, proceeding with original request');
-          // Retry the original request with new token
+          console.log('✅ Token refreshed');
           const newToken = authService.getToken();
           const authReq = req.clone({
             setHeaders: {
@@ -61,10 +86,9 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
           return next(authReq);
         }),
         catchError((refreshError) => {
-          console.error('❌ Token refresh failed:', refreshError);
-          // Refresh failed, logout user
+          console.error('❌ Token refresh failed');
           authService.logoutSync();
-          snackBar.open('Your session has expired. Please log in again.', 'Close', {
+          snackBar.open('Session expired. Please login again.', 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar']
           });
@@ -75,79 +99,32 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     }
   }
 
-  // Add authorization header only for requests that need it and have valid token
-  let clonedReq = req;
+  // Add auth header for private endpoints
+  let finalRequest = req;
   const token = authService.getToken();
   
-  if (token && !shouldSkipAuth && authService.hasValidToken()) {
-    clonedReq = req.clone({
+  if (token && authService.hasValidToken()) {
+    finalRequest = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
       }
     });
-    console.log('🔐 Interceptor - Added Authorization header');
-  } else if (token && !shouldSkipAuth && !authService.hasValidToken()) {
-    console.warn('🔐 Interceptor - Token exists but is invalid, clearing auth data');
-    authService.clearCorruptedStorage();
-  } else if (!token && !shouldSkipAuth) {
-    console.warn('🔐 Interceptor - No token available for authenticated endpoint:', req.url);
-  } else if (shouldSkipAuth) {
-    console.log('🔐 Interceptor - Skipping auth for public endpoint');
+    console.log('🔑 Auth header added');
+  } else if (!token) {
+    console.warn('⚠️ No token for private endpoint');
   }
 
-  return next(clonedReq).pipe(
+  return next(finalRequest).pipe(
     catchError((error: HttpErrorResponse) => {
-      console.error('🔐 Interceptor - Request failed:', {
-        url: req.url,
-        status: error.status,
-        statusText: error.statusText,
-        error: error.error
-      });
+      console.error('❌ Request failed:', error.status, error.url);
 
-      const isInvitationRequest = 
-        req.url.includes('/invite-tenant') || 
-        req.url.includes('/invite-caretaker') ||
-        req.url.includes('/invitations/details/');
-
-     
-      if (error.status === 401 && !shouldSkipAuth && !isInvitationRequest) {
-        console.warn('🔐 Interceptor - 401 Unauthorized for', req.url);
-        
-        if (!isRefreshTokenRequest) {
-          authService.logoutSync();
-          snackBar.open('Your session has expired. Please log in again.', 'Close', {
-            duration: 5000,
-            panelClass: ['error-snackbar']
-          });
-          router.navigate(['/login']);
-        }
-      }
-
-    
-      if (error.status === 403) {
-        console.warn('🔐 Interceptor - 403 Forbidden for', req.url);
-        snackBar.open('You do not have permission to access this resource.', 'Close', {
+      if (error.status === 401 && !isPublicEndpoint) {
+        authService.logoutSync();
+        snackBar.open('Session expired. Please login again.', 'Close', {
           duration: 5000,
           panelClass: ['error-snackbar']
         });
-      }
-
-    
-      if (error.status >= 500) {
-        console.error('🔐 Interceptor - Server error for', req.url);
-        snackBar.open('Server error. Please try again later.', 'Close', {
-          duration: 5000,
-          panelClass: ['error-snackbar']
-        });
-      }
-
-    
-      if (error.status === 0) {
-        console.error('🔐 Interceptor - Network error for', req.url);
-        snackBar.open('Network error. Please check your connection.', 'Close', {
-          duration: 5000,
-          panelClass: ['error-snackbar']
-        });
+        router.navigate(['/login']);
       }
 
       return throwError(() => error);

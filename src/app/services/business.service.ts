@@ -27,15 +27,15 @@ export class BusinessService {
   
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
 
-  // ✅ FIXED: Business Registration with multipart/form-data
+  // ✅ FIXED: Business Registration - Public endpoint (no auth headers)
   registerBusiness(formData: FormData): Observable<ApiResponse<BusinessRegistration>> {
     console.log('📤 Registering business with FormData');
     
-    // ✅ NO headers - browser sets Content-Type automatically for FormData
+    // ✅ No headers - let browser set Content-Type for FormData
+    // ✅ No Authorization header - this is a public endpoint
     return this.http.post<ApiResponse<BusinessRegistration>>(
       `${this.apiUrl}/api/external-business/register-business`,
       formData
-      // No headers parameter - let browser handle multipart/form-data
     ).pipe(
       tap(response => {
         console.log('✅ Registration response:', response);
@@ -251,7 +251,7 @@ export class BusinessService {
     );
   }
 
-  // ✅ FIXED: Upload media with proper headers
+  // Upload media
   uploadAdvertisementMedia(file: File): Observable<UploadResponse> {
     const token = this.authService.getToken();
     if (!token) {
@@ -264,9 +264,9 @@ export class BusinessService {
     const formData = new FormData();
     formData.append('file', file);
     
-    // ✅ Only Authorization header - let browser set Content-Type
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${token}`
+      // No Content-Type - let browser set it for FormData
     });
 
     return this.http.post<UploadResponse>(
@@ -474,7 +474,7 @@ export class BusinessService {
     ];
   }
 
-  // ✅ FIXED: Separate method for auth headers
+  // Auth headers for authenticated endpoints
   private createAuthHeaders(): HttpHeaders {
     const token = this.authService.getToken();
     if (!token) {
