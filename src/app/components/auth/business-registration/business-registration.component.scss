@@ -65,7 +65,8 @@ h1 {
   padding: 2rem;
   text-align: center;
   transition: all 0.3s ease;
-  cursor: pointer;
+  background-color: white;
+  position: relative;
 
   &:hover {
     border-color: #673ab7;
@@ -78,11 +79,16 @@ h1 {
   }
 }
 
-.upload-label {
-  display: block;
-  cursor: pointer;
+// Hide the actual file input but keep it functional
+.file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
 }
 
 .upload-placeholder {
@@ -90,6 +96,7 @@ h1 {
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+  pointer-events: none; // Allow clicks to pass through to file input
 
   .upload-icon {
     font-size: 3rem;
@@ -187,6 +194,11 @@ h1 {
   .mat-card {
     box-shadow: 0 8px 32px rgba(0,0,0,0.1) !important;
     border-radius: 12px !important;
+    background: white;
+  }
+
+  .mat-card-content {
+    background: white;
   }
 
   .mat-form-field {
@@ -201,4 +213,17 @@ h1 {
 // File size display fallback
 .file-size {
   font-family: monospace;
+}
+
+// Ensure the entire card has white background
+mat-card {
+  background: white !important;
+}
+
+mat-card-header {
+  background: white !important;
+}
+
+mat-card-content {
+  background: white !important;
 }

@@ -93,6 +93,14 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {}
 
+  // Method to trigger file input programmatically
+  triggerFileInput(): void {
+    const fileInput = document.getElementById('licenseDocument') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
   onFileSelected(event: any): void {
     const file = event.target.files[0];
     if (file) {
@@ -122,7 +130,6 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
     if (fileInput) fileInput.value = '';
   }
 
-  // ADD THIS METHOD TO FIX THE ERROR
   navigateToDashboard(): void {
     this.router.navigate(['/dashboard']);
   }

@@ -46,34 +46,35 @@
           <!-- License Document Upload -->
           <div class="file-upload-section">
             <h3>Business License Document</h3>
-            <p class="file-requirements">Upload your business license (JPEG, PNG, PDF, max 5MB)</p>
+           
             
             <div class="file-upload-area" [class.has-file]="selectedFile">
-              <input type="file" id="licenseDocument" 
+              <!-- File input that covers the entire area -->
+              <input type="file" id="licenseDocument" class="file-input"
                      (change)="onFileSelected($event)" 
-                     accept=".jpg,.jpeg,.png,.pdf" 
-                     hidden>
+                     accept=".jpg,.jpeg,.png,.pdf">
               
-              <label for="licenseDocument" class="upload-label">
-                <div *ngIf="!selectedFile" class="upload-placeholder">
-                  <mat-icon class="upload-icon">cloud_upload</mat-icon>
-                  <p>Click to upload business license</p>
-                  <button type="button" mat-stroked-button color="primary">
-                    Choose File
-                  </button>
-                </div>
+              <!-- Content that shows when no file is selected -->
+              <div *ngIf="!selectedFile" class="upload-placeholder">
+                <mat-icon class="upload-icon">cloud_upload</mat-icon>
+                <p>Click anywhere in this area to upload business license</p>
+                <span>or</span>
+                <button type="button" mat-stroked-button color="primary" (click)="triggerFileInput()">
+                  Browse Files
+                </button>
+              </div>
 
-                <div *ngIf="selectedFile" class="file-preview">
-                  <mat-icon class="file-icon">description</mat-icon>
-                  <div class="file-info">
-                    <span class="file-name">{{ fileName }}</span>
-                    <span class="file-size">{{ selectedFile.size | fileSize }}</span>
-                  </div>
-                  <button type="button" mat-icon-button color="warn" (click)="removeFile()">
-                    <mat-icon>delete</mat-icon>
-                  </button>
+              <!-- Content that shows when file is selected -->
+              <div *ngIf="selectedFile" class="file-preview">
+                <mat-icon class="file-icon">description</mat-icon>
+                <div class="file-info">
+                  <span class="file-name">{{ fileName }}</span>
+                  <span class="file-size">{{ selectedFile.size | fileSize }}</span>
                 </div>
-              </label>
+                <button type="button" mat-icon-button color="warn" (click)="removeFile()">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
             </div>
           </div>
 
