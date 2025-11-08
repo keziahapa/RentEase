@@ -1,15 +1,17 @@
 import { inject } from '@angular/core';
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { catchError, throwError } from 'rxjs';
+import { HttpInterceptorFn, HttpErrorResponse, HttpRequest, HttpHandlerFn } from '@angular/common/http';
+import { catchError, throwError, switchMap, of } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
-export const authInterceptor: HttpInterceptorFn = (req, next) => {
+export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: HttpHandlerFn) => {
   const authService = inject(AuthService);
   const router = inject(Router);
+  const snackBar = inject(MatSnackBar);
   
-  // ✅ ADD M-PESA ENDPOINTS TO SKIP AUTH
-  const skipAuth = [
+ 
+  const skipAuthEndpoints = [
     '/api/auth/login',
     '/api/auth/signup', 
     '/api/auth/send-otp',
@@ -18,47 +20,128 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     '/api/auth/verify-reset-otp',
     '/api/auth/reset-password',
     '/api/auth/resend-otp',
-    // ✅ ADD THESE M-PESA ENDPOINTS
+    '/api/auth/refresh-token',
+  
     '/api/open/mobile-money/stk-push',
     '/api/open/mobile-money/stk-push/callback', 
     '/api/open/mobile-money/validation',
     '/api/open/mobile-money/confirmation',
-    '/api/open/mobile-money/transaction-status'
-  ].some(endpoint => req.url.includes(endpoint));
+    '/api/open/mobile-money/transaction-status',
+   
+    '/api/public/',
+    '/api/open/'
+  ];
+
+  const shouldSkipAuth = skipAuthEndpoints.some(endpoint => req.url.includes(endpoint));
+  const isAuthRequest = req.url.includes('/auth/');
+  const isRefreshTokenRequest = req.url.includes('/auth/refresh-token');
+
+  console.log('🔐 Interceptor - URL:', req.url);
+  console.log('🔐 Interceptor - Skip auth:', shouldSkipAuth);
+  console.log('🔐 Interceptor - Is auth request:', isAuthRequest);
+
+ 
+  if (!shouldSkipAuth && !isAuthRequest && !isRefreshTokenRequest && authService.isAuthenticated()) {
+    if (authService.isTokenAboutToExpire()) {
+      console.log(' Token is about to expire, attempting refresh...');
+      
+      return authService.refreshToken().pipe(
+        switchMap((refreshResponse) => {
+          console.log(' Token refreshed successfully, proceeding with original request');
+         
+          const newToken = authService.getToken();
+          const authReq = req.clone({
+            setHeaders: {
+              Authorization: `Bearer ${newToken}`
+            }
+          });
+          return next(authReq);
+        }),
+        catchError((refreshError) => {
+          console.error(' Token refresh failed:', refreshError);
+        
+          authService.logoutSync();
+          snackBar.open('Your session has expired. Please log in again.', 'Close', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+          router.navigate(['/login']);
+          return throwError(() => new Error('Session expired'));
+        })
+      );
+    }
+  }
 
   let clonedReq = req;
   const token = authService.getToken();
   
-  console.log('🔐 Interceptor - URL:', req.url);
-  console.log('🔐 Interceptor - Token exists:', !!token);
-  console.log('🔐 Interceptor - Skip auth:', skipAuth);
-  
-  if (token && !skipAuth) {
+  if (token && !shouldSkipAuth) {
     clonedReq = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
       }
     });
-    console.log('🔐 Interceptor - Added Authorization header');
+    console.log(' Interceptor - Added Authorization header');
+  } else if (!token && !shouldSkipAuth) {
+    console.warn('Interceptor - No token available for authenticated endpoint:', req.url);
   }
 
   return next(clonedReq).pipe(
     catchError((error: HttpErrorResponse) => {
+      console.error('Interceptor - Request failed:', {
+        url: req.url,
+        status: error.status,
+        statusText: error.statusText,
+        error: error.error
+      });
+
+   
       const isInvitationRequest = 
         req.url.includes('/invite-tenant') || 
         req.url.includes('/invite-caretaker') ||
-        req.url.includes('/invitations/details/'); 
+        req.url.includes('/invitations/details/');
+
+     
+      if (error.status === 401 && !shouldSkipAuth && !isInvitationRequest) {
+        console.warn(' Interceptor - 401 Unauthorized for', req.url);
       
-      console.log('🔐 Interceptor - Request failed:', {
-        url: req.url,
-        status: error.status,
-        isInvitationRequest: isInvitationRequest
-      });
-      
-      if (error.status === 401 && !skipAuth && !isInvitationRequest) {
-        console.warn('Received 401 response for', req.url, '- keeping session and delegating to caller for fallback.');
+        if (!isRefreshTokenRequest) {
+          authService.logoutSync();
+          snackBar.open('Your session has expired. Please log in again.', 'Close', {
+            duration: 5000,
+            panelClass: ['error-snackbar']
+          });
+          router.navigate(['/login']);
+        }
       }
-      
+
+   
+      if (error.status === 403) {
+        console.warn('Interceptor - 403 Forbidden for', req.url);
+        snackBar.open('You do not have permission to access this resource.', 'Close', {
+          duration: 5000,
+          panelClass: ['error-snackbar']
+        });
+      }
+
+   
+      if (error.status >= 500) {
+        console.error('Interceptor - Server error for', req.url);
+        snackBar.open('Server error. Please try again later.', 'Close', {
+          duration: 5000,
+          panelClass: ['error-snackbar']
+        });
+      }
+
+   
+      if (error.status === 0) {
+        console.error(' Interceptor - Network error for', req.url);
+        snackBar.open('Network error. Please check your connection.', 'Close', {
+          duration: 5000,
+          panelClass: ['error-snackbar']
+        });
+      }
+
       return throwError(() => error);
     })
   );

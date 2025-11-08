@@ -27,7 +27,6 @@ export class AuthService {
   private snackBar = inject(MatSnackBar);
   private isBrowser: boolean;
 
- 
   private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);
@@ -43,28 +42,25 @@ export class AuthService {
     }
   }
 
- 
   private getBasicHeaders(): HttpHeaders {
     return new HttpHeaders({
       'Content-Type': 'application/json'
     });
   }
 
-
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    console.log('Sending login request - FULL CREDENTIALS:', { 
+    console.log('🔐 Sending login request - FULL CREDENTIALS:', { 
       email: credentials.email, 
       password: credentials.password ? `[${credentials.password.length} chars]` : 'MISSING',
       rememberMe: credentials.rememberMe 
     });
 
-   
     const loginPayload = {
       email: credentials.email.trim().toLowerCase(),
       password: credentials.password.trim()
     };
 
-    console.log('Final login payload being sent:', loginPayload);
+    console.log('🔐 Final login payload being sent:', loginPayload);
 
     return this.http.post<AuthResponse>(
       `${this.apiUrl}/login`, 
@@ -72,13 +68,12 @@ export class AuthService {
       { headers: this.getBasicHeaders() }
     ).pipe(
       tap(response => {
-        console.log(' Login SUCCESS - Full response:', response);
+        console.log('✅ Login SUCCESS - Full response:', response);
         
         if (response.token) {
-       
           this.storeAuthDataDirectly(response, credentials.rememberMe || false);
         } else {
-          console.error(' Login successful but no token received');
+          console.error('❌ Login successful but no token received');
           throw new Error('Authentication error: No token received');
         }
       }),
@@ -92,14 +87,13 @@ export class AuthService {
       email: userData.email.trim().toLowerCase()
     };
 
-    
     return this.http.post<ApiResponse>(
       `${this.apiUrl}/signup`, 
       normalizedData,
       { headers: this.getBasicHeaders() }
     ).pipe(
       tap(response => {
-        console.log(' Registration response:', response);
+        console.log('📝 Registration response:', response);
         
         if (response.success) {
           if (this.isBrowser) {
@@ -136,10 +130,10 @@ export class AuthService {
       { headers: this.getBasicHeaders() }
     ).pipe(
       tap(response => {
-        console.log(' OTP verification response:', response);
+        console.log('✅ OTP verification response:', response);
         
         if (response.success) {
-          console.log(' OTP verified successfully - email confirmed');
+          console.log('✅ OTP verified successfully - email confirmed');
           this.clearPendingVerification();
         } else {
           throw new Error(response.message || 'OTP verification failed');
@@ -155,16 +149,15 @@ export class AuthService {
       type: request.type || 'email_verification'
     };
     
-    console.log(' Resending OTP:', cleanRequest);
+    console.log('🔄 Resending OTP:', cleanRequest);
 
-   
     return this.http.post<ApiResponse>(
       `${this.apiUrl}/resend-otp`, 
       cleanRequest,
       { headers: this.getBasicHeaders() }
     ).pipe(
       tap(response => {
-        console.log(' Resend OTP response:', response);
+        console.log('✅ Resend OTP response:', response);
       }),
       catchError(this.handleError)
     );
@@ -202,12 +195,11 @@ export class AuthService {
           responseType: 'json'
         }
       ).subscribe({
-        next: () => console.log('Backend logout completed'),
-        error: (err) => console.warn('Backend logout failed:', err)
+        next: () => console.log('✅ Backend logout completed'),
+        error: (err) => console.warn('⚠️ Backend logout failed:', err)
       });
     }
   }
-
 
   requestPasswordReset(request: { email: string }): Observable<ApiResponse> {
     const normalizedRequest = { email: request.email.trim().toLowerCase() };
@@ -268,7 +260,6 @@ export class AuthService {
     ).pipe(catchError(this.handleError));
   }
 
- 
   updatePhone(newPhoneNumber: string): Observable<ApiResponse> {
     const payload = { newPhoneNumber };
     
@@ -308,6 +299,7 @@ export class AuthService {
     ).pipe(catchError(this.handleError));
   }
 
+  // ==================== TOKEN MANAGEMENT METHODS ====================
 
   getToken(): string | null {
     if (!this.isBrowser) return null;
@@ -317,14 +309,12 @@ export class AuthService {
     if (!token) return null;
     
     let cleanToken = token.trim();
-    
 
     if ((cleanToken.startsWith('"') && cleanToken.endsWith('"')) || 
         (cleanToken.startsWith("'") && cleanToken.endsWith("'"))) {
       cleanToken = cleanToken.slice(1, -1);
     }
     
-   
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
     }
@@ -342,7 +332,7 @@ export class AuthService {
     try { 
       return JSON.parse(userData);
     } catch (error) { 
-      console.error('Error parsing user data:', error);
+      console.error('❌ Error parsing user data:', error);
       this.removeFromStorage('userData');
       return null; 
     }
@@ -350,13 +340,115 @@ export class AuthService {
 
   isAuthenticated(): boolean { 
     const token = this.getToken();
-    const isAuth = !!token;
-    console.log(' isAuthenticated check:', isAuth);
-    return isAuth;
+    
+    if (!token) {
+      console.log('🔐 isAuthenticated: No token found');
+      return false;
+    }
+    
+    const isTokenValid = this.hasValidToken();
+    
+    if (!isTokenValid) {
+      console.log('🔐 isAuthenticated: Token expired or invalid');
+      this.clearAllStorage();
+      this.currentUserSubject.next(null);
+      this.isAuthenticatedSubject.next(false);
+      return false;
+    }
+    
+    console.log('🔐 isAuthenticated: Token valid');
+    return true;
   }
 
   isLoggedIn(): boolean {
     return this.isAuthenticated();
+  }
+
+  hasValidToken(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+    
+    try {
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        console.log('❌ Token has invalid format');
+        return false;
+      }
+      
+      const payload = tokenParts[1];
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      const decodedPayload = atob(paddedBase64);
+      const payloadObj = JSON.parse(decodedPayload);
+      
+      if (!payloadObj.exp) {
+        console.log('⚠️ Token has no expiration date, assuming valid');
+        return true;
+      }
+      
+      const currentTime = Math.floor(Date.now() / 1000);
+      const isExpired = payloadObj.exp <= currentTime;
+      
+      console.log('🔐 Token expiration check:', {
+        exp: payloadObj.exp,
+        currentTime,
+        isExpired,
+        expiresIn: payloadObj.exp - currentTime
+      });
+      
+      return !isExpired;
+      
+    } catch (error) {
+      console.error('❌ Error validating token:', error);
+      return false;
+    }
+  }
+
+  isTokenAboutToExpire(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+    
+    try {
+      const tokenParts = token.split('.');
+      const payload = JSON.parse(atob(tokenParts[1]));
+      const currentTime = Math.floor(Date.now() / 1000);
+      const timeUntilExpiry = payload.exp - currentTime;
+      
+      console.log('🔐 Token expires in:', timeUntilExpiry, 'seconds');
+      
+      return timeUntilExpiry < 300; // 5 minutes
+    } catch {
+      return false;
+    }
+  }
+
+  refreshToken(): Observable<AuthResponse> {
+    const refreshToken = this.getFromStorage('refreshToken');
+    
+    if (!refreshToken) {
+      console.warn('❌ No refresh token available');
+      return throwError(() => new Error('No refresh token available'));
+    }
+    
+    console.log('🔄 Refreshing token...');
+    
+    return this.http.post<AuthResponse>(
+      `${this.apiUrl}/refresh-token`,
+      { refreshToken },
+      { headers: this.getBasicHeaders() }
+    ).pipe(
+      tap(response => {
+        console.log('✅ Token refresh successful');
+        if (response.token) {
+          this.storeAuthDataDirectly(response, this.isUsingLocalStorage());
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Token refresh failed:', error);
+        this.logoutSync();
+        return throwError(() => new Error('Token refresh failed'));
+      })
+    );
   }
 
   getAuthHeaders(includeContentType: boolean = true): HttpHeaders {
@@ -414,7 +506,8 @@ export class AuthService {
     this.isAuthenticatedSubject.next(false);
   }
 
-  
+  // ==================== PRIVATE METHODS ====================
+
   private getFromStorage(key: string): string | null {
     if (!this.isBrowser) return null;
     try {
@@ -443,7 +536,7 @@ export class AuthService {
   private storeAuthDataDirectly(authResponse: AuthResponse, rememberMe: boolean): void {
     if (!this.isBrowser) return;
 
-    console.log(' Storing auth data directly from AuthResponse:', authResponse);
+    console.log('💾 Storing auth data directly from AuthResponse:', authResponse);
 
     const user: User = {
       id: authResponse.userId.toString(),
@@ -457,7 +550,7 @@ export class AuthService {
     const token = authResponse.token;
 
     if (!user || !token) {
-      console.error(' Missing user or token in auth success');
+      console.error('❌ Missing user or token in auth success');
       return;
     }
 
@@ -466,13 +559,18 @@ export class AuthService {
       cleanToken = cleanToken.substring(7).trim();
     }
 
-   
     if (rememberMe) {
       localStorage.setItem('authToken', cleanToken);
       localStorage.setItem('userData', JSON.stringify(user));
+      if (authResponse.refreshToken) {
+        localStorage.setItem('refreshToken', authResponse.refreshToken);
+      }
     } else {
       sessionStorage.setItem('authToken', cleanToken);
       sessionStorage.setItem('userData', JSON.stringify(user));
+      if (authResponse.refreshToken) {
+        sessionStorage.setItem('refreshToken', authResponse.refreshToken);
+      }
     }
 
     this.currentUserSubject.next(user);
@@ -480,14 +578,19 @@ export class AuthService {
     
     this.clearPendingVerification();
     
-    console.log(' Auth storage completed - User:', user);
-    console.log(' Token stored:', cleanToken ? 'YES' : 'NO');
+    console.log('✅ Auth storage completed - User:', user);
+    console.log('✅ Token stored:', cleanToken ? 'YES' : 'NO');
+  }
+
+  private isUsingLocalStorage(): boolean {
+    if (!this.isBrowser) return false;
+    return !!localStorage.getItem('authToken');
   }
 
   private handleAuthSuccess(response: ApiResponse, rememberMe: boolean = false): void {
     if (!this.isBrowser) return;
     
-    console.log(' Handling auth success:', response);
+    console.log('✅ Handling auth success:', response);
 
     const user: User = response.user || {
       id: response.data?.userId || '',
@@ -502,7 +605,7 @@ export class AuthService {
     const token = response.token || response.data?.token;
 
     if (!user || !token) {
-      console.error(' Missing user or token in auth success');
+      console.error('❌ Missing user or token in auth success');
       return;
     }
 
@@ -524,7 +627,7 @@ export class AuthService {
     
     this.clearPendingVerification();
     
-    console.log(' Auth storage completed');
+    console.log('✅ Auth storage completed');
   }
 
   private extractRoleFromToken(token: string): string | null {
@@ -541,30 +644,6 @@ export class AuthService {
       return payloadObj.role || null;
     } catch (error) {
       return null;
-    }
-  }
-
-  private hasValidToken(): boolean {
-    const token = this.getToken();
-    if (!token) return false;
-    
-    try {
-      const tokenParts = token.split('.');
-      if (tokenParts.length !== 3) return false;
-      
-      const payload = tokenParts[1];
-      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
-      const decodedPayload = atob(paddedBase64);
-      const payloadObj = JSON.parse(decodedPayload);
-      
-      if (!payloadObj.exp) return true;
-      
-      const currentTime = Math.floor(Date.now() / 1000);
-      return payloadObj.exp > currentTime;
-      
-    } catch (error) {
-      return false;
     }
   }
 
@@ -606,7 +685,7 @@ export class AuthService {
         sessionStorage.setItem('userData', JSON.stringify(userData));
       }
     } catch (error) {
-      console.error('Error updating user storage:', error);
+      console.error('❌ Error updating user storage:', error);
     }
   }
 
@@ -641,7 +720,7 @@ export class AuthService {
   }
 
   private handleError = (error: HttpErrorResponse): Observable<never> => {
-    console.error(' Auth Service Error:', {
+    console.error('❌ Auth Service Error:', {
       status: error.status,
       statusText: error.statusText,
       url: error.url,
