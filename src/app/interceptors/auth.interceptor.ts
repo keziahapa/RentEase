@@ -10,7 +10,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   const router = inject(Router);
   const snackBar = inject(MatSnackBar);
   
-  // ✅ FIXED: Business registration REMOVED from public endpoints
+  // ✅ Public endpoints that don't require authentication
   const publicEndpoints = [
     // Auth endpoints
     '/api/auth/login',
@@ -22,9 +22,6 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     '/api/auth/reset-password',
     '/api/auth/resend-otp',
     '/api/auth/refresh-token',
-    
-    // ❌ BUSINESS REGISTRATION REMOVED - it requires authentication
-    // '/api/external-business/register-business', ← REMOVED THIS LINE
     
     // Public advertisements
     '/api/external-business/advertisements/approved',
@@ -71,7 +68,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     return next(cleanRequest);
   }
 
-  // ✅ BUSINESS REGISTRATION & OTHER PRIVATE ENDPOINTS: Require auth
+  // ✅ PRIVATE ENDPOINTS: Require auth
   console.log('🔑 AUTH REQUIRED: Private endpoint');
   
   const isAuthRequest = req.url.includes('/auth/');
@@ -107,7 +104,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     }
   }
 
-  // ✅ ADD AUTH HEADER for private endpoints (including business registration)
+  // ✅ ADD AUTH HEADER for private endpoints
   let finalRequest = req;
   const token = authService.getToken();
   
@@ -133,17 +130,30 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
         error: error.error
       });
 
-      // Handle 401 errors for private endpoints
+      // ✅ FIXED: Handle 401 errors differently for admin vs regular endpoints
       if (error.status === 401 && !isPublicEndpoint) {
-        console.warn('🔐 401 Unauthorized - Authentication required');
+        const isAdminEndpoint = req.url.includes('/admin/');
         
-        if (!isRefreshTokenRequest) {
-          authService.logoutSync();
-          snackBar.open('Authentication required. Please log in again.', 'Close', {
+        if (isAdminEndpoint) {
+          // ✅ DON'T logout for admin 401 - it's a permission issue, not auth issue
+          console.warn('🛡️ Admin endpoint 401 - Access denied (not logging out)');
+          snackBar.open('Admin access required. You need administrator privileges.', 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar']
           });
-          router.navigate(['/login']);
+          // Just show error, don't logout
+        } else {
+          // ✅ Regular endpoint 401 - logout user
+          console.warn('🔐 Regular endpoint 401 - Authentication required (logging out)');
+          
+          if (!isRefreshTokenRequest) {
+            authService.logoutSync();
+            snackBar.open('Session expired. Please login again.', 'Close', {
+              duration: 5000,
+              panelClass: ['error-snackbar']
+            });
+            router.navigate(['/login']);
+          }
         }
       }
 
