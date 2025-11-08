@@ -66,8 +66,8 @@ import { LandlordDashboardComponent } from './components/dashboard/landlord/land
 import { DashboardOverviewComponent } from './components/dashboard/tenant/dashboard-overview/dashboard-overview.component';
 import { BusinessRegistrationComponent } from '../app/components/auth/business-registration/business-registration.component';
 import { BusinessRegistrationStatusComponent } from '../app/components/auth/business-registration-status/business-registration-status.component';
-import { BusinessRegistrationGuard } from './guards/business-registration.guard';
 
+// Use your existing authGuard instead of creating a new one
 export const routes: Routes = [
   { path: '', component: HomeComponent, pathMatch: 'full' },
   { path: 'registration', component: RegistrationComponent },
@@ -84,11 +84,10 @@ export const routes: Routes = [
   { path: 'accept-invitation', component: AcceptInvitationComponent },
   { path: 'waiting-landlord', component: WaitingLandlordComponent },
 
-
   { 
     path: 'business/register', 
     component: BusinessRegistrationComponent,
-    canActivate: [BusinessRegistrationGuard]
+    canActivate: [authGuard] // ✅ Use existing authGuard instead of BusinessRegistrationGuard
   },
   { 
     path: 'business/registration-status', 
