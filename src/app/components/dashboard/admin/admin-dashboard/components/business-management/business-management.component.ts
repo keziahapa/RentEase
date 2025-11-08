@@ -67,6 +67,18 @@ export class BusinessManagementComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         if (response.success) {
           this.businesses = response.data || [];
+          
+          // Debug: Check what fields actually exist
+          if (this.businesses.length > 0) {
+            console.log('🔍 First business object:', this.businesses[0]);
+            console.log('🔍 Available status fields:', {
+              status: this.businesses[0].status,
+              registrationStatus: this.businesses[0].registrationStatus,
+              hasStatus: 'status' in this.businesses[0],
+              hasRegistrationStatus: 'registrationStatus' in this.businesses[0]
+            });
+          }
+          
         } else {
           this.snackBar.open('Failed to load businesses', 'Close', { duration: 3000 });
         }
@@ -89,6 +101,16 @@ export class BusinessManagementComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         if (response.success) {
           this.pendingBusinesses = response.data || [];
+          
+          // Debug: Check what fields actually exist in pending businesses
+          if (this.pendingBusinesses.length > 0) {
+            console.log('🔍 First pending business object:', this.pendingBusinesses[0]);
+            console.log('🔍 Pending business status fields:', {
+              status: this.pendingBusinesses[0].status,
+              registrationStatus: this.pendingBusinesses[0].registrationStatus
+            });
+          }
+          
         } else {
           this.snackBar.open('Failed to load pending businesses', 'Close', { duration: 3000 });
         }
@@ -155,8 +177,18 @@ export class BusinessManagementComponent implements OnInit, OnDestroy {
     this.router.navigate(['/admin-dashboard/businesses', businessId]);
   }
 
-  getStatusClass(status: string): string {
-    switch (status.toLowerCase()) {
+  // NEW: Helper method to get the correct status from business object
+  getBusinessStatus(business: Business): string {
+    // Prefer status field, fall back to registrationStatus (converted to lowercase)
+    return business.status || 
+           (business.registrationStatus ? business.registrationStatus.toLowerCase() : 'unknown');
+  }
+
+  // UPDATED: Now accepts the entire business object
+  getStatusClass(business: Business): string {
+    const status = this.getBusinessStatus(business);
+    
+    switch (status) {
       case 'approved': return 'status-approved';
       case 'pending': return 'status-pending';
       case 'rejected': return 'status-rejected';
@@ -175,5 +207,14 @@ export class BusinessManagementComponent implements OnInit, OnDestroy {
     } else {
       this.loadPendingBusinesses();
     }
+  }
+
+  // NEW: Test method to check endpoint
+  testEndpoint() {
+    console.log('🧪 Testing pending businesses endpoint...');
+    this.adminService.getPendingBusinesses().subscribe({
+      next: (response) => console.log('✅ Test response:', response),
+      error: (error) => console.error('❌ Test error:', error)
+    });
   }
 }
