@@ -1,366 +1,402 @@
-import { Component, OnInit, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
+import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatMenuModule } from '@angular/material/menu';
+import { filter } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
 import { AdminService } from '../../../../services/admin.service';
-
+import { AdminOverviewComponent } from './components/admin-overview/admin-overview.component';
 import { BusinessManagementComponent } from './components/business-management/business-management.component';
 import { AdvertisementManagementComponent } from './components/advertisement-management/advertisement-management.component';
-import { Subscription, forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { Activity, DashboardData, QuickAction } from '../../../../services/admin-interfaces';
 
 @Component({
-  selector: 'app-admin-overview',
+  selector: 'app-admin-dashboard',
   standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
     MatIconModule,
-    MatButtonModule,
+    MatDialogModule,
+    MatTooltipModule,
     MatProgressSpinnerModule,
-   
+    MatBadgeModule,
+    MatMenuModule,
+    RouterOutlet,
+    AdminOverviewComponent,
+    BusinessManagementComponent,
+    AdvertisementManagementComponent,
   ],
-  templateUrl: './admin-overview.component.html',
-  styleUrls: ['./admin-overview.component.scss']
+  templateUrl: './admin-dashboard.component.html',
+  styleUrls: ['./admin-dashboard.component.scss']
 })
-export class AdminOverviewComponent implements OnInit, OnDestroy {
+export class AdminDashboardComponent implements OnInit, OnDestroy {
+  isMobileMenuOpen = false;
+  isProfileMenuOpen = false;
+  currentSection = 'overview';
+
+  currentUser: any = null;
+  userDisplayName: string = 'Admin';
+  userRole: string = 'Administrator';
+  profileImage: string | null = null;
+
+  unreadNotificationsCount: number = 0;
+  unreadMessagesCount: number = 0;
+  isLoadingNotifications: boolean = false;
+
+  private profileUpdateListener: any;
+  isLoggingOut: boolean = false;
+
+  greeting: string = '';
+  currentTime: string = '';
+
   private router = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private authService = inject(AuthService);
   private adminService = inject(AdminService);
+  private dialog = inject(MatDialog);
 
-  private subscriptions = new Subscription();
+  ngOnInit(): void {
+    try {
+      this.loadUserData();
+      this.loadNotifications();
+      this.updateGreeting();
+      
+      setInterval(() => {
+        this.updateGreeting();
+      }, 60000);
 
-  isLoadingDashboard = true;
-  dashboardError: string | null = null;
-  dashboardData: DashboardData | null = null;
-  
-  quickActions: QuickAction[] = [
-    {
-      label: 'Manage Businesses',
-      description: 'Approve or reject business applications',
-      icon: 'business_center',
-      color: '#f59e0b',
-      route: '/admin-dashboard/businesses'
-    },
-    {
-      label: 'Review Advertisements',
-      description: 'Manage advertisement campaigns',
-      icon: 'campaign',
-      color: '#8b5cf6',
-      route: '/admin-dashboard/advertisements'
-    },
-    {
-      label: 'User Management',
-      description: 'View and manage platform users',
-      icon: 'people',
-      color: '#3b82f6',
-      route: '/admin-dashboard/users'
-    },
-    {
-      label: 'Dispute Resolution',
-      description: 'Handle user disputes and issues',
-      icon: 'gavel',
-      color: '#ef4444',
-      route: '/admin-dashboard/disputes'
+      this.router.events.pipe(
+        filter(event => event instanceof NavigationEnd)
+      ).subscribe((event: NavigationEnd) => {
+        this.updateCurrentSectionFromRoute(event.urlAfterRedirects);
+        this.loadProfileImage();
+      });
+
+      this.updateCurrentSectionFromRoute(this.router.url);
+      this.setupProfileUpdateListener();
+    } catch (error) {
+      console.error('Error initializing admin dashboard:', error);
     }
-  ];
-
-  recentActivities: Activity[] = [];
-  pendingBusinessesCount = 0;
-  pendingAdvertisementsCount = 0;
-
-  ngOnInit() {
-    this.loadDashboardData();
   }
 
-  ngOnDestroy() {
-    this.subscriptions.unsubscribe();
+  ngOnDestroy(): void {
+    if (this.profileUpdateListener) {
+      window.removeEventListener('profileImageUpdated', this.profileUpdateListener);
+    }
   }
 
-  loadDashboardData() {
-    this.isLoadingDashboard = true;
-    this.dashboardError = null;
+  private updateGreeting(): void {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    
+    this.currentTime = `${hours}:${minutes}`;
+    
+    if (hours < 12) {
+      this.greeting = 'Good morning';
+    } else if (hours < 18) {
+      this.greeting = 'Good afternoon';
+    } else {
+      this.greeting = 'Good evening';
+    }
+  }
 
-    console.log('Loading admin dashboard data...');
+  getGreetingMessage(): string {
+    const firstName = this.userDisplayName.split(' ')[0] || 'Admin';
+    return `${this.greeting}, ${firstName}! 👋`;
+  }
 
-    const dashboardStats$ = this.adminService.getDashboardStats().pipe(
-      catchError(error => {
-        console.error('Error loading dashboard stats:', error);
-        return of({ 
-          success: false, 
-          message: error.message,
-          data: null 
-        });
-      })
-    );
+  @HostListener('document:click', ['$event'])
+  handleClickOutside(event: Event): void {
+    if (this.isProfileMenuOpen) {
+      const target = event.target as HTMLElement;
+      const profileSection = document.querySelector('.profile-section');
+      
+      if (profileSection && !profileSection.contains(target)) {
+        this.closeProfileMenu();
+      }
+    }
 
-    const pendingBusinesses$ = this.adminService.getPendingBusinesses().pipe(
-      catchError(error => {
-        console.warn('Failed to load pending businesses:', error);
-        return of({ 
-          success: false, 
-          message: error.message,
-          data: [] 
-        });
-      })
-    );
+    if (this.isMobileMenuOpen) {
+      const target = event.target as HTMLElement;
+      const sidebar = document.querySelector('.sidebar');
+      const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+      
+      if (sidebar && !sidebar.contains(target) && 
+          mobileMenuBtn && !mobileMenuBtn.contains(target)) {
+        this.closeMobileMenu();
+      }
+    }
+  }
 
-    const pendingAdvertisements$ = this.adminService.getPendingAdvertisements().pipe(
-      catchError(error => {
-        console.warn('Failed to load pending advertisements:', error);
-        return of({ 
-          success: false, 
-          message: error.message,
-          data: [] 
-        });
-      })
-    );
+  private setupProfileUpdateListener(): void {
+    this.profileUpdateListener = () => {
+      this.loadProfileImage();
+    };
+    
+    window.addEventListener('profileImageUpdated', this.profileUpdateListener);
+  }
 
-    const subscription = forkJoin({
-      stats: dashboardStats$,
-      pendingBusinesses: pendingBusinesses$,
-      pendingAdvertisements: pendingAdvertisements$
-    }).subscribe({
-      next: (results) => {
-        console.log('Dashboard data loaded:', results);
-
-        // Use the calculated stats from real data
-        if (results.stats.success && results.stats.data) {
-          this.dashboardData = this.transformStatsData(results.stats.data);
-          console.log('Dashboard stats calculated from real data:', this.dashboardData);
-        } else {
-          throw new Error(results.stats.message || 'Failed to load dashboard statistics');
-        }
-
-        // Get actual pending counts for display
-        if (results.pendingBusinesses.success) {
-          this.pendingBusinessesCount = results.pendingBusinesses.data.length;
-        } else {
-          console.warn('Failed to load pending businesses:', results.pendingBusinesses.message);
-          this.pendingBusinessesCount = 0;
-        }
-
-        if (results.pendingAdvertisements.success) {
-          this.pendingAdvertisementsCount = results.pendingAdvertisements.data.length;
-        } else {
-          console.warn('Failed to load pending advertisements:', results.pendingAdvertisements.message);
-          this.pendingAdvertisementsCount = 0;
-        }
-
-        // Generate recent activities based on real data
-        this.generateRecentActivities();
+  private loadUserData(): void {
+    try {
+      this.currentUser = this.authService.getCurrentUser();
+      
+      if (this.currentUser) {
+        this.userDisplayName = this.currentUser.fullName || 
+                             this.currentUser.email?.split('@')[0] || 
+                             'Admin';
         
-        this.isLoadingDashboard = false;
-        console.log('Dashboard loading completed');
+        this.userRole = this.formatUserRole(this.currentUser.role);
+        this.loadProfileImage();
+      } else {
+        this.userDisplayName = 'Admin';
+        this.userRole = 'Administrator';
+        this.profileImage = this.generateInitialAvatar('Admin');
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      this.userDisplayName = 'Admin';
+      this.userRole = 'Administrator';
+    }
+  }
+
+  private loadNotifications(): void {
+    this.isLoadingNotifications = true;
+    
+    setTimeout(() => {
+      this.unreadNotificationsCount = 0;
+      this.unreadMessagesCount = 0;
+      this.isLoadingNotifications = false;
+    }, 500);
+  }
+
+  viewNotifications(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/admin-dashboard/notifications']).catch(() => {
+      console.warn('Notifications route not available');
+    });
+  }
+
+  viewProfile(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/admin-dashboard/profile/view']).catch(() => {
+      this.router.navigate(['/admin-dashboard']);
+    });
+  }
+
+  editProfile(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/admin-dashboard/profile/edit']).catch(() => {
+      this.router.navigate(['/admin-dashboard/profile/view']);
+    });
+  }
+
+  private loadProfileImage(): void {
+    try {
+      const savedImage = localStorage.getItem('profileImage');
+      if (savedImage) {
+        this.profileImage = this.addCacheBuster(savedImage);
+      } else if (this.currentUser?.avatar) {
+        this.profileImage = this.addCacheBuster(this.currentUser.avatar);
+      } else {
+        this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+      }
+    } catch (error) {
+      console.error('Error loading profile image:', error);
+      this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+    }
+  }
+
+  private addCacheBuster(imageUrl: string): string {
+    if (!imageUrl || imageUrl.startsWith('data:')) {
+      return imageUrl;
+    }
+    const separator = imageUrl.includes('?') ? '&' : '?';
+    return `${imageUrl}${separator}t=${Date.now()}`;
+  }
+
+  private generateInitialAvatar(name: string): string {
+    try {
+      const names = name.split(' ');
+      const initials = names.map(name => name.charAt(0).toUpperCase()).join('').slice(0, 2);
+      
+      const colors = ['#1e40af', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+      const color = colors[initials.charCodeAt(0) % colors.length];
+      
+      return `data:image/svg+xml;base64,${btoa(`
+        <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="100" fill="${color}" rx="50"/>
+          <text x="50" y="58" text-anchor="middle" fill="white" font-family="Arial" font-size="40" font-weight="600">${initials}</text>
+        </svg>
+      `)}`;
+    } catch (error) {
+      console.error('Error generating avatar:', error);
+      return '';
+    }
+  }
+
+  private formatUserRole(role: string): string {
+    const roleMap: { [key: string]: string } = {
+      'ADMIN': 'Administrator',
+      'LANDLORD': 'Landlord',
+      'TENANT': 'Tenant',
+      'CARETAKER': 'Caretaker',
+      'BUSINESS': 'Business Owner'
+    };
+    
+    return roleMap[role?.toString()] || role?.toString() || 'Administrator';
+  }
+
+  toggleProfileMenu(): void {
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+    if (this.isProfileMenuOpen) {
+      this.isMobileMenuOpen = false;
+    }
+  }
+
+  toggleMobileMenu(): void {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
+    
+    if (this.isMobileMenuOpen) {
+      this.isProfileMenuOpen = false;
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }
+
+  closeMobileMenu(): void {
+    this.isMobileMenuOpen = false;
+    document.body.style.overflow = '';
+  }
+
+  closeProfileMenu(): void {
+    this.isProfileMenuOpen = false;
+  }
+
+  navigateToSection(section: string): void {
+    this.currentSection = section;
+    this.isMobileMenuOpen = false;
+    this.isProfileMenuOpen = false;
+    document.body.style.overflow = '';
+
+    const routeMap: { [key: string]: string[] } = {
+      'overview': ['/admin-dashboard'],
+      'users': ['/admin-dashboard/users'],
+      'properties': ['/admin-dashboard/properties'],
+      'businesses': ['/admin-dashboard/businesses'],
+      'advertisements': ['/admin-dashboard/advertisements'],
+      'external-businesses': ['/admin-dashboard/external-businesses'],
+      'disputes': ['/admin-dashboard/disputes'],
+      'transactions': ['/admin-dashboard/transactions'],
+      'reports': ['/admin-dashboard/reports'],
+      'settings': ['/admin-dashboard/settings'],
+      'profile': ['/admin-dashboard/profile/view']
+    };
+
+    const route = routeMap[section];
+    if (route) {
+      this.router.navigate(route).catch(() => {
+        console.warn(`Route ${section} not available, redirecting to dashboard`);
+        this.router.navigate(['/admin-dashboard']);
+      });
+    } else {
+      this.router.navigate(['/admin-dashboard']);
+    }
+  }
+
+  private updateCurrentSectionFromRoute(url: string): void {
+    if (!url) {
+      this.currentSection = 'overview';
+      return;
+    }
+
+    if (url.includes('/profile/view') || url.includes('/profile/edit')) {
+      this.currentSection = 'profile';
+    } else if (url === '/admin-dashboard' || url === '/admin-dashboard/') {
+      this.currentSection = 'overview';
+    } else if (url.includes('/users')) {
+      this.currentSection = 'users';
+    } else if (url.includes('/properties')) {
+      this.currentSection = 'properties';
+    } else if (url.includes('/businesses')) {
+      this.currentSection = 'businesses';
+    } else if (url.includes('/advertisements')) {
+      this.currentSection = 'advertisements';
+    } else if (url.includes('/external-businesses')) {
+      this.currentSection = 'external-businesses';
+    } else if (url.includes('/disputes')) {
+      this.currentSection = 'disputes';
+    } else if (url.includes('/transactions')) {
+      this.currentSection = 'transactions';
+    } else if (url.includes('/reports')) {
+      this.currentSection = 'reports';
+    } else if (url.includes('/settings')) {
+      this.currentSection = 'settings';
+    } else {
+      this.currentSection = 'overview';
+    }
+  }
+
+  isNavActive(section: string): boolean {
+    return this.currentSection === section;
+  }
+
+  logout(): void {
+    if (this.isLoggingOut) return;
+
+    const confirmed = confirm('Are you sure you want to logout?');
+    if (!confirmed) return;
+
+    this.isLoggingOut = true;
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+
+    this.authService.logout().subscribe({
+      next: (response: any) => {
+        console.log('Logout successful:', response.message);
+        this.isLoggingOut = false;
+        
+        localStorage.removeItem('profileImage');
+        sessionStorage.clear();
+        
+        this.router.navigate(['/login']);
       },
-      error: (error: any) => {
-        console.error('Error loading dashboard data:', error);
-        this.dashboardError = error.message || 'Failed to load dashboard data';
-        this.isLoadingDashboard = false;
+      error: (error) => {
+        console.error('Logout error:', error);
+        this.isLoggingOut = false;
         
-        const errorMessage = this.dashboardError || 'An unknown error occurred';
-        this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
+        localStorage.removeItem('profileImage');
+        sessionStorage.clear();
+        this.router.navigate(['/login']);
       }
     });
-
-    this.subscriptions.add(subscription);
   }
 
-  private transformStatsData(stats: any): DashboardData {
-    return {
-      totalUsers: stats.totalUsers || 0,
-      totalProperties: stats.totalProperties || 0,
-      activeBusinesses: stats.activeBusinesses || 0,
-      activeDisputes: stats.activeDisputes || 0,
-      monthlyRevenue: stats.monthlyRevenue || 0,
-      userGrowth: stats.userGrowth || 0,
-      propertiesGrowth: stats.propertiesGrowth || 0,
-      revenueGrowth: stats.revenueGrowth || 0,
-      totalLandlords: stats.totalLandlords || 0,
-      totalTenants: stats.totalTenants || 0,
-      totalCaretakers: stats.totalCaretakers || 0,
-      platformEarnings: stats.platformEarnings || 0,
-      commissionRevenue: stats.commissionRevenue || 0,
-      pendingApprovals: stats.pendingApprovals || 0,
-      totalAdmins: stats.totalAdmins || 0,
-      systemHealth: stats.systemHealth || 'healthy'
-    };
-  }
-
-  private generateRecentActivities() {
-    this.recentActivities = [];
-
-    // Add activities based on real pending data
-    if (this.pendingBusinessesCount > 0) {
-      this.recentActivities.push({
-        type: 'Pending Business Applications',
-        message: `${this.pendingBusinessesCount} business application(s) awaiting review`,
-        icon: 'business',
-        time: 'Recently'
-      });
-    }
-
-    if (this.pendingAdvertisementsCount > 0) {
-      this.recentActivities.push({
-        type: 'Pending Advertisements',
-        message: `${this.pendingAdvertisementsCount} advertisement(s) awaiting approval`,
-        icon: 'campaign',
-        time: 'Recently'
-      });
-    }
-
-    if (this.dashboardData) {
-      // Add user growth activity
-      if (this.dashboardData.userGrowth > 0) {
-        this.recentActivities.push({
-          type: 'User Growth',
-          message: `${this.dashboardData.userGrowth}% user growth this month`,
-          icon: 'trending_up',
-          time: 'Today'
-        });
-      }
-
-      // Add revenue activity
-      if (this.dashboardData.monthlyRevenue > 0) {
-        this.recentActivities.push({
-          type: 'Revenue Update',
-          message: `Monthly revenue: ${this.formatCurrency(this.dashboardData.monthlyRevenue)}`,
-          icon: 'attach_money',
-          time: 'Today'
-        });
-      }
-
-      // Add disputes activity
-      if (this.dashboardData.activeDisputes > 0) {
-        this.recentActivities.push({
-          type: 'Active Disputes',
-          message: `${this.dashboardData.activeDisputes} active dispute(s)`,
-          icon: 'gavel',
-          time: 'Requires attention'
-        });
-      }
-
-      // Add system health activity
-      if (this.dashboardData.systemHealth && this.dashboardData.systemHealth !== 'healthy') {
-        this.recentActivities.push({
-          type: 'System Health',
-          message: `System status: ${this.dashboardData.systemHealth}`,
-          icon: 'monitor_heart',
-          time: 'Needs review'
-        });
-      }
-    }
-
-    // Add default activity if no others
-    if (this.recentActivities.length === 0) {
-      this.recentActivities.push({
-        type: 'System Status',
-        message: 'All systems operational',
-        icon: 'check_circle',
-        time: 'Just now'
-      });
-    }
-
-    // Limit to 4 activities
-    this.recentActivities = this.recentActivities.slice(0, 4);
-  }
-
-  refreshDashboard() {
-    console.log('Refreshing dashboard...');
-    this.loadDashboardData();
-    this.snackBar.open('Dashboard refreshed', 'Close', { duration: 3000 });
-  }
-
-  hasData(): boolean {
-    return this.dashboardData !== null;
-  }
-
-  getGrowthClass(growth: number): string {
-    return growth >= 0 ? 'growth-positive' : 'growth-negative';
-  }
-
-  getGrowthIcon(growth: number): string {
-    return growth >= 0 ? 'trending_up' : 'trending_down';
-  }
-
-  formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  }
-
-  formatNumber(value: number): string {
-    return new Intl.NumberFormat('en-US').format(value);
-  }
-
-  getPendingItemsCount(): number {
-    return this.pendingBusinessesCount + this.pendingAdvertisementsCount;
-  }
-
-  hasPendingBusinesses(): boolean {
-    return this.pendingBusinessesCount > 0;
-  }
-
-  hasPendingAdvertisements(): boolean {
-    return this.pendingAdvertisementsCount > 0;
-  }
-
-  onQuickAction(action: QuickAction) {
-    console.log('Quick action clicked:', action.label);
-    this.router.navigate([action.route]);
-  }
-
-  navigateToBusinesses() {
-    this.router.navigate(['/admin-dashboard/businesses']);
-  }
-
-  navigateToAdvertisements() {
-    this.router.navigate(['/admin-dashboard/advertisements']);
-  }
-
-  getDisplayValue(value: number | undefined): string {
-    return value !== undefined ? this.formatNumber(value) : '0';
-  }
-
-  getGrowthDisplay(growth: number | undefined): string {
-    if (growth === undefined) return '0%';
-    return `${growth >= 0 ? '+' : ''}${growth}%`;
-  }
-
-  getErrorMessage(): string {
-    return this.dashboardError || 'An unknown error occurred';
-  }
-
-  getSystemHealthColor(): string {
-    if (!this.dashboardData?.systemHealth) return '#6b7280';
-    
-    switch (this.dashboardData.systemHealth) {
-      case 'excellent': return '#10b981';
-      case 'good': return '#3b82f6';
-      case 'stable': return '#f59e0b';
-      case 'developing': return '#ef4444';
-      default: return '#6b7280';
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any): void {
+    if (window.innerWidth > 768 && this.isMobileMenuOpen) {
+      this.closeMobileMenu();
     }
   }
 
-  getSystemHealthIcon(): string {
-    if (!this.dashboardData?.systemHealth) return 'help';
-    
-    switch (this.dashboardData.systemHealth) {
-      case 'excellent': return 'check_circle';
-      case 'good': return 'verified';
-      case 'stable': return 'info';
-      case 'developing': return 'warning';
-      default: return 'help';
-    }
+  refreshDashboard(): void {
+    this.loadNotifications();
+    // Let the overview component handle its own refresh
+  }
+
+  onLogoError(event: any): void {
+    console.error('Logo failed to load:', event);
+    this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+  }
+
+  isOverviewPage(): boolean {
+    return this.router.url === '/admin-dashboard' || this.router.url === '/admin-dashboard/';
   }
 }
