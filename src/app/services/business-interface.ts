@@ -1,14 +1,21 @@
 export interface BusinessRegistration {
-  id: number;
+  id?: number;
   businessName: string;
   businessRegistrationNumber: string;
-  businessLicenseDocumentUrl: string;
-  verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
-  verifiedAt: string | null;
-  rejectionReason: string | null;
-  createdAt: string;
-  userEmail: string;
-  userFullName: string;
+  licenseDocument?: string;
+  contactEmail?: string;
+  phoneNumber?: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  
+  // ADD THESE PROPERTIES:
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  registrationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  
+  createdAt?: string;
+  updatedAt?: string;
+  rejectionReason?: string;
 }
 
 export interface BusinessStatusResponse {
