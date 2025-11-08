@@ -1,94 +1,58 @@
-import { Injectable, inject } from '@angular/core';
-import { CanActivate, Router, ActivatedRouteSnapshot } from '@angular/router';
-import { BusinessService } from '../services/business.service';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { map, catchError, tap } from 'rxjs/operators';
-import { of, Observable } from 'rxjs';
 
-@Injectable({
-  providedIn: 'root'
-})
-export class BusinessRegistrationGuard implements CanActivate {
-  private businessService = inject(BusinessService);
-  private authService = inject(AuthService);
-  private router = inject(Router);
+export const authGuard: CanActivateFn = (route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  
+  const isAuthenticated = authService.isAuthenticated();
+  
+  console.log('🛡️ Auth Guard Check:', {
+    url: state.url,
+    isAuthenticated: isAuthenticated,
+    hasToken: !!authService.getToken(),
+    queryParams: route.queryParams
+  });
 
-  canActivate(route: ActivatedRouteSnapshot): Observable<boolean> {
-    // First check if user is authenticated and is EXTERNAL_BUSINESS
-    if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/login'], { 
-        queryParams: { returnUrl: route.url.join('/') }
-      });
-      return of(false);
+
+  if (state.url.includes('/admin-dashboard')) {
+    if (isAuthenticated && authService.isAdmin()) {
+      return true;
+    } else {
+      console.log('Access denied to admin dashboard - not an admin');
+      router.navigate(['/access-denied']);
+      return false;
     }
-
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser || currentUser.role?.toUpperCase() !== 'EXTERNAL_BUSINESS') {
-      this.router.navigate(['/dashboard']);
-      return of(false);
-    }
-
-    // Check business registration status
-    return this.businessService.getRegistrationStatus().pipe(
-      map(response => {
-        if (response.success && response.data) {
-          const business = response.data;
-          
-          switch (business.verificationStatus) {
-            case 'APPROVED':
-              // Business is already approved, redirect to dashboard
-              this.router.navigate(['/business-dashboard'], {
-                queryParams: { 
-                  message: 'Your business is already approved and active'
-                }
-              });
-              return false;
-              
-            case 'PENDING':
-              // Business is pending approval, redirect to status page
-              this.router.navigate(['/business/registration-status'], {
-                queryParams: { 
-                  message: 'Your business registration is pending approval',
-                  autoRefresh: true
-                }
-              });
-              return false;
-              
-            case 'REJECTED':
-              // Business was rejected, allow access to registration to update
-              return true;
-              
-            default:
-              // Unknown status or no business, allow registration
-              return true;
-          }
-        } else {
-          // No business found, allow registration
-          return true;
-        }
-      }),
-      catchError(error => {
-        console.error('Business registration guard error:', error);
-        
-        // Handle different error scenarios
-        if (error.status === 404) {
-          // No business registration found - allow access to registration
-          return of(true);
-        } else if (error.status === 401) {
-          // Unauthorized - redirect to login
-          this.router.navigate(['/login'], {
-            queryParams: { 
-              returnUrl: route.url.join('/'),
-              message: 'Please login again'
-            }
-          });
-          return of(false);
-        } else {
-          // Other errors - allow access to registration
-          console.log('Allowing registration due to error:', error.message);
-          return of(true);
-        }
-      })
-    );
   }
-}
+
+
+  if (state.url.includes('/business/registration-status')) {
+    if (isAuthenticated) {
+      const user = authService.getCurrentUser();
+      if (user && user.role?.toUpperCase() === 'EXTERNAL_BUSINESS') {
+        return true;
+      } else {
+        console.log('Access denied to business registration status - not an external business user');
+        router.navigate(['/dashboard']);
+        return false;
+      }
+    }
+  }
+
+
+  if (isAuthenticated) {
+    return true;
+  } else {
+    const queryParams = {
+      returnUrl: state.url,
+      ...route.queryParams
+    };
+    
+    console.log('🔐 Redirecting to login with params:', queryParams);
+    router.navigate(['/login'], { queryParams });
+    return false;
+  }
+};
+
+export default authGuard;

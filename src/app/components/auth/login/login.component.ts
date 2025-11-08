@@ -1,4 +1,3 @@
-
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -255,7 +254,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     } else {
       this.showSnackbar('Login successful!', 'success');
       
-    
+      // Always check business registration for EXTERNAL_BUSINESS users
       if (response.role.toUpperCase() === 'EXTERNAL_BUSINESS') {
         await this.checkBusinessRegistrationStatus();
       } else {
@@ -269,29 +268,45 @@ export class LoginComponent implements OnInit, OnDestroy {
       const businessStatus = await this.businessService.getRegistrationStatus().toPromise();
       
       if (businessStatus?.success && businessStatus.data) {
-        const status = businessStatus.data.verificationStatus;
+        const status = businessStatus.data.verificationStatus?.toUpperCase();
         
-        if (status === 'APPROVED') {
-          // Business is approved, go directly to dashboard
-          this.router.navigate(['/business-dashboard']);
-        } else {
-          // Business is pending or rejected, show status page
-          this.router.navigate(['/business/registration-status']);
+        switch (status) {
+          case 'APPROVED':
+            // Business is approved, go to business dashboard
+            this.router.navigate(['/business-dashboard']);
+            break;
+          case 'PENDING':
+            // Business is pending approval, show status page
+            this.router.navigate(['/business/registration-status'], {
+              queryParams: { status: 'pending' }
+            });
+            break;
+          case 'REJECTED':
+            // Business was rejected, redirect to registration to update
+            this.showSnackbar('Your business registration needs updates. Please review and resubmit.', 'warning');
+            this.router.navigate(['/business/register']);
+            break;
+          default:
+            // Unknown status, redirect to registration
+            this.router.navigate(['/business/register']);
+            break;
         }
       } else {
         // No business registered, redirect to registration
         this.showSnackbar('Please complete your business registration to continue', 'info');
-        this.router.navigate(['/business/registration']);
+        this.router.navigate(['/business/register']);
       }
     } catch (error: any) {
       console.error('Error checking business registration status:', error);
+      
       if (error.status === 404) {
         // No business found, redirect to registration
         this.showSnackbar('Please complete your business registration', 'info');
-        this.router.navigate(['/business/registration']);
+        this.router.navigate(['/business/register']);
       } else {
-        // Error occurred, show status page to let user decide
-        this.router.navigate(['/business/registration-status']);
+        // Other error occurred, redirect to registration as fallback
+        this.showSnackbar('Please complete your business registration', 'info');
+        this.router.navigate(['/business/register']);
       }
     }
   }
@@ -353,7 +368,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       'TENANT': '/tenant-dashboard/dashboard',
       'LANDLORD': '/landlord-dashboard/home',
       'CARETAKER': '/caretaker-dashboard/overview',
-      'EXTERNAL_BUSINESS': '/business-dashboard'
+      'EXTERNAL_BUSINESS': '/business-dashboard' // This will be overridden by checkBusinessRegistrationStatus
     };
     
     const normalizedRole = userRole.toUpperCase();
@@ -421,7 +436,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     const roleMap: Record<string, string> = {
       'LANDLORD': '/landlord-dashboard/home',
       'TENANT': '/tenant-dashboard/dashboard',
-      'EXTERNAL_BUSINESS': '/business-dashboard',
+      'EXTERNAL_BUSINESS': '/business-dashboard', // This will be overridden by checkBusinessRegistrationStatus
       'CARETAKER': '/caretaker-dashboard/overview',
     };
 
@@ -498,7 +513,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.stopAutoSubmit();
   }
 
-  private showSnackbar(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
+  private showSnackbar(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info'): void {
     this.snackBar.open(message, 'Close', {
       duration: 5000,
       horizontalPosition: 'center',
@@ -508,6 +523,8 @@ export class LoginComponent implements OnInit, OnDestroy {
           ? ['snackbar-success']
           : type === 'error'
           ? ['snackbar-error']
+          : type === 'warning'
+          ? ['snackbar-warning']
           : ['snackbar-info']
     });
   }

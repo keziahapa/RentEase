@@ -64,10 +64,11 @@ import { LandlordMoveOutNoticeListComponent } from './components/dashboard/landl
 import { MoveOutActionDialogComponent } from './components/dashboard/landlord/landlord-dashboard/move-out-action-dialog/move-out-action-dialog.component';
 import { LandlordDashboardComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-dashboard.component';
 import { DashboardOverviewComponent } from './components/dashboard/tenant/dashboard-overview/dashboard-overview.component';
-
+import { BusinessRegistrationComponent } from '../app/components/auth/business-registration/business-registration.component';
+import { BusinessRegistrationStatusComponent } from '../app/components/auth/business-registration-status/business-registration-status.component';
+import { BusinessRegistrationGuard } from './guards/business-registration.guard';
 
 export const routes: Routes = [
- 
   { path: '', component: HomeComponent, pathMatch: 'full' },
   { path: 'registration', component: RegistrationComponent },
   { path: 'login', component: LoginComponent },
@@ -79,16 +80,21 @@ export const routes: Routes = [
   { path: 'pricing', component: PricingComponent },
   { path: 'contact', component: ContactComponent },
   { path: 'about', component: AboutComponent },
- 
   { path: 'privacy', component: PrivacyComponent },
   { path: 'accept-invitation', component: AcceptInvitationComponent },
   { path: 'waiting-landlord', component: WaitingLandlordComponent },
-  
 
-  // REMOVED problematic routes - they conflict with your guard logic
-  // { path: 'business/register', component: BusinessDashboardComponent },
-  // { path: 'business/registration-status', component: BusinessDashboardComponent },
-  
+
+  { 
+    path: 'business/register', 
+    component: BusinessRegistrationComponent,
+    canActivate: [BusinessRegistrationGuard]
+  },
+  { 
+    path: 'business/registration-status', 
+    component: BusinessRegistrationStatusComponent,
+    canActivate: [authGuard] 
+  },
 
   { 
     path: 'chat', 
@@ -100,40 +106,35 @@ export const routes: Routes = [
     component: ChatComponent,
     canActivate: [authGuard]
   },
-  
 
- {
-  path: 'tenant-dashboard',
-  component: TenantDashboardComponent,
-  canActivate: [authGuard],
-  children: [
-    { path: '', redirectTo: 'overview', pathMatch: 'full' },
-    { path: 'overview', component: DashboardOverviewComponent },
-    { path: 'dashboard', redirectTo: 'overview', pathMatch: 'full' }, 
-    { path: 'deposit', component: DepositComponent },
-    { path: 'payments', component: PaymentsComponent },
-    { path: 'maintenance', component: MaintenanceComponent },
-    { path: 'documents', component: DocumentsComponent },
-    { path: 'messages', component: MessagesComponent },
-    { path: 'chat', component: ChatComponent },
-    { path: 'reviews', component: ReviewComponent },
-    { path: 'settings', component: SettingsComponent },
-    { path: 'move-out-notices/:id', component: MoveOutNoticeDetailsComponent },
-
-    { path: 'move-out-notices', component: MoveOutNoticeListComponent },
-
-    
-    
-    { 
-      path: 'profile',
-      children: [
-        { path: 'view', component: ProfileViewComponent },
-        { path: 'edit', component: ProfileEditComponent },
-        { path: '', redirectTo: 'view', pathMatch: 'full' }
-      ]
-    }
-  ]
-},
+  {
+    path: 'tenant-dashboard',
+    component: TenantDashboardComponent,
+    canActivate: [authGuard],
+    children: [
+      { path: '', redirectTo: 'overview', pathMatch: 'full' },
+      { path: 'overview', component: DashboardOverviewComponent },
+      { path: 'dashboard', redirectTo: 'overview', pathMatch: 'full' }, 
+      { path: 'deposit', component: DepositComponent },
+      { path: 'payments', component: PaymentsComponent },
+      { path: 'maintenance', component: MaintenanceComponent },
+      { path: 'documents', component: DocumentsComponent },
+      { path: 'messages', component: MessagesComponent },
+      { path: 'chat', component: ChatComponent },
+      { path: 'reviews', component: ReviewComponent },
+      { path: 'settings', component: SettingsComponent },
+      { path: 'move-out-notices/:id', component: MoveOutNoticeDetailsComponent },
+      { path: 'move-out-notices', component: MoveOutNoticeListComponent },
+      { 
+        path: 'profile',
+        children: [
+          { path: 'view', component: ProfileViewComponent },
+          { path: 'edit', component: ProfileEditComponent },
+          { path: '', redirectTo: 'view', pathMatch: 'full' }
+        ]
+      }
+    ]
+  },
   
   {
     path: 'landlord-dashboard',
@@ -162,12 +163,10 @@ export const routes: Routes = [
       { path: 'move-out-notices', component: LandlordMoveOutNoticeListComponent },
       { path: 'move-out-notices/:id', component: LandlordMoveOutNoticeDetailsComponent },
       { path: 'move-out-action/:id', component: MoveOutActionDialogComponent },
-      
       { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' }
     ]
   },
   
- 
   {
     path: 'business-dashboard',
     component: BusinessDashboardComponent,
@@ -198,7 +197,6 @@ export const routes: Routes = [
     ]
   },
   
- 
   {
     path: 'caretaker-dashboard',
     component: CaretakerDashboardComponent,
@@ -232,7 +230,6 @@ export const routes: Routes = [
     ]
   },
   
-
   {
     path: 'admin-dashboard',
     component: AdminDashboardComponent,
