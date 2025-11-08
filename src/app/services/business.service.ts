@@ -1,4 +1,4 @@
-
+// business.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
@@ -7,7 +7,6 @@ import { AuthService } from './auth.service';
 import {
   BusinessRegistration,
   BusinessStatusResponse,
-  ExternalBusinessRegistration,
   ExternalBusiness,
   Advertisement,
   CreateAdvertisementRequest,
@@ -18,7 +17,7 @@ import {
   BillingRecord,
   UploadResponse,
   ErrorResponse
-} from '../services/business-interface';
+} from './business-interface';
 
 @Injectable({
   providedIn: 'root'
@@ -28,41 +27,35 @@ export class BusinessService {
 
   constructor(private http: HttpClient, private authService: AuthService) {}
 
-  
+  // Business Registration
   registerBusiness(registrationData: any): Observable<ApiResponse<BusinessRegistration>> {
     return this.http.post<ApiResponse<BusinessRegistration>>(
-      `${this.apiUrl}/api/external-business/register`,
+      `${this.apiUrl}/api/external-business/register-business`,
       registrationData,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       tap(response => {
         if (response.success && response.data) {
           this.updateLocalBusinessData(response.data);
-          this.updateUserBusinessRole();
         }
       }),
       catchError(this.handleError)
     );
   }
 
-  
+  // Business Registration Status - CORRECT ENDPOINT
   getRegistrationStatus(): Observable<BusinessStatusResponse> {
     return this.http.get<BusinessStatusResponse>(
       `${this.apiUrl}/api/external-business/registration-status`,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       tap(response => {
         if (response.success && response.data) {
           this.updateLocalBusinessData(response.data);
-          
-       
-          if (response.data.verificationStatus === 'APPROVED') {
-            this.updateUserBusinessRole();
-          }
         }
       }),
       catchError(error => {
-      
+        // Return fallback data if offline or error
         const localBusiness = this.getLocalBusinessData();
         if (localBusiness) {
           return of({
@@ -76,11 +69,11 @@ export class BusinessService {
     );
   }
 
- 
+  // Business Profile
   getBusinessProfile(): Observable<ApiResponse<ExternalBusiness>> {
     return this.http.get<ApiResponse<ExternalBusiness>>(
       `${this.apiUrl}/api/external-business/my-business`,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       tap(response => {
         if (response.success && response.data) {
@@ -101,10 +94,10 @@ export class BusinessService {
     );
   }
 
-  
+  // Check if business profile exists
   hasBusinessProfile(): Observable<boolean> {
     return this.getBusinessProfile().pipe(
-      map(response => !!response.data), 
+      map(response => !!response.data),
       catchError(() => {
         const localBusiness = this.getLocalBusinessData();
         return of(!!localBusiness);
@@ -112,7 +105,7 @@ export class BusinessService {
     );
   }
 
-
+  // Advertisement Management
   createAdvertisement(advertisement: CreateAdvertisementRequest): Observable<ApiResponse<Advertisement>> {
     const adData = {
       title: advertisement.title.trim(),
@@ -124,7 +117,7 @@ export class BusinessService {
     return this.http.post<ApiResponse<Advertisement>>(
       `${this.apiUrl}/api/external-business/advertisements`,
       adData,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       tap(response => {
         if (response.success) {
@@ -135,11 +128,11 @@ export class BusinessService {
     );
   }
 
- 
+  // Get user's advertisements
   getMyAdvertisements(): Observable<Advertisement[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/advertisements/my-ads`,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       map(response => {
         if (Array.isArray(response)) {
@@ -167,11 +160,11 @@ export class BusinessService {
     );
   }
 
- 
+  // Get approved advertisements
   getApprovedAdvertisements(): Observable<Advertisement[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/advertisements/approved`,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       map(response => {
         if (Array.isArray(response)) {
@@ -187,6 +180,7 @@ export class BusinessService {
     );
   }
 
+  // Update advertisement
   updateAdvertisement(advertisementId: string, advertisement: CreateAdvertisementRequest): Observable<ApiResponse<Advertisement>> {
     const adData = {
       title: advertisement.title.trim(),
@@ -198,7 +192,7 @@ export class BusinessService {
     return this.http.put<ApiResponse<Advertisement>>(
       `${this.apiUrl}/api/external-business/advertisements/${advertisementId}`,
       adData,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       tap(response => {
         if (response.success) {
@@ -209,11 +203,11 @@ export class BusinessService {
     );
   }
 
-  
+  // Delete advertisement
   deleteAdvertisement(advertisementId: string): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(
       `${this.apiUrl}/api/external-business/advertisements/${advertisementId}`,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       tap(response => {
         if (response.success) {
@@ -224,21 +218,21 @@ export class BusinessService {
     );
   }
 
- 
+  // Get advertisement by ID
   getAdvertisementById(advertisementId: string): Observable<ApiResponse<Advertisement>> {
     return this.http.get<ApiResponse<Advertisement>>(
       `${this.apiUrl}/api/external-business/advertisements/${advertisementId}`,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       catchError(this.handleError)
     );
   }
 
-  
+  // Dashboard data
   getBusinessDashboardData(): Observable<BusinessDashboardData> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/dashboard`,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       map(response => {
         if (response?.data) {
@@ -254,7 +248,7 @@ export class BusinessService {
     );
   }
 
-
+  // Upload media
   uploadAdvertisementMedia(file: File): Observable<UploadResponse> {
     const token = this.authService.getToken();
     if (!token) {
@@ -274,13 +268,13 @@ export class BusinessService {
     return this.http.post<UploadResponse>(
       `${this.apiUrl}/api/external-business/upload-media`,
       formData,
-      { headers, responseType: 'json' }
+      { headers }
     ).pipe(
       catchError(this.handleError)
     );
   }
 
- 
+  // Analytics
   getAdvertisementAnalytics(advertisementId?: string): Observable<AdvertisementAnalytics | BusinessAnalytics> {
     const url = advertisementId 
       ? `${this.apiUrl}/api/external-business/analytics/ads/${advertisementId}`
@@ -288,7 +282,7 @@ export class BusinessService {
 
     return this.http.get<any>(
       url,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       map(response => {
         if (response?.data) {
@@ -304,10 +298,11 @@ export class BusinessService {
     );
   }
 
+  // Billing history
   getBillingHistory(): Observable<BillingRecord[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/external-business/billing/history`,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       map(response => {
         if (Array.isArray(response)) {
@@ -325,12 +320,12 @@ export class BusinessService {
     );
   }
 
-
+  // Update business profile
   updateBusinessProfile(profileData: any): Observable<ApiResponse<ExternalBusiness>> {
     return this.http.put<ApiResponse<ExternalBusiness>>(
       `${this.apiUrl}/api/external-business/my-business`,
       profileData,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       tap(response => {
         if (response.success && response.data) {
@@ -341,11 +336,11 @@ export class BusinessService {
     );
   }
 
-
+  // Delete business account
   deleteBusinessAccount(): Observable<ApiResponse<any>> {
     return this.http.delete<ApiResponse<any>>(
       `${this.apiUrl}/api/external-business/my-business`,
-      { headers: this.createHeaders(), responseType: 'json' }
+      { headers: this.createHeaders() }
     ).pipe(
       tap(response => {
         if (response.success) {
@@ -356,7 +351,7 @@ export class BusinessService {
     );
   }
 
- 
+  // Check if business is verified
   isBusinessVerified(): Observable<boolean> {
     return this.getRegistrationStatus().pipe(
       map(response => response.data?.verificationStatus === 'APPROVED'),
@@ -364,6 +359,7 @@ export class BusinessService {
     );
   }
 
+  // Local storage management
   private updateLocalBusinessData(businessData: any): void {
     localStorage.setItem('businessData', JSON.stringify(businessData));
   }
@@ -408,29 +404,7 @@ export class BusinessService {
     this.updateLocalAdvertisements(filteredAds);
   }
 
-  private updateUserBusinessRole(): void {
-    const currentUser = this.authService.getCurrentUser();
-    if (currentUser) {
-      const updatedUser = {
-        ...currentUser,
-        role: 'BUSINESS'
-      };
-      
-      const isPermanent = !!localStorage.getItem('userData');
-      const storage = isPermanent ? localStorage : sessionStorage;
-      storage.setItem('userData', JSON.stringify(updatedUser));
-      
-      try {
-        if ((this.authService as any).currentUserSubject) {
-          (this.authService as any).currentUserSubject.next(updatedUser);
-        }
-      } catch (error) {
-        console.log('AuthService subject update failed, continuing...');
-      }
-    }
-  }
-
-  // Mock data generators - FIXED
+  // Mock data generators
   private generateMockDashboardData(): BusinessDashboardData {
     const localAds = this.getLocalAdvertisements();
     const localBusiness = this.getLocalBusinessData();
@@ -441,7 +415,7 @@ export class BusinessService {
       pendingAds: localAds.filter(ad => ad.status === 'PENDING').length,
       totalSpent: localAds.length * 500,
       totalClicks: localAds.reduce((sum, ad) => sum + (ad.clicks || 0), 0),
-      totalViews: localAds.reduce((sum, ad) => sum + (ad.views || 0), 0), // Added missing property
+      totalViews: localAds.reduce((sum, ad) => sum + (ad.views || 0), 0),
       approvalRate: localAds.length > 0 
         ? Math.round((localAds.filter(ad => ad.status === 'APPROVED').length / localAds.length) * 100) + '%'
         : '0%',
@@ -496,6 +470,7 @@ export class BusinessService {
     ];
   }
 
+  // HTTP headers
   private createHeaders(): HttpHeaders {
     const token = this.authService.getToken();
     if (!token) {
@@ -508,6 +483,7 @@ export class BusinessService {
     });
   }
 
+  // Error handling
   private handleError = (error: HttpErrorResponse): Observable<never> => {
     let errorMessage = 'An unexpected error occurred';
     

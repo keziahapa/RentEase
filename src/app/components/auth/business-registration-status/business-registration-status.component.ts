@@ -1,27 +1,14 @@
+// business-registration-status.component.ts
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Subscription, interval } from 'rxjs';
 import { BusinessService } from '../../../services/business.service';
 import { AuthService } from '../../../services/auth.service';
-
-interface BusinessRegistration {
-  id: number;
-  businessName: string;
-  businessRegistrationNumber: string;
-  businessLicenseDocumentUrl: string;
-  verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
-  verifiedAt: string | null;
-  rejectionReason: string | null;
-  createdAt: string;
-  userEmail: string;
-  userFullName: string;
-}
 
 @Component({
   selector: 'app-business-registration-status',
@@ -43,148 +30,75 @@ export class BusinessRegistrationStatusComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
 
-  registration: BusinessRegistration | null = null;
+  businessInfo: any = null;
   isLoading = true;
-  isRefreshing = false;
-  private refreshSubscription?: Subscription;
-  currentUser: any;
+  checkInterval: any;
+  lastChecked: Date | null = null;
+  hasCheckedInitialStatus = false;
 
   ngOnInit() {
-    this.currentUser = this.authService.getCurrentUser();
-    if (!this.currentUser) {
-      this.showMessage('Please log in to view registration status', 'error');
-      this.router.navigate(['/login']);
-      return;
-    }
-
-    this.loadRegistrationStatus();
-    this.startAutoRefresh();
-  }
-
-  ngOnDestroy() {
-    this.stopAutoRefresh();
-  }
-
-  loadRegistrationStatus(): void {
-    this.isLoading = true;
+    this.loadBusinessStatus();
     
-    this.businessService.getRegistrationStatus().subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          this.registration = response.data;
-          
-          // If approved, redirect to dashboard after a delay
-          if (this.registration.verificationStatus === 'APPROVED') {
-            this.showMessage('Business approved! Redirecting to dashboard...', 'success');
-            setTimeout(() => {
-              this.router.navigate(['/business-dashboard']);
-            }, 3000);
-          }
-        } else {
-          this.registration = null;
-        }
-        this.isLoading = false;
-        this.isRefreshing = false;
-      },
-      error: (error) => {
-        console.error('Error loading registration status:', error);
-        this.showMessage('Failed to load registration status', 'error');
-        this.isLoading = false;
-        this.isRefreshing = false;
+    // Check status every 30 seconds for pending approvals
+    this.checkInterval = setInterval(() => {
+      if (this.businessInfo?.verificationStatus === 'PENDING') {
+        this.loadBusinessStatus();
       }
-    });
+    }, 30000);
   }
 
-  startAutoRefresh(): void {
-    // Refresh every 30 seconds for pending status
-    this.refreshSubscription = interval(30000).subscribe(() => {
-      if (this.registration?.verificationStatus === 'PENDING') {
-        this.refreshStatus();
-      }
-    });
-  }
-
-  stopAutoRefresh(): void {
-    if (this.refreshSubscription) {
-      this.refreshSubscription.unsubscribe();
-    }
-  }
-
-  refreshStatus(): void {
-    if (this.isRefreshing) return;
-    
-    this.isRefreshing = true;
-    this.loadRegistrationStatus();
-  }
-
-  getStatusIcon(): string {
-    if (!this.registration) return 'help';
-    
-    switch (this.registration.verificationStatus) {
-      case 'APPROVED': return 'check_circle';
-      case 'REJECTED': return 'cancel';
-      case 'PENDING': return 'schedule';
-      default: return 'help';
-    }
-  }
-
-  getStatusColor(): string {
-    if (!this.registration) return 'warn';
-    
-    switch (this.registration.verificationStatus) {
-      case 'APPROVED': return 'primary';
-      case 'REJECTED': return 'warn';
-      case 'PENDING': return 'accent';
-      default: return 'warn';
-    }
-  }
-
-  getStatusMessage(): string {
-    if (!this.registration) return 'No registration found';
-    
-    switch (this.registration.verificationStatus) {
-      case 'APPROVED':
-        return 'Your business has been approved and verified!';
-      case 'REJECTED':
-        return `Your business registration was rejected. Reason: ${this.registration.rejectionReason || 'No reason provided'}`;
-      case 'PENDING':
-        return 'Your business registration is under review. Please wait for admin approval.';
-      default:
-        return 'Unknown status';
-    }
-  }
-
-  canEditRegistration(): boolean {
-    return this.registration?.verificationStatus === 'REJECTED';
-  }
-
-  editRegistration(): void {
-    this.router.navigate(['/business/register']);
-  }
-
-  viewDashboard(): void {
-    this.router.navigate(['/business-dashboard']);
-  }
-
-  registerNewBusiness(): void {
-    this.router.navigate(['/business/register']);
-  }
-
-  formatDate(dateString: string): string {
-    if (!dateString) return 'N/A';
-    
+  async loadBusinessStatus() {
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return 'Invalid date';
+      this.lastChecked = new Date();
+      const response = await this.businessService.getRegistrationStatus().toPromise();
+      
+      if (response?.success && response.data) {
+        this.businessInfo = response.data;
+        this.hasCheckedInitialStatus = true;
+        
+        // If business is approved, redirect to dashboard immediately
+        if (response.data.verificationStatus === 'APPROVED') {
+          this.redirectToDashboard();
+          return;
+        }
+      } else {
+        // No business registration found
+        this.businessInfo = null;
+        this.hasCheckedInitialStatus = true;
+      }
+    } catch (error: any) {
+      console.error('Error loading business status:', error);
+      if (error.status === 404) {
+        // No business registration found
+        this.businessInfo = null;
+      } else {
+        this.showMessage('Error loading business status. Please try again.', 'error');
+      }
+      this.hasCheckedInitialStatus = true;
+    } finally {
+      this.isLoading = false;
     }
+  }
+
+  private redirectToDashboard() {
+    this.showMessage('Business approved! Redirecting to dashboard...', 'success');
+    setTimeout(() => {
+      this.router.navigate(['/business-dashboard']);
+    }, 2000);
+  }
+
+  refreshStatus() {
+    this.isLoading = true;
+    this.loadBusinessStatus();
+  }
+
+  navigateToRegistration() {
+    this.router.navigate(['/business/registration']);
+  }
+
+  logout() {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 
   private showMessage(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
@@ -194,5 +108,45 @@ export class BusinessRegistrationStatusComponent implements OnInit, OnDestroy {
       verticalPosition: 'bottom',
       panelClass: [`snackbar-${type}`]
     });
+  }
+
+  getStatusDisplayName(status: string): string {
+    const statusMap: Record<string, string> = {
+      'PENDING': 'Pending Approval',
+      'APPROVED': 'Approved',
+      'REJECTED': 'Rejected'
+    };
+    return statusMap[status] || status;
+  }
+
+  getStatusIcon(status: string): string {
+    const iconMap: Record<string, string> = {
+      'PENDING': 'schedule',
+      'APPROVED': 'check_circle',
+      'REJECTED': 'cancel'
+    };
+    return iconMap[status] || 'help';
+  }
+
+  getStatusColor(status: string): string {
+    const colorMap: Record<string, string> = {
+      'PENDING': 'accent',
+      'APPROVED': 'primary',
+      'REJECTED': 'warn'
+    };
+    return colorMap[status] || '';
+  }
+
+  shouldShowStatusPage(): boolean {
+    // Show status page if still loading, or if business exists and is not approved
+    return this.isLoading || 
+           !this.hasCheckedInitialStatus || 
+           (this.businessInfo && this.businessInfo.verificationStatus !== 'APPROVED');
+  }
+
+  ngOnDestroy() {
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+    }
   }
 }

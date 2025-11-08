@@ -1,3 +1,4 @@
+// business-registration.component.ts
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -26,7 +27,7 @@ import { FileSizePipe } from '../../../pipes/file-size.pipe';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatIconModule,
-     FileSizePipe 
+    FileSizePipe 
   ],
   templateUrl: './business-registration.component.html',
   styleUrls: ['./business-registration.component.scss']
@@ -57,6 +58,37 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
       this.showMessage('Please log in to register a business', 'error');
       this.router.navigate(['/login']);
       return;
+    }
+
+    // Check if user already has a business registration
+    this.checkExistingBusinessRegistration();
+  }
+
+  async checkExistingBusinessRegistration() {
+    try {
+      const businessStatus = await this.businessService.getRegistrationStatus().toPromise();
+      
+      if (businessStatus?.success && businessStatus.data) {
+        const status = businessStatus.data.verificationStatus;
+        
+        if (status === 'PENDING') {
+          this.showMessage('You already have a business registration pending approval', 'info');
+          this.router.navigate(['/business/registration-status']);
+        } else if (status === 'APPROVED') {
+          this.showMessage('Your business is already approved', 'info');
+          this.router.navigate(['/business-dashboard']);
+        } else if (status === 'REJECTED') {
+          // Pre-fill form with rejected business info
+          this.businessForm.patchValue({
+            businessName: businessStatus.data.businessName,
+            businessRegistrationNumber: businessStatus.data.businessRegistrationNumber
+          });
+          this.showMessage('Please update your business registration details', 'info');
+        }
+      }
+    } catch (error) {
+      // No existing business found, continue with registration
+      console.log('No existing business registration found');
     }
   }
 
@@ -103,34 +135,25 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
     this.isLoading = true;
 
     try {
-     
       const businessData = {
         businessName: this.businessForm.get('businessName')?.value,
         businessRegistrationNumber: this.businessForm.get('businessRegistrationNumber')?.value
       };
 
       const businessDataJson = JSON.stringify(businessData);
-
       const formData = new FormData();
-    
       formData.append('data', businessDataJson);
-   
       formData.append('licenseDocument', this.selectedFile);
 
       console.log('Sending business registration data:', businessData);
-      console.log('File:', this.selectedFile.name);
 
       const response = await this.businessService.registerBusiness(formData).toPromise();
 
       if (response?.success) {
-        this.showMessage('Business registration submitted for verification!', 'success');
-      
-        sessionStorage.setItem('pendingBusinessRegistration', JSON.stringify({
-          businessId: response.data.id,
-          businessName: response.data.businessName,
-          status: response.data.verificationStatus
-        }));
-
+        // Show success message and redirect to status page
+        this.showMessage('Business registration submitted successfully! Waiting for admin approval.', 'success');
+        
+        // Redirect to status page to see the approval progress
         setTimeout(() => {
           this.router.navigate(['/business/registration-status']);
         }, 2000);
@@ -163,7 +186,7 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
     });
   }
 
-  
+  // Form control getters
   get businessName() { return this.businessForm.get('businessName'); }
   get businessRegistrationNumber() { return this.businessForm.get('businessRegistrationNumber'); }
 }

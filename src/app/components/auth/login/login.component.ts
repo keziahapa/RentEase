@@ -1,3 +1,4 @@
+// login.component.ts
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -11,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../services/auth.service';
 import { InvitationService } from '../../../services/invitation.service';
+import { BusinessService } from '../../../services/business.service';
 import { LoginRequest, AuthResponse } from '../../../services/auth-interfaces';
 
 @Component({
@@ -35,6 +37,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   private route: ActivatedRoute = inject(ActivatedRoute);
   private authService: AuthService = inject(AuthService);
   private invitationService: InvitationService = inject(InvitationService);
+  private businessService = inject(BusinessService);
   private snackBar: MatSnackBar = inject(MatSnackBar);
 
   loginData = { email: '', password: '' };
@@ -233,7 +236,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     });
   }
 
-  private handleSuccessfulLogin(response: AuthResponse): void {
+  private async handleSuccessfulLogin(response: AuthResponse): Promise<void> {
     this.isLoading = false;
     
     this.loginData.password = '';
@@ -251,7 +254,45 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.acceptPendingInvitation(pendingToken, response.role);
     } else {
       this.showSnackbar('Login successful!', 'success');
-      this.redirectBasedOnRole(response.role);
+      
+      // Check if user is EXTERNAL_BUSINESS and needs to check business status
+      if (response.role.toUpperCase() === 'EXTERNAL_BUSINESS') {
+        await this.checkBusinessRegistrationStatus();
+      } else {
+        this.redirectBasedOnRole(response.role);
+      }
+    }
+  }
+
+  private async checkBusinessRegistrationStatus(): Promise<void> {
+    try {
+      const businessStatus = await this.businessService.getRegistrationStatus().toPromise();
+      
+      if (businessStatus?.success && businessStatus.data) {
+        const status = businessStatus.data.verificationStatus;
+        
+        if (status === 'APPROVED') {
+          // Business is approved, go directly to dashboard
+          this.router.navigate(['/business-dashboard']);
+        } else {
+          // Business is pending or rejected, show status page
+          this.router.navigate(['/business/registration-status']);
+        }
+      } else {
+        // No business registered, redirect to registration
+        this.showSnackbar('Please complete your business registration to continue', 'info');
+        this.router.navigate(['/business/registration']);
+      }
+    } catch (error: any) {
+      console.error('Error checking business registration status:', error);
+      if (error.status === 404) {
+        // No business found, redirect to registration
+        this.showSnackbar('Please complete your business registration', 'info');
+        this.router.navigate(['/business/registration']);
+      } else {
+        // Error occurred, show status page to let user decide
+        this.router.navigate(['/business/registration-status']);
+      }
     }
   }
 
@@ -270,21 +311,32 @@ export class LoginComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         sessionStorage.removeItem('pendingInvitationToken');
         this.showSnackbar('Invitation could not be accepted, but you are logged in.', 'info');
-        this.redirectBasedOnRole(userRole);
+        
+        // Check business registration for EXTERNAL_BUSINESS users even after invitation error
+        if (userRole.toUpperCase() === 'EXTERNAL_BUSINESS') {
+          this.checkBusinessRegistrationStatus();
+        } else {
+          this.redirectBasedOnRole(userRole);
+        }
       }
     });
   }
 
   private redirectAfterInvitationAcceptance(userRole: string, invitationResponse: any): void {
-    const invitationDashboard = this.getInvitationDashboard(invitationResponse);
-    const roleDashboard = this.getRoleBasedDashboard(userRole);
-    const dashboardRoute = invitationDashboard || roleDashboard || '/dashboard';
-    
-    this.router.navigate([dashboardRoute]).then(success => {
-      if (!success) {
-        this.router.navigate(['/dashboard']);
-      }
-    });
+    // For EXTERNAL_BUSINESS users, check business registration even after invitation
+    if (userRole.toUpperCase() === 'EXTERNAL_BUSINESS') {
+      this.checkBusinessRegistrationStatus();
+    } else {
+      const invitationDashboard = this.getInvitationDashboard(invitationResponse);
+      const roleDashboard = this.getRoleBasedDashboard(userRole);
+      const dashboardRoute = invitationDashboard || roleDashboard || '/dashboard';
+      
+      this.router.navigate([dashboardRoute]).then(success => {
+        if (!success) {
+          this.router.navigate(['/dashboard']);
+        }
+      });
+    }
   }
 
   private getInvitationDashboard(invitationResponse: any): string | null {
@@ -312,7 +364,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     const names: Record<string, string> = {
       'tenant': 'Tenant Dashboard',
       'caretaker': 'Caretaker Dashboard',
-      'landlord': 'Landlord Dashboard'
+      'landlord': 'Landlord Dashboard',
+      'external_business': 'Business Dashboard'
     };
     return names[invitationType] || 'Dashboard';
   }
@@ -392,7 +445,12 @@ export class LoginComponent implements OnInit, OnDestroy {
     const user = this.authService.getCurrentUser();
     
     if (user?.role) {
-      this.redirectBasedOnRole(user.role);
+      // For EXTERNAL_BUSINESS users, check business registration status
+      if (user.role.toUpperCase() === 'EXTERNAL_BUSINESS') {
+        this.checkBusinessRegistrationStatus();
+      } else {
+        this.redirectBasedOnRole(user.role);
+      }
     } else {
       this.router.navigate(['/dashboard']);
     }

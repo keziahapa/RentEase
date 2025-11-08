@@ -1,4 +1,4 @@
-
+// business-interface.ts
 export interface BusinessRegistration {
   id: number;
   businessName: string;
@@ -70,7 +70,7 @@ export interface BusinessDashboardData {
   pendingAds: number;
   totalSpent: number;
   totalClicks: number;
-    totalViews: number; 
+  totalViews: number;
   approvalRate: string;
   businessName: string;
   registrationStatus: string;
