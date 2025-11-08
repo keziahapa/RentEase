@@ -8,6 +8,9 @@ import { Subscription, timer } from 'rxjs';
 // Material imports
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
@@ -27,7 +30,10 @@ import { NewChatModalComponent, NewChatModalData } from './new-chat-modal/new-ch
     FormsModule, 
     ErrorDisplayComponent,
     MatTooltipModule,
-    MatDialogModule
+    MatDialogModule,
+    MatIconModule,
+    MatButtonModule,
+    MatMenuModule
   ]
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
@@ -90,6 +96,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (currentUser) {
       this.currentUserId = this.chatService.getCurrentUserId();
       this.userRole = currentUser.role || '';
+      console.log('👤 Current user initialized:', { id: this.currentUserId, role: this.userRole });
+    } else {
+      console.warn('No current user found');
     }
   }
 
@@ -97,8 +106,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     // WebSocket connection status
     this.webSocketSubscription = this.chatService.getConnectionStatus().subscribe(connected => {
       this.webSocketConnected = connected;
+      console.log('🔌 WebSocket connection status:', connected);
       if (connected) {
-        console.log('✅ WebSocket connected - real-time messaging enabled');
         this.errorHandler.info('Real-time chat connected', 2000);
       } else {
         console.warn('❌ WebSocket disconnected - using HTTP fallback');
@@ -108,6 +117,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     // Chat room changes
     this.subscriptions.push(
       this.chatService.currentRoom$.subscribe(room => {
+        console.log('🏠 Current room updated:', room);
         this.currentRoom = room;
         if (room) {
           this.selectedRoomId = room.id;
@@ -115,11 +125,26 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       }),
       
       this.chatService.messages$.subscribe(messages => {
+        console.log('💬 Messages updated:', messages?.length);
         this.messages = messages || [];
+        
+        // Debug: Log all messages to verify sent messages are included
+        this.messages.forEach((msg, index) => {
+          console.log(`Message ${index}:`, {
+            id: msg.id,
+            content: msg.content,
+            senderId: msg.senderId,
+            currentUserId: this.currentUserId,
+            isMyMessage: this.isMyMessage(msg),
+            timestamp: msg.timestamp
+          });
+        });
+        
         setTimeout(() => this.scrollToBottom(), 100);
       }),
       
       this.chatService.chatRooms$.subscribe(rooms => {
+        console.log('📋 Chat rooms updated:', rooms?.length);
         this.chatRooms = rooms || [];
         this.autoSelectRoomIfNeeded();
       }),
@@ -132,6 +157,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private setupRouteListener(): void {
     this.route.params.subscribe(params => {
+      console.log('🛣️ Route params:', params);
       if (params['roomId']) {
         const roomId = parseInt(params['roomId'], 10);
         if (!isNaN(roomId)) {
@@ -143,6 +169,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private autoSelectRoomIfNeeded(): void {
     if (this.chatRooms.length > 0 && !this.selectedRoomId && !this.route.snapshot.params['roomId']) {
+      console.log('🤖 Auto-selecting first room');
       this.selectRoom(this.chatRooms[0]);
     }
   }
@@ -215,10 +242,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   loadChatRooms(): void {
     this.loading = true;
+    console.log('📥 Loading chat rooms...');
 
     this.chatService.getChatRooms().subscribe({
       next: (response) => {
         this.loading = false;
+        console.log('✅ Chat rooms loaded:', response);
         if (response.success) {
           this.chatRooms = response.data || [];
           this.autoSelectRoomIfNeeded();
@@ -229,7 +258,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (error: any) => {
         this.loading = false;
         this.chatRooms = [];
-        console.error('Error loading chat rooms:', error);
+        console.error('❌ Error loading chat rooms:', error);
         
         const retryAction: ErrorAction = {
           label: 'Retry',
@@ -247,12 +276,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   selectRoom(room: ChatRoom): void {
     try {
+      console.log('🎯 Selecting room:', room);
       this.chatService.setCurrentRoom(room);
       this.selectedRoomId = room.id;
       this.showMenu = false;
       this.router.navigate(['/chat', room.id]);
     } catch (error) {
-      console.error('Error selecting room:', error);
+      console.error('❌ Error selecting room:', error);
       this.errorHandler.error('Failed to select chat room');
     }
   }
@@ -262,6 +292,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (room) {
       this.selectRoom(room);
     } else {
+      console.log('🔍 Room not found in local list, refreshing...');
       this.errorHandler.info('Loading chat room...', 1000);
       this.loadChatRooms();
     }
@@ -283,12 +314,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
+        console.log('💬 New chat data:', result);
         this.createNewChatRoom(result);
       }
     });
   }
 
-  // ✅ FIXED: Use the correct chat room creation method
   private createNewChatRoom(chatData: any): void {
     this.loading = true;
 
@@ -328,6 +359,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     chatObservable.subscribe({
       next: (response) => {
         this.loading = false;
+        console.log('✅ Chat room creation response:', response);
         if (response.success && response.data) {
           this.errorHandler.info('New chat started successfully!', 2000);
           
@@ -345,7 +377,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       },
       error: (error) => {
         this.loading = false;
-        console.error('Error creating chat room:', error);
+        console.error('❌ Error creating chat room:', error);
         
         let errorMessage = 'Failed to start new chat';
         if (error.error?.message) {
@@ -365,6 +397,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   sendMessage(): void {
     if (!this.newMessage.trim() || !this.currentRoom || this.sending) {
+      console.log('🚫 Cannot send message:', {
+        hasContent: !!this.newMessage.trim(),
+        hasRoom: !!this.currentRoom,
+        isSending: this.sending
+      });
       return;
     }
 
@@ -379,11 +416,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       messageType: 'TEXT'
     };
 
+    console.log('📤 Sending message:', messageData);
     this.sending = true;
 
     this.chatService.sendMessage(messageData).subscribe({
       next: (response: BasicResponse) => {
         this.sending = false;
+        console.log('✅ Send message response:', response);
         if (response.success) {
           this.newMessage = '';
           this.stopTyping();
@@ -392,11 +431,20 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           if (!this.webSocketConnected) {
             this.errorHandler.info('Message sent', 1000);
           }
+          
+          // Force refresh messages to ensure sent message appears
+          if (this.currentRoom) {
+            setTimeout(() => {
+              this.chatService.getRoomMessages(this.currentRoom!.id).subscribe();
+            }, 100);
+          }
+        } else {
+          this.errorHandler.error(response.message || 'Failed to send message');
         }
       },
       error: (error: any) => {
         this.sending = false;
-        console.error('Error sending message:', error);
+        console.error('❌ Error sending message:', error);
         
         const retryAction: ErrorAction = {
           label: 'Retry',
@@ -425,14 +473,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
+    console.log('🗑️ Deleting message:', messageId);
     this.chatService.deleteMessage(messageId).subscribe({
       next: (response: BasicResponse) => {
+        console.log('✅ Delete message response:', response);
         if (response.success) {
           this.errorHandler.info('Message deleted', 2000);
+        } else {
+          this.errorHandler.error(response.message || 'Failed to delete message');
         }
       },
       error: (error: any) => {
-        console.error('Error deleting message:', error);
+        console.error('❌ Error deleting message:', error);
         this.errorHandler.error('Failed to delete message', 'Please try again');
       }
     });
@@ -560,7 +612,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   isMyMessage(message: ChatMessage): boolean {
-    return this.chatService.isMyMessage(message);
+    const isMine = this.chatService.isMyMessage(message);
+    console.log('🔍 Checking if message is mine:', {
+      messageId: message.id,
+      senderId: message.senderId,
+      currentUserId: this.currentUserId,
+      isMine: isMine
+    });
+    return isMine;
   }
 
   formatMessageTime(timestamp: string): string {
@@ -703,5 +762,22 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       room.propertyName?.toLowerCase().includes(query) ||
       room.lastMessage?.content.toLowerCase().includes(query)
     );
+  }
+
+  // ===== DEBUG METHODS =====
+  
+  debugMessages(): void {
+    console.log('🐛 DEBUG MESSAGES:');
+    console.log('Current User ID:', this.currentUserId);
+    console.log('Total Messages:', this.messages.length);
+    this.messages.forEach((msg, index) => {
+      console.log(`Message ${index}:`, {
+        id: msg.id,
+        content: msg.content,
+        senderId: msg.senderId,
+        isMyMessage: this.isMyMessage(msg),
+        timestamp: msg.timestamp
+      });
+    });
   }
 }

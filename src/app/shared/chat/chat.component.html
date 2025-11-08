@@ -202,7 +202,6 @@
             class="message" 
             [class.my-message]="isMyMessage(message)" 
             [class.other-message]="!isMyMessage(message)"
-            [class.deleted]="message.deleted"
           >
             <!-- Other User Avatar -->
             <div *ngIf="!isMyMessage(message)" class="message-avatar">
@@ -214,14 +213,14 @@
             <!-- Message Content -->
             <div class="message-content">
               <!-- Sender Name -->
-              <div *ngIf="!isMyMessage(message) && !message.deleted" class="sender-name">
+              <div *ngIf="!isMyMessage(message)" class="sender-name">
                 {{ message.sender?.name || 'Unknown User' }}
               </div>
 
               <!-- Message Bubble -->
               <div class="message-bubble">
-                <p class="message-text" [class.deleted-text]="message.deleted">
-                  {{ message.deleted ? 'This message was deleted' : message.content }}
+                <p class="message-text">
+                  {{ message.content }}
                 </p>
                 
                 <!-- Message Footer -->
@@ -229,13 +228,13 @@
                   <span class="message-time">{{ formatMessageTime(message.timestamp) }}</span>
                   
                   <!-- Message Status -->
-                  <span *ngIf="isMyMessage(message) && !message.deleted" class="message-status">
+                  <span *ngIf="isMyMessage(message)" class="message-status">
                     <span class="status-icon sent">✓</span>
                   </span>
                   
                   <!-- Delete Button -->
                   <button 
-                    *ngIf="isMyMessage(message) && !message.deleted" 
+                    *ngIf="isMyMessage(message)" 
                     class="delete-btn" 
                     (click)="deleteMessage(message.id)" 
                     matTooltip="Delete message"

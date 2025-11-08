@@ -1,4 +1,3 @@
-// src/app/services/chat.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
@@ -22,6 +21,7 @@ import {
 export interface SendMessageRequest {
   chatRoomId: number;
   content: string;
+  messageType?: 'TEXT' | 'IMAGE' | 'FILE'; // Made optional
 }
 
 export interface DeleteMessageRequest {
@@ -278,26 +278,27 @@ export class ChatService {
     if (this.stompClient && this.stompClient.connected) {
       console.log('📤 Sending message via WebSocket:', messageData);
       
-      // Convert to CreateMessageRequest format for WebSocket
-      const webSocketMessage: CreateMessageRequest = {
+      // Create message in backend-expected format (no messageType)
+      const webSocketMessage = {
         chatRoomId: messageData.chatRoomId,
-        content: messageData.content,
-        messageType: 'TEXT' // Add the required messageType
+        content: messageData.content
       };
+      
+      console.log('📤 Final WebSocket message being sent:', webSocketMessage);
       
       this.stompClient.publish({
         destination: '/app/chat.sendMessage',
         body: JSON.stringify(webSocketMessage),
         headers: {
-          'User': this.getCurrentUserEmail()
+          'User': this.getCurrentUserEmail(),
+          'Content-Type': 'application/json'
         }
       });
     } else {
       console.warn('WebSocket not connected, falling back to HTTP');
       this.sendMessageHttp({
         chatRoomId: messageData.chatRoomId,
-        content: messageData.content,
-        messageType: 'TEXT'
+        content: messageData.content
       }).subscribe();
     }
   }
@@ -319,17 +320,14 @@ export class ChatService {
     }
   }
 
-  // ===== CREATE CHAT ROOM METHODS (CORRECTED) =====
+  // ===== CREATE CHAT ROOM METHODS =====
 
-  /**
-   * Create a tenant-landlord chat room for a property
-   */
   createTenantLandlordRoom(propertyId: number): Observable<CreateChatRoomResponse> {
     console.log('💬 Creating tenant-landlord chat room for property:', propertyId);
     
     return this.http.post<CreateChatRoomResponse>(
       `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`,
-      {}, // Empty body since propertyId is in path
+      {},
       { headers: this.createHeaders() }
     ).pipe(
       tap((response: CreateChatRoomResponse) => {
@@ -342,9 +340,6 @@ export class ChatService {
     );
   }
 
-  /**
-   * Create a tenant-caretaker chat room for a property
-   */
   createTenantCaretakerRoom(propertyId: number): Observable<CreateChatRoomResponse> {
     console.log('💬 Creating tenant-caretaker chat room for property:', propertyId);
     
@@ -363,9 +358,6 @@ export class ChatService {
     );
   }
 
-  /**
-   * Create a landlord-caretaker chat room for a property
-   */
   createLandlordCaretakerRoom(propertyId: number): Observable<CreateChatRoomResponse> {
     console.log('💬 Creating landlord-caretaker chat room for property:', propertyId);
     
@@ -384,9 +376,6 @@ export class ChatService {
     );
   }
 
-  /**
-   * Smart method to create appropriate chat room based on user roles
-   */
   createChatRoom(propertyId: number, targetRole?: string): Observable<CreateChatRoomResponse> {
     const currentUser = this.getCurrentUserSafe();
     const currentUserRole = currentUser?.role?.toLowerCase();
@@ -397,9 +386,7 @@ export class ChatService {
       propertyId 
     });
 
-    // Determine which endpoint to call based on roles
     if (targetRole) {
-      // Specific target role requested
       switch(targetRole.toLowerCase()) {
         case 'landlord':
           return this.createTenantLandlordRoom(propertyId);
@@ -410,36 +397,26 @@ export class ChatService {
       }
     }
 
-    // Auto-detect based on current user role
     switch(currentUserRole) {
       case 'tenant':
-        // Tenant can create chat with landlord or caretaker
-        // Default to landlord for now
         return this.createTenantLandlordRoom(propertyId);
       case 'landlord':
-        // Landlord can create chat with caretaker
         return this.createLandlordCaretakerRoom(propertyId);
       case 'caretaker':
-        // Caretaker can create chat with landlord
         return this.createLandlordCaretakerRoom(propertyId);
       default:
         return throwError(() => new Error(`Cannot create chat room for role: ${currentUserRole}`));
     }
   }
 
-  /**
-   * Add new room to the chat list and subscribe to WebSocket
-   */
   private addRoomToChatList(room: ChatRoom): void {
     const currentRooms = this.chatRoomsSubject.value;
     
-    // Check if room already exists to avoid duplicates
     const roomExists = currentRooms.some(r => r.id === room.id);
     if (!roomExists) {
       const updatedRooms = [room, ...currentRooms];
       this.chatRoomsSubject.next(updatedRooms);
       
-      // Subscribe to the new room via WebSocket
       if (this.stompClient && this.stompClient.connected) {
         this.subscribeToRoom(room.id);
       }
@@ -467,7 +444,7 @@ export class ChatService {
     }
   }
 
-  // ===== MODIFIED EXISTING METHODS =====
+  // ===== MESSAGE METHODS =====
 
   sendMessage(messageData: CreateMessageRequest): Observable<BasicResponse> {
     // Try WebSocket first if connected
@@ -477,7 +454,6 @@ export class ChatService {
         content: messageData.content
       });
       
-      // Return optimistic response
       return new Observable(observer => {
         observer.next({ success: true, message: 'Message sent via WebSocket' });
         observer.complete();
@@ -493,14 +469,22 @@ export class ChatService {
       return throwError(() => ({ message: 'Message content cannot be empty' }));
     }
 
+    // Remove messageType before sending to backend
+    const backendMessageData = {
+      chatRoomId: messageData.chatRoomId,
+      content: messageData.content
+    };
+
+    console.log('📤 Sending HTTP message:', backendMessageData);
+
     return this.http.post<BasicResponse>(
       `${this.apiUrl}/messages`,
-      messageData,
+      backendMessageData,
       { headers: this.createHeaders() }
     ).pipe(
       tap(response => {
+        console.log('✅ HTTP message response:', response);
         if (response.success && this.currentRoomSubject.value) {
-          // Refresh messages via HTTP if WebSocket failed
           this.getRoomMessages(this.currentRoomSubject.value.id).subscribe();
         }
       }),
@@ -509,18 +493,15 @@ export class ChatService {
   }
 
   deleteMessage(messageId: number): Observable<BasicResponse> {
-    // Try WebSocket first if connected
     if (this.stompClient && this.stompClient.connected) {
       this.deleteMessageWebSocket(messageId);
       
-      // Return optimistic response
       return new Observable(observer => {
         observer.next({ success: true, message: 'Delete request sent via WebSocket' });
         observer.complete();
       });
     }
 
-    // Fallback to HTTP
     return this.deleteMessageHttp(messageId);
   }
 
@@ -539,7 +520,6 @@ export class ChatService {
   }
 
   setCurrentRoom(room: ChatRoom | null): void {
-    // Unsubscribe from previous room WebSocket
     if (this.currentRoomSubject.value) {
       this.unsubscribeFromRoom(this.currentRoomSubject.value.id);
     }
@@ -550,10 +530,8 @@ export class ChatService {
       this.messagesSubject.next([]);
       this.markRoomAsRead(room.id).subscribe();
       
-      // Load initial messages via HTTP
       this.getRoomMessages(room.id).subscribe();
       
-      // Subscribe to room via WebSocket
       if (this.stompClient && this.stompClient.connected) {
         this.subscribeToRoom(room.id);
       }
@@ -597,7 +575,7 @@ export class ChatService {
     });
   }
 
-  // ===== EXISTING HTTP METHODS =====
+  // ===== HTTP METHODS =====
 
   private initializeChat(): void {
     this.loadInitialChatRooms();
@@ -755,19 +733,16 @@ export class ChatService {
     }
   }
 
-  // Safe method to convert AuthService user to Chat User interface
   private getCurrentUserSafe(): ChatUser | null {
     try {
       const authUser = this.authService.getCurrentUser();
       if (!authUser) return null;
 
-      // Convert AuthService User to Chat User interface
       const chatUser: ChatUser = {
         id: this.extractUserId(authUser),
-        name: authUser.fullName, // AuthService uses fullName, Chat uses name
+        name: authUser.fullName,
         email: authUser.email,
         role: authUser.role,
-        // Optional properties
         avatar: (authUser as any).avatar,
         isOnline: (authUser as any).isOnline,
         lastSeen: (authUser as any).lastSeen,
@@ -785,10 +760,9 @@ export class ChatService {
   private extractUserId(authUser: any): number {
     if (typeof authUser.id === 'number') return authUser.id;
     if (typeof authUser.id === 'string') return parseInt(authUser.id, 10);
-    return 0; // Fallback
+    return 0;
   }
 
-  // Safe method to get user email
   private getCurrentUserEmail(): string {
     const currentUser = this.getCurrentUserSafe();
     return currentUser?.email || '';

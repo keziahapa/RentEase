@@ -72,10 +72,11 @@ export interface ChatRoomDetails {
   };
 }
 
+// FIXED: messageType is now optional for backend requests
 export interface CreateMessageRequest {
   chatRoomId: number;
   content: string;
-  messageType: 'TEXT' | 'IMAGE' | 'FILE';
+  messageType?: 'TEXT' | 'IMAGE' | 'FILE'; // Made optional with ?
   replyTo?: number;
   attachments?: string[];
 }
@@ -87,9 +88,8 @@ export interface CreateRoomRequest {
   propertyId?: number;
 }
 
-// NEW: Added for new chat modal functionality
 export interface CreateChatRoomRequest {
-  participantId: string; // Can be user ID or email
+  participantId: string;
   participantType: string;
   propertyId?: number | null;
 }
@@ -159,8 +159,6 @@ export interface ChatMessageResponse extends ApiResponse<ChatMessage[]> {}
 export interface SingleChatRoomResponse extends ApiResponse<ChatRoom> {}
 export interface SingleMessageResponse extends ApiResponse<ChatMessage> {}
 export interface ChatRoomDetailsResponse extends ApiResponse<ChatRoomDetails> {}
-
-// NEW: Added for new chat creation response
 export interface CreateChatRoomResponse extends ApiResponse<ChatRoom> {}
 
 export interface ChatEvent {
@@ -233,7 +231,6 @@ export interface ConnectionState {
   retryCount: number;
 }
 
-// NEW: Added for user search and selection
 export interface UserSearchResult {
   id: number;
   name: string;
@@ -246,7 +243,6 @@ export interface UserSearchResult {
 
 export interface UserSearchResponse extends ApiResponse<UserSearchResult[]> {}
 
-// NEW: Added for property search and selection
 export interface PropertySearchResult {
   id: number;
   name: string;
@@ -257,7 +253,6 @@ export interface PropertySearchResult {
 
 export interface PropertySearchResponse extends ApiResponse<PropertySearchResult[]> {}
 
-// NEW: Added for chat room filters
 export interface ChatRoomFilters {
   participantType?: string;
   propertyId?: number;
@@ -266,7 +261,6 @@ export interface ChatRoomFilters {
   searchQuery?: string;
 }
 
-// NEW: Added for message pagination
 export interface MessagePaginationParams {
   roomId: number;
   page?: number;
@@ -274,7 +268,6 @@ export interface MessagePaginationParams {
   beforeMessageId?: number;
 }
 
-// NEW: Added for chat room settings update
 export interface UpdateRoomSettingsRequest {
   roomId: number;
   settings: {
@@ -286,7 +279,6 @@ export interface UpdateRoomSettingsRequest {
   };
 }
 
-// NEW: Added for participant management
 export interface AddParticipantRequest {
   roomId: number;
   participantId: number;
@@ -304,13 +296,11 @@ export interface UpdateParticipantRoleRequest {
   role: 'MEMBER' | 'ADMIN' | 'OWNER';
 }
 
-// NEW: Added for chat room archiving
 export interface ArchiveRoomRequest {
   roomId: number;
   archive: boolean;
 }
 
-// NEW: Added for message reactions
 export interface MessageReaction {
   id: number;
   messageId: number;
@@ -330,7 +320,6 @@ export interface RemoveReactionRequest {
   reactionId: number;
 }
 
-// NEW: Added for message pinning
 export interface PinnedMessage {
   id: number;
   messageId: number;
@@ -351,7 +340,6 @@ export interface UnpinMessageRequest {
   roomId: number;
 }
 
-// NEW: Added for chat room invitations
 export interface ChatInvitation {
   id: number;
   roomId: number;
@@ -375,7 +363,6 @@ export interface AcceptInvitationRequest {
   token: string;
 }
 
-// NEW: Added for chat analytics
 export interface ChatAnalytics {
   totalMessages: number;
   messagesByType: {
@@ -392,7 +379,6 @@ export interface ChatAnalytics {
   }>;
 }
 
-// NEW: Added for chat exports
 export interface ChatExportRequest {
   roomId: number;
   format: 'JSON' | 'CSV' | 'PDF';
@@ -409,7 +395,6 @@ export interface ChatExportResponse {
   expiresAt?: string;
 }
 
-// NEW: Added for real-time presence
 export interface UserPresence {
   userId: number;
   isOnline: boolean;
@@ -418,7 +403,6 @@ export interface UserPresence {
   device?: 'MOBILE' | 'DESKTOP' | 'TABLET';
 }
 
-// NEW: Added for chat search within room
 export interface RoomMessageSearchCriteria {
   roomId: number;
   query: string;
@@ -426,13 +410,11 @@ export interface RoomMessageSearchCriteria {
   offset?: number;
 }
 
-// NEW: Added for message context (reply chains)
 export interface MessageContext {
   originalMessage?: ChatMessage;
   replyChain: ChatMessage[];
 }
 
-// NEW: Added for chat room templates
 export interface ChatRoomTemplate {
   id: number;
   name: string;
@@ -448,14 +430,12 @@ export interface ChatRoomTemplate {
   autoAddParticipants?: number[];
 }
 
-// NEW: Added for bulk operations
 export interface BulkMessageOperation {
   messageIds: number[];
   operation: 'DELETE' | 'MARK_READ' | 'MARK_UNREAD' | 'FORWARD';
   targetRoomId?: number;
 }
 
-// NEW: Added for chat moderation
 export interface ModerationAction {
   id: number;
   roomId: number;
@@ -463,7 +443,7 @@ export interface ModerationAction {
   targetUserId: number;
   actionType: 'WARN' | 'MUTE' | 'KICK' | 'BAN';
   reason: string;
-  duration?: number; // in minutes
+  duration?: number;
   createdAt: string;
   expiresAt?: string;
   moderator?: User;
@@ -478,7 +458,6 @@ export interface CreateModerationActionRequest {
   duration?: number;
 }
 
-// NEW: Added for chat room backup
 export interface ChatBackup {
   id: number;
   roomId: number;
@@ -494,14 +473,12 @@ export interface CreateBackupRequest {
   includeMedia?: boolean;
 }
 
-// NEW: Added for chat room merge
 export interface MergeRoomsRequest {
   sourceRoomId: number;
   targetRoomId: number;
   preserveSource?: boolean;
 }
 
-// NEW: Added for chat room duplication
 export interface DuplicateRoomRequest {
   sourceRoomId: number;
   newName?: string;
@@ -510,7 +487,6 @@ export interface DuplicateRoomRequest {
   includeSettings?: boolean;
 }
 
-// NEW: Added for chat room import
 export interface ImportMessagesRequest {
   roomId: number;
   messages: Array<{
@@ -522,7 +498,6 @@ export interface ImportMessagesRequest {
   }>;
 }
 
-// NEW: Added for chat room cleanup
 export interface CleanupRequest {
   roomId: number;
   olderThan: string;
@@ -530,7 +505,6 @@ export interface CleanupRequest {
   keepPinned?: boolean;
 }
 
-// NEW: Added for chat room statistics
 export interface RoomStatistics {
   roomId: number;
   totalMessages: number;
