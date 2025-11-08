@@ -65,6 +65,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   // Emojis
   emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '👍', '👎', '👏', '🙌', '👋', '🤝', '🙏', '❤️', '💕', '💖', '💗', '💙', '💚', '💛', '🧡', '💜', '🖤', '💯', '🔥', '✨', '💫', '⭐'];
   
+  // UI state properties for template
+  showRoomInfo = false;
+  showAttachmentMenu = false;
+  replyingTo: ChatMessage | null = null;
+  
   // Subscriptions
   private subscriptions: Subscription[] = [];
   private webSocketSubscription?: Subscription;
@@ -274,7 +279,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
-  selectRoom(room: ChatRoom): void {
+  selectRoom(room: ChatRoom | null): void {
+    if (room === null) {
+      this.currentRoom = null;
+      this.selectedRoomId = null;
+      this.router.navigate(['/chat']);
+      return;
+    }
+
     try {
       console.log('🎯 Selecting room:', room);
       this.chatService.setCurrentRoom(room);
@@ -601,6 +613,201 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.errorHandler.info('Theme toggle coming soon!', 2000);
   }
 
+  // ===== TEMPLATE COMPATIBILITY METHODS =====
+
+  // Room avatar and display methods
+  getRoomAvatar(room: ChatRoom): string | null {
+    const otherParticipants = this.getOtherParticipants(room);
+    return otherParticipants[0]?.avatar || null;
+  }
+
+  getRoomInitials(room: ChatRoom): string {
+    const displayName = this.getRoomDisplayName(room);
+    return displayName ? displayName.charAt(0).toUpperCase() : '?';
+  }
+
+  getSenderAvatar(message: ChatMessage): string | null {
+    return message.sender?.avatar || null;
+  }
+
+  getInitials(name: string): string {
+    return name ? name.charAt(0).toUpperCase() : '?';
+  }
+
+  // Room status methods
+  isUserOnline(room: ChatRoom): boolean {
+    const otherParticipants = this.getOtherParticipants(room);
+    return otherParticipants.some(p => p.isOnline);
+  }
+
+  getRoomStatusText(room: ChatRoom): string {
+    if (this.isUserOnline(room)) {
+      return 'Online';
+    }
+    return 'Offline';
+  }
+
+  // UI state methods
+  openNewChatDialog(): void {
+    this.startNewChat();
+  }
+
+  filterRooms(): void {
+    // Search is handled by getFilteredRooms()
+  }
+
+  // Message display methods
+  truncateMessage(content: string, length: number = 35): string {
+    return content.length > length ? content.substring(0, length) + '...' : content;
+  }
+
+  shouldShowDateSeparator(index: number): boolean {
+    if (index === 0) return true;
+    const currentDate = new Date(this.messages[index].timestamp).toDateString();
+    const previousDate = new Date(this.messages[index - 1].timestamp).toDateString();
+    return currentDate !== previousDate;
+  }
+
+  formatDateSeparator(timestamp: string): string {
+    return this.getMessageDate(timestamp);
+  }
+
+  shouldShowAvatar(index: number): boolean {
+    if (index === 0) return true;
+    const currentMessage = this.messages[index];
+    const previousMessage = this.messages[index - 1];
+    return currentMessage.senderId !== previousMessage.senderId;
+  }
+
+  shouldShowSenderName(index: number): boolean {
+    if (index === 0) return true;
+    const currentMessage = this.messages[index];
+    const previousMessage = this.messages[index - 1];
+    return currentMessage.senderId !== previousMessage.senderId;
+  }
+
+  formatTime(timestamp: string): string {
+    return this.formatMessageTime(timestamp);
+  }
+
+  // Message actions
+  retryMessage(message: ChatMessage): void {
+    this.retrySendMessage(message);
+  }
+
+  retrySendMessage(message: ChatMessage): void {
+    const messageData: CreateMessageRequest = {
+      chatRoomId: message.chatRoomId,
+      content: message.content,
+      messageType: 'TEXT'
+    };
+
+    console.log('🔄 Retrying message:', messageData);
+    this.sending = true;
+
+    this.chatService.sendMessage(messageData).subscribe({
+      next: (response: BasicResponse) => {
+        this.sending = false;
+        console.log('✅ Retry message response:', response);
+        if (response.success) {
+          this.errorHandler.info('Message sent', 1000);
+          
+          // Refresh messages to update the status
+          if (this.currentRoom) {
+            setTimeout(() => {
+              this.chatService.getRoomMessages(this.currentRoom!.id).subscribe();
+            }, 100);
+          }
+        } else {
+          this.errorHandler.error(response.message || 'Failed to send message');
+        }
+      },
+      error: (error: any) => {
+        this.sending = false;
+        console.error('❌ Error retrying message:', error);
+        this.errorHandler.error('Failed to send message', 'Please try again');
+      }
+    });
+  }
+
+  replyToMessage(message: ChatMessage): void {
+    this.errorHandler.info('Reply feature coming soon!', 2000);
+  }
+
+  // Input handling
+  handleEnterKey(event: KeyboardEvent): void {
+    this.onKeyPress(event);
+  }
+
+  handleTyping(): void {
+    this.onMessageInput();
+  }
+
+  // UI state properties
+  get filteredRooms(): ChatRoom[] {
+    return this.getFilteredRooms();
+  }
+
+  get isLoadingMessages(): boolean {
+    return this.loading;
+  }
+
+  get showScrollButton(): boolean {
+    return this.messages.length > 10;
+  }
+
+  get unreadMessagesCount(): number {
+    return this.currentRoom?.unreadCount || 0;
+  }
+
+  get isSending(): boolean {
+    return this.sending;
+  }
+
+  // Attachment methods
+  openAttachmentMenu(): void {
+    this.errorHandler.info('File attachment coming soon!', 2000);
+  }
+
+  closeAttachmentMenu(): void {
+    this.showAttachmentMenu = false;
+  }
+
+  selectImage(): void {
+    this.triggerFileInput();
+  }
+
+  selectFile(): void {
+    this.triggerFileInput();
+  }
+
+  handleFileSelect(event: any): void {
+    this.errorHandler.info('File upload feature coming soon!', 2000);
+  }
+
+  cancelReply(): void {
+    this.replyingTo = null;
+  }
+
+  // Formatting methods
+  formatDate(dateString: string): string {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      return 'Unknown date';
+    }
+  }
+
+  // Scroll handling
+  onScroll(event: any): void {
+    // Implement infinite scroll if needed
+  }
+
   // ===== UTILITY METHODS =====
 
   getRoomDisplayName(room: ChatRoom): string {
@@ -667,7 +874,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  getParticipantRole(participant: User): string {
+  getParticipantRole(participant: User | undefined): string {
     if (!participant?.role) return 'User';
     
     switch(participant.role.toUpperCase()) {

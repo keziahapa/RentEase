@@ -21,7 +21,7 @@ import {
 export interface SendMessageRequest {
   chatRoomId: number;
   content: string;
-  messageType?: 'TEXT' | 'IMAGE' | 'FILE'; // Made optional
+  messageType?: 'TEXT' | 'IMAGE' | 'FILE';
 }
 
 export interface DeleteMessageRequest {
@@ -65,6 +65,9 @@ export class ChatService {
 
   // WebSocket subscriptions
   private roomSubscriptions = new Map<number, any>();
+  
+  // Track pending messages for optimistic updates
+  private pendingMessages = new Map<number, ChatMessage>();
 
   constructor(
     private http: HttpClient,
@@ -220,19 +223,36 @@ export class ChatService {
   private handleIncomingMessage(message: any): void {
     const currentMessages = this.messagesSubject.value;
     
-    // Check if message already exists (avoid duplicates)
-    const messageExists = currentMessages.some(m => m.id === message.id);
-    if (!messageExists) {
-      const updatedMessages = [...currentMessages, message];
+    // Check if this is replacing a pending/temp message
+    const tempMessageIndex = currentMessages.findIndex(
+      m => m.status === 'SENDING' && 
+      m.chatRoomId === message.chatRoomId && 
+      m.content === message.content &&
+      m.senderId === message.senderId
+    );
+
+    if (tempMessageIndex !== -1) {
+      // Replace temp message with real one from server
+      const updatedMessages = [...currentMessages];
+      updatedMessages[tempMessageIndex] = message;
       this.messagesSubject.next(updatedMessages);
-      
-      // Update last message in chat rooms
-      this.updateRoomLastMessage(message.chatRoomId, message);
-      
-      // Update unread count if message is not from current user
-      if (message.senderId !== this.getCurrentUserId()) {
-        this.incrementRoomUnreadCount(message.chatRoomId);
+      console.log('✅ Replaced temp message with server message');
+    } else {
+      // Check if message already exists (avoid duplicates)
+      const messageExists = currentMessages.some(m => m.id === message.id);
+      if (!messageExists) {
+        const updatedMessages = [...currentMessages, message];
+        this.messagesSubject.next(updatedMessages);
+        console.log('✅ Added new message to list');
       }
+    }
+    
+    // Update last message in chat rooms
+    this.updateRoomLastMessage(message.chatRoomId, message);
+    
+    // Update unread count if message is not from current user
+    if (message.senderId !== this.getCurrentUserId()) {
+      this.incrementRoomUnreadCount(message.chatRoomId);
     }
   }
 
@@ -270,6 +290,20 @@ export class ChatService {
     });
     this.chatRoomsSubject.next(updatedRooms);
     this.updateUnreadCount(updatedRooms);
+  }
+
+  private markMessageAsFailed(tempId: number): void {
+    const messages = this.messagesSubject.value;
+    const index = messages.findIndex(m => m.id === tempId);
+    if (index !== -1) {
+      const updatedMessages = [...messages];
+      updatedMessages[index] = {
+        ...updatedMessages[index],
+        status: 'FAILED'
+      };
+      this.messagesSubject.next(updatedMessages);
+    }
+    this.pendingMessages.delete(tempId);
   }
 
   // ===== WEBSOCKET SEND METHODS =====
@@ -444,35 +478,77 @@ export class ChatService {
     }
   }
 
-  // ===== MESSAGE METHODS =====
+  // ===== MESSAGE METHODS WITH OPTIMISTIC UPDATES =====
 
   sendMessage(messageData: CreateMessageRequest): Observable<BasicResponse> {
-    // Try WebSocket first if connected
-    if (this.stompClient && this.stompClient.connected) {
-      this.sendMessageWebSocket({
-        chatRoomId: messageData.chatRoomId,
-        content: messageData.content
-      });
-      
-      return new Observable(observer => {
-        observer.next({ success: true, message: 'Message sent via WebSocket' });
-        observer.complete();
-      });
-    }
-
-    // Fallback to HTTP
-    return this.sendMessageHttp(messageData);
-  }
-
-  private sendMessageHttp(messageData: CreateMessageRequest): Observable<BasicResponse> {
     if (!messageData.content.trim()) {
       return throwError(() => ({ message: 'Message content cannot be empty' }));
     }
 
+    // Create temporary message for optimistic UI update
+    const tempId = Date.now();
+    const currentUser = this.getCurrentUserSafe();
+    
+    const tempMessage: ChatMessage = {
+      id: tempId,
+      content: messageData.content.trim(),
+      messageType: 'TEXT',
+      senderId: currentUser?.id || 0,
+      senderName: currentUser?.name || 'You',
+      chatRoomId: messageData.chatRoomId,
+      timestamp: new Date().toISOString(),
+      read: false,
+      status: 'SENDING',
+      type: 'TEXT'
+    };
+
+    // Immediately add to local messages (optimistic update)
+    const currentMessages = this.messagesSubject.value;
+    this.messagesSubject.next([...currentMessages, tempMessage]);
+    this.pendingMessages.set(tempId, tempMessage);
+    
+    console.log('✅ Added optimistic message to UI:', tempMessage);
+
+    // Try WebSocket first if connected
+    if (this.stompClient && this.stompClient.connected) {
+      this.sendMessageWebSocket({
+        chatRoomId: messageData.chatRoomId,
+        content: messageData.content.trim()
+      });
+      
+      // Also send via HTTP as backup/confirmation
+      return this.sendMessageHttp(messageData).pipe(
+        tap((response) => {
+          console.log('✅ Message confirmed via HTTP');
+          this.pendingMessages.delete(tempId);
+        }),
+        catchError(error => {
+          console.error('❌ Failed to send message:', error);
+          this.markMessageAsFailed(tempId);
+          return throwError(() => error);
+        })
+      );
+    }
+
+    // Fallback to HTTP only
+    return this.sendMessageHttp(messageData).pipe(
+      tap((response) => {
+        console.log('✅ Message sent via HTTP');
+        this.pendingMessages.delete(tempId);
+      }),
+      catchError(error => {
+        console.error('❌ Failed to send message:', error);
+        this.markMessageAsFailed(tempId);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  private sendMessageHttp(messageData: CreateMessageRequest): Observable<BasicResponse> {
     // Remove messageType before sending to backend
     const backendMessageData = {
       chatRoomId: messageData.chatRoomId,
-      content: messageData.content
+      content: messageData.content.trim()
     };
 
     console.log('📤 Sending HTTP message:', backendMessageData);
@@ -484,9 +560,6 @@ export class ChatService {
     ).pipe(
       tap(response => {
         console.log('✅ HTTP message response:', response);
-        if (response.success && this.currentRoomSubject.value) {
-          this.getRoomMessages(this.currentRoomSubject.value.id).subscribe();
-        }
       }),
       catchError(this.handleError)
     );
@@ -517,6 +590,24 @@ export class ChatService {
       }),
       catchError(this.handleError)
     );
+  }
+
+  // Retry failed message
+  retryMessage(messageId: number): void {
+    const messages = this.messagesSubject.value;
+    const message = messages.find(m => m.id === messageId);
+    
+    if (message && message.status === 'FAILED') {
+      // Remove failed message
+      const filteredMessages = messages.filter(m => m.id !== messageId);
+      this.messagesSubject.next(filteredMessages);
+      
+      // Resend
+      this.sendMessage({
+        chatRoomId: message.chatRoomId,
+        content: message.content
+      }).subscribe();
+    }
   }
 
   setCurrentRoom(room: ChatRoom | null): void {

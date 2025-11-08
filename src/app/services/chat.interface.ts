@@ -17,6 +17,7 @@ export interface ChatParticipant {
   lastReadMessageId?: number;
 }
 
+// FIXED: Added 'SENDING' and 'FAILED' to status types
 export interface ChatMessage {
   id: number;
   content: string;
@@ -26,11 +27,15 @@ export interface ChatMessage {
   timestamp: string;
   read: boolean;
   sender?: User;
-  status?: 'SENT' | 'DELIVERED' | 'READ';
+  senderName?: string; // Added for display purposes
+  status?: 'SENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED'; // FIXED: Added SENDING and FAILED
   deleted?: boolean;
   selected?: boolean; 
   replyTo?: number;
   attachments?: string[];
+  type?: 'TEXT' | 'IMAGE' | 'FILE'; // Added alias for messageType
+  fileUrl?: string;
+  fileName?: string;
 }
 
 export interface ChatRoom {
