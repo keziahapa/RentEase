@@ -1,7 +1,7 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, map } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -28,6 +28,8 @@ export class AuthService {
   private isBrowser: boolean;
 
   private readonly apiUrl = `${environment.apiUrl}/auth`;
+  private refreshTokenInProgress = false;
+  private refreshTokenSubject = new BehaviorSubject<boolean | null>(null);
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
@@ -420,12 +422,23 @@ export class AuthService {
     }
   }
 
-  refreshToken(): Observable<AuthResponse> {
+  refreshToken(): Observable<boolean> {
+    if (this.refreshTokenInProgress) {
+      return this.refreshTokenSubject.asObservable().pipe(
+        map(value => value !== null ? value : false)
+      );
+    }
+
+    this.refreshTokenInProgress = true;
+    this.refreshTokenSubject.next(null);
+
     const refreshToken = this.getFromStorage('refreshToken');
     
     if (!refreshToken) {
       console.warn('❌ No refresh token available');
-      return throwError(() => new Error('No refresh token available'));
+      this.refreshTokenInProgress = false;
+      this.refreshTokenSubject.next(false);
+      return of(false);
     }
     
     console.log('🔄 Refreshing token...');
@@ -440,13 +453,30 @@ export class AuthService {
         if (response.token) {
           this.storeAuthDataDirectly(response, this.isUsingLocalStorage());
         }
+        this.refreshTokenInProgress = false;
+        this.refreshTokenSubject.next(true);
       }),
+      map(response => true),
       catchError(error => {
         console.error('❌ Token refresh failed:', error);
+        this.refreshTokenInProgress = false;
+        this.refreshTokenSubject.next(false);
         this.logoutSync();
-        return throwError(() => new Error('Token refresh failed'));
+        return of(false);
       })
     );
+  }
+
+  getRefreshToken(): string | null {
+    return this.getFromStorage('refreshToken');
+  }
+
+  setRefreshToken(token: string): void {
+    if (this.isUsingLocalStorage()) {
+      localStorage.setItem('refreshToken', token);
+    } else {
+      sessionStorage.setItem('refreshToken', token);
+    }
   }
 
   getAuthHeaders(includeContentType: boolean = true): HttpHeaders {
@@ -527,6 +557,8 @@ export class AuthService {
     if (!this.isBrowser) return;
     const keys = ['authToken', 'refreshToken', 'userData', 'profileImage'];
     keys.forEach(key => this.removeFromStorage(key));
+    this.refreshTokenInProgress = false;
+    this.refreshTokenSubject.next(null);
   }
 
   private storeAuthDataDirectly(authResponse: AuthResponse, rememberMe: boolean): void {
