@@ -95,11 +95,11 @@ private buildExportParams(): SearchParams {
   const params: SearchParams = {};
 
   if (this.selectedUserType && this.selectedUserType !== 'all') {
-    params['role'] = this.selectedUserType.toUpperCase(); // Use bracket notation
+    params['role'] = this.selectedUserType.toUpperCase(); 
   }
 
   if (this.selectedStatus && this.selectedStatus !== 'all') {
-    params['status'] = this.selectedStatus.toUpperCase(); // Use bracket notation
+    params['status'] = this.selectedStatus.toUpperCase(); 
   }
 
   return params;
