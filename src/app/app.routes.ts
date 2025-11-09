@@ -226,13 +226,14 @@ export const routes: Routes = [
   
  {
   path: 'admin-dashboard',
-  component: AdminDashboardComponent, 
+  component: AdminDashboardComponent,
+  canActivate: [authGuard], // ✅ ADDED GUARD
   children: [
     { path: '', redirectTo: 'overview', pathMatch: 'full' },
     { path: 'overview', component: AdminOverviewComponent },
     { path: 'businesses', component: BusinessManagementComponent },
     { path: 'advertisements', component: AdvertisementManagementComponent },
-    { path: 'users', component: UsersViewComponent }, 
+    { path: 'users', component: UsersViewComponent },
     { path: 'chat', component: ChatComponent },
     { 
       path: 'profile',

@@ -30,7 +30,7 @@
         <span>Properties</span>
       </div>
 
-      <!-- Business Management Section -->
+     
       <div class="nav-section">
         <div class="nav-section-label">Business Management</div>
         
@@ -70,12 +70,6 @@
         <span>Reports</span>
       </div>
 
-      <div class="nav-item" 
-           [class.active]="isNavActive('settings')" 
-           (click)="navigateToSection('settings')">
-        <mat-icon class="nav-icon">settings</mat-icon>
-        <span>Settings</span>
-      </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('profile')" 
@@ -161,7 +155,7 @@
       </div>
     </div>
 
-    <!-- Router outlet for different sections - REMOVE THE CONDITIONAL OVERVIEW -->
+
     <div class="content-area">
       <router-outlet></router-outlet>
     </div>
