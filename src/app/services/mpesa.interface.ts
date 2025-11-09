@@ -57,6 +57,7 @@ export interface PaymentStatus {
   status: 'pending' | 'success' | 'failed' | 'cancelled';
   message: string;
   transactionId?: string;
+  checkoutRequestID?: string;
   amount?: number;
   timestamp?: Date;
 }
@@ -75,4 +76,14 @@ export interface TransactionResults {
   FirstName: string;
   MiddleName: string;
   LastName: string;
+}
+
+export interface TransactionStatusResponse {
+  ResultCode: string;
+  ResultDesc: string;
+  MerchantRequestID?: string;
+  CheckoutRequestID?: string;
+  TransactionID?: string;
+  Amount?: number;
+  Msisdn?: string;
 }

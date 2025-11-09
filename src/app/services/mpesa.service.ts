@@ -6,29 +6,80 @@ import {
   STKPushResponse, 
   STKCallback, 
   ValidationRequest,
-  AcknowledgeResponse 
-} from './mpesa.interface'; 
+  AcknowledgeResponse,
+  PaymentStatus 
+} from './mpesa.interface';
+import { AuthService } from '../services/auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MpesaService {
   private http = inject(HttpClient);
+  private authService = inject(AuthService);
   private apiUrl = 'https://rentease-3-sfgx.onrender.com/api/open/mobile-money';
 
+  // Initiate STK Push - requires authentication
   initiateSTKPush(request: STKPushRequest): Observable<STKPushResponse> {
+    const token = this.authService.getToken();
+    
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    // Include auth token if available
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    console.log('💰 STK Push Request:', {
+      url: `${this.apiUrl}/stk-push`,
+      headers: headers.keys(),
+      hasAuth: headers.has('Authorization'),
+      body: request
+    });
+
     return this.http.post<STKPushResponse>(
       `${this.apiUrl}/stk-push`,
       request,
-      { headers: this.createHeaders() }
+      { headers }
     );
   }
 
+  // Handle STK Callback - may require different authentication
   handleSTKCallback(callback: STKCallback): Observable<AcknowledgeResponse> {
+    const token = this.authService.getToken();
+    
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
     return this.http.post<AcknowledgeResponse>(
       `${this.apiUrl}/stk-push/callback`,
       callback,
-      { headers: this.createHeaders() }
+      { headers }
+    );
+  }
+
+  // Check transaction status
+  checkTransactionStatus(checkoutRequestID: string): Observable<any> {
+    const token = this.authService.getToken();
+    
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return this.http.get<any>(
+      `${this.apiUrl}/transaction-status/${checkoutRequestID}`,
+      { headers }
     );
   }
 
@@ -48,16 +99,17 @@ export class MpesaService {
     );
   }
 
-  checkTransactionStatus(checkoutRequestID: string): Observable<any> {
-    return this.http.get<any>(
-      `${this.apiUrl}/transaction-status/${checkoutRequestID}`,
-      { headers: this.createHeaders() }
-    );
-  }
-
   private createHeaders(): HttpHeaders {
-    return new HttpHeaders({
+    const token = this.authService.getToken();
+    
+    let headers = new HttpHeaders({
       'Content-Type': 'application/json'
     });
+
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return headers;
   }
 }
