@@ -7,54 +7,123 @@ export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
   
   const isAuthenticated = authService.isAuthenticated();
+  const user = authService.getCurrentUser();
+  const userRole = user?.role?.toLowerCase() || '';
   
-  console.log('🛡️ Auth Guard Check:', {
+  console.log('Auth Guard Check:', {
     url: state.url,
     isAuthenticated: isAuthenticated,
-    hasToken: !!authService.getToken(),
-    queryParams: route.queryParams
+    userRole: userRole,
+    fullUrl: window.location.href
   });
 
-  // ✅ FIXED: Check if trying to access admin routes
-  const isAdminRoute = state.url.includes('/admin-dashboard') || state.url.includes('/admin/');
+  const hashPath = state.url.replace('#', '');
+  
+  const isAdminRoute = hashPath.includes('/admin-dashboard') || hashPath.includes('/admin/');
+  const isLandlordRoute = hashPath.includes('/landlord-dashboard');
+  const isTenantRoute = hashPath.includes('/tenant-dashboard');
+  const isBusinessRoute = hashPath.includes('/business-dashboard');
+  const isCaretakerRoute = hashPath.includes('/caretaker-dashboard');
 
-  if (isAdminRoute) {
-    if (isAuthenticated && authService.isAdmin()) {
-      return true;
-    } else {
-      console.log('🚫 Access denied to admin routes');
-      
-      const queryParams = {
-        returnUrl: state.url,
-        ...route.queryParams
-      };
-      
-      if (isAuthenticated && !authService.isAdmin()) {
-        // ✅ User is logged in but not admin - show access denied
-        console.log('🔐 User is authenticated but not admin');
-        router.navigate(['/access-denied']);
-      } else {
-        // ✅ User not logged in - redirect to ADMIN login
-        console.log('🔐 Redirecting to ADMIN login');
-        router.navigate(['/admin/login'], { queryParams });
-      }
-      return false;
-    }
-  }
-
-  // Regular routes
-  if (isAuthenticated) {
-    return true;
-  } else {
+  if (!isAuthenticated) {
     const queryParams = {
       returnUrl: state.url,
       ...route.queryParams
     };
-    
-    console.log('🔐 Redirecting to regular login with params:', queryParams);
-    router.navigate(['/login'], { queryParams });
+
+    if (isAdminRoute) {
+      console.log('Redirecting to ADMIN login');
+      router.navigate(['/admin/login'], { queryParams });
+    } else {
+      console.log('Redirecting to regular login');
+      router.navigate(['/login'], { queryParams });
+    }
     return false;
   }
+
+  if (isAdminRoute) {
+    if (userRole === 'admin') {
+      return true;
+    } else {
+      console.log('Non-admin user trying to access admin routes');
+      redirectToUserDashboard(userRole, router);
+      return false;
+    }
+  }
+
+  if (isLandlordRoute) {
+    if (userRole === 'landlord' || userRole === 'admin') {
+      return true;
+    } else {
+      console.log('Non-landlord user trying to access landlord routes');
+      redirectToUserDashboard(userRole, router);
+      return false;
+    }
+  }
+
+  if (isTenantRoute) {
+    if (userRole === 'tenant' || userRole === 'admin') {
+      return true;
+    } else {
+      console.log('Non-tenant user trying to access tenant routes');
+      redirectToUserDashboard(userRole, router);
+      return false;
+    }
+  }
+
+  if (isBusinessRoute) {
+    if (userRole === 'business' || userRole === 'admin') {
+      return true;
+    } else {
+      console.log('Non-business user trying to access business routes');
+      redirectToUserDashboard(userRole, router);
+      return false;
+    }
+  }
+
+  if (isCaretakerRoute) {
+    if (userRole === 'caretaker' || userRole === 'admin') {
+      return true;
+    } else {
+      console.log('Non-caretaker user trying to access caretaker routes');
+      redirectToUserDashboard(userRole, router);
+      return false;
+    }
+  }
+
+  if (hashPath === '/' || hashPath === '/dashboard') {
+    redirectToUserDashboard(userRole, router);
+    return false;
+  }
+
+  return true;
 };
 
-export default authGuard;
+function redirectToUserDashboard(userRole: string, router: any) {
+  switch (userRole) {
+    case 'admin':
+      console.log('Redirecting admin to admin dashboard');
+      router.navigate(['/admin-dashboard']);
+      break;
+    case 'landlord':
+      console.log('Redirecting landlord to landlord dashboard');
+      router.navigate(['/landlord-dashboard']);
+      break;
+    case 'tenant':
+      console.log('Redirecting tenant to tenant dashboard');
+      router.navigate(['/tenant-dashboard']);
+      break;
+    case 'business':
+      console.log('Redirecting business to business dashboard');
+      router.navigate(['/business-dashboard']);
+      break;
+    case 'caretaker':
+      console.log('Redirecting caretaker to caretaker dashboard');
+      router.navigate(['/caretaker-dashboard']);
+      break;
+    default:
+      console.log('Redirecting to default tenant dashboard');
+      router.navigate(['/tenant-dashboard']);
+      break;
+  }
+}
