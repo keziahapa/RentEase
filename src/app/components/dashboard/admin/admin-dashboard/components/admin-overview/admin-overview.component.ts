@@ -27,12 +27,6 @@ import { catchError } from 'rxjs/operators';
   styleUrls: ['./admin-overview.component.scss']
 })
 export class AdminOverviewComponent implements OnInit, OnDestroy {
-getPendingBusinessesCount() {
-throw new Error('Method not implemented.');
-}
-getPendingAdvertisements() {
-throw new Error('Method not implemented.');
-}
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private adminService = inject(AdminService);
@@ -79,7 +73,6 @@ throw new Error('Method not implemented.');
   pendingAdvertisementsCount = 0;
 
   ngOnInit() {
-    console.log('🚀 Admin Overview Component Initialized');
     this.loadDashboardData();
   }
 
@@ -91,14 +84,14 @@ throw new Error('Method not implemented.');
     this.isLoadingDashboard = true;
     this.dashboardError = null;
 
-    console.log('📊 Loading admin dashboard data...');
+    console.log('Loading admin dashboard data...');
 
     const dashboardStats$ = this.adminService.getDashboardStats().pipe(
       catchError(error => {
-        console.error('❌ Error loading dashboard stats:', error);
+        console.error('Error loading dashboard stats:', error);
         return of({ 
           success: false, 
-          message: error.message || 'Failed to load stats',
+          message: error.message,
           data: null 
         });
       })
@@ -106,7 +99,7 @@ throw new Error('Method not implemented.');
 
     const pendingBusinesses$ = this.adminService.getPendingBusinesses().pipe(
       catchError(error => {
-        console.warn('⚠️ Failed to load pending businesses:', error);
+        console.warn('Failed to load pending businesses:', error);
         return of({ 
           success: false, 
           message: error.message,
@@ -117,7 +110,7 @@ throw new Error('Method not implemented.');
 
     const pendingAdvertisements$ = this.adminService.getPendingAdvertisements().pipe(
       catchError(error => {
-        console.warn('⚠️ Failed to load pending advertisements:', error);
+        console.warn('Failed to load pending advertisements:', error);
         return of({ 
           success: false, 
           message: error.message,
@@ -132,60 +125,45 @@ throw new Error('Method not implemented.');
       pendingAdvertisements: pendingAdvertisements$
     }).subscribe({
       next: (results) => {
-        console.log('📊 Dashboard data loaded:', results);
-        console.log('🔍 Stats Response:', results.stats);
-        console.log('🔍 Stats Data:', results.stats.data);
-        console.log('🔍 Stats Success:', results.stats.success);
+        console.log('Dashboard data loaded:', results);
 
-        // ✅ FIX: Handle different response structures
+      
         if (results.stats.success && results.stats.data) {
           this.dashboardData = this.transformStatsData(results.stats.data);
-          console.log('✅ Dashboard data transformed (from data):', this.dashboardData);
-        } else if (results.stats.success) {
-          // ✅ FIX: If data is at root level
-          this.dashboardData = this.transformStatsData(results.stats);
-          console.log('✅ Dashboard data transformed (root level):', this.dashboardData);
+          console.log('Dashboard stats transformed:', this.dashboardData);
         } else {
-          // ✅ FIX: Show default data instead of nothing
-          console.warn('⚠️ No stats data, using defaults');
-          this.dashboardData = this.getDefaultDashboardData();
+          throw new Error(results.stats.message || 'Failed to load dashboard statistics');
         }
 
-        // Handle pending items
+      
         if (results.pendingBusinesses.success) {
-          this.pendingBusinessesCount = results.pendingBusinesses.data?.length || 0;
-          console.log('✅ Pending businesses count:', this.pendingBusinessesCount);
+          this.pendingBusinessesCount = results.pendingBusinesses.data.length;
         } else {
-          console.warn('⚠️ Pending businesses failed:', results.pendingBusinesses.message);
+          console.warn('Failed to load pending businesses:', results.pendingBusinesses.message);
           this.pendingBusinessesCount = 0;
         }
 
+       
         if (results.pendingAdvertisements.success) {
-          this.pendingAdvertisementsCount = results.pendingAdvertisements.data?.length || 0;
-          console.log('✅ Pending advertisements count:', this.pendingAdvertisementsCount);
+          this.pendingAdvertisementsCount = results.pendingAdvertisements.data.length;
         } else {
-          console.warn('⚠️ Pending advertisements failed:', results.pendingAdvertisements.message);
+          console.warn('Failed to load pending advertisements:', results.pendingAdvertisements.message);
           this.pendingAdvertisementsCount = 0;
         }
 
+      
         this.generateRecentActivities();
+        
         this.isLoadingDashboard = false;
-        console.log('✅ Dashboard loading completed successfully');
-        console.log('✅ Final dashboardData:', this.dashboardData);
-        console.log('✅ hasData():', this.hasData());
+        console.log('Dashboard loading completed');
       },
       error: (error: any) => {
-        console.error('❌ Critical error loading dashboard data:', error);
-        
-        // ✅ FIX: Show default data even on error
-        this.dashboardData = this.getDefaultDashboardData();
+        console.error('Error loading dashboard data:', error);
         this.dashboardError = error.message || 'Failed to load dashboard data';
         this.isLoadingDashboard = false;
         
-        const errorMessage = 'Some dashboard data could not be loaded. Showing defaults.';
+        const errorMessage = this.dashboardError || 'An unknown error occurred';
         this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
-        
-        console.log('⚠️ Set default data due to error:', this.dashboardData);
       }
     });
 
@@ -193,9 +171,7 @@ throw new Error('Method not implemented.');
   }
 
   private transformStatsData(stats: any): DashboardData {
-    console.log('🔄 Transforming stats data:', stats);
-    
-    const transformed: DashboardData = {
+    return {
       totalUsers: stats.totalUsers || 0,
       totalProperties: stats.totalProperties || 0,
       activeBusinesses: stats.activeBusinesses || 0,
@@ -213,37 +189,12 @@ throw new Error('Method not implemented.');
       totalAdmins: stats.totalAdmins || 0,
       systemHealth: stats.systemHealth || 'healthy'
     };
-    
-    console.log('✅ Transformed data:', transformed);
-    return transformed;
-  }
-
-  // ✅ NEW: Default data fallback
-  private getDefaultDashboardData(): DashboardData {
-    console.log('🔧 Creating default dashboard data');
-    return {
-      totalUsers: 0,
-      totalProperties: 0,
-      activeBusinesses: 0,
-      activeDisputes: 0,
-      monthlyRevenue: 0,
-      userGrowth: 0,
-      propertiesGrowth: 0,
-      revenueGrowth: 0,
-      totalLandlords: 0,
-      totalTenants: 0,
-      totalCaretakers: 0,
-      platformEarnings: 0,
-      commissionRevenue: 0,
-      pendingApprovals: 0,
-      totalAdmins: 0,
-      systemHealth: 'unknown'
-    };
   }
 
   private generateRecentActivities() {
     this.recentActivities = [];
 
+    
     if (this.pendingBusinessesCount > 0) {
       this.recentActivities.push({
         type: 'Pending Business Applications',
@@ -263,6 +214,7 @@ throw new Error('Method not implemented.');
     }
 
     if (this.dashboardData) {
+
       if (this.dashboardData.userGrowth > 0) {
         this.recentActivities.push({
           type: 'User Growth',
@@ -272,6 +224,7 @@ throw new Error('Method not implemented.');
         });
       }
 
+     
       if (this.dashboardData.monthlyRevenue > 0) {
         this.recentActivities.push({
           type: 'Revenue Update',
@@ -281,6 +234,7 @@ throw new Error('Method not implemented.');
         });
       }
 
+  
       if (this.dashboardData.activeDisputes > 0) {
         this.recentActivities.push({
           type: 'Active Disputes',
@@ -290,6 +244,7 @@ throw new Error('Method not implemented.');
         });
       }
 
+     
       if (this.dashboardData.systemHealth && this.dashboardData.systemHealth !== 'healthy') {
         this.recentActivities.push({
           type: 'System Health',
@@ -300,6 +255,7 @@ throw new Error('Method not implemented.');
       }
     }
 
+    
     if (this.recentActivities.length === 0) {
       this.recentActivities.push({
         type: 'System Status',
@@ -309,19 +265,18 @@ throw new Error('Method not implemented.');
       });
     }
 
+    // Limit to 4 activities
     this.recentActivities = this.recentActivities.slice(0, 4);
   }
 
   refreshDashboard() {
-    console.log('🔄 Refreshing dashboard...');
+    console.log('Refreshing dashboard...');
     this.loadDashboardData();
     this.snackBar.open('Dashboard refreshed', 'Close', { duration: 3000 });
   }
 
   hasData(): boolean {
-    const result = this.dashboardData !== null;
-    console.log('🔍 hasData() called, result:', result, 'dashboardData:', this.dashboardData);
-    return result;
+    return this.dashboardData !== null;
   }
 
   getGrowthClass(growth: number): string {
@@ -370,6 +325,7 @@ throw new Error('Method not implemented.');
     this.router.navigate(['/admin-dashboard/advertisements']);
   }
 
+ 
   getDisplayValue(value: number | undefined): string {
     return value !== undefined ? this.formatNumber(value) : '0';
   }
@@ -379,9 +335,11 @@ throw new Error('Method not implemented.');
     return `${growth >= 0 ? '+' : ''}${growth}%`;
   }
 
+ 
   getErrorMessage(): string {
     return this.dashboardError || 'An unknown error occurred';
   }
+
 
   getSystemHealthColor(): string {
     if (!this.dashboardData?.systemHealth) return '#6b7280';
@@ -395,6 +353,7 @@ throw new Error('Method not implemented.');
     }
   }
 
+  
   getSystemHealthIcon(): string {
     if (!this.dashboardData?.systemHealth) return 'help';
     

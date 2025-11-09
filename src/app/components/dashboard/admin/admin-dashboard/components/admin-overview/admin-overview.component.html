@@ -9,13 +9,13 @@
     </button>
   </div>
 
-  <!-- Loading State -->
+ 
   <div *ngIf="isLoadingDashboard" class="loading-section">
     <mat-spinner diameter="40"></mat-spinner>
     <p>Loading dashboard data...</p>
   </div>
 
-  <!-- Error State -->
+
   <div *ngIf="dashboardError && !isLoadingDashboard" class="error-section">
     <div class="error-message">
       <mat-icon>error_outline</mat-icon>
@@ -24,13 +24,13 @@
     </div>
   </div>
 
-  <!-- Main Content -->
+
   <div *ngIf="!isLoadingDashboard && !dashboardError" class="dashboard-content">
     
-    <!-- Stats Grid -->
+    
     <div class="stats-grid">
+     
       
-      <!-- Skeleton Loading -->
       <app-skeleton-list 
         *ngIf="!hasData()"
         [count]="6"
@@ -38,10 +38,9 @@
         [height]="'120px'">
       </app-skeleton-list>
 
-      <!-- Actual Stats Cards -->
+     
       <ng-container *ngIf="hasData()">
         
-        <!-- Total Users Card -->
         <mat-card class="stat-card">
           <div class="stat-content">
             <div class="stat-icon" style="background: #3b82f6;">
@@ -58,7 +57,7 @@
           </div>
         </mat-card>
 
-        <!-- Properties Card -->
+       
         <mat-card class="stat-card">
           <div class="stat-content">
             <div class="stat-icon" style="background: #10b981;">
@@ -75,7 +74,7 @@
           </div>
         </mat-card>
 
-        <!-- Active Businesses Card -->
+       
         <mat-card class="stat-card">
           <div class="stat-content">
             <div class="stat-icon" style="background: #f59e0b;">
@@ -92,7 +91,7 @@
           </div>
         </mat-card>
 
-        <!-- Active Disputes Card -->
+      
         <mat-card class="stat-card">
           <div class="stat-content">
             <div class="stat-icon" style="background: #ef4444;">
@@ -107,7 +106,7 @@
           </div>
         </mat-card>
 
-        <!-- Monthly Revenue Card -->
+       
         <mat-card class="stat-card">
           <div class="stat-content">
             <div class="stat-icon" style="background: #8b5cf6;">
@@ -124,7 +123,7 @@
           </div>
         </mat-card>
 
-        <!-- Pending Approvals Card -->
+      
         <mat-card class="stat-card">
           <div class="stat-content">
             <div class="stat-icon" style="background: #06b6d4;">
@@ -139,7 +138,7 @@
           </div>
         </mat-card>
 
-        <!-- Platform Earnings Card -->
+        
         <mat-card class="stat-card" *ngIf="dashboardData!.platformEarnings">
           <div class="stat-content">
             <div class="stat-icon" style="background: #059669;">
@@ -155,10 +154,9 @@
       </ng-container>
     </div>
 
-    <!-- Content Grid - Quick Actions & Recent Activity -->
+    
     <div class="content-grid">
-      
-      <!-- Quick Actions Card -->
+    
       <mat-card class="actions-card">
         <div class="card-header">
           <h3>Quick Actions</h3>
@@ -181,7 +179,7 @@
         </div>
       </mat-card>
 
-      <!-- Recent Activity Card -->
+    
       <mat-card class="activity-card">
         <div class="card-header">
           <h3>Recent Activity</h3>
@@ -200,7 +198,7 @@
             </div>
           </div>
 
-          <!-- No Activity State -->
+       
           <div *ngIf="recentActivities.length === 0" class="no-activity">
             <mat-icon>notifications_off</mat-icon>
             <p>No recent activity</p>
@@ -209,12 +207,11 @@
       </mat-card>
     </div>
 
-    <!-- Pending Approvals Section -->
+  
     <div class="pending-approvals-section" *ngIf="hasData()">
       <h2 class="section-title">Pending Approvals</h2>
       <div class="approvals-grid">
-        
-        <!-- Business Applications -->
+      
         <mat-card class="approval-card">
           <div class="approval-header">
             <div class="approval-icon" style="background: #f59e0b;">
@@ -233,7 +230,7 @@
           </div>
         </mat-card>
 
-        <!-- Advertisement Campaigns -->
+        
         <mat-card class="approval-card">
           <div class="approval-header">
             <div class="approval-icon" style="background: #8b5cf6;">
@@ -254,7 +251,7 @@
       </div>
     </div>
 
-    <!-- User Breakdown Card -->
+  
     <mat-card class="breakdown-card" *ngIf="hasData()">
       <div class="card-header">
         <h3>User Breakdown</h3>
