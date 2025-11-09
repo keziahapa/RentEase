@@ -27,6 +27,12 @@ import { catchError } from 'rxjs/operators';
   styleUrls: ['./admin-overview.component.scss']
 })
 export class AdminOverviewComponent implements OnInit, OnDestroy {
+getPendingBusinessesCount() {
+throw new Error('Method not implemented.');
+}
+getPendingAdvertisements() {
+throw new Error('Method not implemented.');
+}
   private router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private adminService = inject(AdminService);
