@@ -1,4 +1,4 @@
-// src/app/components/chat/chat.component.ts
+// src/app/components/chat/chat.component.ts - COMPLETE FILE
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -26,8 +26,8 @@ import { NewChatModalComponent, NewChatModalData } from './new-chat-modal/new-ch
   styleUrls: ['./chat.component.scss'],
   standalone: true,
   imports: [
-    CommonModule, 
-    FormsModule, 
+    CommonModule,
+    FormsModule,
     ErrorDisplayComponent,
     MatTooltipModule,
     MatDialogModule,
@@ -47,7 +47,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   newMessage = '';
   currentUserId: number = 0;
   userRole: string = '';
-  
+
   // UI state
   loading = false;
   sending = false;
@@ -56,25 +56,25 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   showEmojiPicker = false;
   searchQuery = '';
   webSocketConnected = false;
-  
+
   // Typing indicators
-  typingUsers: {userId: number, userName: string}[] = [];
+  typingUsers: { userId: number; userName: string }[] = [];
   isTyping = false;
   typingTimeout: any;
-  
+
   // Emojis
   emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '👍', '👎', '👏', '🙌', '👋', '🤝', '🙏', '❤️', '💕', '💖', '💗', '💙', '💚', '💛', '🧡', '💜', '🖤', '💯', '🔥', '✨', '💫', '⭐'];
-  
+
   // UI state properties for template
   showRoomInfo = false;
   showAttachmentMenu = false;
   replyingTo: ChatMessage | null = null;
-  
+
   // Subscriptions
   private subscriptions: Subscription[] = [];
   private webSocketSubscription?: Subscription;
   private connectionCheckSubscription?: Subscription;
-  
+
   // Services
   public chatService = inject(ChatService);
   public authService = inject(AuthService);
@@ -128,11 +128,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.selectedRoomId = room.id;
         }
       }),
-      
+
       this.chatService.messages$.subscribe(messages => {
         console.log('💬 Messages updated:', messages?.length);
         this.messages = messages || [];
-        
+
         // Debug: Log all messages to verify sent messages are included
         this.messages.forEach((msg, index) => {
           console.log(`Message ${index}:`, {
@@ -141,19 +141,20 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
             senderId: msg.senderId,
             currentUserId: this.currentUserId,
             isMyMessage: this.isMyMessage(msg),
-            timestamp: msg.timestamp
+            timestamp: msg.timestamp,
+            status: msg.status
           });
         });
-        
+
         setTimeout(() => this.scrollToBottom(), 100);
       }),
-      
+
       this.chatService.chatRooms$.subscribe(rooms => {
         console.log('📋 Chat rooms updated:', rooms?.length);
         this.chatRooms = rooms || [];
         this.autoSelectRoomIfNeeded();
       }),
-      
+
       this.chatService.typingUsers$.subscribe(users => {
         this.typingUsers = users || [];
       })
@@ -198,7 +199,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (this.typingTimeout) {
       clearTimeout(this.typingTimeout);
     }
-    
+
     if (this.isTyping && this.currentRoom) {
       this.chatService.stopTyping(this.currentRoom.id).subscribe();
     }
@@ -264,12 +265,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.loading = false;
         this.chatRooms = [];
         console.error('❌ Error loading chat rooms:', error);
-        
+
         const retryAction: ErrorAction = {
           label: 'Retry',
           handler: () => this.loadChatRooms()
         };
-        
+
         this.errorHandler.error(
           'Unable to load conversations',
           'Please check your connection',
@@ -337,22 +338,22 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     // Extract propertyId from the chat data
     const propertyId = chatData.propertyId ? parseInt(chatData.propertyId, 10) : null;
-    
+
     if (!propertyId) {
       this.errorHandler.error('Property ID is required to create a chat room');
       this.loading = false;
       return;
     }
 
-    console.log('💬 Creating chat room with data:', { 
-      propertyId, 
-      participantType: chatData.participantType 
+    console.log('💬 Creating chat room with data:', {
+      propertyId,
+      participantType: chatData.participantType
     });
 
     // Use the correct chat service method based on participant type
     let chatObservable;
-    
-    switch(chatData.participantType) {
+
+    switch (chatData.participantType) {
       case 'TENANT_LANDLORD':
         chatObservable = this.chatService.createTenantLandlordRoom(propertyId);
         break;
@@ -374,11 +375,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         console.log('✅ Chat room creation response:', response);
         if (response.success && response.data) {
           this.errorHandler.info('New chat started successfully!', 2000);
-          
+
           // Add the new room to the list and select it
           this.chatRooms.unshift(response.data);
           this.selectRoom(response.data);
-          
+
           // Refresh the room list to ensure consistency
           setTimeout(() => {
             this.loadChatRooms();
@@ -390,7 +391,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (error) => {
         this.loading = false;
         console.error('❌ Error creating chat room:', error);
-        
+
         let errorMessage = 'Failed to start new chat';
         if (error.error?.message) {
           errorMessage = error.error.message;
@@ -439,16 +440,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.newMessage = '';
           this.stopTyping();
           this.focusMessageInput();
-          
+
           if (!this.webSocketConnected) {
             this.errorHandler.info('Message sent', 1000);
-          }
-          
-          // Force refresh messages to ensure sent message appears
-          if (this.currentRoom) {
-            setTimeout(() => {
-              this.chatService.getRoomMessages(this.currentRoom!.id).subscribe();
-            }, 100);
           }
         } else {
           this.errorHandler.error(response.message || 'Failed to send message');
@@ -457,12 +451,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (error: any) => {
         this.sending = false;
         console.error('❌ Error sending message:', error);
-        
+
         const retryAction: ErrorAction = {
           label: 'Retry',
           handler: () => this.sendMessage()
         };
-        
+
         this.errorHandler.error(
           'Failed to send message',
           'Please check your connection',
@@ -539,6 +533,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.showMenu = !this.showMenu;
   }
 
+  toggleRoomInfo(): void {
+    this.showRoomInfo = !this.showRoomInfo;
+  }
+
   viewProfile(): void {
     this.showMenu = false;
     this.errorHandler.info('Profile view coming soon!', 2000);
@@ -551,9 +549,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   clearChat(): void {
     this.showMenu = false;
-    
+
     if (!this.currentRoom) return;
-    
+
     if (confirm('Are you sure you want to clear this chat? This will delete all messages in this conversation.')) {
       const messageIds = this.messages.map(msg => msg.id);
       if (messageIds.length > 0) {
@@ -611,6 +609,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   toggleTheme(): void {
     this.errorHandler.info('Theme toggle coming soon!', 2000);
+  }
+
+  backToRoomList(): void {
+    this.selectRoom(null);
   }
 
   // ===== TEMPLATE COMPATIBILITY METHODS =====
@@ -687,7 +689,21 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   formatTime(timestamp: string): string {
-    return this.formatMessageTime(timestamp);
+    try {
+      if (!timestamp) return 'Just now';
+
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return 'Just now';
+
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Just now';
+    }
   }
 
   // Message actions
@@ -711,13 +727,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         console.log('✅ Retry message response:', response);
         if (response.success) {
           this.errorHandler.info('Message sent', 1000);
-          
-          // Refresh messages to update the status
-          if (this.currentRoom) {
-            setTimeout(() => {
-              this.chatService.getRoomMessages(this.currentRoom!.id).subscribe();
-            }, 100);
-          }
         } else {
           this.errorHandler.error(response.message || 'Failed to send message');
         }
@@ -731,7 +740,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   replyToMessage(message: ChatMessage): void {
-    this.errorHandler.info('Reply feature coming soon!', 2000);
+    this.replyingTo = message;
+    this.focusMessageInput();
   }
 
   // Input handling
@@ -766,7 +776,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   // Attachment methods
   openAttachmentMenu(): void {
-    this.errorHandler.info('File attachment coming soon!', 2000);
+    this.showAttachmentMenu = true;
   }
 
   closeAttachmentMenu(): void {
@@ -774,10 +784,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   selectImage(): void {
+    this.closeAttachmentMenu();
     this.triggerFileInput();
   }
 
   selectFile(): void {
+    this.closeAttachmentMenu();
     this.triggerFileInput();
   }
 
@@ -792,13 +804,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   // Formatting methods
   formatDate(dateString: string): string {
     try {
+      if (!dateString) return 'Unknown date';
+
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      if (isNaN(date.getTime())) return 'Unknown date';
+
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
     } catch (error) {
+      console.error('Error formatting date:', error);
       return 'Unknown date';
     }
   }
@@ -806,59 +823,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   // Scroll handling
   onScroll(event: any): void {
     // Implement infinite scroll if needed
-  }
-
-  // ===== UTILITY METHODS =====
-
-  getRoomDisplayName(room: ChatRoom): string {
-    return this.chatService.generateRoomDisplayName(room, this.currentUserId) || 'Unknown User';
-  }
-
-  getOtherParticipants(room: ChatRoom): User[] {
-    return this.chatService.getOtherParticipants(room, this.currentUserId) || [];
-  }
-
-  isMyMessage(message: ChatMessage): boolean {
-    const isMine = this.chatService.isMyMessage(message);
-    console.log('🔍 Checking if message is mine:', {
-      messageId: message.id,
-      senderId: message.senderId,
-      currentUserId: this.currentUserId,
-      isMine: isMine
-    });
-    return isMine;
-  }
-
-  formatMessageTime(timestamp: string): string {
-    try {
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) return '';
-      
-      const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-      
-      if (diffInHours < 24) {
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      } else if (diffInHours < 168) {
-        return date.toLocaleDateString('en-US', { weekday: 'short' });
-      } else {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      }
-    } catch (error) {
-      console.error('Error formatting message time:', error);
-      return '';
-    }
-  }
-
-  formatLastMessageTime(room: ChatRoom): string {
-    if (!room.lastMessage) return '';
-    return this.formatMessageTime(room.lastMessage.timestamp);
-  }
-
-  getLastMessagePreview(room: ChatRoom): string {
-    if (!room.lastMessage) return 'No messages yet';
-    const content = room.lastMessage.content;
-    return content.length > 35 ? content.substring(0, 35) + '...' : content;
   }
 
   scrollToBottom(): void {
@@ -874,10 +838,100 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
+  // ===== UTILITY METHODS =====
+
+  getRoomDisplayName(room: ChatRoom): string {
+    return this.chatService.generateRoomDisplayName(room, this.currentUserId) || 'Unknown User';
+  }
+
+  getOtherParticipants(room: ChatRoom): User[] {
+    return this.chatService.getOtherParticipants(room, this.currentUserId) || [];
+  }
+
+  isMyMessage(message: ChatMessage): boolean {
+    const isMine = this.chatService.isMyMessage(message);
+    return isMine;
+  }
+
+  formatMessageTime(timestamp: string): string {
+    try {
+      // Handle undefined or null timestamps
+      if (!timestamp) {
+        console.warn('Empty timestamp provided');
+        return 'Just now';
+      }
+
+      const date = new Date(timestamp);
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.error('Invalid timestamp:', timestamp);
+        return 'Just now';
+      }
+
+      const now = new Date();
+      const diffInMs = now.getTime() - date.getTime();
+      const diffInSeconds = Math.floor(diffInMs / 1000);
+      const diffInMinutes = Math.floor(diffInSeconds / 60);
+      const diffInHours = Math.floor(diffInMinutes / 60);
+      const diffInDays = Math.floor(diffInHours / 24);
+
+      // Just now (less than 1 minute)
+      if (diffInSeconds < 60) {
+        return 'Just now';
+      }
+
+      // Minutes ago (less than 1 hour)
+      if (diffInMinutes < 60) {
+        return `${diffInMinutes}m ago`;
+      }
+
+      // Today (less than 24 hours)
+      if (diffInHours < 24) {
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+
+      // Yesterday
+      if (diffInDays === 1) {
+        return 'Yesterday';
+      }
+
+      // This week (less than 7 days)
+      if (diffInDays < 7) {
+        return date.toLocaleDateString('en-US', { weekday: 'short' });
+      }
+
+      // Older messages
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+
+    } catch (error) {
+      console.error('Error formatting message time:', error, 'timestamp:', timestamp);
+      return 'Just now';
+    }
+  }
+
+  formatLastMessageTime(room: ChatRoom): string {
+    if (!room.lastMessage || !room.lastMessage.timestamp) return '';
+    return this.formatMessageTime(room.lastMessage.timestamp);
+  }
+
+  getLastMessagePreview(room: ChatRoom): string {
+    if (!room.lastMessage) return 'No messages yet';
+    const content = room.lastMessage.content;
+    return content.length > 35 ? content.substring(0, 35) + '...' : content;
+  }
+
   getParticipantRole(participant: User | undefined): string {
     if (!participant?.role) return 'User';
-    
-    switch(participant.role.toUpperCase()) {
+
+    switch (participant.role.toUpperCase()) {
       case 'LANDLORD': return 'Landlord';
       case 'CARETAKER': return 'Caretaker';
       case 'TENANT': return 'Tenant';
@@ -889,10 +943,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   getRoomTypeDisplay(room: ChatRoom): string {
     if (!room.participantType) return 'Chat';
-    
+
     const participantType = room.participantType as string;
-    
-    switch(participantType) {
+
+    switch (participantType) {
       case 'TENANT_LANDLORD': return 'Tenant ↔ Landlord';
       case 'TENANT_CARETAKER': return 'Tenant ↔ Caretaker';
       case 'LANDLORD_CARETAKER': return 'Landlord ↔ Caretaker';
@@ -916,25 +970,44 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   showDateSeparator(message: ChatMessage): boolean {
     const messageIndex = this.messages.indexOf(message);
     if (messageIndex === 0) return true;
-    
+
     const currentDate = new Date(message.timestamp).toDateString();
     const previousDate = new Date(this.messages[messageIndex - 1].timestamp).toDateString();
-    
+
     return currentDate !== previousDate;
   }
 
   getMessageDate(timestamp: string): string {
-    const date = new Date(timestamp);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (date.toDateString() === today.toDateString()) {
+    try {
+      if (!timestamp) return 'Today';
+
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return 'Today';
+
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      // Reset hours for accurate day comparison
+      today.setHours(0, 0, 0, 0);
+      yesterday.setHours(0, 0, 0, 0);
+      const messageDate = new Date(date);
+      messageDate.setHours(0, 0, 0, 0);
+
+      if (messageDate.getTime() === today.getTime()) {
+        return 'Today';
+      } else if (messageDate.getTime() === yesterday.getTime()) {
+        return 'Yesterday';
+      } else {
+        return date.toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+        });
+      }
+    } catch (error) {
+      console.error('Error getting message date:', error);
       return 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
-    } else {
-      return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     }
   }
 
@@ -962,17 +1035,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!this.searchQuery.trim()) {
       return this.chatRooms;
     }
-    
+
     const query = this.searchQuery.toLowerCase();
-    return this.chatRooms.filter(room => 
+    return this.chatRooms.filter(room =>
       this.getRoomDisplayName(room).toLowerCase().includes(query) ||
       room.propertyName?.toLowerCase().includes(query) ||
       room.lastMessage?.content.toLowerCase().includes(query)
     );
   }
 
-  // ===== DEBUG METHODS =====
-  
   debugMessages(): void {
     console.log('🐛 DEBUG MESSAGES:');
     console.log('Current User ID:', this.currentUserId);
@@ -983,7 +1054,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         content: msg.content,
         senderId: msg.senderId,
         isMyMessage: this.isMyMessage(msg),
-        timestamp: msg.timestamp
+        timestamp: msg.timestamp,
+        status: msg.status
       });
     });
   }

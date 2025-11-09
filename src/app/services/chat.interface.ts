@@ -17,7 +17,6 @@ export interface ChatParticipant {
   lastReadMessageId?: number;
 }
 
-// FIXED: Added 'SENDING' and 'FAILED' to status types
 export interface ChatMessage {
   id: number;
   content: string;
@@ -27,13 +26,13 @@ export interface ChatMessage {
   timestamp: string;
   read: boolean;
   sender?: User;
-  senderName?: string; // Added for display purposes
-  status?: 'SENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED'; // FIXED: Added SENDING and FAILED
+  senderName?: string;
+  status?: 'SENDING' | 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
   deleted?: boolean;
-  selected?: boolean; 
+  selected?: boolean;
   replyTo?: number;
   attachments?: string[];
-  type?: 'TEXT' | 'IMAGE' | 'FILE'; // Added alias for messageType
+  type?: 'TEXT' | 'IMAGE' | 'FILE';
   fileUrl?: string;
   fileName?: string;
 }
@@ -57,7 +56,7 @@ export interface ChatRoomDetails {
   id: number;
   name?: string;
   participantType: 'TENANT_LANDLORD' | 'TENANT_CARETAKER' | 'LANDLORD_CARETAKER' | 'GROUP';
-  participants: ChatParticipant[]; 
+  participants: ChatParticipant[];
   lastMessage?: ChatMessage;
   unreadCount: number;
   createdAt: string;
@@ -77,11 +76,10 @@ export interface ChatRoomDetails {
   };
 }
 
-// FIXED: messageType is now optional for backend requests
 export interface CreateMessageRequest {
   chatRoomId: number;
   content: string;
-  messageType?: 'TEXT' | 'IMAGE' | 'FILE'; // Made optional with ?
+  messageType?: 'TEXT' | 'IMAGE' | 'FILE';
   replyTo?: number;
   attachments?: string[];
 }
@@ -167,10 +165,10 @@ export interface ChatRoomDetailsResponse extends ApiResponse<ChatRoomDetails> {}
 export interface CreateChatRoomResponse extends ApiResponse<ChatRoom> {}
 
 export interface ChatEvent {
-  type: 'MESSAGE_CREATED' | 'MESSAGE_UPDATED' | 'MESSAGE_DELETED' | 
-         'TYPING_STARTED' | 'TYPING_STOPPED' | 'USER_ONLINE' | 'USER_OFFLINE' |
-         'ROOM_CREATED' | 'ROOM_UPDATED' | 'ROOM_DELETED' | 'MESSAGE_READ' |
-         'MESSAGE_DELIVERED' | 'USER_JOINED' | 'USER_LEFT';
+  type: 'MESSAGE_CREATED' | 'MESSAGE_UPDATED' | 'MESSAGE_DELETED' |
+    'TYPING_STARTED' | 'TYPING_STOPPED' | 'USER_ONLINE' | 'USER_OFFLINE' |
+    'ROOM_CREATED' | 'ROOM_UPDATED' | 'ROOM_DELETED' | 'MESSAGE_READ' |
+    'MESSAGE_DELIVERED' | 'USER_JOINED' | 'USER_LEFT';
   data: any;
   timestamp: string;
   roomId?: number;
@@ -225,7 +223,7 @@ export interface UploadProgress {
 
 export interface TypingState {
   [roomId: number]: {
-    users: {userId: number, name: string, startedAt: string}[];
+    users: { userId: number; name: string; startedAt: string }[];
   };
 }
 

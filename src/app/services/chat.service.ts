@@ -495,12 +495,20 @@ export class ChatService {
       messageType: 'TEXT',
       senderId: currentUser?.id || 0,
       senderName: currentUser?.name || 'You',
+      sender: currentUser || undefined,
       chatRoomId: messageData.chatRoomId,
       timestamp: new Date().toISOString(),
       read: false,
       status: 'SENDING',
-      type: 'TEXT'
+      type: 'TEXT',
+      deleted: false
     };
+
+    console.log('✅ Created temp message:', {
+      id: tempMessage.id,
+      timestamp: tempMessage.timestamp,
+      timestampValid: !isNaN(new Date(tempMessage.timestamp).getTime())
+    });
 
     // Immediately add to local messages (optimistic update)
     const currentMessages = this.messagesSubject.value;
