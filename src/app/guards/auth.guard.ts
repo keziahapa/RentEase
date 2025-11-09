@@ -41,6 +41,7 @@ export const authGuard: CanActivateFn = (route, state) => {
     return false;
   }
 
+  // Role-based access control
   if (isAdminRoute) {
     if (userRole === 'admin') {
       return true;
@@ -72,7 +73,9 @@ export const authGuard: CanActivateFn = (route, state) => {
   }
 
   if (isBusinessRoute) {
-    if (userRole === 'business' || userRole === 'admin') {
+    if (userRole === 'business' || userRole === 'admin' || 
+        userRole === 'external_business' || userRole === 'business_owner' ||
+        userRole === 'company' || userRole === 'vendor') {
       return true;
     } else {
       console.log('Non-business user trying to access business routes');
@@ -91,6 +94,7 @@ export const authGuard: CanActivateFn = (route, state) => {
     }
   }
 
+  // Redirect to appropriate dashboard for root or generic dashboard routes
   if (hashPath === '/' || hashPath === '/dashboard') {
     redirectToUserDashboard(userRole, router);
     return false;
@@ -99,31 +103,37 @@ export const authGuard: CanActivateFn = (route, state) => {
   return true;
 };
 
-function redirectToUserDashboard(userRole: string, router: any) {
-  switch (userRole) {
+function redirectToUserDashboard(userRole: string, router: Router): void {
+  const normalizedRole = userRole.toLowerCase();
+  
+  switch (normalizedRole) {
     case 'admin':
       console.log('Redirecting admin to admin dashboard');
-      router.navigate(['/admin-dashboard']);
+      router.navigate(['/admin-dashboard/overview']);
       break;
     case 'landlord':
       console.log('Redirecting landlord to landlord dashboard');
-      router.navigate(['/landlord-dashboard']);
+      router.navigate(['/landlord-dashboard/home']);
       break;
     case 'tenant':
       console.log('Redirecting tenant to tenant dashboard');
-      router.navigate(['/tenant-dashboard']);
+      router.navigate(['/tenant-dashboard/dashboard']);
       break;
     case 'business':
-      console.log('Redirecting business to business dashboard');
+    case 'external_business':
+    case 'business_owner':
+    case 'company':
+    case 'vendor':
+      console.log('Redirecting business user to business dashboard');
       router.navigate(['/business-dashboard']);
       break;
     case 'caretaker':
       console.log('Redirecting caretaker to caretaker dashboard');
-      router.navigate(['/caretaker-dashboard']);
+      router.navigate(['/caretaker-dashboard/overview']);
       break;
     default:
-      console.log('Redirecting to default tenant dashboard');
-      router.navigate(['/tenant-dashboard']);
+      console.log('Unknown role, redirecting to default tenant dashboard');
+      router.navigate(['/tenant-dashboard/dashboard']);
       break;
   }
 }
