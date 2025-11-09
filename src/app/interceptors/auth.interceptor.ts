@@ -4,7 +4,7 @@ import { catchError, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-// Simple token management since we don't have AuthService methods
+// Simple token management
 const getToken = (): string | null => {
   return localStorage.getItem('auth_token') || 
          localStorage.getItem('token') ||
@@ -41,7 +41,8 @@ const logout = (): void => {
   localStorage.removeItem('token');
   localStorage.removeItem('refresh_token');
   sessionStorage.removeItem('auth_token');
-  window.location.href = '/login';
+  // ✅ FIXED: Use hash-based routing URL
+  window.location.href = '/#/login';
 };
 
 const canRefreshToken = (): boolean => {
@@ -232,7 +233,7 @@ function handleUnauthorizedError(
     });
   }
 
-  // Logout and redirect to login
+  // Logout and redirect to login (with hash routing)
   logout();
   
   return throwError(() => error);
