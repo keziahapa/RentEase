@@ -1,3 +1,4 @@
+// STK Push Request Interface
 export interface STKPushRequest {
   phoneNumber: string;
   amount: number;
@@ -5,6 +6,7 @@ export interface STKPushRequest {
   transactionDesc: string;
 }
 
+// STK Push Response Interface
 export interface STKPushResponse {
   MerchantRequestID: string;
   CheckoutRequestID: string;
@@ -13,25 +15,31 @@ export interface STKPushResponse {
   CustomerMessage: string;
 }
 
-export interface CallbackMetadataItem {
+// STK Callback Interfaces
+export interface STKCallbackMetadataItem {
   Name: string;
   Value: any;
 }
 
+export interface STKCallbackMetadata {
+  Item: STKCallbackMetadataItem[];
+}
+
+export interface STKCallbackData {
+  MerchantRequestID: string;
+  CheckoutRequestID: string;
+  ResultCode: string;
+  ResultDesc: string;
+  CallbackMetadata?: STKCallbackMetadata;
+}
+
 export interface STKCallback {
   Body: {
-    StkCallback: {
-      MerchantRequestID: string;
-      CheckoutRequestID: string;
-      ResultCode: string;
-      ResultDesc: string;
-      CallbackMetadata?: {
-        Item: CallbackMetadataItem[];
-      };
-    };
+    StkCallback: STKCallbackData;
   };
 }
 
+// Validation Request Interface
 export interface ValidationRequest {
   TransactionType: string;
   TransID: string;
@@ -39,51 +47,64 @@ export interface ValidationRequest {
   TransAmount: string;
   BusinessShortCode: string;
   BillRefNumber: string;
-  InvoiceNumber: string;
+  InvoiceNumber?: string;
   OrgAccountBalance: string;
   ThirdPartyTransID: string;
   MSISDN: string;
   FirstName: string;
-  MiddleName: string;
+  MiddleName?: string;
   LastName: string;
 }
 
-export interface AcknowledgeResponse {
-  ResultCode: number;
-  ResultDesc: string;
-}
-
-export interface PaymentStatus {
-  status: 'pending' | 'success' | 'failed' | 'cancelled';
-  message: string;
-  transactionId?: string;
-  checkoutRequestID?: string;
-  amount?: number;
-  timestamp?: Date;
-}
-
-export interface TransactionResults {
+// Confirmation Request Interface
+export interface ConfirmationRequest {
   TransactionType: string;
   TransID: string;
   TransTime: string;
   TransAmount: string;
   BusinessShortCode: string;
   BillRefNumber: string;
-  InvoiceNumber: string;
+  InvoiceNumber?: string;
   OrgAccountBalance: string;
   ThirdPartyTransID: string;
   MSISDN: string;
   FirstName: string;
-  MiddleName: string;
+  MiddleName?: string;
   LastName: string;
 }
 
+// Acknowledge Response Interface
+export interface AcknowledgeResponse {
+  ResultCode: number;
+  ResultDesc: string;
+}
+
+// Transaction Status Response Interface
 export interface TransactionStatusResponse {
   ResultCode: string;
   ResultDesc: string;
-  MerchantRequestID?: string;
-  CheckoutRequestID?: string;
   TransactionID?: string;
-  Amount?: number;
-  Msisdn?: string;
+  ConversationID?: string;
+  OriginatorConversationID?: string;
+  ResponseCode?: string;
+  ResponseDescription?: string;
+}
+
+// Payment Status Interface (for internal app state)
+export interface PaymentStatus {
+  status: 'pending' | 'success' | 'failed' | 'cancelled';
+  message: string;
+  timestamp: Date;
+  checkoutRequestID?: string;
+  transactionId?: string;
+  amount?: number;
+  resultCode?: string;
+  resultDesc?: string;
+}
+
+// Error Response Interface
+export interface MpesaErrorResponse {
+  errorCode: string;
+  errorMessage: string;
+  requestId?: string;
 }

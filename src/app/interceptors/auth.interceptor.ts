@@ -19,7 +19,8 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     '/api/auth/resend-otp',
     '/api/auth/refresh-token',
     '/api/external-business/advertisements/approved',
-    '/api/public/'
+    '/api/public/',
+    '/api/open/'  // ADDED THIS - This fixes your 401 error
   ];
 
   const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
