@@ -20,7 +20,6 @@ export interface MoveOutNoticeRequest {
   moveOutDate: string;
   reason: string;
   notes?: string;
-  // ✅ Include display fields for property information
   propertyName?: string;
   unitNumber?: string;
   propertyAddress?: string;
