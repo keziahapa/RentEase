@@ -56,7 +56,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     catchError((error: HttpErrorResponse) => {
       console.error('❌ Request failed:', { url: req.url, status: error.status });
 
-      // ✅ FIXED: Handle 401 errors intelligently
+      // ✅ FIXED: Handle 401 errors intelligently - NO AUTO LOGOUT
       if (error.status === 401 && !isPublicEndpoint) {
         // Categorize the endpoint type
         const isLandlordEndpoint = req.url.includes('/landlord/');
@@ -66,6 +66,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
         const isLogoutEndpoint = req.url.includes('/auth/logout');
         const isProfileEndpoint = req.url.includes('/api/profile');
         const isBusinessEndpoint = req.url.includes('/external-business/');
+        const isCommunicationsEndpoint = req.url.includes('/communications/');
         
         console.log('🔐 401 Error Analysis:', {
           isLandlordEndpoint,
@@ -75,7 +76,10 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
           isLogoutEndpoint, 
           isProfileEndpoint,
           isBusinessEndpoint,
-          url: req.url
+          isCommunicationsEndpoint,
+          url: req.url,
+          tokenExists: !!token,
+          tokenValid: authService.hasValidToken()
         });
 
         // Case 1: Logout endpoint - expected 401, don't do anything
@@ -84,38 +88,91 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
           return throwError(() => error);
         }
         
-        // Case 2: Role-based endpoints - user lacks permission, don't logout
-        // Let the component handle this gracefully
-        if (isLandlordEndpoint || isTenantEndpoint || isCaretakerEndpoint || 
-            isAdminEndpoint || isBusinessEndpoint) {
-          console.warn('🛡️ Role-based endpoint 401 - Insufficient permissions');
-          snackBar.open('Access denied. You may not have permission for this action.', 'Close', { 
-            duration: 5000 
+        // Case 2: Check if token is actually valid - if yes, this is authorization issue
+        if (authService.hasValidToken()) {
+          console.warn('🛡️ Token is valid but endpoint returned 401 - This is an AUTHORIZATION issue (permissions)');
+          
+          // Show appropriate message but DON'T logout
+          if (isCommunicationsEndpoint) {
+            console.warn('📱 Communications endpoint 401 - User may not have notification permissions');
+            // Don't show snackbar for this - let the component handle it silently
+          } 
+          else if (isLandlordEndpoint || isTenantEndpoint || isCaretakerEndpoint || 
+                  isAdminEndpoint || isBusinessEndpoint || isProfileEndpoint) {
+            console.warn('🛡️ Role/feature-based endpoint 401 - Insufficient permissions');
+            snackBar.open('Access denied. You may not have permission for this action.', 'Close', { 
+              duration: 5000,
+              panelClass: ['snackbar-warning']
+            });
+          }
+          
+          // Return the error - let the component handle it
+          return throwError(() => error);
+        }
+        
+        // Case 3: Token is invalid/expired - try silent re-authentication
+        console.warn('🔐 Token invalid/expired - Attempting silent re-authentication');
+        
+        // Try silent re-authentication if credentials are stored
+        if (authService.canRefreshToken()) {
+          authService.silentReauth().subscribe({
+            next: (success) => {
+              if (success) {
+                console.log('✅ Silent re-authentication successful - token refreshed');
+                snackBar.open('Session refreshed automatically', 'Close', { 
+                  duration: 3000,
+                  panelClass: ['snackbar-success']
+                });
+                // The component should retry the request
+              } else {
+                console.warn('❌ Silent re-authentication failed - token may be permanently invalid');
+                // Don't auto-logout - let user continue working
+                snackBar.open('Session issue detected. Some features may not work.', 'Close', { 
+                  duration: 5000,
+                  panelClass: ['snackbar-warning']
+                });
+              }
+            },
+            error: () => {
+              console.warn('❌ Silent re-authentication error');
+              // Don't auto-logout - let user continue working
+            }
           });
-          return throwError(() => error);
+        } else {
+          console.warn('🔐 No stored credentials for silent re-authentication');
+          // Don't auto-logout - let user continue working
+          snackBar.open('Please log in again to refresh your session.', 'Close', { 
+            duration: 5000,
+            panelClass: ['snackbar-info']
+          });
         }
         
-        // Case 3: Profile endpoint - data issue, not auth issue
-        if (isProfileEndpoint) {
-          console.warn('👤 Profile endpoint 401 - Data issue');
-          return throwError(() => error);
-        }
-        
-        // Case 4: General endpoint - this is a real auth failure, logout required
-        console.warn('🔐 General endpoint 401 - Session invalid, logging out');
-        authService.logoutSync();
-        snackBar.open('Session expired. Please log in again.', 'Close', { duration: 5000 });
-        router.navigate(['/login']);
+        // Return the error - NEVER auto-logout from interceptor
+        return throwError(() => error);
       }
 
       // Handle 403 Forbidden
       if (error.status === 403) {
-        snackBar.open('Access denied - insufficient permissions', 'Close', { duration: 5000 });
+        snackBar.open('Access denied - insufficient permissions', 'Close', { 
+          duration: 5000,
+          panelClass: ['snackbar-warning']
+        });
       }
 
       // Handle 500+ Server Errors
       if (error.status >= 500) {
-        snackBar.open('Server error. Please try again later.', 'Close', { duration: 5000 });
+        snackBar.open('Server error. Please try again later.', 'Close', { 
+          duration: 5000,
+          panelClass: ['snackbar-error']
+        });
+      }
+
+      // Handle network errors
+      if (error.status === 0) {
+        snackBar.open('Network error. Please check your connection.', 'Close', { 
+          duration: 5000,
+          panelClass: ['snackbar-error']
+        });
       }
 
       return throwError(() => error);
