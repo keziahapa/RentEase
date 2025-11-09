@@ -1,4 +1,3 @@
-<!-- src/app/shared/chat/chat.component.html -->
 <div class="chat-container">
   <!-- Header -->
   <div class="chat-header">
@@ -13,7 +12,6 @@
             <div class="avatar" [style.background]="getAvatarColor(currentRoom.id)">
               {{ getRoomDisplayName(currentRoom)?.charAt(0) }}
             </div>
-            <div class="online-indicator" *ngIf="isUserOnline(currentRoom)"></div>
           </div>
           <div class="room-details">
             <h3 class="room-name">{{ getRoomDisplayName(currentRoom) }}</h3>
@@ -44,7 +42,7 @@
       </div>
       
       <div class="header-actions">
-        <button class="icon-button" *ngIf="currentRoom && shouldShowConnectionWarning()" 
+        <button class="icon-button" *ngIf="currentRoom && !webSocketConnected" 
                 (click)="reconnectWebSocket()" matTooltip="Reconnect" type="button">
           <mat-icon>wifi</mat-icon>
         </button>
@@ -70,7 +68,6 @@
           <input type="text" 
                  placeholder="Search conversations..." 
                  [(ngModel)]="searchQuery"
-                 (input)="searchRooms()"
                  class="search-input">
           <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()" type="button">
             <mat-icon>close</mat-icon>
@@ -169,7 +166,7 @@
           </div>
 
           <!-- Messages -->
-          <div *ngFor="let message of messages; trackBy: trackByMessageId" 
+          <div *ngFor="let message of messages; trackBy: trackByMessageId; let i = index" 
                class="message-wrapper"
                [class.my-message]="isMyMessage(message)"
                [class.other-message]="!isMyMessage(message)">
@@ -183,7 +180,7 @@
 
             <div class="message-bubble-container">
               <!-- Other User Avatar -->
-              <div class="message-avatar" *ngIf="!isMyMessage(message) && shouldShowAvatar(messages.indexOf(message))">
+              <div class="message-avatar" *ngIf="!isMyMessage(message) && shouldShowAvatar(i)">
                 <div class="avatar small" [style.background]="getAvatarColor(message.senderId)">
                   {{ message.senderName?.charAt(0) || 'U' }}
                 </div>
@@ -191,9 +188,8 @@
 
               <div class="message-content">
                 <!-- Sender Name -->
-                <div class="sender-name" *ngIf="!isMyMessage(message) && shouldShowSenderName(messages.indexOf(message))">
+                <div class="sender-name" *ngIf="!isMyMessage(message) && shouldShowSenderName(i)">
                   {{ message.senderName || 'Unknown User' }}
-                  <span class="sender-role" *ngIf="message.sender">• {{ getParticipantRole(message.sender) }}</span>
                 </div>
 
                 <!-- Message Bubble -->
@@ -217,11 +213,6 @@
                              [class.failed]="message.status === 'FAILED'">
                         {{ getStatusIcon(message.status) }}
                       </mat-icon>
-                      
-                      <button class="retry-button" *ngIf="message.status === 'FAILED'" 
-                              (click)="retryMessage(message)" type="button">
-                        <mat-icon>refresh</mat-icon>
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -229,9 +220,6 @@
 
               <!-- Message Actions -->
               <div class="message-actions">
-                <button class="action-button" (click)="replyToMessage(message)" matTooltip="Reply" type="button">
-                  <mat-icon>reply</mat-icon>
-                </button>
                 <button class="action-button" *ngIf="isMyMessage(message)" 
                         (click)="deleteMessage(message.id)" matTooltip="Delete" type="button">
                   <mat-icon>delete</mat-icon>
@@ -259,16 +247,40 @@
         </div>
       </div>
 
-      <!-- Message Input -->
+      <!-- Message Input Section -->
       <div class="message-input-section">
+        <!-- File Preview -->
+        <div class="file-preview" *ngIf="filePreview">
+          <img [src]="filePreview" alt="File preview" class="file-preview-image">
+          <button class="clear-file" (click)="clearFileSelection()" type="button">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
         <div class="message-input-container">
           <div class="input-actions">
-            <button class="action-button input-action" (click)="toggleEmojiPicker()" matTooltip="Emoji" type="button">
+            <!-- Emoji Button -->
+            <button class="action-button input-action" 
+                    (click)="toggleEmojiPicker()" 
+                    matTooltip="Emoji" 
+                    type="button">
               <mat-icon>mood</mat-icon>
             </button>
-            <button class="action-button input-action" (click)="triggerFileInput()" matTooltip="Attach file" type="button">
+            
+            <!-- File Upload Button -->
+            <button class="action-button input-action" 
+                    (click)="triggerFileInput()" 
+                    matTooltip="Attach file" 
+                    type="button">
               <mat-icon>attach_file</mat-icon>
             </button>
+            
+            <!-- Hidden File Input -->
+            <input #fileInput 
+                   type="file" 
+                   style="display: none" 
+                   (change)="handleFileSelect($event)"
+                   accept="image/*">
           </div>
 
           <div class="input-field">
