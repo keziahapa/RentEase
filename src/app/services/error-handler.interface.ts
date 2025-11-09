@@ -1,8 +1,10 @@
+// src/app/services/error-handler.interface.ts
 export enum ErrorSeverity {
   INFO = 'info',
   WARNING = 'warning',
   ERROR = 'error',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
+  SUCCESS = 'success' // Added success type
 }
 
 export interface AppError {

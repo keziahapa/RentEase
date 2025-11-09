@@ -1,13 +1,11 @@
-<!-- src/app/components/chat/chat.component.html -->
-<app-error-display></app-error-display>
-
+<!-- src/app/shared/chat/chat.component.html -->
 <div class="chat-container">
   <!-- Header -->
   <div class="chat-header">
     <div class="header-content">
       <div class="header-left">
-        <button class="back-button" *ngIf="currentRoom" (click)="selectRoom(null)">
-          ←
+        <button class="back-button" *ngIf="currentRoom" (click)="selectRoom(null)" type="button">
+          <mat-icon>arrow_back</mat-icon>
         </button>
         
         <div class="room-info" *ngIf="currentRoom">
@@ -31,7 +29,9 @@
 
         <div class="app-brand" *ngIf="!currentRoom">
           <div class="brand-content">
-            <div class="brand-icon">💬</div>
+            <div class="brand-icon">
+              <mat-icon>chat</mat-icon>
+            </div>
             <div class="brand-text">
               <h2>Messages</h2>
               <p>Chat with tenants and property managers</p>
@@ -45,14 +45,14 @@
       
       <div class="header-actions">
         <button class="icon-button" *ngIf="currentRoom && shouldShowConnectionWarning()" 
-                (click)="reconnectWebSocket()" matTooltip="Reconnect">
-          🔄
+                (click)="reconnectWebSocket()" matTooltip="Reconnect" type="button">
+          <mat-icon>wifi</mat-icon>
         </button>
-        <button class="icon-button" (click)="refreshChatRooms()" matTooltip="Refresh">
-          ↻
+        <button class="icon-button" (click)="refreshChatRooms()" matTooltip="Refresh" type="button">
+          <mat-icon>refresh</mat-icon>
         </button>
-        <button class="icon-button primary" (click)="startNewChat()" matTooltip="New Chat">
-          +
+        <button class="icon-button primary" (click)="startNewChat()" matTooltip="New Chat" type="button">
+          <mat-icon>add</mat-icon>
         </button>
       </div>
     </div>
@@ -64,14 +64,16 @@
     <div class="room-list" *ngIf="!currentRoom">
       <div class="search-section">
         <div class="search-container">
-          <div class="search-icon">🔍</div>
+          <div class="search-icon">
+            <mat-icon>search</mat-icon>
+          </div>
           <input type="text" 
                  placeholder="Search conversations..." 
                  [(ngModel)]="searchQuery"
                  (input)="searchRooms()"
                  class="search-input">
-          <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()">
-            ×
+          <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()" type="button">
+            <mat-icon>close</mat-icon>
           </button>
         </div>
       </div>
@@ -124,14 +126,15 @@
           <!-- Empty State -->
           <div class="empty-state" *ngIf="getFilteredRooms().length === 0 && !loading">
             <div class="empty-icon">
-              💬
+              <mat-icon>chat</mat-icon>
             </div>
             <h4 *ngIf="searchQuery">No conversations found</h4>
             <h4 *ngIf="!searchQuery">No conversations yet</h4>
             <p *ngIf="searchQuery">Try adjusting your search terms</p>
             <p *ngIf="!searchQuery">Start your first conversation</p>
-            <button class="new-chat-button" (click)="startNewChat()" *ngIf="!searchQuery">
-              + Start New Chat
+            <button class="new-chat-button" (click)="startNewChat()" *ngIf="!searchQuery" type="button">
+              <mat-icon>add</mat-icon>
+              Start New Chat
             </button>
           </div>
 
@@ -159,7 +162,7 @@
           <!-- Empty State -->
           <div class="empty-chat" *ngIf="messages.length === 0">
             <div class="empty-chat-icon">
-              💭
+              <mat-icon>chat_bubble_outline</mat-icon>
             </div>
             <h3>No messages yet</h3>
             <p>Send a message to start the conversation</p>
@@ -182,15 +185,15 @@
               <!-- Other User Avatar -->
               <div class="message-avatar" *ngIf="!isMyMessage(message) && shouldShowAvatar(messages.indexOf(message))">
                 <div class="avatar small" [style.background]="getAvatarColor(message.senderId)">
-                  {{ message.senderName?.charAt(0) }}
+                  {{ message.senderName?.charAt(0) || 'U' }}
                 </div>
               </div>
 
               <div class="message-content">
                 <!-- Sender Name -->
                 <div class="sender-name" *ngIf="!isMyMessage(message) && shouldShowSenderName(messages.indexOf(message))">
-                  {{ message.senderName }}
-                  <span class="sender-role">• {{ getParticipantRole(message.sender) }}</span>
+                  {{ message.senderName || 'Unknown User' }}
+                  <span class="sender-role" *ngIf="message.sender">• {{ getParticipantRole(message.sender) }}</span>
                 </div>
 
                 <!-- Message Bubble -->
@@ -207,17 +210,17 @@
                     
                     <!-- Message Status -->
                     <div class="message-status" *ngIf="isMyMessage(message)">
-                      <span class="status-icon" 
-                         [class.sending]="message.status === 'SENDING'"
-                         [class.sent]="message.status === 'SENT'"
-                         [class.delivered]="message.status === 'DELIVERED'"
-                         [class.read]="message.status === 'READ'">
+                      <mat-icon class="status-icon" 
+                             [class.sent]="message.status === 'SENT'"
+                             [class.delivered]="message.status === 'DELIVERED'"
+                             [class.read]="message.status === 'READ'"
+                             [class.failed]="message.status === 'FAILED'">
                         {{ getStatusIcon(message.status) }}
-                      </span>
+                      </mat-icon>
                       
                       <button class="retry-button" *ngIf="message.status === 'FAILED'" 
-                              (click)="retryMessage(message)">
-                        🔄
+                              (click)="retryMessage(message)" type="button">
+                        <mat-icon>refresh</mat-icon>
                       </button>
                     </div>
                   </div>
@@ -226,12 +229,12 @@
 
               <!-- Message Actions -->
               <div class="message-actions">
-                <button class="action-button" (click)="replyToMessage(message)" matTooltip="Reply">
-                  ↩
+                <button class="action-button" (click)="replyToMessage(message)" matTooltip="Reply" type="button">
+                  <mat-icon>reply</mat-icon>
                 </button>
                 <button class="action-button" *ngIf="isMyMessage(message)" 
-                        (click)="deleteMessage(message.id)" matTooltip="Delete">
-                  🗑
+                        (click)="deleteMessage(message.id)" matTooltip="Delete" type="button">
+                  <mat-icon>delete</mat-icon>
                 </button>
               </div>
             </div>
@@ -241,7 +244,7 @@
           <div class="typing-indicator" *ngIf="typingUsers.length > 0">
             <div class="typing-avatar">
               <div class="avatar small" [style.background]="getAvatarColor(typingUsers[0].userId)">
-                {{ typingUsers[0].userName?.charAt(0) }}
+                {{ typingUsers[0].userName?.charAt(0) || 'U' }}
               </div>
             </div>
             <div class="typing-bubble">
@@ -260,11 +263,11 @@
       <div class="message-input-section">
         <div class="message-input-container">
           <div class="input-actions">
-            <button class="action-button" (click)="toggleEmojiPicker()" matTooltip="Emoji">
-              😊
+            <button class="action-button input-action" (click)="toggleEmojiPicker()" matTooltip="Emoji" type="button">
+              <mat-icon>mood</mat-icon>
             </button>
-            <button class="action-button" (click)="triggerFileInput()" matTooltip="Attach file">
-              📎
+            <button class="action-button input-action" (click)="triggerFileInput()" matTooltip="Attach file" type="button">
+              <mat-icon>attach_file</mat-icon>
             </button>
           </div>
 
@@ -286,9 +289,10 @@
           <button class="send-button" 
                   [disabled]="!newMessage.trim() || sending"
                   (click)="sendMessage()"
-                  matTooltip="Send message">
-            <span *ngIf="!sending">📤</span>
-            <span *ngIf="sending">⏳</span>
+                  matTooltip="Send message"
+                  type="button">
+            <mat-icon *ngIf="!sending">send</mat-icon>
+            <mat-icon *ngIf="sending" class="spinning">hourglass_empty</mat-icon>
           </button>
         </div>
 
@@ -296,14 +300,15 @@
         <div class="emoji-picker" *ngIf="showEmojiPicker">
           <div class="emoji-header">
             <h4>Choose an emoji</h4>
-            <button class="close-button" (click)="toggleEmojiPicker()">
-              ×
+            <button class="close-button" (click)="toggleEmojiPicker()" type="button">
+              <mat-icon>close</mat-icon>
             </button>
           </div>
           <div class="emoji-grid">
             <button *ngFor="let emoji of emojis" 
                     class="emoji-button"
-                    (click)="addEmoji(emoji)">
+                    (click)="addEmoji(emoji)"
+                    type="button">
               {{ emoji }}
             </button>
           </div>

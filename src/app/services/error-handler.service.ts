@@ -1,7 +1,7 @@
+// src/app/services/error-handler.service.ts
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { AppError, ErrorAction, ErrorSeverity } from './error-handler.interface';
-
 
 @Injectable({
   providedIn: 'root'
@@ -63,5 +63,10 @@ export class ErrorHandlerService {
 
   critical(message: string, context?: string): string {
     return this.showError(message, ErrorSeverity.CRITICAL, context);
+  }
+
+  // ADDED: Success method that was missing
+  success(message: string, autoHide: number = 3000): string {
+    return this.showError(message, ErrorSeverity.SUCCESS, undefined, undefined, autoHide);
   }
 }
