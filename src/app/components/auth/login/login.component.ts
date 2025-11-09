@@ -238,6 +238,14 @@ export class LoginComponent implements OnInit, OnDestroy {
   private async handleSuccessfulLogin(response: AuthResponse): Promise<void> {
     this.isLoading = false;
     
+    // Store credentials for silent re-authentication if rememberMe is checked
+    if (this.rememberMe) {
+      this.authService.storeCredentialsSecurely(
+        this.loginData.email.trim().toLowerCase(),
+        this.loginData.password
+      );
+    }
+    
     this.loginData.password = '';
     
     const token = this.authService.getToken();
@@ -254,7 +262,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     } else {
       this.showSnackbar('Login successful!', 'success');
       
-      // NEW: Check business registration for ALL users (not just EXTERNAL_BUSINESS)
+      // Check business registration for ALL users (not just EXTERNAL_BUSINESS)
       await this.checkBusinessRegistrationStatus(response.role);
     }
   }

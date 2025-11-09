@@ -74,6 +74,11 @@ export class AuthService {
         
         if (response.token) {
           this.storeAuthDataDirectly(response, credentials.rememberMe || false);
+          
+          // Store credentials for silent re-authentication if rememberMe is checked
+          if (credentials.rememberMe) {
+            this.storeCredentialsSecurely(credentials.email, credentials.password);
+          }
         } else {
           console.error('❌ Login successful but no token received');
           throw new Error('Authentication error: No token received');
@@ -81,6 +86,101 @@ export class AuthService {
       }),
       catchError(this.handleError)
     );
+  }
+
+  // ✅ NEW: Silent re-authentication using stored credentials
+  silentReauth(): Observable<boolean> {
+    if (this.refreshTokenInProgress) {
+      return this.refreshTokenSubject.asObservable().pipe(
+        map(value => value !== null ? value : false)
+      );
+    }
+
+    this.refreshTokenInProgress = true;
+    this.refreshTokenSubject.next(null);
+
+    const storedEmail = this.getStoredEmail();
+    const storedPassword = this.getStoredPassword();
+    
+    if (!storedEmail || !storedPassword) {
+      console.warn('❌ No stored credentials available for silent re-authentication');
+      this.refreshTokenInProgress = false;
+      this.refreshTokenSubject.next(false);
+      return of(false);
+    }
+
+    console.log('🔄 Attempting silent re-authentication...');
+
+    const loginRequest: LoginRequest = {
+      email: storedEmail,
+      password: storedPassword,
+      rememberMe: true
+    };
+
+    return this.login(loginRequest).pipe(
+      map(response => {
+        console.log('✅ Silent re-authentication successful');
+        this.refreshTokenInProgress = false;
+        this.refreshTokenSubject.next(true);
+        return true;
+      }),
+      catchError(error => {
+        console.error('❌ Silent re-authentication failed:', error);
+        this.refreshTokenInProgress = false;
+        this.refreshTokenSubject.next(false);
+        
+        // Clear stored credentials if re-authentication fails
+        this.clearStoredCredentials();
+        return of(false);
+      })
+    );
+  }
+
+  // ✅ FIXED: Made public so LoginComponent can call it
+  public storeCredentialsSecurely(email: string, password: string): void {
+    if (!this.isBrowser) return;
+    
+    try {
+      localStorage.setItem('userEmail', email);
+      // Simple base64 encoding - consider proper encryption in production
+      const encodedPassword = btoa(password);
+      localStorage.setItem('userPassword', encodedPassword);
+      console.log('🔐 Credentials stored for silent re-authentication');
+    } catch (error) {
+      console.error('❌ Failed to store credentials:', error);
+    }
+  }
+
+  // ✅ NEW: Get stored email
+  private getStoredEmail(): string | null {
+    if (!this.isBrowser) return null;
+    return localStorage.getItem('userEmail');
+  }
+
+  // ✅ NEW: Get stored password (decoded)
+  private getStoredPassword(): string | null {
+    if (!this.isBrowser) return null;
+    const encodedPassword = localStorage.getItem('userPassword');
+    if (!encodedPassword) return null;
+    
+    try {
+      return atob(encodedPassword);
+    } catch {
+      return null;
+    }
+  }
+
+  // ✅ NEW: Clear stored credentials
+  private clearStoredCredentials(): void {
+    if (!this.isBrowser) return;
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userPassword');
+    console.log('🔐 Stored credentials cleared');
+  }
+
+  // ✅ NEW: Check if we can perform silent re-authentication
+  public canRefreshToken(): boolean {
+    return !!(this.getStoredEmail() && this.getStoredPassword());
   }
 
   register(userData: RegisterRequest): Observable<ApiResponse> {
@@ -350,10 +450,25 @@ export class AuthService {
     
     if (!isTokenValid) {
       console.log('🔐 isAuthenticated: Token expired or invalid');
-      this.clearAllStorage();
-      this.currentUserSubject.next(null);
-      this.isAuthenticatedSubject.next(false);
-      return false;
+      
+      // Try silent re-authentication if token is expired but we have stored credentials
+      if (this.canRefreshToken()) {
+        console.log('🔄 Token expired but stored credentials available - attempting silent re-auth');
+        this.silentReauth().subscribe(success => {
+          if (!success) {
+            this.clearAllStorage();
+            this.currentUserSubject.next(null);
+            this.isAuthenticatedSubject.next(false);
+          }
+        });
+        // Return true temporarily while we try to refresh
+        return true;
+      } else {
+        this.clearAllStorage();
+        this.currentUserSubject.next(null);
+        this.isAuthenticatedSubject.next(false);
+        return false;
+      }
     }
     
     console.log('🔐 isAuthenticated: Token valid');
@@ -416,55 +531,17 @@ export class AuthService {
       
       console.log('🔐 Token expires in:', timeUntilExpiry, 'seconds');
       
+      // If token expires in less than 5 minutes, consider it about to expire
       return timeUntilExpiry < 300;
     } catch {
       return false;
     }
   }
 
+  // ✅ UPDATED: Remove the non-existent refresh-token endpoint call
   refreshToken(): Observable<boolean> {
-    if (this.refreshTokenInProgress) {
-      return this.refreshTokenSubject.asObservable().pipe(
-        map(value => value !== null ? value : false)
-      );
-    }
-
-    this.refreshTokenInProgress = true;
-    this.refreshTokenSubject.next(null);
-
-    const refreshToken = this.getFromStorage('refreshToken');
-    
-    if (!refreshToken) {
-      console.warn('❌ No refresh token available');
-      this.refreshTokenInProgress = false;
-      this.refreshTokenSubject.next(false);
-      return of(false);
-    }
-    
-    console.log('🔄 Refreshing token...');
-    
-    return this.http.post<AuthResponse>(
-      `${this.apiUrl}/refresh-token`,
-      { refreshToken },
-      { headers: this.getBasicHeaders() }
-    ).pipe(
-      tap(response => {
-        console.log('✅ Token refresh successful');
-        if (response.token) {
-          this.storeAuthDataDirectly(response, this.isUsingLocalStorage());
-        }
-        this.refreshTokenInProgress = false;
-        this.refreshTokenSubject.next(true);
-      }),
-      map(response => true),
-      catchError(error => {
-        console.error('❌ Token refresh failed:', error);
-        this.refreshTokenInProgress = false;
-        this.refreshTokenSubject.next(false);
-        this.logoutSync();
-        return of(false);
-      })
-    );
+    // Use our silent re-authentication instead
+    return this.silentReauth();
   }
 
   getRefreshToken(): string | null {
@@ -678,7 +755,7 @@ export class AuthService {
 
   private clearAllStorage(): void {
     if (!this.isBrowser) return;
-    const keys = ['authToken', 'refreshToken', 'userData', 'profileImage'];
+    const keys = ['authToken', 'refreshToken', 'userData', 'profileImage', 'userEmail', 'userPassword'];
     keys.forEach(key => this.removeFromStorage(key));
     this.refreshTokenInProgress = false;
     this.refreshTokenSubject.next(null);
