@@ -357,7 +357,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       'BUSINESS',
       'BUSINESS_OWNER',
       'COMPANY',
-      'VENDOR'
+      'VENDOR',
+      'ADMIN' // ✅ ADDED ADMIN HERE
     ];
     return businessRoles.includes(role.toUpperCase());
   }
@@ -398,20 +399,36 @@ export class LoginComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  private getRoleBasedDashboard(userRole: string): string {
+  // ✅ FIXED: Added ADMIN role mapping
+  private redirectBasedOnRole(userRole: string): void {
+    const normalizedRole = userRole.toUpperCase().trim();
+    
     const roleMap: Record<string, string> = {
-      'TENANT': '/tenant-dashboard/dashboard',
       'LANDLORD': '/landlord-dashboard/home',
-      'CARETAKER': '/caretaker-dashboard/overview',
+      'TENANT': '/tenant-dashboard/dashboard',
       'EXTERNAL_BUSINESS': '/business-dashboard',
       'BUSINESS': '/business-dashboard',
       'BUSINESS_OWNER': '/business-dashboard',
       'COMPANY': '/business-dashboard',
-      'VENDOR': '/business-dashboard'
+      'VENDOR': '/business-dashboard',
+      'CARETAKER': '/caretaker-dashboard/overview',
+      'ADMIN': '/admin-dashboard' // ✅ ADDED THIS LINE
     };
+
+    const dashboardRoute = roleMap[normalizedRole] || '/dashboard';
     
-    const normalizedRole = userRole.toUpperCase();
-    return roleMap[normalizedRole] || '/dashboard';
+    const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
+    const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+    
+    if (hasPendingInvitation && returnUrl) {
+      this.router.navigateByUrl(returnUrl);
+    } else {
+      this.router.navigate([dashboardRoute]).then(success => {
+        if (!success) {
+          this.router.navigate(['/dashboard']);
+        }
+      });
+    }
   }
 
   private getDashboardDisplayName(invitationType: string): string {
@@ -420,7 +437,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       'caretaker': 'Caretaker Dashboard',
       'landlord': 'Landlord Dashboard',
       'external_business': 'Business Dashboard',
-      'business': 'Business Dashboard'
+      'business': 'Business Dashboard',
+      'admin': 'Admin Dashboard' // ✅ ADDED THIS LINE
     };
     return names[invitationType] || 'Dashboard';
   }
@@ -467,36 +485,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     
     if (showSnackbar) {
       this.showSnackbar(errorMessage, 'error');
-    }
-  }
-
-  private redirectBasedOnRole(userRole: string): void {
-    const normalizedRole = userRole.toUpperCase().trim();
-    
-    const roleMap: Record<string, string> = {
-      'LANDLORD': '/landlord-dashboard/home',
-      'TENANT': '/tenant-dashboard/dashboard',
-      'EXTERNAL_BUSINESS': '/business-dashboard',
-      'BUSINESS': '/business-dashboard',
-      'BUSINESS_OWNER': '/business-dashboard',
-      'COMPANY': '/business-dashboard',
-      'VENDOR': '/business-dashboard',
-      'CARETAKER': '/caretaker-dashboard/overview',
-    };
-
-    const dashboardRoute = roleMap[normalizedRole] || '/dashboard';
-    
-    const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
-    const returnUrl = this.route.snapshot.queryParams['returnUrl'];
-    
-    if (hasPendingInvitation && returnUrl) {
-      this.router.navigateByUrl(returnUrl);
-    } else {
-      this.router.navigate([dashboardRoute]).then(success => {
-        if (!success) {
-          this.router.navigate(['/dashboard']);
-        }
-      });
     }
   }
 

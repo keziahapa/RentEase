@@ -1,4 +1,22 @@
 <div class="dashboard-container">
+  <!-- TEMPORARY DEBUG PANEL -->
+  <div style="background: yellow; padding: 10px; margin: 10px; border: 2px solid red;">
+    <h3>🔧 DEBUG: Admin Dashboard Loaded</h3>
+    <p><strong>User Role:</strong> {{ userRole }}</p>
+    <p><strong>Current Section:</strong> {{ currentSection }}</p>
+    <p><strong>Router URL:</strong> {{ router.url }}</p>
+    <p><strong>Is Overview Page:</strong> {{ isOverviewPage() }}</p>
+    
+    <button (click)="authService.debugToken()" style="margin: 5px;">Debug Token</button>
+    <button (click)="debugStorage()" style="margin: 5px;">Debug Storage</button>
+    <button (click)="testAdminAccess()" style="margin: 5px; background: red; color: white;">
+      🔧 TEST: Force Admin Access
+    </button>
+    <button (click)="forceShowOverview()" style="margin: 5px; background: green; color: white;">
+      🚀 TEST: Force Show Overview Component
+    </button>
+  </div>
+
   <div class="mobile-menu-overlay" [class.active]="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
   
   <nav class="sidebar" [class.mobile-open]="isMobileMenuOpen">
@@ -30,7 +48,6 @@
         <span>Properties</span>
       </div>
 
-     
       <div class="nav-section">
         <div class="nav-section-label">Business Management</div>
         
@@ -47,7 +64,7 @@
           <mat-icon class="nav-icon">campaign</mat-icon>
           <span>Advertisements</span>
         </div>
-
+      </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('disputes')" 
@@ -70,7 +87,6 @@
         <span>Reports</span>
       </div>
 
-
       <div class="nav-item" 
            [class.active]="isNavActive('profile')" 
            (click)="viewProfile()">
@@ -85,7 +101,7 @@
         <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
       </button>
     </div>
-
+  </nav>
 
   <main class="main-content">
     <div class="top-header">
@@ -155,9 +171,26 @@
       </div>
     </div>
 
-
     <div class="content-area">
-      <router-outlet></router-outlet>
+      <!-- Option 1: Direct rendering (works without routes) -->
+      <div *ngIf="showOverviewDirectly" style="border: 3px solid blue; padding: 20px;">
+        <h2>🔄 Directly Rendered Overview</h2>
+        <app-admin-overview></app-admin-overview>
+      </div>
+
+      <!-- Option 2: Router outlet (needs route configuration) -->
+      <div *ngIf="!showOverviewDirectly">
+        <router-outlet></router-outlet>
+        
+        <!-- Fallback if router outlet is empty -->
+        <div *ngIf="isOverviewPage() && !hasRouterContent()" style="background: orange; padding: 20px; margin-top: 20px;">
+          <h3>⚠️ Router Outlet is Empty - Showing Fallback</h3>
+          <p>This means the AdminOverviewComponent is not loading through routes.</p>
+          <button (click)="forceShowOverview()" style="background: purple; color: white; padding: 10px;">
+            Click to Force Show Overview
+          </button>
+        </div>
+      </div>
     </div>
   </main>
 </div>

@@ -229,7 +229,7 @@ export const routes: Routes = [
   component: AdminDashboardComponent,
   canActivate: [authGuard], 
   children: [
-    { path: '', redirectTo: 'overview', pathMatch: 'full' },
+    { path: '', redirectTo: 'overview', pathMatch: 'full' }, // ✅ This should work
     { path: 'overview', component: AdminOverviewComponent },
     { path: 'businesses', component: BusinessManagementComponent },
     { path: 'advertisements', component: AdvertisementManagementComponent },
