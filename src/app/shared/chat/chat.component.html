@@ -7,7 +7,7 @@
     <div class="header-content">
       <div class="header-left">
         <button class="back-button" *ngIf="currentRoom" (click)="selectRoom(null)">
-          <i class="fas fa-arrow-left"></i>
+          ←
         </button>
         
         <div class="room-info" *ngIf="currentRoom">
@@ -31,7 +31,7 @@
 
         <div class="app-brand" *ngIf="!currentRoom">
           <div class="brand-content">
-            <i class="fas fa-comments brand-icon"></i>
+            <div class="brand-icon">💬</div>
             <div class="brand-text">
               <h2>Messages</h2>
               <p>Chat with tenants and property managers</p>
@@ -46,13 +46,13 @@
       <div class="header-actions">
         <button class="icon-button" *ngIf="currentRoom && shouldShowConnectionWarning()" 
                 (click)="reconnectWebSocket()" matTooltip="Reconnect">
-          <i class="fas fa-wifi"></i>
+          🔄
         </button>
         <button class="icon-button" (click)="refreshChatRooms()" matTooltip="Refresh">
-          <i class="fas fa-sync-alt"></i>
+          ↻
         </button>
         <button class="icon-button primary" (click)="startNewChat()" matTooltip="New Chat">
-          <i class="fas fa-plus"></i>
+          +
         </button>
       </div>
     </div>
@@ -64,14 +64,14 @@
     <div class="room-list" *ngIf="!currentRoom">
       <div class="search-section">
         <div class="search-container">
-          <i class="fas fa-search search-icon"></i>
+          <div class="search-icon">🔍</div>
           <input type="text" 
                  placeholder="Search conversations..." 
                  [(ngModel)]="searchQuery"
                  (input)="searchRooms()"
                  class="search-input">
           <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()">
-            <i class="fas fa-times"></i>
+            ×
           </button>
         </div>
       </div>
@@ -124,15 +124,14 @@
           <!-- Empty State -->
           <div class="empty-state" *ngIf="getFilteredRooms().length === 0 && !loading">
             <div class="empty-icon">
-              <i class="fas fa-comments"></i>
+              💬
             </div>
             <h4 *ngIf="searchQuery">No conversations found</h4>
             <h4 *ngIf="!searchQuery">No conversations yet</h4>
             <p *ngIf="searchQuery">Try adjusting your search terms</p>
             <p *ngIf="!searchQuery">Start your first conversation</p>
             <button class="new-chat-button" (click)="startNewChat()" *ngIf="!searchQuery">
-              <i class="fas fa-plus"></i>
-              Start New Chat
+              + Start New Chat
             </button>
           </div>
 
@@ -160,7 +159,7 @@
           <!-- Empty State -->
           <div class="empty-chat" *ngIf="messages.length === 0">
             <div class="empty-chat-icon">
-              <i class="fas fa-comment-dots"></i>
+              💭
             </div>
             <h3>No messages yet</h3>
             <p>Send a message to start the conversation</p>
@@ -208,18 +207,17 @@
                     
                     <!-- Message Status -->
                     <div class="message-status" *ngIf="isMyMessage(message)">
-                      <i class="status-icon" 
-                         [class.fas]="message.status === 'SENT' || message.status === 'DELIVERED' || message.status === 'READ'"
-                         [class.far]="message.status === 'SENDING'"
-                         [class.fa-clock]="message.status === 'SENDING'"
-                         [class.fa-check]="message.status === 'SENT'"
-                         [class.fa-check-double]="message.status === 'DELIVERED' || message.status === 'READ'"
+                      <span class="status-icon" 
+                         [class.sending]="message.status === 'SENDING'"
+                         [class.sent]="message.status === 'SENT'"
                          [class.delivered]="message.status === 'DELIVERED'"
-                         [class.read]="message.status === 'READ'"></i>
+                         [class.read]="message.status === 'READ'">
+                        {{ getStatusIcon(message.status) }}
+                      </span>
                       
                       <button class="retry-button" *ngIf="message.status === 'FAILED'" 
                               (click)="retryMessage(message)">
-                        <i class="fas fa-redo"></i>
+                        🔄
                       </button>
                     </div>
                   </div>
@@ -229,11 +227,11 @@
               <!-- Message Actions -->
               <div class="message-actions">
                 <button class="action-button" (click)="replyToMessage(message)" matTooltip="Reply">
-                  <i class="fas fa-reply"></i>
+                  ↩
                 </button>
                 <button class="action-button" *ngIf="isMyMessage(message)" 
                         (click)="deleteMessage(message.id)" matTooltip="Delete">
-                  <i class="fas fa-trash"></i>
+                  🗑
                 </button>
               </div>
             </div>
@@ -263,10 +261,10 @@
         <div class="message-input-container">
           <div class="input-actions">
             <button class="action-button" (click)="toggleEmojiPicker()" matTooltip="Emoji">
-              <i class="fas fa-smile"></i>
+              😊
             </button>
             <button class="action-button" (click)="triggerFileInput()" matTooltip="Attach file">
-              <i class="fas fa-paperclip"></i>
+              📎
             </button>
           </div>
 
@@ -289,8 +287,8 @@
                   [disabled]="!newMessage.trim() || sending"
                   (click)="sendMessage()"
                   matTooltip="Send message">
-            <i class="fas fa-paper-plane" *ngIf="!sending"></i>
-            <i class="fas fa-spinner fa-spin" *ngIf="sending"></i>
+            <span *ngIf="!sending">📤</span>
+            <span *ngIf="sending">⏳</span>
           </button>
         </div>
 
@@ -299,7 +297,7 @@
           <div class="emoji-header">
             <h4>Choose an emoji</h4>
             <button class="close-button" (click)="toggleEmojiPicker()">
-              <i class="fas fa-times"></i>
+              ×
             </button>
           </div>
           <div class="emoji-grid">
