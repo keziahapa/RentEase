@@ -754,6 +754,20 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
+ // Update the getStatusIcon method to handle undefined status
+getStatusIcon(status: string | undefined): string {
+  if (!status) return '';
+  
+  switch (status) {
+    case 'SENDING': return '⏳';
+    case 'SENT': return '✓';
+    case 'DELIVERED': return '✓✓';
+    case 'READ': return '👁';
+    case 'FAILED': return '❌';
+    default: return '';
+  }
+}
+
   trackByMessageId(index: number, message: ChatMessage): number {
     return message.id;
   }
