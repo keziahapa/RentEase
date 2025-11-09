@@ -82,7 +82,7 @@ export class AdminService {
     return cleanToken;
   }
 
-  private handleError(error: HttpErrorResponse): Observable<never> {
+  private handleError = (error: HttpErrorResponse): Observable<never> => {
     console.error('AdminService Error:', error);
     
     let errorMessage = 'An unexpected error occurred';
@@ -99,7 +99,10 @@ export class AdminService {
       errorMessage = error.error.message;
     }
     
-    this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
+    if (this.snackBar) {
+      this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
+    }
+    
     return throwError(() => ({ 
       message: errorMessage, 
       status: error.status,
@@ -111,12 +114,12 @@ export class AdminService {
     console.log('AdminService: Calculating dashboard stats from real data...');
     
     return forkJoin({
-      businesses: this.getBusinesses(),
-      pendingBusinesses: this.getPendingBusinesses(),
-      advertisements: this.getAdvertisements(),
-      pendingAdvertisements: this.getPendingAdvertisements(),
-      externalBusinesses: this.getExternalBusinesses(),
-      pendingExternalBusinesses: this.getPendingExternalBusinesses()
+      businesses: this.getBusinesses().pipe(catchError(error => of({ success: false, message: error.message, data: [] }))),
+      pendingBusinesses: this.getPendingBusinesses().pipe(catchError(error => of({ success: false, message: error.message, data: [] }))),
+      advertisements: this.getAdvertisements().pipe(catchError(error => of({ success: false, message: error.message, data: [] }))),
+      pendingAdvertisements: this.getPendingAdvertisements().pipe(catchError(error => of({ success: false, message: error.message, data: [] }))),
+      externalBusinesses: this.getExternalBusinesses().pipe(catchError(error => of({ success: false, message: error.message, data: [] }))),
+      pendingExternalBusinesses: this.getPendingExternalBusinesses().pipe(catchError(error => of({ success: false, message: error.message, data: [] })))
     }).pipe(
       map(results => {
         // Calculate stats from real data
@@ -163,7 +166,7 @@ export class AdminService {
     const totalBusinesses = allBusinesses.length + allPendingBusinesses.length;
 
     // Calculate active businesses (approved status)
-    const activeBusinesses = allBusinesses.filter(business => 
+    const activeBusinesses = allBusinesses.filter((business: Business) => 
       business.status === 'approved' || 
       business.registrationStatus === 'APPROVED' ||
       business.status === 'active'
@@ -173,7 +176,7 @@ export class AdminService {
     const pendingApprovals = allPendingBusinesses.length + pendingAdvertisements.length;
 
     // Calculate active disputes from businesses with disputes
-    const activeDisputes = allBusinesses.filter(business => 
+    const activeDisputes = allBusinesses.filter((business: Business) => 
       business.hasActiveDispute || 
       business.disputeStatus === 'active' ||
       (business.rejectionReason && business.rejectionReason.includes('dispute'))
@@ -223,7 +226,7 @@ export class AdminService {
     const businessOwners = businesses.length;
     
     // Each business has employees (estimate based on business size)
-    const businessEmployees = businesses.reduce((total, business) => {
+    const businessEmployees = businesses.reduce((total: number, business: Business) => {
       if (business.totalJobs > 100) return total + 5; // large business
       if (business.totalJobs > 50) return total + 3; // medium business
       return total + 1; // small business
@@ -233,7 +236,7 @@ export class AdminService {
     const pendingOwners = pendingBusinesses.length;
     
     // Estimate tenants based on properties managed by businesses
-    const totalTenants = businesses.reduce((total, business) => {
+    const totalTenants = businesses.reduce((total: number, business: Business) => {
       // Estimate tenants based on business activity
       const baseTenants = business.totalJobs || 0;
       const ratingMultiplier = business.rating > 4 ? 2 : 1;
@@ -241,21 +244,21 @@ export class AdminService {
     }, 0);
     
     // Estimate landlords (businesses that manage properties)
-    const landlords = businesses.filter(business => 
+    const landlords = businesses.filter((business: Business) => 
       business.category?.toLowerCase().includes('property') ||
       business.category?.toLowerCase().includes('real estate') ||
       business.description?.toLowerCase().includes('property management')
     ).length;
     
     // Estimate caretakers (maintenance/service businesses)
-    const caretakers = businesses.filter(business => 
+    const caretakers = businesses.filter((business: Business) => 
       business.category?.toLowerCase().includes('maintenance') ||
       business.category?.toLowerCase().includes('caretaker') ||
       business.category?.toLowerCase().includes('service')
     ).length;
     
     // Advertisement viewers/clicks
-    const adViewers = advertisements.reduce((total, ad) => {
+    const adViewers = advertisements.reduce((total: number, ad: Advertisement) => {
       return total + (ad.views || 0) + (ad.clicks || 0);
     }, 0);
     
@@ -274,7 +277,7 @@ export class AdminService {
 
   private calculatePropertyStats(businesses: Business[]): any {
     // Calculate properties based on actual business data
-    const propertiesFromBusinesses = businesses.reduce((total, business) => {
+    const propertiesFromBusinesses = businesses.reduce((total: number, business: Business) => {
       let properties = 0;
       
       // Estimate properties based on business type and activity
@@ -307,7 +310,7 @@ export class AdminService {
     // Calculate revenue from actual business and advertisement data
     
     // Revenue from businesses (subscription fees, commissions)
-    const businessRevenue = businesses.reduce((total, business) => {
+    const businessRevenue = businesses.reduce((total: number, business: Business) => {
       let revenue = 0;
       
       // Base subscription fee based on business size
@@ -333,7 +336,7 @@ export class AdminService {
     }, 0);
     
     // Revenue from advertisements
-    const advertisementRevenue = advertisements.reduce((total, ad) => {
+    const advertisementRevenue = advertisements.reduce((total: number, ad: Advertisement) => {
       let revenue = 0;
       
       // Base ad revenue

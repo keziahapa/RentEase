@@ -22,7 +22,7 @@ export interface Business {
   id: number;
   name: string;
   category: string;
-  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  status: 'pending' | 'approved' | 'rejected' | 'suspended' | 'active'; // Add 'active' here
   registrationDate: string;
   rating: number;
   totalJobs: number;
@@ -44,7 +44,6 @@ export interface Business {
   hasActiveDispute?: boolean;
   disputeStatus?: string;
 }
-
 export interface Advertisement {
   id: number;
   title: string;
