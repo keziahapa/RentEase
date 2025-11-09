@@ -1,9 +1,10 @@
+// ✅ WHITE BACKGROUND FOR OVERVIEW
 .admin-overview {
   padding: 1.5rem;
   max-width: 1400px;
   margin: 1rem auto;
   min-height: calc(100vh - 2rem);
-  background: #ffffff;
+  background: #ffffff; // ✅ WHITE BACKGROUND
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   border: 1px solid #e2e8f0;
@@ -19,6 +20,13 @@
     margin: 0.25rem;
     border-radius: 8px;
   }
+}
+
+// ✅ MAKE SURE BODY/CONTAINER HAS WHITE OR LIGHT BACKGROUND TOO
+:host {
+  display: block;
+  background: #f8fafc; // Light gray background for contrast
+  min-height: 100vh;
 }
 
 .overview-header {
@@ -102,6 +110,7 @@
   padding: clamp(2rem, 8vw, 4rem);
   text-align: center;
   min-height: 300px;
+  background: #ffffff; // ✅ WHITE
 
   p {
     margin-top: 1rem;
@@ -114,6 +123,7 @@
   display: flex;
   justify-content: center;
   padding: 1.5rem;
+  background: #ffffff; // ✅ WHITE
 
   @media (max-width: 480px) {
     padding: 1rem;
@@ -170,23 +180,14 @@
   display: flex;
   flex-direction: column;
   gap: clamp(1rem, 3vw, 2rem);
+  background: #ffffff; // ✅ WHITE
 }
 
-// Enhanced Stats Grid for better mobile handling
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: clamp(0.75rem, 2vw, 1rem);
   width: 100%;
-
-  // Fallback for very old browsers
-  display: flex;
-  flex-wrap: wrap;
-
-  @supports (grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))) {
-    display: grid;
-    flex-wrap: initial;
-  }
 
   @media (max-width: 640px) {
     grid-template-columns: 1fr;
@@ -200,7 +201,7 @@
   border: 1px solid #e2e8f0;
   transition: all 0.3s ease;
   overflow: hidden;
-  background: white;
+  background: white; // ✅ WHITE
   min-height: 120px;
   display: flex;
   align-items: center;
@@ -315,7 +316,6 @@
   }
 }
 
-// Enhanced Content Grid
 .content-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -339,11 +339,12 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid #e2e8f0;
   overflow: hidden;
-  background: white;
+  background: white; // ✅ WHITE
 
   .card-header {
     padding: clamp(1rem, 3vw, 1.5rem) clamp(1rem, 3vw, 1.5rem) clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 1.5rem);
     border-bottom: 1px solid #e2e8f0;
+    background: #ffffff; // ✅ WHITE
 
     h3 {
       font-size: clamp(1.125rem, 3vw, 1.25rem);
@@ -362,9 +363,9 @@
   }
 }
 
-// Actions Grid Improvements
 .actions-grid {
   padding: clamp(0.5rem, 2vw, 1rem);
+  background: #ffffff; // ✅ WHITE
 
   .action-btn {
     display: flex;
@@ -459,9 +460,9 @@
   }
 }
 
-// Activity List Improvements
 .activity-list {
   padding: clamp(0.25rem, 1vw, 0.5rem);
+  background: #ffffff; // ✅ WHITE
 
   .activity-item {
     display: flex;
@@ -536,6 +537,7 @@
     color: #64748b;
     text-align: center;
     min-height: 200px;
+    background: #ffffff; // ✅ WHITE
 
     mat-icon {
       font-size: clamp(2rem, 6vw, 3rem);
@@ -553,8 +555,9 @@
   }
 }
 
-// Pending Approvals Section
 .pending-approvals-section {
+  background: #ffffff; // ✅ WHITE
+
   .section-title {
     font-size: clamp(1.25rem, 3vw, 1.5rem);
     font-weight: 600;
@@ -579,7 +582,7 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     border: 1px solid #e2e8f0;
     overflow: hidden;
-    background: white;
+    background: white; // ✅ WHITE
     transition: all 0.3s ease;
 
     &:hover {
@@ -682,12 +685,12 @@
   }
 }
 
-// Breakdown Grid Improvements
 .breakdown-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   gap: clamp(1rem, 2vw, 1.5rem);
   padding: clamp(1rem, 3vw, 1.5rem);
+  background: #ffffff; // ✅ WHITE
 
   @media (max-width: 480px) {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -783,7 +786,6 @@
   }
 }
 
-// Utility classes for touch devices
 @media (hover: none) and (pointer: coarse) {
   .stat-card:hover,
   .action-btn:hover,
@@ -799,7 +801,6 @@
   }
 }
 
-// High contrast mode support
 @media (prefers-contrast: high) {
   .stat-card,
   .actions-card,
@@ -815,7 +816,6 @@
   }
 }
 
-// Reduced motion support
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

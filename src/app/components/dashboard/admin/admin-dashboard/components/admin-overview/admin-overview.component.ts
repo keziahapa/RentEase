@@ -73,6 +73,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
   pendingAdvertisementsCount = 0;
 
   ngOnInit() {
+    console.log('🚀 Admin Overview Component Initialized');
     this.loadDashboardData();
   }
 
@@ -84,14 +85,14 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     this.isLoadingDashboard = true;
     this.dashboardError = null;
 
-    console.log('Loading admin dashboard data...');
+    console.log('📊 Loading admin dashboard data...');
 
     const dashboardStats$ = this.adminService.getDashboardStats().pipe(
       catchError(error => {
-        console.error('Error loading dashboard stats:', error);
+        console.error('❌ Error loading dashboard stats:', error);
         return of({ 
           success: false, 
-          message: error.message,
+          message: error.message || 'Failed to load stats',
           data: null 
         });
       })
@@ -99,7 +100,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
 
     const pendingBusinesses$ = this.adminService.getPendingBusinesses().pipe(
       catchError(error => {
-        console.warn('Failed to load pending businesses:', error);
+        console.warn('⚠️ Failed to load pending businesses:', error);
         return of({ 
           success: false, 
           message: error.message,
@@ -110,7 +111,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
 
     const pendingAdvertisements$ = this.adminService.getPendingAdvertisements().pipe(
       catchError(error => {
-        console.warn('Failed to load pending advertisements:', error);
+        console.warn('⚠️ Failed to load pending advertisements:', error);
         return of({ 
           success: false, 
           message: error.message,
@@ -125,45 +126,60 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
       pendingAdvertisements: pendingAdvertisements$
     }).subscribe({
       next: (results) => {
-        console.log('Dashboard data loaded:', results);
+        console.log('📊 Dashboard data loaded:', results);
+        console.log('🔍 Stats Response:', results.stats);
+        console.log('🔍 Stats Data:', results.stats.data);
+        console.log('🔍 Stats Success:', results.stats.success);
 
-      
+        // ✅ FIX: Handle different response structures
         if (results.stats.success && results.stats.data) {
           this.dashboardData = this.transformStatsData(results.stats.data);
-          console.log('Dashboard stats transformed:', this.dashboardData);
+          console.log('✅ Dashboard data transformed (from data):', this.dashboardData);
+        } else if (results.stats.success) {
+          // ✅ FIX: If data is at root level
+          this.dashboardData = this.transformStatsData(results.stats);
+          console.log('✅ Dashboard data transformed (root level):', this.dashboardData);
         } else {
-          throw new Error(results.stats.message || 'Failed to load dashboard statistics');
+          // ✅ FIX: Show default data instead of nothing
+          console.warn('⚠️ No stats data, using defaults');
+          this.dashboardData = this.getDefaultDashboardData();
         }
 
-      
+        // Handle pending items
         if (results.pendingBusinesses.success) {
-          this.pendingBusinessesCount = results.pendingBusinesses.data.length;
+          this.pendingBusinessesCount = results.pendingBusinesses.data?.length || 0;
+          console.log('✅ Pending businesses count:', this.pendingBusinessesCount);
         } else {
-          console.warn('Failed to load pending businesses:', results.pendingBusinesses.message);
+          console.warn('⚠️ Pending businesses failed:', results.pendingBusinesses.message);
           this.pendingBusinessesCount = 0;
         }
 
-       
         if (results.pendingAdvertisements.success) {
-          this.pendingAdvertisementsCount = results.pendingAdvertisements.data.length;
+          this.pendingAdvertisementsCount = results.pendingAdvertisements.data?.length || 0;
+          console.log('✅ Pending advertisements count:', this.pendingAdvertisementsCount);
         } else {
-          console.warn('Failed to load pending advertisements:', results.pendingAdvertisements.message);
+          console.warn('⚠️ Pending advertisements failed:', results.pendingAdvertisements.message);
           this.pendingAdvertisementsCount = 0;
         }
 
-      
         this.generateRecentActivities();
-        
         this.isLoadingDashboard = false;
-        console.log('Dashboard loading completed');
+        console.log('✅ Dashboard loading completed successfully');
+        console.log('✅ Final dashboardData:', this.dashboardData);
+        console.log('✅ hasData():', this.hasData());
       },
       error: (error: any) => {
-        console.error('Error loading dashboard data:', error);
+        console.error('❌ Critical error loading dashboard data:', error);
+        
+        // ✅ FIX: Show default data even on error
+        this.dashboardData = this.getDefaultDashboardData();
         this.dashboardError = error.message || 'Failed to load dashboard data';
         this.isLoadingDashboard = false;
         
-        const errorMessage = this.dashboardError || 'An unknown error occurred';
+        const errorMessage = 'Some dashboard data could not be loaded. Showing defaults.';
         this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
+        
+        console.log('⚠️ Set default data due to error:', this.dashboardData);
       }
     });
 
@@ -171,7 +187,9 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
   }
 
   private transformStatsData(stats: any): DashboardData {
-    return {
+    console.log('🔄 Transforming stats data:', stats);
+    
+    const transformed: DashboardData = {
       totalUsers: stats.totalUsers || 0,
       totalProperties: stats.totalProperties || 0,
       activeBusinesses: stats.activeBusinesses || 0,
@@ -189,12 +207,37 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
       totalAdmins: stats.totalAdmins || 0,
       systemHealth: stats.systemHealth || 'healthy'
     };
+    
+    console.log('✅ Transformed data:', transformed);
+    return transformed;
+  }
+
+  // ✅ NEW: Default data fallback
+  private getDefaultDashboardData(): DashboardData {
+    console.log('🔧 Creating default dashboard data');
+    return {
+      totalUsers: 0,
+      totalProperties: 0,
+      activeBusinesses: 0,
+      activeDisputes: 0,
+      monthlyRevenue: 0,
+      userGrowth: 0,
+      propertiesGrowth: 0,
+      revenueGrowth: 0,
+      totalLandlords: 0,
+      totalTenants: 0,
+      totalCaretakers: 0,
+      platformEarnings: 0,
+      commissionRevenue: 0,
+      pendingApprovals: 0,
+      totalAdmins: 0,
+      systemHealth: 'unknown'
+    };
   }
 
   private generateRecentActivities() {
     this.recentActivities = [];
 
-    
     if (this.pendingBusinessesCount > 0) {
       this.recentActivities.push({
         type: 'Pending Business Applications',
@@ -214,7 +257,6 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     }
 
     if (this.dashboardData) {
-
       if (this.dashboardData.userGrowth > 0) {
         this.recentActivities.push({
           type: 'User Growth',
@@ -224,7 +266,6 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
         });
       }
 
-     
       if (this.dashboardData.monthlyRevenue > 0) {
         this.recentActivities.push({
           type: 'Revenue Update',
@@ -234,7 +275,6 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
         });
       }
 
-  
       if (this.dashboardData.activeDisputes > 0) {
         this.recentActivities.push({
           type: 'Active Disputes',
@@ -244,7 +284,6 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
         });
       }
 
-     
       if (this.dashboardData.systemHealth && this.dashboardData.systemHealth !== 'healthy') {
         this.recentActivities.push({
           type: 'System Health',
@@ -255,7 +294,6 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
       }
     }
 
-    
     if (this.recentActivities.length === 0) {
       this.recentActivities.push({
         type: 'System Status',
@@ -265,18 +303,19 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Limit to 4 activities
     this.recentActivities = this.recentActivities.slice(0, 4);
   }
 
   refreshDashboard() {
-    console.log('Refreshing dashboard...');
+    console.log('🔄 Refreshing dashboard...');
     this.loadDashboardData();
     this.snackBar.open('Dashboard refreshed', 'Close', { duration: 3000 });
   }
 
   hasData(): boolean {
-    return this.dashboardData !== null;
+    const result = this.dashboardData !== null;
+    console.log('🔍 hasData() called, result:', result, 'dashboardData:', this.dashboardData);
+    return result;
   }
 
   getGrowthClass(growth: number): string {
@@ -325,7 +364,6 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     this.router.navigate(['/admin-dashboard/advertisements']);
   }
 
- 
   getDisplayValue(value: number | undefined): string {
     return value !== undefined ? this.formatNumber(value) : '0';
   }
@@ -335,11 +373,9 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     return `${growth >= 0 ? '+' : ''}${growth}%`;
   }
 
- 
   getErrorMessage(): string {
     return this.dashboardError || 'An unknown error occurred';
   }
-
 
   getSystemHealthColor(): string {
     if (!this.dashboardData?.systemHealth) return '#6b7280';
@@ -353,7 +389,6 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     }
   }
 
-  
   getSystemHealthIcon(): string {
     if (!this.dashboardData?.systemHealth) return 'help';
     
