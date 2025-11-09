@@ -6,110 +6,48 @@ import {
   STKPushResponse, 
   STKCallback, 
   ValidationRequest,
-  AcknowledgeResponse,
-  PaymentStatus 
+  AcknowledgeResponse
 } from './mpesa.interface';
-import { AuthService } from '../services/auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MpesaService {
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   private apiUrl = 'https://rentease-3-sfgx.onrender.com/api/open/mobile-money';
 
-  // Initiate STK Push - requires authentication
+  // Initiate STK Push
   initiateSTKPush(request: STKPushRequest): Observable<STKPushResponse> {
-    const token = this.authService.getToken();
-    
-    let headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
-    // Include auth token if available
-    if (token) {
-      headers = headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    console.log('💰 STK Push Request:', {
-      url: `${this.apiUrl}/stk-push`,
-      headers: headers.keys(),
-      hasAuth: headers.has('Authorization'),
-      body: request
-    });
-
-    return this.http.post<STKPushResponse>(
-      `${this.apiUrl}/stk-push`,
-      request,
-      { headers }
-    );
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    console.log('💰 STK Push Request:', request);
+    return this.http.post<STKPushResponse>(`${this.apiUrl}/stk-push`, request, { headers });
   }
 
-  // Handle STK Callback - may require different authentication
+  // Handle STK Callback
   handleSTKCallback(callback: STKCallback): Observable<AcknowledgeResponse> {
-    const token = this.authService.getToken();
-    
-    let headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
-    if (token) {
-      headers = headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    return this.http.post<AcknowledgeResponse>(
-      `${this.apiUrl}/stk-push/callback`,
-      callback,
-      { headers }
-    );
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    console.log('📩 STK Callback:', callback);
+    return this.http.post<AcknowledgeResponse>(`${this.apiUrl}/stk-push/callback`, callback, { headers });
   }
 
-  // Check transaction status
+  // Check the transaction status
   checkTransactionStatus(checkoutRequestID: string): Observable<any> {
-    const token = this.authService.getToken();
-    
-    let headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
-    if (token) {
-      headers = headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    return this.http.get<any>(
-      `${this.apiUrl}/transaction-status/${checkoutRequestID}`,
-      { headers }
-    );
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    console.log('🔍 Checking status for:', checkoutRequestID);
+    return this.http.get<any>(`${this.apiUrl}/transaction-status/${checkoutRequestID}`, { headers });
   }
 
+  // Validate transaction
   validateTransaction(validation: ValidationRequest): Observable<any> {
-    return this.http.post<any>(
-      `${this.apiUrl}/validation`,
-      validation,
-      { headers: this.createHeaders() }
-    );
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    console.log('✅ Validation Request:', validation);
+    return this.http.post<any>(`${this.apiUrl}/validation`, validation, { headers });
   }
 
+  // Confirm transaction
   confirmTransaction(confirmation: any): Observable<any> {
-    return this.http.post<any>(
-      `${this.apiUrl}/confirmation`,
-      confirmation,
-      { headers: this.createHeaders() }
-    );
-  }
-
-  private createHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    
-    let headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
-    if (token) {
-      headers = headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    return headers;
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    console.log('✅ Confirmation Request:', confirmation);
+    return this.http.post<any>(`${this.apiUrl}/confirmation`, confirmation, { headers });
   }
 }

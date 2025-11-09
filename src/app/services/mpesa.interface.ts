@@ -101,10 +101,3 @@ export interface PaymentStatus {
   resultCode?: string;
   resultDesc?: string;
 }
-
-// Error Response Interface
-export interface MpesaErrorResponse {
-  errorCode: string;
-  errorMessage: string;
-  requestId?: string;
-}

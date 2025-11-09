@@ -2,12 +2,79 @@
   <div class="header-section">
     <div class="header-content">
       <h1 class="page-title">Move Out Notices</h1>
-      <p class="page-subtitle">Manage your move-out requests and track their status</p>
+      <p class="page-subtitle">Review and manage tenant move-out requests</p>
     </div>
-    <button class="create-notice-btn" (click)="createNewNotice()">
-      <mat-icon>add</mat-icon>
-      <span>New Move Out Notice</span>
+    <button class="export-btn" (click)="exportToCSV()">
+      <mat-icon>download</mat-icon>
+      <span>Export CSV</span>
     </button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-section">
+    <div class="stat-card pending">
+      <div class="stat-content">
+        <mat-icon>schedule</mat-icon>
+        <div class="stat-info">
+          <span class="stat-number">{{ stats.pending }}</span>
+          <span class="stat-label">Pending</span>
+        </div>
+      </div>
+    </div>
+    <div class="stat-card approved">
+      <div class="stat-content">
+        <mat-icon>check_circle</mat-icon>
+        <div class="stat-info">
+          <span class="stat-number">{{ stats.approved }}</span>
+          <span class="stat-label">Approved</span>
+        </div>
+      </div>
+    </div>
+    <div class="stat-card rejected">
+      <div class="stat-content">
+        <mat-icon>cancel</mat-icon>
+        <div class="stat-info">
+          <span class="stat-number">{{ stats.rejected }}</span>
+          <span class="stat-label">Rejected</span>
+        </div>
+      </div>
+    </div>
+    <div class="stat-card total">
+      <div class="stat-content">
+        <mat-icon>list_alt</mat-icon>
+        <div class="stat-info">
+          <span class="stat-number">{{ stats.total }}</span>
+          <span class="stat-label">Total</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <mat-form-field appearance="outline" class="filter-field">
+        <mat-label>Status</mat-label>
+        <mat-select [(value)]="filterStatus" (selectionChange)="onStatusFilterChange()">
+          <mat-option value="">All Statuses</mat-option>
+          <mat-option value="PENDING">Pending</mat-option>
+          <mat-option value="APPROVED">Approved</mat-option>
+          <mat-option value="REJECTED">Rejected</mat-option>
+          <mat-option value="CANCELLED">Cancelled</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="filter-field">
+        <mat-label>Search</mat-label>
+        <input matInput [(ngModel)]="searchTerm" (input)="onSearchChange()" placeholder="Search by tenant, property, or unit...">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+
+      <button class="clear-filters-btn" (click)="clearFilters()">
+        <mat-icon>clear</mat-icon>
+        <span>Clear Filters</span>
+      </button>
+    </div>
   </div>
 
   <div class="content-section">
@@ -20,94 +87,94 @@
     <!-- Content when not loading -->
     <div *ngIf="!isLoading">
       <!-- Empty State -->
-      <div *ngIf="moveOutNotices.length === 0" class="empty-state">
+      <div *ngIf="filteredNotices.length === 0" class="empty-state">
         <mat-icon>exit_to_app</mat-icon>
         <h3>No Move Out Notices</h3>
-        <p>You haven't submitted any move-out notices yet.</p>
-        <button class="create-notice-btn" (click)="createNewNotice()">
-          <mat-icon>add</mat-icon>
-          <span>Create Your First Notice</span>
+        <p>No move-out notices found matching your criteria.</p>
+        <button class="clear-filters-btn" (click)="clearFilters()" *ngIf="filterStatus || searchTerm">
+          <mat-icon>clear</mat-icon>
+          <span>Clear Filters</span>
         </button>
       </div>
 
       <!-- Notices Grid -->
-      <div *ngIf="moveOutNotices.length > 0" class="notices-grid">
-        <div *ngFor="let notice of moveOutNotices" class="notice-card">
+      <div *ngIf="filteredNotices.length > 0" class="notices-grid">
+        <div *ngFor="let notice of filteredNotices" class="notice-card">
           <div class="notice-header">
             <div class="notice-info">
-              <h3 class="notice-title">Move Out Notice</h3>
+              <!-- Property and Unit Info -->
+              <div class="property-unit-info">
+                <h3 class="property-name">{{ notice.property?.name || 'Unknown Property' }}</h3>
+                <p class="unit-number">Unit: {{ notice.unit?.unitNumber || 'N/A' }}</p>
+              </div>
+              
+              <!-- Tenant Info -->
+              <div class="tenant-info">
+                <h4 class="tenant-name">{{ notice.tenant?.fullName || 'Unknown Tenant' }}</h4>
+                <p class="tenant-contact" *ngIf="notice.tenant?.email || notice.tenant?.phone">
+                  {{ notice.tenant?.email }} {{ notice.tenant?.phone ? '• ' + notice.tenant?.phone : '' }}
+                </p>
+              </div>
+              
               <p class="notice-date">Move Out Date: {{ formatDate(notice.moveOutDate) }}</p>
             </div>
+            
             <div class="notice-status" [style.background]="getStatusColor(notice.status)">
               <mat-icon>{{ getStatusIcon(notice.status) }}</mat-icon>
-              <span>{{ notice.status }}</span>
+              <span>{{ getStatusText(notice.status) }}</span>
             </div>
           </div>
 
           <div class="notice-content">
             <div class="notice-details">
               <div class="detail-item">
-                <span class="detail-label">Property:</span>
-                <span class="detail-value">{{ notice.property?.name || 'N/A' }}</span>
-              </div>
-              <div class="detail-item" *ngIf="notice.unit">
-                <span class="detail-label">Unit:</span>
-                <span class="detail-value">{{ notice.unit.unitNumber }}</span>
-              </div>
-              <div class="detail-item">
                 <span class="detail-label">Reason:</span>
                 <span class="detail-value">{{ getMoveOutReasonDisplay(notice.reason) }}</span>
-              </div>
-              <div class="detail-item" *ngIf="notice.notes">
-                <span class="detail-label">Notes:</span>
-                <span class="detail-value">{{ notice.notes }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">Submitted:</span>
                 <span class="detail-value">{{ formatDate(notice.submittedAt || '') }}</span>
               </div>
-              <div class="detail-item" *ngIf="notice.landlordNotes">
-                <span class="detail-label">Landlord Response:</span>
-                <span class="detail-value landlord-notes">{{ notice.landlordNotes }}</span>
+              <div class="detail-item" *ngIf="notice.notes">
+                <span class="detail-label">Tenant Notes:</span>
+                <span class="detail-value notes-text">{{ notice.notes }}</span>
+              </div>
+            </div>
+
+            <!-- Urgency Indicator for Pending Notices -->
+            <div class="urgency-indicator" *ngIf="notice.status === 'PENDING'">
+              <div class="urgency-badge" [class]="getMoveOutUrgency(notice.moveOutDate)">
+                <mat-icon>schedule</mat-icon>
+                <span>{{ getDaysUntilMoveOut(notice.moveOutDate) }} days until move-out</span>
               </div>
             </div>
           </div>
 
+          <!-- ACTION BUTTONS -->
           <div class="notice-actions">
-            <button class="action-btn view-btn" (click)="viewNotice(notice)">
-              <mat-icon>visibility</mat-icon>
-              <span>View Details</span>
-            </button>
+            <!-- Approve/Reject Buttons (only show for pending notices) -->
+            <div class="action-buttons-group" *ngIf="notice.status === 'PENDING'">
+              <button class="action-btn approve-btn" (click)="approveNotice(notice)">
+                <mat-icon>check_circle</mat-icon>
+                <span>Approve Move Out</span>
+              </button>
+              
+              <button class="action-btn reject-btn" (click)="rejectNotice(notice)">
+                <mat-icon>cancel</mat-icon>
+                <span>Reject Move Out</span>
+              </button>
+            </div>
 
-            <!-- Approve button -->
-            <button *ngIf="canApprove(notice)" 
-                    class="action-btn approve-btn" 
-                    (click)="approveNotice(notice)">
-              <mat-icon>check_circle</mat-icon>
-              <span>Approve</span>
-            </button>
-
-            <!-- Reject button -->
-            <button *ngIf="canReject(notice)" 
-                    class="action-btn reject-btn" 
-                    (click)="rejectNotice(notice)">
-              <mat-icon>cancel</mat-icon>
-              <span>Reject</span>
-            </button>
-
-            <!-- Cancel button (existing) -->
-            <button *ngIf="canCancel(notice)" 
-                    class="action-btn cancel-btn" 
-                    (click)="cancelNotice(notice)">
-              <mat-icon>cancel</mat-icon>
-              <span>Cancel</span>
-            </button>
+            <!-- Status Display for non-pending notices -->
+            <div class="status-display" *ngIf="notice.status !== 'PENDING'">
+              <span class="status-text">Decision Made</span>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Pagination -->
-      <div *ngIf="moveOutNotices.length > 0" class="pagination-section">
+      <div *ngIf="filteredNotices.length > 0" class="pagination-section">
         <button class="pagination-btn" 
                 (click)="prevPage()" 
                 [disabled]="!hasPrev"

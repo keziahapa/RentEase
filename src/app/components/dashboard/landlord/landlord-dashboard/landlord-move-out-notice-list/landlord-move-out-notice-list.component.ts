@@ -79,45 +79,54 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
       next: (response: LandlordMoveOutNoticeResponse) => {
         if (response.success) {
           let notices = Array.isArray(response.data) ? response.data : [response.data];
+          
+          // ✅ TRANSFORM DATA TO ENSURE ALL FIELDS ARE AVAILABLE
           this.moveOutNotices = notices.map(notice => this.transformNoticeData(notice));
           this.filteredNotices = [...this.moveOutNotices];
-
+          
           this.currentPage = response.pagination?.currentPage || 1;
           this.totalPages = response.pagination?.totalPages || 1;
           this.totalItems = response.pagination?.totalItems || 0;
           this.hasNext = response.pagination?.hasNext || false;
           this.hasPrev = response.pagination?.hasPrev || false;
           this.calculateStats();
+          
+          console.log('📋 Loaded notices:', this.moveOutNotices);
         } else {
           this.snackBar.open(response.message || 'Failed to load move-out notices', 'Close', { duration: 5000 });
         }
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading notices:', error);
+        console.error('❌ Error loading notices:', error);
         this.snackBar.open('Failed to load move-out notices', 'Close', { duration: 5000 });
         this.isLoading = false;
       }
     });
   }
 
+  // ✅ TRANSFORM NOTICE DATA TO ENSURE ALL FIELDS EXIST
   private transformNoticeData(notice: any): LandlordMoveOutNotice {
     return {
       ...notice,
+      // ✅ Ensure tenant data exists with fallbacks
       tenant: notice.tenant || {
         fullName: notice.tenantName || notice.tenantFullName || 'Unknown Tenant',
         email: notice.tenantEmail || 'N/A',
         phone: notice.tenantPhone || 'N/A'
       },
+      // ✅ Ensure property data exists with fallbacks
       property: notice.property || {
         name: notice.propertyName || 'Unknown Property',
         address: notice.propertyAddress || 'Address not available',
         id: notice.propertyId
       },
+      // ✅ Ensure unit data exists with fallbacks
       unit: notice.unit || {
         unitNumber: notice.unitNumber || 'Unknown Unit',
         id: notice.unitId
       },
+      // ✅ Ensure all required fields have fallbacks
       moveOutDate: notice.moveOutDate || '',
       reason: notice.reason || 'OTHER',
       notes: notice.notes || '',
@@ -138,19 +147,23 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
   applyFilters(): void {
     this.filteredNotices = this.moveOutNotices.filter(notice => {
       const matchesStatus = !this.filterStatus || notice.status === this.filterStatus;
-      const matchesSearch = !this.searchTerm ||
+      const matchesSearch = !this.searchTerm || 
         notice.tenant?.fullName?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         notice.property?.name?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         notice.unit?.unitNumber?.toLowerCase().includes(this.searchTerm.toLowerCase());
       const matchesProperty = !this.propertyFilter || notice.property?.name === this.propertyFilter;
-
+      
       return matchesStatus && matchesSearch && matchesProperty;
     });
   }
 
-  onSearchChange(): void { this.applyFilters(); }
+  onSearchChange(): void {
+    this.applyFilters();
+  }
 
-  onStatusFilterChange(): void { this.loadMoveOutNotices(1); }
+  onStatusFilterChange(): void {
+    this.loadMoveOutNotices(1);
+  }
 
   clearFilters(): void {
     this.filterStatus = '';
@@ -194,14 +207,22 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
 
     const dialogRef = this.dialog.open(MoveOutActionDialogComponent, {
       width: '500px',
-      data: { title: 'Approve Move Out Notice', action: 'approve', notice }
+      data: {
+        title: 'Approve Move Out Notice',
+        action: 'approve',
+        notice: notice
+      }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        const request: MoveOutActionRequest = { notes: result.notes, landlordNotes: result.notes };
+    dialogRef.afterClosed().subscribe((result: { notes?: string } | undefined) => {
+      if (result !== undefined) {
+        const request: MoveOutActionRequest = {
+          notes: result?.notes,
+          landlordNotes: result?.notes
+        };
+
         this.propertyService.approveMoveOutNotice(notice.id!, request).subscribe({
-          next: response => {
+          next: (response: LandlordMoveOutNoticeResponse) => {
             if (response.success) {
               this.snackBar.open('Move-out notice approved successfully', 'Close', { duration: 3000 });
               this.loadMoveOutNotices(this.currentPage);
@@ -209,7 +230,9 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
               this.snackBar.open(response.message || 'Failed to approve notice', 'Close', { duration: 5000 });
             }
           },
-          error: () => this.snackBar.open('Failed to approve move-out notice', 'Close', { duration: 5000 })
+          error: (error) => {
+            this.snackBar.open('Failed to approve move-out notice', 'Close', { duration: 5000 });
+          }
         });
       }
     });
@@ -220,14 +243,22 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
 
     const dialogRef = this.dialog.open(MoveOutActionDialogComponent, {
       width: '500px',
-      data: { title: 'Reject Move Out Notice', action: 'reject', notice }
+      data: {
+        title: 'Reject Move Out Notice',
+        action: 'reject',
+        notice: notice
+      }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        const request: MoveOutActionRequest = { notes: result.notes, landlordNotes: result.notes };
+    dialogRef.afterClosed().subscribe((result: { notes?: string } | undefined) => {
+      if (result !== undefined) {
+        const request: MoveOutActionRequest = {
+          notes: result?.notes,
+          landlordNotes: result?.notes
+        };
+
         this.propertyService.rejectMoveOutNotice(notice.id!, request).subscribe({
-          next: response => {
+          next: (response: LandlordMoveOutNoticeResponse) => {
             if (response.success) {
               this.snackBar.open('Move-out notice rejected successfully', 'Close', { duration: 3000 });
               this.loadMoveOutNotices(this.currentPage);
@@ -235,22 +266,32 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
               this.snackBar.open(response.message || 'Failed to reject notice', 'Close', { duration: 5000 });
             }
           },
-          error: () => this.snackBar.open('Failed to reject move-out notice', 'Close', { duration: 5000 })
+          error: (error) => {
+            this.snackBar.open('Failed to reject move-out notice', 'Close', { duration: 5000 });
+          }
         });
       }
     });
   }
 
-  canApprove(notice: LandlordMoveOutNotice): boolean { return notice.status === 'PENDING'; }
-  canReject(notice: LandlordMoveOutNotice): boolean { return notice.status === 'PENDING'; }
-  canCancel(notice: LandlordMoveOutNotice): boolean { return notice.status === 'PENDING'; }
+  canApprove(notice: LandlordMoveOutNotice): boolean {
+    return notice.status === 'PENDING';
+  }
 
-  formatDate(dateString: string): string { return dateString ? new Date(dateString).toLocaleDateString() : 'N/A'; }
+  canReject(notice: LandlordMoveOutNotice): boolean {
+    return notice.status === 'PENDING';
+  }
+
+  formatDate(dateString: string): string {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
+  }
 
   getDaysUntilMoveOut(moveOutDate: string): number {
     const today = new Date();
     const moveOut = new Date(moveOutDate);
-    return Math.ceil((moveOut.getTime() - today.getTime()) / (1000 * 3600 * 24));
+    const timeDiff = moveOut.getTime() - today.getTime();
+    return Math.ceil(timeDiff / (1000 * 3600 * 24));
   }
 
   getMoveOutUrgency(moveOutDate: string): string {
@@ -261,7 +302,9 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
   }
 
   getUniqueProperties(): string[] {
-    return [...new Set(this.moveOutNotices.map(n => n.property?.name).filter(Boolean) as string[])];
+    return [...new Set(this.moveOutNotices
+      .map(notice => notice.property?.name)
+      .filter(name => name !== undefined) as string[])];
   }
 
   onPageChange(event: PageEvent): void {
@@ -269,36 +312,49 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
     this.loadMoveOutNotices(event.pageIndex + 1);
   }
 
-  nextPage(): void { if (this.hasNext) this.loadMoveOutNotices(this.currentPage + 1); }
-  prevPage(): void { if (this.hasPrev) this.loadMoveOutNotices(this.currentPage - 1); }
+  nextPage(): void {
+    if (this.hasNext) {
+      this.loadMoveOutNotices(this.currentPage + 1);
+    }
+  }
+
+  prevPage(): void {
+    if (this.hasPrev) {
+      this.loadMoveOutNotices(this.currentPage - 1);
+    }
+  }
 
   getMoveOutReasonDisplay(reason: string): string {
-    const map: { [key: string]: string } = {
-      RELOCATION: 'Relocation',
-      JOB_CHANGE: 'Job Change',
-      FINANCIAL: 'Financial Reasons',
-      PERSONAL: 'Personal Reasons',
-      PROPERTY_ISSUES: 'Property Issues',
-      LEASE_END: 'Lease End',
-      PURCHASED_HOME: 'Purchased a Home',
-      OTHER: 'Other'
+    const reasonMap: { [key: string]: string } = {
+      'RELOCATION': 'Relocation',
+      'JOB_CHANGE': 'Job Change',
+      'FINANCIAL': 'Financial Reasons',
+      'PERSONAL': 'Personal Reasons',
+      'PROPERTY_ISSUES': 'Property Issues',
+      'LEASE_END': 'Lease End',
+      'PURCHASED_HOME': 'Purchased a Home',
+      'OTHER': 'Other'
     };
-    return map[reason] || reason;
+    return reasonMap[reason] || reason;
   }
 
   exportToCSV(): void {
+    // Simple CSV export implementation
     const headers = ['Tenant', 'Property', 'Unit', 'Move Out Date', 'Status', 'Reason', 'Submitted Date'];
-    const csvData = this.filteredNotices.map(n => [
-      n.tenant?.fullName || 'N/A',
-      n.property?.name || 'N/A',
-      n.unit?.unitNumber || 'N/A',
-      this.formatDate(n.moveOutDate),
-      this.getStatusText(n.status),
-      this.getMoveOutReasonDisplay(n.reason),
-      this.formatDate(n.submittedAt || '')
+    const csvData = this.filteredNotices.map(notice => [
+      notice.tenant?.fullName || 'N/A',
+      notice.property?.name || 'N/A',
+      notice.unit?.unitNumber || 'N/A',
+      this.formatDate(notice.moveOutDate),
+      this.getStatusText(notice.status),
+      this.getMoveOutReasonDisplay(notice.reason),
+      notice.submittedAt ? this.formatDate(notice.submittedAt) : 'N/A'
     ]);
 
-    const csvContent = [headers, ...csvData].map(r => r.map(f => `"${f}"`).join(',')).join('\n');
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -307,8 +363,4 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
     link.click();
     window.URL.revokeObjectURL(url);
   }
-
-  viewNotice(notice: LandlordMoveOutNotice): void { console.log('View notice:', notice); }
-  createNewNotice(): void { console.log('Create new notice clicked'); }
-  cancelNotice(notice: LandlordMoveOutNotice): void { console.log('Cancel notice:', notice); }
 }

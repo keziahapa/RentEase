@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { PaymentStatus } from './mpesa.interface';
 
 @Injectable({
@@ -21,15 +21,9 @@ export class PaymentService {
 
   formatPhoneNumber(phone: string): string {
     let cleaned = phone.replace(/[\s\-\+]/g, '');
-    
-    if (cleaned.startsWith('0')) {
-      cleaned = '254' + cleaned.substring(1);
-    } else if (cleaned.startsWith('7') || cleaned.startsWith('1')) {
-      cleaned = '254' + cleaned;
-    } else if (!cleaned.startsWith('254')) {
-      cleaned = '254' + cleaned;
-    }
-    
+    if (cleaned.startsWith('0')) cleaned = '254' + cleaned.substring(1);
+    else if (cleaned.startsWith('7') || cleaned.startsWith('1')) cleaned = '254' + cleaned;
+    else if (!cleaned.startsWith('254')) cleaned = '254' + cleaned;
     return cleaned;
   }
 
@@ -40,18 +34,9 @@ export class PaymentService {
 
   // Polling management
   startPolling(checkoutRequestID: string, callback: (status: any) => void): void {
-    // Clear existing polling for this request
     this.stopPolling(checkoutRequestID);
-
-    // Start new polling
-    this.pollingIntervals[checkoutRequestID] = setInterval(() => {
-      callback(checkoutRequestID);
-    }, 3000); // Poll every 3 seconds
-
-    // Auto-stop after 10 minutes
-    setTimeout(() => {
-      this.stopPolling(checkoutRequestID);
-    }, 600000);
+    this.pollingIntervals[checkoutRequestID] = setInterval(() => callback(checkoutRequestID), 3000);
+    setTimeout(() => this.stopPolling(checkoutRequestID), 600000);
   }
 
   stopPolling(checkoutRequestID: string): void {
