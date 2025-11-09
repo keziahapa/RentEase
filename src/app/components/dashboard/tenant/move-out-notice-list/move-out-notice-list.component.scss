@@ -249,6 +249,24 @@
           background: #dc2626;
         }
       }
+
+      &.approve-btn {
+        background: #10b981;
+        color: white;
+
+        &:hover {
+          background: #059669;
+        }
+      }
+
+      &.reject-btn {
+        background: #f43f5e;
+        color: white;
+
+        &:hover {
+          background: #e11d48;
+        }
+      }
     }
   }
 }
