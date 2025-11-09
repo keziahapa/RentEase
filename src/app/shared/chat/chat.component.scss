@@ -40,23 +40,14 @@
           cursor: pointer;
           padding: 0.5rem;
           border-radius: $border-radius;
-          transition: $transition-fast;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           
           &:hover {
             background: $background-tertiary;
-            color: $text-primary;
           }
           
           &.primary {
             background: $primary-color;
             color: $white;
-            
-            &:hover {
-              background: $primary-dark;
-            }
           }
         }
       }
@@ -83,10 +74,6 @@
             outline: none;
             border-color: $primary-color;
           }
-          
-          &::placeholder {
-            color: $text-light;
-          }
         }
         
         .search-icon {
@@ -107,10 +94,6 @@
           color: $text-light;
           cursor: pointer;
           padding: 0.25rem;
-          
-          &:hover {
-            color: $text-secondary;
-          }
         }
       }
     }
@@ -130,7 +113,6 @@
           margin: 0;
           color: $text-primary;
           font-size: 1rem;
-          font-weight: 600;
         }
         
         .room-count {
@@ -144,7 +126,6 @@
           padding: 1rem;
           border-bottom: 1px solid $border-color;
           cursor: pointer;
-          transition: $transition-fast;
           display: flex;
           align-items: center;
           gap: 0.75rem;
@@ -156,10 +137,6 @@
           &.active {
             background: $primary-color;
             color: $white;
-            
-            .room-title, .last-message, .room-type-tag {
-              color: $white;
-            }
           }
           
           .room-avatar {
@@ -201,7 +178,6 @@
               align-items: center;
               justify-content: center;
               font-size: 0.75rem;
-              font-weight: 600;
             }
           }
           
@@ -238,17 +214,6 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
                 margin: 0;
-                
-                .sender-prefix {
-                  font-weight: 600;
-                }
-              }
-              
-              .no-messages {
-                font-size: 0.8125rem;
-                color: $text-tertiary;
-                font-style: italic;
-                margin: 0;
               }
             }
             
@@ -265,11 +230,6 @@
                 padding: 0.25rem 0.5rem;
                 border-radius: $border-radius;
               }
-              
-              .property-name {
-                font-size: 0.75rem;
-                color: $text-tertiary;
-              }
             }
           }
         }
@@ -278,56 +238,12 @@
           padding: 2rem 1rem;
           text-align: center;
           color: $text-tertiary;
-          
-          .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-          }
-          
-          h4 {
-            margin: 0 0 0.5rem 0;
-            color: $text-secondary;
-          }
-          
-          p {
-            margin: 0 0 1rem 0;
-            font-size: 0.875rem;
-          }
-          
-          .new-chat-button {
-            background: $primary-color;
-            color: $white;
-            border: none;
-            padding: 0.75rem 1rem;
-            border-radius: $border-radius-lg;
-            font-weight: 600;
-            cursor: pointer;
-            transition: $transition-fast;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            
-            &:hover {
-              background: $primary-dark;
-            }
-          }
         }
         
         .loading-state {
           padding: 2rem 1rem;
           text-align: center;
           color: $text-tertiary;
-          
-          .loading-spinner {
-            width: 2rem;
-            height: 2rem;
-            border: 2px solid $border-color;
-            border-top: 2px solid $primary-color;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-          }
         }
       }
     }
@@ -358,10 +274,6 @@
           cursor: pointer;
           padding: 0.5rem;
           border-radius: $border-radius;
-          
-          &:hover {
-            background: $background-secondary;
-          }
         }
         
         .room-info {
@@ -381,17 +293,6 @@
               justify-content: center;
               color: $white;
               font-weight: 600;
-            }
-            
-            .online-indicator {
-              position: absolute;
-              bottom: 0;
-              right: 0;
-              width: 10px;
-              height: 10px;
-              border-radius: 50%;
-              background: $success-color;
-              border: 2px solid $white;
             }
           }
           
@@ -421,21 +322,6 @@
                 padding: 0.25rem 0.5rem;
                 border-radius: $border-radius;
                 background: $background-tertiary;
-                
-                &.connected {
-                  color: $success-color;
-                }
-                
-                .status-dot {
-                  width: 6px;
-                  height: 6px;
-                  border-radius: 50%;
-                  background: $text-tertiary;
-                  
-                  &.connected {
-                    background: $success-color;
-                  }
-                }
               }
             }
           }
@@ -451,24 +337,6 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            
-            .brand-icon {
-              color: $primary-color;
-            }
-            
-            .brand-text {
-              h2 {
-                margin: 0;
-                color: $text-primary;
-                font-size: 1.25rem;
-              }
-              
-              p {
-                margin: 0;
-                color: $text-secondary;
-                font-size: 0.875rem;
-              }
-            }
           }
           
           .unread-indicator {
@@ -481,7 +349,6 @@
             align-items: center;
             justify-content: center;
             font-size: 0.75rem;
-            font-weight: 600;
           }
         }
       }
@@ -497,32 +364,8 @@
           cursor: pointer;
           padding: 0.5rem;
           border-radius: $border-radius;
-          transition: $transition-fast;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          
-          &:hover {
-            background: $background-secondary;
-            color: $text-primary;
-          }
-          
-          &.primary {
-            background: $primary-color;
-            color: $white;
-            
-            &:hover {
-              background: $primary-dark;
-            }
-          }
         }
       }
-    }
-    
-    .room-list {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
     }
     
     .chat-area {
@@ -537,38 +380,11 @@
         padding: 1rem;
         background: $background-secondary;
         
-        .loading-messages {
-          text-align: center;
-          padding: 2rem;
-          color: $text-tertiary;
-          
-          .message-spinner {
-            width: 2rem;
-            height: 2rem;
-            border: 2px solid $border-color;
-            border-top: 2px solid $primary-color;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-          }
-        }
-        
         .messages-list {
           .empty-chat {
             text-align: center;
             padding: 3rem 1rem;
             color: $text-tertiary;
-            
-            .empty-chat-icon {
-              font-size: 4rem;
-              margin-bottom: 1rem;
-              opacity: 0.5;
-            }
-            
-            h3 {
-              margin: 0 0 0.5rem 0;
-              color: $text-secondary;
-            }
           }
           
           .message-wrapper {
@@ -600,7 +416,6 @@
               .separator-text {
                 font-size: 0.75rem;
                 color: $text-tertiary;
-                font-weight: 600;
                 padding: 0 1rem;
               }
             }
@@ -634,26 +449,11 @@
                   color: $text-secondary;
                   margin-bottom: 0.25rem;
                   padding-left: 0.5rem;
-                  
-                  .sender-role {
-                    font-weight: 400;
-                    color: $text-tertiary;
-                  }
                 }
                 
                 .message-bubble {
                   padding: 0.75rem 1rem;
                   border-radius: $border-radius-lg;
-                  position: relative;
-                  
-                  &.sending {
-                    opacity: 0.7;
-                  }
-                  
-                  &.failed {
-                    background: rgba($error-color, 0.1) !important;
-                    border: 1px solid rgba($error-color, 0.2);
-                  }
                   
                   .message-text {
                     word-wrap: break-word;
@@ -680,27 +480,7 @@
                       
                       .status-icon {
                         font-size: 0.875rem;
-                        
-                        &.sending {
-                          color: $warning-color;
-                          animation: pulse 1.5s infinite;
-                        }
-                        
-                        &.sent {
-                          color: $text-tertiary;
-                        }
-                        
-                        &.delivered {
-                          color: $success-color;
-                        }
-                        
-                        &.read {
-                          color: $primary-color;
-                        }
-                        
-                        &.failed {
-                          color: $error-color;
-                        }
+                        color: $text-tertiary;
                       }
                       
                       .retry-button {
@@ -715,40 +495,10 @@
                         cursor: pointer;
                         color: $white;
                         font-size: 0.75rem;
-                        
-                        &:hover {
-                          background: $error-dark;
-                        }
                       }
                     }
                   }
                 }
-              }
-              
-              .message-actions {
-                display: flex;
-                flex-direction: column;
-                gap: 0.25rem;
-                opacity: 0;
-                transition: $transition-fast;
-                
-                .action-button {
-                  background: none;
-                  border: none;
-                  color: $text-tertiary;
-                  cursor: pointer;
-                  padding: 0.25rem;
-                  border-radius: $border-radius;
-                  
-                  &:hover {
-                    background: $background-tertiary;
-                    color: $text-primary;
-                  }
-                }
-              }
-              
-              &:hover .message-actions {
-                opacity: 1;
               }
             }
             
@@ -756,14 +506,6 @@
               .message-bubble {
                 background: $primary-color;
                 color: $white;
-                
-                .message-time {
-                  color: rgba($white, 0.8);
-                }
-              }
-              
-              .message-actions {
-                order: -1;
               }
             }
             
@@ -781,20 +523,6 @@
             align-items: flex-start;
             gap: 0.5rem;
             margin-bottom: 1rem;
-            
-            .typing-avatar {
-              .avatar.small {
-                width: 32px;
-                height: 32px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: $white;
-                font-weight: 600;
-                font-size: 0.75rem;
-              }
-            }
             
             .typing-bubble {
               background: $white;
@@ -815,16 +543,7 @@
                   border-radius: 50%;
                   background: $text-tertiary;
                   animation: typing 1.4s infinite ease-in-out;
-                  
-                  &:nth-child(1) { animation-delay: -0.32s; }
-                  &:nth-child(2) { animation-delay: -0.16s; }
                 }
-              }
-              
-              .typing-text {
-                font-size: 0.875rem;
-                color: $text-tertiary;
-                font-style: italic;
               }
             }
           }
@@ -832,8 +551,6 @@
       }
       
       .message-input-section {
-        position: relative;
-        
         .message-input-container {
           padding: 1rem 1.5rem;
           background: $background-primary;
@@ -854,15 +571,6 @@
               cursor: pointer;
               padding: 0.5rem;
               border-radius: $border-radius;
-              transition: $transition-fast;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              
-              &:hover {
-                background: $background-secondary;
-                color: $text-primary;
-              }
             }
           }
           
@@ -887,21 +595,6 @@
                 outline: none;
                 border-color: $primary-color;
               }
-              
-              &::placeholder {
-                color: $text-light;
-              }
-            }
-            
-            .input-footer {
-              position: absolute;
-              bottom: 0.5rem;
-              right: 0.5rem;
-              
-              .char-count {
-                font-size: 0.75rem;
-                color: $text-tertiary;
-              }
             }
           }
           
@@ -916,20 +609,11 @@
             justify-content: center;
             color: $white;
             cursor: pointer;
-            transition: $transition-fast;
             margin-bottom: 0.75rem;
-            
-            &:hover:not(:disabled) {
-              background: $primary-dark;
-            }
             
             &:disabled {
               background: $text-light;
               cursor: not-allowed;
-            }
-            
-            .spinning {
-              animation: spin 1s linear infinite;
             }
           }
         }
@@ -947,53 +631,17 @@
           max-height: 200px;
           overflow-y: auto;
           z-index: 1000;
+          display: grid;
+          grid-template-columns: repeat(8, 1fr);
+          gap: 0.5rem;
           
-          .emoji-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid $border-color;
-            
-            h4 {
-              margin: 0;
-              color: $text-primary;
-              font-size: 0.875rem;
-            }
-            
-            .close-button {
-              background: none;
-              border: none;
-              color: $text-tertiary;
-              cursor: pointer;
-              padding: 0.25rem;
-              
-              &:hover {
-                color: $text-primary;
-              }
-            }
-          }
-          
-          .emoji-grid {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 0.5rem;
-            
-            .emoji-button {
-              background: none;
-              border: none;
-              font-size: 1.25rem;
-              cursor: pointer;
-              padding: 0.25rem;
-              border-radius: $border-radius;
-              transition: $transition-fast;
-              
-              &:hover {
-                background: $background-secondary;
-                transform: scale(1.2);
-              }
-            }
+          .emoji-button {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: $border-radius;
           }
         }
       }
@@ -1001,22 +649,11 @@
   }
 }
 
-// Animations
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
 @keyframes typing {
   0%, 60%, 100% { transform: scale(1); opacity: 0.5; }
   30% { transform: scale(1.2); opacity: 1; }
 }
 
-// Responsive
 @media (max-width: 768px) {
   .chat-container {
     flex-direction: column;
