@@ -1,3 +1,4 @@
+<!-- move-out-notice-list.component.html -->
 <div class="move-out-notices-container">
   <div class="header-section">
     <div class="header-content">
@@ -78,24 +79,6 @@
               <mat-icon>visibility</mat-icon>
               <span>View Details</span>
             </button>
-
-            <!-- Approve button -->
-            <button *ngIf="canApprove(notice)" 
-                    class="action-btn approve-btn" 
-                    (click)="approveNotice(notice)">
-              <mat-icon>check_circle</mat-icon>
-              <span>Approve</span>
-            </button>
-
-            <!-- Reject button -->
-            <button *ngIf="canReject(notice)" 
-                    class="action-btn reject-btn" 
-                    (click)="rejectNotice(notice)">
-              <mat-icon>cancel</mat-icon>
-              <span>Reject</span>
-            </button>
-
-            <!-- Cancel button (existing) -->
             <button *ngIf="canCancel(notice)" 
                     class="action-btn cancel-btn" 
                     (click)="cancelNotice(notice)">
