@@ -65,11 +65,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   // Emojis
   emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '👍', '👎', '👏', '🙌', '👋', '🤝', '🙏', '❤️', '💕', '💖', '💗', '💙', '💚', '💛', '🧡', '💜', '🖤', '💯', '🔥', '✨', '💫', '⭐'];
 
-  // UI state properties for template
-  showRoomInfo = false;
-  showAttachmentMenu = false;
-  replyingTo: ChatMessage | null = null;
-
   // Subscriptions
   private subscriptions: Subscription[] = [];
   private webSocketSubscription?: Subscription;
@@ -132,20 +127,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.chatService.messages$.subscribe(messages => {
         console.log('💬 Messages updated:', messages?.length);
         this.messages = messages || [];
-
-        // Debug: Log all messages to verify sent messages are included
-        this.messages.forEach((msg, index) => {
-          console.log(`Message ${index}:`, {
-            id: msg.id,
-            content: msg.content,
-            senderId: msg.senderId,
-            currentUserId: this.currentUserId,
-            isMyMessage: this.isMyMessage(msg),
-            timestamp: msg.timestamp,
-            status: msg.status
-          });
-        });
-
         setTimeout(() => this.scrollToBottom(), 100);
       }),
 
@@ -336,7 +317,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private createNewChatRoom(chatData: any): void {
     this.loading = true;
 
-    // Extract propertyId from the chat data
     const propertyId = chatData.propertyId ? parseInt(chatData.propertyId, 10) : null;
 
     if (!propertyId) {
@@ -350,7 +330,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       participantType: chatData.participantType
     });
 
-    // Use the correct chat service method based on participant type
     let chatObservable;
 
     switch (chatData.participantType) {
@@ -375,12 +354,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         console.log('✅ Chat room creation response:', response);
         if (response.success && response.data) {
           this.errorHandler.info('New chat started successfully!', 2000);
-
-          // Add the new room to the list and select it
           this.chatRooms.unshift(response.data);
           this.selectRoom(response.data);
-
-          // Refresh the room list to ensure consistency
           setTimeout(() => {
             this.loadChatRooms();
           }, 500);
@@ -410,11 +385,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   sendMessage(): void {
     if (!this.newMessage.trim() || !this.currentRoom || this.sending) {
-      console.log('🚫 Cannot send message:', {
-        hasContent: !!this.newMessage.trim(),
-        hasRoom: !!this.currentRoom,
-        isSending: this.sending
-      });
       return;
     }
 
@@ -440,10 +410,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.newMessage = '';
           this.stopTyping();
           this.focusMessageInput();
-
-          if (!this.webSocketConnected) {
-            this.errorHandler.info('Message sent', 1000);
-          }
         } else {
           this.errorHandler.error(response.message || 'Failed to send message');
         }
@@ -451,17 +417,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (error: any) => {
         this.sending = false;
         console.error('❌ Error sending message:', error);
-
-        const retryAction: ErrorAction = {
-          label: 'Retry',
-          handler: () => this.sendMessage()
-        };
-
-        this.errorHandler.error(
-          'Failed to send message',
-          'Please check your connection',
-          retryAction
-        );
+        this.errorHandler.error('Failed to send message', 'Please check your connection');
       }
     });
   }
@@ -479,10 +435,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
-    console.log('🗑️ Deleting message:', messageId);
     this.chatService.deleteMessage(messageId).subscribe({
       next: (response: BasicResponse) => {
-        console.log('✅ Delete message response:', response);
         if (response.success) {
           this.errorHandler.info('Message deleted', 2000);
         } else {
@@ -501,9 +455,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     if (!this.isTyping) {
       this.isTyping = true;
-      this.chatService.startTyping(this.currentRoom.id).subscribe({
-        error: (error) => console.error('Error starting typing:', error)
-      });
+      this.chatService.startTyping(this.currentRoom.id).subscribe();
     }
 
     if (this.typingTimeout) {
@@ -518,9 +470,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   stopTyping(): void {
     if (this.isTyping && this.currentRoom) {
       this.isTyping = false;
-      this.chatService.stopTyping(this.currentRoom.id).subscribe({
-        error: (error) => console.error('Error stopping typing:', error)
-      });
+      this.chatService.stopTyping(this.currentRoom.id).subscribe();
     }
   }
 
@@ -531,10 +481,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       event.stopPropagation();
     }
     this.showMenu = !this.showMenu;
-  }
-
-  toggleRoomInfo(): void {
-    this.showRoomInfo = !this.showRoomInfo;
   }
 
   viewProfile(): void {
@@ -607,88 +553,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.errorHandler.info('Refreshing conversations...', 1000);
   }
 
-  toggleTheme(): void {
-    this.errorHandler.info('Theme toggle coming soon!', 2000);
-  }
+  // ===== TIME FORMATTING (FIXED) =====
 
-  backToRoomList(): void {
-    this.selectRoom(null);
-  }
-
-  // ===== MESSAGE TIME FORMATTING (FIXED) =====
-
-  formatMessageTime(timestamp: string): string {
-    try {
-      // Handle undefined or null timestamps
-      if (!timestamp) {
-        console.warn('Empty timestamp provided');
-        return 'Just now';
-      }
-
-      const date = new Date(timestamp);
-
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        console.error('Invalid timestamp:', timestamp);
-        return 'Just now';
-      }
-
-      const now = new Date();
-      const diffInMs = now.getTime() - date.getTime();
-      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-      // For very recent messages (less than 1 minute), show "Just now"
-      if (diffInMinutes < 1) {
-        return 'Just now';
-      }
-
-      // For today's messages, show exact time
-      if (diffInDays === 0) {
-        return date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-      }
-
-      // For yesterday's messages
-      if (diffInDays === 1) {
-        return 'Yesterday ' + date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-      }
-
-      // For this week (less than 7 days)
-      if (diffInDays < 7) {
-        return date.toLocaleDateString('en-US', { 
-          weekday: 'short',
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-      }
-
-      // For older messages, show date and time
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
-
-    } catch (error) {
-      console.error('Error formatting message time:', error, 'timestamp:', timestamp);
-      return 'Just now';
-    }
-  }
-
-  // Alternative: Always show exact time (uncomment if you prefer this)
-  /*
   formatMessageTime(timestamp: string): string {
     try {
       if (!timestamp) return '';
@@ -707,215 +573,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return '';
     }
   }
-  */
 
-  // ===== TEMPLATE COMPATIBILITY METHODS =====
-
-  // Room avatar and display methods
-  getRoomAvatar(room: ChatRoom): string | null {
-    const otherParticipants = this.getOtherParticipants(room);
-    return otherParticipants[0]?.avatar || null;
-  }
-
-  getRoomInitials(room: ChatRoom): string {
-    const displayName = this.getRoomDisplayName(room);
-    return displayName ? displayName.charAt(0).toUpperCase() : '?';
-  }
-
-  getSenderAvatar(message: ChatMessage): string | null {
-    return message.sender?.avatar || null;
-  }
-
-  getInitials(name: string): string {
-    return name ? name.charAt(0).toUpperCase() : '?';
-  }
-
-  // Room status methods
-  isUserOnline(room: ChatRoom): boolean {
-    const otherParticipants = this.getOtherParticipants(room);
-    return otherParticipants.some(p => p.isOnline);
-  }
-
-  getRoomStatusText(room: ChatRoom): string {
-    if (this.isUserOnline(room)) {
-      return 'Online';
-    }
-    return 'Offline';
-  }
-
-  // UI state methods
-  openNewChatDialog(): void {
-    this.startNewChat();
-  }
-
-  filterRooms(): void {
-    // Search is handled by getFilteredRooms()
-  }
-
-  // Message display methods
-  truncateMessage(content: string, length: number = 35): string {
-    return content.length > length ? content.substring(0, length) + '...' : content;
-  }
-
-  shouldShowDateSeparator(index: number): boolean {
-    if (index === 0) return true;
-    const currentDate = new Date(this.messages[index].timestamp).toDateString();
-    const previousDate = new Date(this.messages[index - 1].timestamp).toDateString();
-    return currentDate !== previousDate;
-  }
-
-  formatDateSeparator(timestamp: string): string {
-    return this.getMessageDate(timestamp);
-  }
-
-  shouldShowAvatar(index: number): boolean {
-    if (index === 0) return true;
-    const currentMessage = this.messages[index];
-    const previousMessage = this.messages[index - 1];
-    return currentMessage.senderId !== previousMessage.senderId;
-  }
-
-  shouldShowSenderName(index: number): boolean {
-    if (index === 0) return true;
-    const currentMessage = this.messages[index];
-    const previousMessage = this.messages[index - 1];
-    return currentMessage.senderId !== previousMessage.senderId;
-  }
-
-  formatTime(timestamp: string): string {
-    return this.formatMessageTime(timestamp); // Use the fixed method
-  }
-
-  // Message actions
-  retryMessage(message: ChatMessage): void {
-    this.retrySendMessage(message);
-  }
-
-  retrySendMessage(message: ChatMessage): void {
-    const messageData: CreateMessageRequest = {
-      chatRoomId: message.chatRoomId,
-      content: message.content,
-      messageType: 'TEXT'
-    };
-
-    console.log('🔄 Retrying message:', messageData);
-    this.sending = true;
-
-    this.chatService.sendMessage(messageData).subscribe({
-      next: (response: BasicResponse) => {
-        this.sending = false;
-        console.log('✅ Retry message response:', response);
-        if (response.success) {
-          this.errorHandler.info('Message sent', 1000);
-        } else {
-          this.errorHandler.error(response.message || 'Failed to send message');
-        }
-      },
-      error: (error: any) => {
-        this.sending = false;
-        console.error('❌ Error retrying message:', error);
-        this.errorHandler.error('Failed to send message', 'Please try again');
-      }
-    });
-  }
-
-  replyToMessage(message: ChatMessage): void {
-    this.replyingTo = message;
-    this.focusMessageInput();
-  }
-
-  // Input handling
-  handleEnterKey(event: KeyboardEvent): void {
-    this.onKeyPress(event);
-  }
-
-  handleTyping(): void {
-    this.onMessageInput();
-  }
-
-  // UI state properties
-  get filteredRooms(): ChatRoom[] {
-    return this.getFilteredRooms();
-  }
-
-  get isLoadingMessages(): boolean {
-    return this.loading;
-  }
-
-  get showScrollButton(): boolean {
-    return this.messages.length > 10;
-  }
-
-  get unreadMessagesCount(): number {
-    return this.currentRoom?.unreadCount || 0;
-  }
-
-  get isSending(): boolean {
-    return this.sending;
-  }
-
-  // Attachment methods
-  openAttachmentMenu(): void {
-    this.showAttachmentMenu = true;
-  }
-
-  closeAttachmentMenu(): void {
-    this.showAttachmentMenu = false;
-  }
-
-  selectImage(): void {
-    this.closeAttachmentMenu();
-    this.triggerFileInput();
-  }
-
-  selectFile(): void {
-    this.closeAttachmentMenu();
-    this.triggerFileInput();
-  }
-
-  handleFileSelect(event: any): void {
-    this.errorHandler.info('File upload feature coming soon!', 2000);
-  }
-
-  cancelReply(): void {
-    this.replyingTo = null;
-  }
-
-  // Formatting methods
-  formatDate(dateString: string): string {
-    try {
-      if (!dateString) return 'Unknown date';
-
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Unknown date';
-
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Unknown date';
-    }
-  }
-
-  // Scroll handling
-  onScroll(event: any): void {
-    // Implement infinite scroll if needed
-  }
-
-  scrollToBottom(): void {
-    try {
-      if (this.messagesContainer?.nativeElement) {
-        setTimeout(() => {
-          const container = this.messagesContainer.nativeElement;
-          container.scrollTop = container.scrollHeight;
-        }, 100);
-      }
-    } catch (err) {
-      console.warn('Could not scroll to bottom:', err);
-    }
+  formatLastMessageTime(room: ChatRoom): string {
+    if (!room.lastMessage || !room.lastMessage.timestamp) return '';
+    return this.formatMessageTime(room.lastMessage.timestamp);
   }
 
   // ===== UTILITY METHODS =====
@@ -929,13 +590,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   isMyMessage(message: ChatMessage): boolean {
-    const isMine = this.chatService.isMyMessage(message);
-    return isMine;
-  }
-
-  formatLastMessageTime(room: ChatRoom): string {
-    if (!room.lastMessage || !room.lastMessage.timestamp) return '';
-    return this.formatMessageTime(room.lastMessage.timestamp);
+    return this.chatService.isMyMessage(message);
   }
 
   getLastMessagePreview(room: ChatRoom): string {
@@ -994,36 +649,17 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   getMessageDate(timestamp: string): string {
-    try {
-      if (!timestamp) return 'Today';
-
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) return 'Today';
-
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      // Reset hours for accurate day comparison
-      today.setHours(0, 0, 0, 0);
-      yesterday.setHours(0, 0, 0, 0);
-      const messageDate = new Date(date);
-      messageDate.setHours(0, 0, 0, 0);
-
-      if (messageDate.getTime() === today.getTime()) {
-        return 'Today';
-      } else if (messageDate.getTime() === yesterday.getTime()) {
-        return 'Yesterday';
-      } else {
-        return date.toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
-        });
-      }
-    } catch (error) {
-      console.error('Error getting message date:', error);
+    const date = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === today.toDateString()) {
       return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     }
   }
 
@@ -1040,7 +676,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   getConnectionStatusColor(): string {
-    return this.webSocketConnected ? 'var(--success-color)' : 'var(--warning-color)';
+    return this.webSocketConnected ? '#10b981' : '#f59e0b';
   }
 
   shouldShowConnectionWarning(): boolean {
@@ -1060,32 +696,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     );
   }
 
-  debugMessages(): void {
-    console.log('🐛 DEBUG MESSAGES:');
-    console.log('Current User ID:', this.currentUserId);
-    console.log('Total Messages:', this.messages.length);
-    this.messages.forEach((msg, index) => {
-      console.log(`Message ${index}:`, {
-        id: msg.id,
-        content: msg.content,
-        senderId: msg.senderId,
-        isMyMessage: this.isMyMessage(msg),
-        timestamp: msg.timestamp,
-        status: msg.status
-      });
-    });
-  }
-
-  debugTimestamps(): void {
-    console.log('🔍 DEBUG TIMESTAMPS:');
-    this.messages.forEach((msg, index) => {
-      const date = new Date(msg.timestamp);
-      console.log(`Message ${index}:`, {
-        original: msg.timestamp,
-        parsed: date.toString(),
-        isValid: !isNaN(date.getTime()),
-        formatted: this.formatMessageTime(msg.timestamp)
-      });
-    });
+  scrollToBottom(): void {
+    try {
+      if (this.messagesContainer?.nativeElement) {
+        setTimeout(() => {
+          const container = this.messagesContainer.nativeElement;
+          container.scrollTop = container.scrollHeight;
+        }, 100);
+      }
+    } catch (err) {
+      console.warn('Could not scroll to bottom:', err);
+    }
   }
 }

@@ -1,3 +1,4 @@
+// src/app/services/chat.interface.ts
 export interface User {
   id: number;
   name: string;
@@ -519,4 +520,303 @@ export interface RoomStatistics {
     byUser: { [key: number]: number };
     byHour: { [key: number]: number };
   };
+}
+
+// WebSocket specific interfaces
+export interface SendMessageRequest {
+  chatRoomId: number;
+  content: string;
+  messageType?: 'TEXT' | 'IMAGE' | 'FILE';
+}
+
+export interface DeleteMessageRequest {
+  messageId: number;
+}
+
+export interface DeleteMessageResponse {
+  success: boolean;
+  message: string;
+  messageId?: number;
+  chatRoomId: number;
+}
+
+// Additional interfaces for component compatibility
+export interface ChatRoomSummary {
+  id: number;
+  name: string;
+  unreadCount: number;
+  lastMessage?: ChatMessage;
+  participantCount: number;
+  isOnline: boolean;
+}
+
+export interface MessageGroup {
+  date: string;
+  messages: ChatMessage[];
+}
+
+export interface ChatNotification {
+  id: number;
+  type: 'NEW_MESSAGE' | 'MESSAGE_READ' | 'TYPING_START' | 'TYPING_STOP' | 'USER_JOINED' | 'USER_LEFT';
+  roomId: number;
+  data: any;
+  timestamp: string;
+  isRead: boolean;
+}
+
+export interface ChatSearchResults {
+  messages: ChatMessage[];
+  rooms: ChatRoom[];
+  users: User[];
+  totalResults: number;
+}
+
+export interface ChatUpload {
+  id: string;
+  file: File;
+  progress: number;
+  status: 'PENDING' | 'UPLOADING' | 'COMPLETED' | 'FAILED';
+  message?: ChatMessage;
+  error?: string;
+}
+
+export interface ChatState {
+  rooms: ChatRoom[];
+  currentRoom: ChatRoom | null;
+  messages: ChatMessage[];
+  typingUsers: TypingIndicator[];
+  connectionState: ConnectionState;
+  unreadCount: number;
+  searchResults: ChatSearchResults | null;
+  uploads: ChatUpload[];
+  preferences: ChatPreferences;
+}
+
+export interface ChatContextMenu {
+  message: ChatMessage;
+  position: { x: number; y: number };
+  options: string[];
+}
+
+export interface ChatScrollPosition {
+  roomId: number;
+  messageId: number;
+  position: number;
+  timestamp: string;
+}
+
+export interface ChatHistoryState {
+  scrollPositions: ChatScrollPosition[];
+  lastVisitedRooms: number[];
+  searchHistory: string[];
+}
+
+export interface ChatExportProgress {
+  roomId: number;
+  progress: number;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  downloadUrl?: string;
+  error?: string;
+}
+
+export interface ChatBackupProgress {
+  roomId: number;
+  progress: number;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  backup?: ChatBackup;
+  error?: string;
+}
+
+export interface ChatImportProgress {
+  roomId: number;
+  progress: number;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  importedCount: number;
+  totalCount: number;
+  error?: string;
+}
+
+export interface ChatSyncState {
+  lastSync: string;
+  pendingOperations: number;
+  isSyncing: boolean;
+  syncError?: string;
+}
+
+export interface ChatOfflineQueue {
+  operations: Array<{
+    id: string;
+    type: 'SEND_MESSAGE' | 'DELETE_MESSAGE' | 'MARK_READ' | 'MARK_DELIVERED';
+    data: any;
+    timestamp: string;
+    retryCount: number;
+  }>;
+}
+
+export interface ChatPerformanceMetrics {
+  messageLoadTime: number;
+  roomLoadTime: number;
+  connectionTime: number;
+  messageSendTime: number;
+  searchTime: number;
+}
+
+export interface ChatError {
+  code: string;
+  message: string;
+  timestamp: string;
+  context?: any;
+  recoverable: boolean;
+}
+
+export interface ChatValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface ChatCompatibilityCheck {
+  browser: string;
+  version: string;
+  supportsWebSockets: boolean;
+  supportsLocalStorage: boolean;
+  supportsNotifications: boolean;
+  rating: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR';
+}
+
+export interface ChatMigrationPlan {
+  fromVersion: string;
+  toVersion: string;
+  steps: string[];
+  estimatedTime: number;
+  risks: string[];
+  backupRequired: boolean;
+}
+
+export interface ChatAuditLog {
+  id: number;
+  action: string;
+  userId: number;
+  roomId?: number;
+  messageId?: number;
+  details: any;
+  timestamp: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export interface ChatRateLimit {
+  limit: number;
+  remaining: number;
+  resetTime: string;
+  window: string;
+}
+
+export interface ChatQuota {
+  maxRooms: number;
+  maxParticipants: number;
+  maxMessageLength: number;
+  maxFileSize: number;
+  storageLimit: number;
+  usedStorage: number;
+}
+
+export interface ChatSubscription {
+  tier: 'FREE' | 'BASIC' | 'PRO' | 'ENTERPRISE';
+  features: string[];
+  expiresAt?: string;
+  autoRenew: boolean;
+  paymentMethod?: string;
+}
+
+export interface ChatBillingInfo {
+  plan: string;
+  monthlyCost: number;
+  nextBillingDate: string;
+  paymentStatus: 'ACTIVE' | 'PENDING' | 'OVERDUE' | 'CANCELLED';
+  invoices: Array<{
+    id: string;
+    amount: number;
+    date: string;
+    status: 'PAID' | 'PENDING' | 'FAILED';
+    downloadUrl?: string;
+  }>;
+}
+
+export interface ChatSupportTicket {
+  id: number;
+  subject: string;
+  description: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  createdAt: string;
+  updatedAt: string;
+  assignedTo?: number;
+  messages: Array<{
+    id: number;
+    senderId: number;
+    content: string;
+    timestamp: string;
+    isInternal: boolean;
+  }>;
+}
+
+export interface ChatFeedback {
+  id: number;
+  rating: number;
+  comment?: string;
+  userId: number;
+  timestamp: string;
+  context: {
+    roomId?: number;
+    messageId?: number;
+    feature?: string;
+  };
+  status: 'NEW' | 'REVIEWED' | 'ACTIONED';
+  response?: string;
+  respondedAt?: string;
+}
+
+export interface ChatAnnouncement {
+  id: number;
+  title: string;
+  content: string;
+  type: 'INFO' | 'WARNING' | 'URGENT' | 'MAINTENANCE';
+  startDate: string;
+  endDate: string;
+  targetAudience: 'ALL' | 'TENANTS' | 'LANDLORDS' | 'CARETAKERS' | 'ADMINS';
+  isActive: boolean;
+  createdAt: string;
+  createdBy: number;
+}
+
+export interface ChatMaintenanceWindow {
+  id: number;
+  startTime: string;
+  endTime: string;
+  description: string;
+  impact: 'MINOR' | 'MAJOR' | 'CRITICAL';
+  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatSystemStatus {
+  overall: 'OPERATIONAL' | 'DEGRADED' | 'PARTIAL_OUTAGE' | 'MAJOR_OUTAGE';
+  components: Array<{
+    name: string;
+    status: 'OPERATIONAL' | 'DEGRADED' | 'PARTIAL_OUTAGE' | 'MAJOR_OUTAGE';
+    description: string;
+    updatedAt: string;
+  }>;
+  incidents: Array<{
+    id: number;
+    title: string;
+    status: 'INVESTIGATING' | 'IDENTIFIED' | 'MONITORING' | 'RESOLVED';
+    impact: 'MINOR' | 'MAJOR' | 'CRITICAL';
+    startedAt: string;
+    updatedAt: string;
+    resolvedAt?: string;
+  }>;
+  updatedAt: string;
 }
