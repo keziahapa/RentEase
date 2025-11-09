@@ -13,7 +13,6 @@ import { DepositComponent } from './components/dashboard/tenant/deposit/deposit.
 import { PaymentsComponent } from './components/dashboard/tenant/payments/payments.component';
 import { MaintenanceComponent } from './components/dashboard/tenant/maintenance/maintenance.component';
 import { DocumentsComponent } from './components/dashboard/tenant/documents/documents.component';
-import { MessagesComponent } from './components/dashboard/tenant/messages/messages.component';
 import { ReviewComponent } from './components/dashboard/tenant/review/review.component';
 import { SettingsComponent } from './components/dashboard/tenant/settings/settings.component';
 
@@ -42,7 +41,6 @@ import { PropertiesListComponent } from './components/dashboard/caretaker/compon
 import { LandlordProfileViewComponent } from './components/dashboard/landlord/landlord-dashboard/profile/landlord-profile-view/landlord-profile-view.component';
 import { LandlordTenantsComponent } from './components/dashboard/landlord/landlord-dashboard/tenants/tenants.component';
 import { LandlordMaintenanceComponent } from './components/dashboard/landlord/landlord-dashboard/maintenance/maintenance.component';
-import { LandlordMarketplaceComponent } from './components/dashboard/landlord/landlord-dashboard/marketplace/marketplace';
 import { ApprovedAdvertisementsComponent } from './components/dashboard/bussiness/components/approved-advertisements/approved-advertisements.component';
 import { CreateAdvertisementComponent } from './components/dashboard/bussiness/components/create-advertisement/create-advertisement.component';
 import { MyAdvertisementsComponent } from './components/dashboard/bussiness/components/my-advertisements/my-advertisements.component';
@@ -63,8 +61,9 @@ import { LandlordDashboardComponent } from './components/dashboard/landlord/land
 import { DashboardOverviewComponent } from './components/dashboard/tenant/dashboard-overview/dashboard-overview.component';
 import { BusinessRegistrationComponent } from '../app/components/auth/business-registration/business-registration.component';
 import { BusinessRegistrationStatusComponent } from '../app/components/auth/business-registration-status/business-registration-status.component';
+import { UsersViewComponent } from './components/dashboard/admin/admin-dashboard/components/users-view/users-view.component';
 
-// Use your existing authGuard instead of creating a new one
+
 export const routes: Routes = [
   { path: '', component: HomeComponent, pathMatch: 'full' },
   { path: 'registration', component: RegistrationComponent },
@@ -84,7 +83,7 @@ export const routes: Routes = [
   { 
     path: 'business/register', 
     component: BusinessRegistrationComponent,
-    canActivate: [authGuard] // ✅ Use existing authGuard instead of BusinessRegistrationGuard
+    canActivate: [authGuard] 
   },
   { 
     path: 'business/registration-status', 
@@ -115,7 +114,7 @@ export const routes: Routes = [
       { path: 'payments', component: PaymentsComponent },
       { path: 'maintenance', component: MaintenanceComponent },
       { path: 'documents', component: DocumentsComponent },
-      { path: 'messages', component: MessagesComponent },
+     
       { path: 'chat', component: ChatComponent },
       { path: 'reviews', component: ReviewComponent },
       { path: 'settings', component: SettingsComponent },
@@ -154,7 +153,7 @@ export const routes: Routes = [
       { path: 'maintenance', component: LandlordMaintenanceComponent },
       { path: 'tenants', component: LandlordTenantsComponent },
       { path: 'chat', component: ChatComponent },
-      { path: 'marketplace', component: LandlordMarketplaceComponent },
+    
       { path: 'move-out-notices', component: LandlordMoveOutNoticeListComponent },
       { path: 'move-out-notices/:id', component: LandlordMoveOutNoticeDetailsComponent },
       { path: 'move-out-action/:id', component: MoveOutActionDialogComponent },
@@ -225,32 +224,27 @@ export const routes: Routes = [
     ]
   },
   
-  {
-    path: 'admin-dashboard',
-    component: AdminDashboardComponent,
-    canActivate: [authGuard],
-    children: [
-      { path: '', redirectTo: 'overview', pathMatch: 'full' },
-      { path: 'overview', component: AdminOverviewComponent },
-      { path: 'businesses', component: BusinessManagementComponent },
-      { path: 'advertisements', component: AdvertisementManagementComponent },
-      { path: 'users', component: AdminDashboardComponent },
-      { path: 'disputes', component: AdminDashboardComponent },
-      { path: 'transactions', component: AdminDashboardComponent },
-      { path: 'reports', component: AdminDashboardComponent },
-      { path: 'settings', component: AdminDashboardComponent },
-      { path: 'chat', component: ChatComponent },
-      { 
-        path: 'profile',
-        children: [
-          { path: 'view', component: ProfileViewComponent },
-          { path: 'edit', component: ProfileEditComponent },
-          { path: '', redirectTo: 'view', pathMatch: 'full' }
-        ]
-      }
-    ]
-  },
-  
+ {
+  path: 'admin-dashboard',
+  component: AdminDashboardComponent, 
+  children: [
+    { path: '', redirectTo: 'overview', pathMatch: 'full' },
+    { path: 'overview', component: AdminOverviewComponent },
+    { path: 'businesses', component: BusinessManagementComponent },
+    { path: 'advertisements', component: AdvertisementManagementComponent },
+    { path: 'users', component: UsersViewComponent }, 
+    { path: 'chat', component: ChatComponent },
+    { 
+      path: 'profile',
+      children: [
+        { path: 'view', component: ProfileViewComponent },
+        { path: 'edit', component: ProfileEditComponent },
+        { path: '', redirectTo: 'view', pathMatch: 'full' }
+      ]
+    }
+  ]
+}
+  ,
   { path: 'landlord', redirectTo: '/landlord-dashboard' },
   { path: 'tenant', redirectTo: '/tenant-dashboard' },
   { path: 'business', redirectTo: '/business-dashboard' },

@@ -336,7 +336,6 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
       'financials': ['/landlord-dashboard/financials'],
       'reports': ['/landlord-dashboard/reports'],
       'documents': ['/landlord-dashboard/documents'],
-      'messages': ['/landlord-dashboard/chat'],
       'move-out': ['/landlord-dashboard/move-out-notices'],
       'profile': ['/landlord-dashboard/profile/view']
     };

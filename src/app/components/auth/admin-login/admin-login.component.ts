@@ -173,7 +173,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   }
 
   private handleAccessDenied(message: string): void {
-    console.log('🔴 Access denied:', message);
+    console.log(' Access denied:', message);
     this.authService.logoutSync();
     this.showSnackbar(message, 'error');
     this.loginData.password = '';
@@ -187,7 +187,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
     let errorMessage = 'Admin login failed. Please try again.';
     let showSnackbar = true;
     
-    console.log('🔴 Error details:', {
+    console.log(' Error details:', {
       status: error.status,
       message: error.message,
       error: error.error
