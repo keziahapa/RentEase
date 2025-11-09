@@ -24,77 +24,80 @@
             </div>
           </div>
         </div>
-        <div class="placeholder-text" *ngIf="!currentRoom">
-          Select a conversation to start chatting
+        <div class="app-brand" *ngIf="!currentRoom">
+          <i class="fas fa-comments brand-icon"></i>
+          <h2>Messages</h2>
+          <span *ngIf="getTotalUnreadCount() > 0" class="total-unread-badge">
+            {{ getTotalUnreadCount() }}
+          </span>
         </div>
       </div>
-      <div class="header-actions" *ngIf="currentRoom">
-        <button 
-          class="icon-button" 
-          *ngIf="shouldShowConnectionWarning()" 
-          (click)="reconnectWebSocket()"
-          matTooltip="Reconnect to real-time chat"
-        >
-          <i class="fas fa-sync-alt"></i>
-        </button>
-        <button class="icon-button" (click)="toggleMenu($event)">
-          <i class="fas fa-ellipsis-v"></i>
-        </button>
-        
-        <!-- Chat Actions Menu -->
-        <div class="chat-actions-menu" *ngIf="showMenu">
-          <button class="action-btn" (click)="viewProfile()">
-            <i class="fas fa-user"></i> View Profile
+      
+      <div class="header-actions">
+        <!-- Global actions when no room selected -->
+        <div *ngIf="!currentRoom" class="global-actions">
+          <button class="icon-button" (click)="refreshChatRooms()" matTooltip="Refresh conversations">
+            <i class="fas fa-sync-alt"></i>
           </button>
-          <button class="action-btn" (click)="muteChat()">
-            <i class="fas fa-volume-mute"></i> Mute Chat
+          <button class="icon-button" (click)="startNewChat()" matTooltip="New chat">
+            <i class="fas fa-plus"></i>
           </button>
-          <button class="action-btn" (click)="clearChat()">
-            <i class="fas fa-trash"></i> Clear Chat
+        </div>
+
+        <!-- Room-specific actions when in a chat -->
+        <div *ngIf="currentRoom" class="room-actions">
+          <button 
+            class="icon-button" 
+            *ngIf="shouldShowConnectionWarning()" 
+            (click)="reconnectWebSocket()"
+            matTooltip="Reconnect to real-time chat"
+          >
+            <i class="fas fa-sync-alt"></i>
           </button>
+          <button class="icon-button" (click)="toggleMenu($event)">
+            <i class="fas fa-ellipsis-v"></i>
+          </button>
+          
+          <!-- Chat Actions Menu -->
+          <div class="chat-actions-menu" *ngIf="showMenu">
+            <button class="action-btn" (click)="viewProfile()">
+              <i class="fas fa-user"></i> View Profile
+            </button>
+            <button class="action-btn" (click)="muteChat()">
+              <i class="fas fa-volume-mute"></i> Mute Chat
+            </button>
+            <button class="action-btn" (click)="clearChat()">
+              <i class="fas fa-trash"></i> Clear Chat
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Main Content Area -->
   <div class="chat-main">
-    <!-- Room List Sidebar -->
-    <div class="room-list" [class.mobile-hidden]="currentRoom">
+    <!-- Room List (Full screen when no room selected) -->
+    <div class="room-list-full" *ngIf="!currentRoom">
       <div class="room-list-header">
-        <h2>Messages 
-          <span *ngIf="getTotalUnreadCount() > 0" class="total-unread-badge">
-            {{ getTotalUnreadCount() }}
-          </span>
-        </h2>
-        <div class="header-actions">
-          <button class="icon-button" (click)="refreshChatRooms()" matTooltip="Refresh">
-            <i class="fas fa-sync-alt"></i>
-          </button>
-          <button class="icon-button" (click)="startNewChat()" matTooltip="New Chat">
-            <i class="fas fa-plus"></i>
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input 
+            type="text" 
+            placeholder="Search conversations..." 
+            [(ngModel)]="searchQuery"
+            (input)="searchRooms()"
+          />
+          <button *ngIf="searchQuery" class="clear-search" (click)="clearSearch()">
+            <i class="fas fa-times"></i>
           </button>
         </div>
-      </div>
-
-      <div class="search-box">
-        <i class="fas fa-search"></i>
-        <input 
-          type="text" 
-          placeholder="Search conversations..." 
-          [(ngModel)]="searchQuery"
-          (input)="searchRooms()"
-        />
-        <button *ngIf="searchQuery" class="clear-search" (click)="clearSearch()">
-          <i class="fas fa-times"></i>
-        </button>
       </div>
 
       <div class="rooms-container">
         <div 
           *ngFor="let room of getFilteredRooms(); trackBy: trackByRoomId" 
           class="room-item"
-          [class.active]="currentRoom?.id === room.id"
-          [class.unread]="room.unreadCount > 0"
           (click)="selectRoom(room)"
         >
           <div class="room-avatar">
@@ -130,43 +133,40 @@
           </div>
         </div>
 
+        <!-- Empty State -->
         <div *ngIf="getFilteredRooms().length === 0 && !loading" class="empty-state">
-          <i class="fas fa-comments"></i>
-          <p *ngIf="searchQuery">No conversations match your search</p>
-          <p *ngIf="!searchQuery">No conversations yet</p>
+          <div class="empty-icon">
+            <i class="fas fa-comments"></i>
+          </div>
+          <h4 *ngIf="searchQuery">No conversations found</h4>
+          <h4 *ngIf="!searchQuery">No conversations yet</h4>
+          <p *ngIf="searchQuery">Try adjusting your search terms</p>
+          <p *ngIf="!searchQuery">Start a conversation to begin messaging</p>
           <button *ngIf="!searchQuery" class="start-chat-btn" (click)="startNewChat()">
-            Start a new chat
+            <i class="fas fa-plus"></i>
+            Start New Chat
           </button>
         </div>
 
-        <div *ngIf="loading" class="loading-rooms">
-          <div class="skeleton-avatar"></div>
-          <div class="skeleton-content">
-            <div class="skeleton-text large"></div>
-            <div class="skeleton-text"></div>
-          </div>
+        <!-- Loading State -->
+        <div *ngIf="loading" class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>Loading conversations...</p>
         </div>
       </div>
     </div>
 
-    <!-- Messages Area -->
-    <div class="messages-area" [class.mobile-hidden]="!currentRoom">
-      <div *ngIf="!currentRoom" class="empty-chat-state">
-        <i class="fas fa-comment-dots"></i>
-        <h3>Welcome to Chat</h3>
-        <p>Select a conversation from the list to start messaging</p>
-        <button class="start-chat-btn" (click)="startNewChat()">
-          Start New Conversation
-        </button>
-      </div>
-
-      <div *ngIf="currentRoom" class="messages-wrapper">
+    <!-- Messages Area (Full screen when room selected) -->
+    <div class="messages-area-full" *ngIf="currentRoom">
+      <div class="messages-wrapper">
         <div #messagesContainer class="messages-container">
+          <!-- Loading Messages -->
           <div *ngIf="loading" class="loading-messages">
             <div class="spinner"></div>
             <p>Loading messages...</p>
           </div>
 
+          <!-- Messages List -->
           <div class="messages-list">
             <div 
               *ngFor="let message of messages; trackBy: trackByMessageId"
@@ -237,25 +237,25 @@
                       </span>
                     </div>
                   </div>
+                </div>
 
-                  <!-- Message actions -->
-                  <div class="message-actions">
-                    <button 
-                      class="action-button"
-                      (click)="replyToMessage(message)"
-                      matTooltip="Reply"
-                    >
-                      <i class="fas fa-reply"></i>
-                    </button>
-                    <button 
-                      *ngIf="isMyMessage(message)"
-                      class="action-button"
-                      (click)="deleteMessage(message.id)"
-                      matTooltip="Delete"
-                    >
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </div>
+                <!-- Message actions -->
+                <div class="message-actions">
+                  <button 
+                    class="action-button"
+                    (click)="replyToMessage(message)"
+                    matTooltip="Reply"
+                  >
+                    <i class="fas fa-reply"></i>
+                  </button>
+                  <button 
+                    *ngIf="isMyMessage(message)"
+                    class="action-button"
+                    (click)="deleteMessage(message.id)"
+                    matTooltip="Delete"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
                 </div>
               </div>
             </div>
@@ -360,12 +360,4 @@
       </button>
     </div>
   </div>
-</div>
-
-<!-- Debug panel (remove in production) -->
-<div *ngIf="false" class="debug-panel">
-  <button (click)="debugMessages()">Debug Messages</button>
-  <span>WebSocket: {{ webSocketConnected ? 'Connected' : 'Disconnected' }}</span>
-  <span>Rooms: {{ chatRooms.length }}</span>
-  <span>Messages: {{ messages.length }}</span>
 </div>

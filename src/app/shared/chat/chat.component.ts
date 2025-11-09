@@ -1,4 +1,4 @@
-// src/app/components/chat/chat.component.ts - COMPLETE FILE
+// src/app/components/chat/chat.component.ts
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -615,6 +615,100 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.selectRoom(null);
   }
 
+  // ===== MESSAGE TIME FORMATTING (FIXED) =====
+
+  formatMessageTime(timestamp: string): string {
+    try {
+      // Handle undefined or null timestamps
+      if (!timestamp) {
+        console.warn('Empty timestamp provided');
+        return 'Just now';
+      }
+
+      const date = new Date(timestamp);
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.error('Invalid timestamp:', timestamp);
+        return 'Just now';
+      }
+
+      const now = new Date();
+      const diffInMs = now.getTime() - date.getTime();
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+      // For very recent messages (less than 1 minute), show "Just now"
+      if (diffInMinutes < 1) {
+        return 'Just now';
+      }
+
+      // For today's messages, show exact time
+      if (diffInDays === 0) {
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+
+      // For yesterday's messages
+      if (diffInDays === 1) {
+        return 'Yesterday ' + date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+
+      // For this week (less than 7 days)
+      if (diffInDays < 7) {
+        return date.toLocaleDateString('en-US', { 
+          weekday: 'short',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+
+      // For older messages, show date and time
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+
+    } catch (error) {
+      console.error('Error formatting message time:', error, 'timestamp:', timestamp);
+      return 'Just now';
+    }
+  }
+
+  // Alternative: Always show exact time (uncomment if you prefer this)
+  /*
+  formatMessageTime(timestamp: string): string {
+    try {
+      if (!timestamp) return '';
+
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return '';
+
+      // Always show exact time with AM/PM
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      console.error('Error formatting message time:', error);
+      return '';
+    }
+  }
+  */
+
   // ===== TEMPLATE COMPATIBILITY METHODS =====
 
   // Room avatar and display methods
@@ -689,21 +783,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   formatTime(timestamp: string): string {
-    try {
-      if (!timestamp) return 'Just now';
-
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) return 'Just now';
-
-      return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
-    } catch (error) {
-      console.error('Error formatting time:', error);
-      return 'Just now';
-    }
+    return this.formatMessageTime(timestamp); // Use the fixed method
   }
 
   // Message actions
@@ -853,70 +933,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return isMine;
   }
 
-  formatMessageTime(timestamp: string): string {
-    try {
-      // Handle undefined or null timestamps
-      if (!timestamp) {
-        console.warn('Empty timestamp provided');
-        return 'Just now';
-      }
-
-      const date = new Date(timestamp);
-
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        console.error('Invalid timestamp:', timestamp);
-        return 'Just now';
-      }
-
-      const now = new Date();
-      const diffInMs = now.getTime() - date.getTime();
-      const diffInSeconds = Math.floor(diffInMs / 1000);
-      const diffInMinutes = Math.floor(diffInSeconds / 60);
-      const diffInHours = Math.floor(diffInMinutes / 60);
-      const diffInDays = Math.floor(diffInHours / 24);
-
-      // Just now (less than 1 minute)
-      if (diffInSeconds < 60) {
-        return 'Just now';
-      }
-
-      // Minutes ago (less than 1 hour)
-      if (diffInMinutes < 60) {
-        return `${diffInMinutes}m ago`;
-      }
-
-      // Today (less than 24 hours)
-      if (diffInHours < 24) {
-        return date.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-      }
-
-      // Yesterday
-      if (diffInDays === 1) {
-        return 'Yesterday';
-      }
-
-      // This week (less than 7 days)
-      if (diffInDays < 7) {
-        return date.toLocaleDateString('en-US', { weekday: 'short' });
-      }
-
-      // Older messages
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric'
-      });
-
-    } catch (error) {
-      console.error('Error formatting message time:', error, 'timestamp:', timestamp);
-      return 'Just now';
-    }
-  }
-
   formatLastMessageTime(room: ChatRoom): string {
     if (!room.lastMessage || !room.lastMessage.timestamp) return '';
     return this.formatMessageTime(room.lastMessage.timestamp);
@@ -1056,6 +1072,19 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         isMyMessage: this.isMyMessage(msg),
         timestamp: msg.timestamp,
         status: msg.status
+      });
+    });
+  }
+
+  debugTimestamps(): void {
+    console.log('🔍 DEBUG TIMESTAMPS:');
+    this.messages.forEach((msg, index) => {
+      const date = new Date(msg.timestamp);
+      console.log(`Message ${index}:`, {
+        original: msg.timestamp,
+        parsed: date.toString(),
+        isValid: !isNaN(date.getTime()),
+        formatted: this.formatMessageTime(msg.timestamp)
       });
     });
   }
