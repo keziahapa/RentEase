@@ -227,7 +227,7 @@ export const routes: Routes = [
  {
   path: 'admin-dashboard',
   component: AdminDashboardComponent,
-  canActivate: [authGuard], // ✅ ADDED GUARD
+  canActivate: [authGuard], 
   children: [
     { path: '', redirectTo: 'overview', pathMatch: 'full' },
     { path: 'overview', component: AdminOverviewComponent },
