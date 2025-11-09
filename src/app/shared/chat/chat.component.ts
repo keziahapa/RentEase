@@ -474,6 +474,97 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
+  // ===== MISSING METHODS FOR TEMPLATE =====
+
+  isUserOnline(room: ChatRoom): boolean {
+    // Implement your online status logic here
+    // This checks if any other participant in the room is online
+    if (!room || !room.participants) return false;
+    
+    const otherParticipants = this.getOtherParticipants(room);
+    return otherParticipants.some(participant => 
+      participant.isOnline === true
+    );
+  }
+
+  shouldShowAvatar(messageIndex: number): boolean {
+    if (messageIndex === 0) return true;
+    if (messageIndex >= this.messages.length) return false;
+    
+    const currentMessage = this.messages[messageIndex];
+    const previousMessage = this.messages[messageIndex - 1];
+    
+    // Show avatar if:
+    // 1. It's the first message
+    // 2. Previous message was from a different sender
+    // 3. There's a significant time gap (e.g., > 5 minutes)
+    if (currentMessage.senderId !== previousMessage.senderId) {
+      return true;
+    }
+    
+    // Check time gap (5 minutes)
+    const currentTime = new Date(currentMessage.timestamp).getTime();
+    const previousTime = new Date(previousMessage.timestamp).getTime();
+    const timeDiff = Math.abs(currentTime - previousTime) / (1000 * 60); // minutes
+    
+    return timeDiff > 5;
+  }
+
+  shouldShowSenderName(messageIndex: number): boolean {
+    if (messageIndex === 0) return true;
+    if (messageIndex >= this.messages.length) return false;
+    
+    const currentMessage = this.messages[messageIndex];
+    const previousMessage = this.messages[messageIndex - 1];
+    
+    // Show sender name if:
+    // 1. It's the first message
+    // 2. Previous message was from a different sender
+    return currentMessage.senderId !== previousMessage.senderId;
+  }
+
+  retryMessage(message: ChatMessage): void {
+    // Implement retry logic for failed messages
+    console.log('🔄 Retrying message:', message);
+    
+    if (message.status === 'FAILED') {
+      message.status = 'SENDING';
+      
+      const messageData: CreateMessageRequest = {
+        chatRoomId: message.chatRoomId,
+        content: message.content,
+        messageType: 'TEXT'
+      };
+
+      this.chatService.sendMessage(messageData).subscribe({
+        next: (response: BasicResponse) => {
+          if (response.success) {
+            message.status = 'SENT';
+            this.errorHandler.info('Message sent successfully!', 2000);
+          } else {
+            message.status = 'FAILED';
+            this.errorHandler.error(response.message || 'Failed to send message');
+          }
+        },
+        error: (error: any) => {
+          message.status = 'FAILED';
+          console.error('❌ Error retrying message:', error);
+          this.errorHandler.error('Failed to send message', 'Please check your connection');
+        }
+      });
+    }
+  }
+
+  replyToMessage(message: ChatMessage): void {
+    // Implement reply functionality
+    console.log('↩️ Replying to message:', message);
+    
+    // Add reply prefix and focus input
+    const replyPrefix = `Replying to "${message.content.substring(0, 50)}${message.content.length > 50 ? '...' : ''}": `;
+    this.newMessage = replyPrefix;
+    this.focusMessageInput();
+  }
+
   // ===== UI CONTROLS =====
 
   toggleMenu(event?: Event): void {
