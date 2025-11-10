@@ -30,7 +30,7 @@
           <div class="time" *ngIf="room.lastMessage?.sentAt">
             {{ formatTime(room.lastMessage.sentAt) }}
           </div>
-          <div class="unread-badge" *ngIf="room.unreadCount > 0">
+          <div class="unread-badge" *ngIf="room.unreadCount && room.unreadCount > 0">
             {{ room.unreadCount }}
           </div>
         </div>
@@ -57,8 +57,8 @@
     <div class="chat-header">
       <button class="back-button" (click)="goBack()">←</button>
       <div class="header-info">
-        <div class="chat-title">{{ currentRoom.name }}</div>
-        <div class="chat-participants" *ngIf="currentRoom.participants.length > 0">
+        <div class="chat-title">{{ currentRoom.name || 'Chat' }}</div>
+        <div class="chat-participants" *ngIf="currentRoom.participants && currentRoom.participants.length > 0">
           {{ currentRoom.participants.length }} participant(s)
         </div>
       </div>
@@ -86,7 +86,7 @@
           </div>
           <div class="message-time">
             {{ formatMessageTime(message.sentAt) }}
-            <span class="message-status" *ngIf="isMyMessage(message)">
+            <span class="message-status" *ngIf="isMyMessage(message) && message.status">
               {{ message.status === 'READ' ? '✓✓' : message.status === 'DELIVERED' ? '✓✓' : '✓' }}
             </span>
           </div>
