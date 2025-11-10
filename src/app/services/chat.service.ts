@@ -1,901 +1,383 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
+import { catchError, tap, map } from 'rxjs/operators';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { AuthService } from './auth.service';
-import {
-  ChatRoom,
-  ChatMessage,
-  CreateMessageRequest,
+import { 
+  Message, 
+  ChatRoom, 
+  SendMessageRequest, 
   BatchDeleteRequest,
-  ChatRoomResponse,
-  ChatMessageResponse,
-  BasicResponse,
-  User as ChatUser,
-  CreateChatRoomResponse
+  ApiResponse 
 } from './chat.interface';
-
-// WebSocket message interfaces
-export interface SendMessageRequest {
-  chatRoomId: number;
-  content: string;
-  messageType?: 'TEXT' | 'IMAGE' | 'FILE';
-}
-
-export interface DeleteMessageRequest {
-  messageId: number;
-}
-
-export interface DeleteMessageResponse {
-  success: boolean;
-  message: string;
-  messageId?: number;
-  chatRoomId: number;
-}
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatService {
-  private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com/api/chat';
-  private readonly wsUrl = 'https://rentease-3-sfgx.onrender.com/ws';
-  
-  // WebSocket properties
-  private stompClient: Client | null = null;
-  private isConnected = new BehaviorSubject<boolean>(false);
-  private connectionStatus$ = this.isConnected.asObservable();
+  private apiUrl = 'https://rentease-3-sfgx.onrender.com/api/chat';
+  private stompClient!: Client;
 
-  // Existing subjects
+  private messagesSubject = new BehaviorSubject<Message[]>([]);
+  public messages$ = this.messagesSubject.asObservable();
+  
+  private roomsSubject = new BehaviorSubject<ChatRoom[]>([]);
+  public rooms$ = this.roomsSubject.asObservable();
+
   private currentRoomSubject = new BehaviorSubject<ChatRoom | null>(null);
   public currentRoom$ = this.currentRoomSubject.asObservable();
-  
-  private messagesSubject = new BehaviorSubject<ChatMessage[]>([]);
-  public messages$ = this.messagesSubject.asObservable();
 
-  private chatRoomsSubject = new BehaviorSubject<ChatRoom[]>([]);
-  public chatRooms$ = this.chatRoomsSubject.asObservable();
-
-  private typingUsersSubject = new BehaviorSubject<{userId: number; userName: string}[]>([]);
-  public typingUsers$ = this.typingUsersSubject.asObservable();
-
-  private unreadCountSubject = new BehaviorSubject<number>(0);
-  public unreadCount$ = this.unreadCountSubject.asObservable();
-
-  // WebSocket subscriptions
-  private roomSubscriptions = new Map<number, any>();
-  
-  // Track pending messages for optimistic updates
-  private pendingMessages = new Map<number, ChatMessage>();
+  private connectedSubject = new BehaviorSubject<boolean>(false);
+  public connected$ = this.connectedSubject.asObservable();
 
   constructor(
     private http: HttpClient,
     private authService: AuthService
   ) {
     this.initializeWebSocketConnection();
-    this.initializeChat();
+    this.loadRooms();
   }
 
-  // ===== WEBSOCKET METHODS =====
-
-  private initializeWebSocketConnection(): void {
-    try {
-      const token = this.authService.getToken();
-      if (!token) {
-        console.warn('No authentication token available for WebSocket');
-        return;
-      }
-
-      this.stompClient = new Client({
-        webSocketFactory: () => new SockJS(this.wsUrl),
-        connectHeaders: {
-          Authorization: `Bearer ${token}`
-        },
-        debug: (str) => {
-          console.log('STOMP Debug:', str);
-        },
-        reconnectDelay: 5000,
-        heartbeatIncoming: 4000,
-        heartbeatOutgoing: 4000,
-      });
-
-      this.stompClient.onConnect = (frame) => {
-        console.log('✅ Connected to WebSocket');
-        this.isConnected.next(true);
-        this.subscribeToUserQueue();
-        
-        // Subscribe to current room if exists
-        const currentRoom = this.currentRoomSubject.value;
-        if (currentRoom) {
-          this.subscribeToRoom(currentRoom.id);
-        }
-      };
-
-      this.stompClient.onStompError = (frame) => {
-        console.error('❌ STOMP error:', frame);
-        this.isConnected.next(false);
-      };
-
-      this.stompClient.onDisconnect = () => {
-        console.log('🔌 Disconnected from WebSocket');
-        this.isConnected.next(false);
-        this.roomSubscriptions.clear();
-      };
-
-      this.stompClient.onWebSocketClose = () => {
-        console.log('🔌 WebSocket connection closed');
-        this.isConnected.next(false);
-      };
-
-      this.stompClient.activate();
-    } catch (error) {
-      console.error('❌ Failed to initialize WebSocket:', error);
-      this.isConnected.next(false);
-    }
-  }
-
-  private subscribeToUserQueue(): void {
-    if (!this.stompClient || !this.stompClient.connected) {
-      console.warn('WebSocket not connected, cannot subscribe to user queue');
-      return;
-    }
-
-    const userId = this.getCurrentUserId();
-    if (userId) {
-      // Subscribe to personal messages
-      this.stompClient.subscribe(
-        `/user/${userId}/queue/messages`,
-        (message: IMessage) => {
-          console.log('📨 Received personal message:', message.body);
-          this.handleIncomingMessage(JSON.parse(message.body));
-        }
-      );
-
-      // Subscribe to delete notifications
-      this.stompClient.subscribe(
-        `/user/${userId}/queue/messages/deleted`,
-        (message: IMessage) => {
-          console.log('🗑️ Received delete notification:', message.body);
-          this.handleMessageDeleted(JSON.parse(message.body));
-        }
-      );
-
-      this.stompClient.subscribe(
-        `/user/${userId}/queue/messages/batch-deleted`,
-        (message: IMessage) => {
-          console.log('🗑️ Received batch delete notification:', message.body);
-          this.handleMessagesBatchDeleted(JSON.parse(message.body));
-        }
-      );
-    }
-  }
-
-  private subscribeToRoom(roomId: number): void {
-    if (!this.stompClient || !this.stompClient.connected) {
-      console.warn('WebSocket not connected, cannot subscribe to room');
-      return;
-    }
-
-    // Unsubscribe from previous room subscription
-    this.unsubscribeFromRoom(roomId);
-
-    console.log(`🔔 Subscribing to room: ${roomId}`);
-
-    // Subscribe to room topic for new messages
-    const subscription = this.stompClient.subscribe(
-      `/topic/chat/${roomId}`,
-      (message: IMessage) => {
-        console.log(`📨 Received room message for ${roomId}:`, message.body);
-        this.handleIncomingMessage(JSON.parse(message.body));
-      }
-    );
-
-    // Subscribe to room delete notifications
-    this.stompClient.subscribe(
-      `/topic/chat/${roomId}/deleted`,
-      (message: IMessage) => {
-        console.log(`🗑️ Received room delete for ${roomId}:`, message.body);
-        this.handleMessageDeleted(JSON.parse(message.body));
-      }
-    );
-
-    this.stompClient.subscribe(
-      `/topic/chat/${roomId}/batch-deleted`,
-      (message: IMessage) => {
-        console.log(`🗑️ Received room batch delete for ${roomId}:`, message.body);
-        this.handleMessagesBatchDeleted(JSON.parse(message.body));
-      }
-    );
-
-    this.roomSubscriptions.set(roomId, subscription);
-  }
-
-  private unsubscribeFromRoom(roomId: number): void {
-    const subscription = this.roomSubscriptions.get(roomId);
-    if (subscription) {
-      subscription.unsubscribe();
-      this.roomSubscriptions.delete(roomId);
-      console.log(`🔕 Unsubscribed from room: ${roomId}`);
-    }
-  }
-
-  private handleIncomingMessage(message: any): void {
-    const currentMessages = this.messagesSubject.value;
-    
-    // Check if this is replacing a pending/temp message
-    const tempMessageIndex = currentMessages.findIndex(
-      m => m.status === 'SENDING' && 
-      m.chatRoomId === message.chatRoomId && 
-      m.content === message.content &&
-      m.senderId === message.senderId
-    );
-
-    if (tempMessageIndex !== -1) {
-      // Replace temp message with real one from server
-      const updatedMessages = [...currentMessages];
-      updatedMessages[tempMessageIndex] = message;
-      this.messagesSubject.next(updatedMessages);
-      console.log('✅ Replaced temp message with server message');
-    } else {
-      // Check if message already exists (avoid duplicates)
-      const messageExists = currentMessages.some(m => m.id === message.id);
-      if (!messageExists) {
-        const updatedMessages = [...currentMessages, message];
-        this.messagesSubject.next(updatedMessages);
-        console.log('✅ Added new message to list');
-      }
-    }
-    
-    // Update last message in chat rooms
-    this.updateRoomLastMessage(message.chatRoomId, message);
-    
-    // Update unread count if message is not from current user
-    if (message.senderId !== this.getCurrentUserId()) {
-      this.incrementRoomUnreadCount(message.chatRoomId);
-    }
-  }
-
-  private handleMessageDeleted(response: DeleteMessageResponse): void {
-    const currentMessages = this.messagesSubject.value;
-    const updatedMessages = currentMessages.filter(m => m.id !== response.messageId);
-    this.messagesSubject.next(updatedMessages);
-  }
-
-  private handleMessagesBatchDeleted(response: DeleteMessageResponse): void {
-    // Refresh messages for the room
-    if (this.currentRoomSubject.value) {
-      this.getRoomMessages(this.currentRoomSubject.value.id).subscribe();
-    }
-  }
-
-  private updateRoomLastMessage(roomId: number, message: ChatMessage): void {
-    const currentRooms = this.chatRoomsSubject.value;
-    const updatedRooms = currentRooms.map(room => {
-      if (room.id === roomId) {
-        return { ...room, lastMessage: message };
-      }
-      return room;
-    });
-    this.chatRoomsSubject.next(updatedRooms);
-  }
-
-  private incrementRoomUnreadCount(roomId: number): void {
-    const currentRooms = this.chatRoomsSubject.value;
-    const updatedRooms = currentRooms.map(room => {
-      if (room.id === roomId) {
-        return { ...room, unreadCount: (room.unreadCount || 0) + 1 };
-      }
-      return room;
-    });
-    this.chatRoomsSubject.next(updatedRooms);
-    this.updateUnreadCount(updatedRooms);
-  }
-
-  private markMessageAsFailed(tempId: number): void {
-    const messages = this.messagesSubject.value;
-    const index = messages.findIndex(m => m.id === tempId);
-    if (index !== -1) {
-      const updatedMessages = [...messages];
-      updatedMessages[index] = {
-        ...updatedMessages[index],
-        status: 'FAILED'
-      };
-      this.messagesSubject.next(updatedMessages);
-    }
-    this.pendingMessages.delete(tempId);
-  }
-
-  // ===== WEBSOCKET SEND METHODS =====
-
-  sendMessageWebSocket(messageData: SendMessageRequest): void {
-    if (this.stompClient && this.stompClient.connected) {
-      console.log('📤 Sending message via WebSocket:', messageData);
-      
-      // Create message in backend-expected format (no messageType)
-      const webSocketMessage = {
-        chatRoomId: messageData.chatRoomId,
-        content: messageData.content
-      };
-      
-      console.log('📤 Final WebSocket message being sent:', webSocketMessage);
-      
-      this.stompClient.publish({
-        destination: '/app/chat.sendMessage',
-        body: JSON.stringify(webSocketMessage),
-        headers: {
-          'User': this.getCurrentUserEmail(),
-          'Content-Type': 'application/json'
-        }
-      });
-    } else {
-      console.warn('WebSocket not connected, falling back to HTTP');
-      this.sendMessageHttp({
-        chatRoomId: messageData.chatRoomId,
-        content: messageData.content
-      }).subscribe();
-    }
-  }
-
-  deleteMessageWebSocket(messageId: number): void {
-    if (this.stompClient && this.stompClient.connected) {
-      const deleteRequest: DeleteMessageRequest = { messageId };
-      console.log('🗑️ Sending delete via WebSocket:', deleteRequest);
-      this.stompClient.publish({
-        destination: '/app/chat.deleteMessage',
-        body: JSON.stringify(deleteRequest),
-        headers: {
-          'User': this.getCurrentUserEmail()
-        }
-      });
-    } else {
-      console.warn('WebSocket not connected, falling back to HTTP');
-      this.deleteMessageHttp(messageId).subscribe();
-    }
-  }
-
-  // ===== CREATE CHAT ROOM METHODS =====
-
-  createTenantLandlordRoom(propertyId: number): Observable<CreateChatRoomResponse> {
-    console.log('💬 Creating tenant-landlord chat room for property:', propertyId);
-    
-    return this.http.post<CreateChatRoomResponse>(
-      `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap((response: CreateChatRoomResponse) => {
-        if (response.success && response.data) {
-          console.log('✅ Tenant-landlord chat room created:', response.data);
-          this.addRoomToChatList(response.data);
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  createTenantCaretakerRoom(propertyId: number): Observable<CreateChatRoomResponse> {
-    console.log('💬 Creating tenant-caretaker chat room for property:', propertyId);
-    
-    return this.http.post<CreateChatRoomResponse>(
-      `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap((response: CreateChatRoomResponse) => {
-        if (response.success && response.data) {
-          console.log('✅ Tenant-caretaker chat room created:', response.data);
-          this.addRoomToChatList(response.data);
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  createLandlordCaretakerRoom(propertyId: number): Observable<CreateChatRoomResponse> {
-    console.log('💬 Creating landlord-caretaker chat room for property:', propertyId);
-    
-    return this.http.post<CreateChatRoomResponse>(
-      `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap((response: CreateChatRoomResponse) => {
-        if (response.success && response.data) {
-          console.log('✅ Landlord-caretaker chat room created:', response.data);
-          this.addRoomToChatList(response.data);
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  createChatRoom(propertyId: number, targetRole?: string): Observable<CreateChatRoomResponse> {
-    const currentUser = this.getCurrentUserSafe();
-    const currentUserRole = currentUser?.role?.toLowerCase();
-    
-    console.log('💬 Smart chat creation:', { 
-      currentUserRole, 
-      targetRole, 
-      propertyId 
-    });
-
-    if (targetRole) {
-      switch(targetRole.toLowerCase()) {
-        case 'landlord':
-          return this.createTenantLandlordRoom(propertyId);
-        case 'caretaker':
-          return this.createTenantCaretakerRoom(propertyId);
-        default:
-          return throwError(() => new Error(`Invalid target role: ${targetRole}`));
-      }
-    }
-
-    switch(currentUserRole) {
-      case 'tenant':
-        return this.createTenantLandlordRoom(propertyId);
-      case 'landlord':
-        return this.createLandlordCaretakerRoom(propertyId);
-      case 'caretaker':
-        return this.createLandlordCaretakerRoom(propertyId);
-      default:
-        return throwError(() => new Error(`Cannot create chat room for role: ${currentUserRole}`));
-    }
-  }
-
-  private addRoomToChatList(room: ChatRoom): void {
-    const currentRooms = this.chatRoomsSubject.value;
-    
-    const roomExists = currentRooms.some(r => r.id === room.id);
-    if (!roomExists) {
-      const updatedRooms = [room, ...currentRooms];
-      this.chatRoomsSubject.next(updatedRooms);
-      
-      if (this.stompClient && this.stompClient.connected) {
-        this.subscribeToRoom(room.id);
-      }
-      
-      console.log('✅ Added new room to chat list:', room.id);
-    }
-  }
-
-  // ===== PUBLIC METHODS =====
-
-  getConnectionStatus(): Observable<boolean> {
-    return this.connectionStatus$;
-  }
-
-  reconnectWebSocket(): void {
-    if (this.stompClient) {
-      console.log('🔄 Reconnecting WebSocket...');
-      this.stompClient.deactivate().then(() => {
-        setTimeout(() => {
-          this.stompClient?.activate();
-        }, 1000);
-      });
-    } else {
-      this.initializeWebSocketConnection();
-    }
-  }
-
-  // ===== MESSAGE METHODS WITH OPTIMISTIC UPDATES =====
-
-  sendMessage(messageData: CreateMessageRequest): Observable<BasicResponse> {
-    if (!messageData.content.trim()) {
-      return throwError(() => ({ message: 'Message content cannot be empty' }));
-    }
-
-    // Create temporary message for optimistic UI update
-    const tempId = Date.now();
-    const currentUser = this.getCurrentUserSafe();
-    
-    const tempMessage: ChatMessage = {
-      id: tempId,
-      content: messageData.content.trim(),
-      messageType: 'TEXT',
-      senderId: currentUser?.id || 0,
-      senderName: currentUser?.name || 'You',
-      sender: currentUser || undefined,
-      chatRoomId: messageData.chatRoomId,
-      timestamp: new Date().toISOString(),
-      read: false,
-      status: 'SENDING',
-      type: 'TEXT',
-      deleted: false
-    };
-
-    console.log('✅ Created temp message:', {
-      id: tempMessage.id,
-      timestamp: tempMessage.timestamp,
-      timestampValid: !isNaN(new Date(tempMessage.timestamp).getTime())
-    });
-
-    // Immediately add to local messages (optimistic update)
-    const currentMessages = this.messagesSubject.value;
-    this.messagesSubject.next([...currentMessages, tempMessage]);
-    this.pendingMessages.set(tempId, tempMessage);
-    
-    console.log('✅ Added optimistic message to UI:', tempMessage);
-
-    // Try WebSocket first if connected
-    if (this.stompClient && this.stompClient.connected) {
-      this.sendMessageWebSocket({
-        chatRoomId: messageData.chatRoomId,
-        content: messageData.content.trim()
-      });
-      
-      // Also send via HTTP as backup/confirmation
-      return this.sendMessageHttp(messageData).pipe(
-        tap((response) => {
-          console.log('✅ Message confirmed via HTTP');
-          this.pendingMessages.delete(tempId);
-        }),
-        catchError(error => {
-          console.error('❌ Failed to send message:', error);
-          this.markMessageAsFailed(tempId);
-          return throwError(() => error);
-        })
-      );
-    }
-
-    // Fallback to HTTP only
-    return this.sendMessageHttp(messageData).pipe(
-      tap((response) => {
-        console.log('✅ Message sent via HTTP');
-        this.pendingMessages.delete(tempId);
-      }),
-      catchError(error => {
-        console.error('❌ Failed to send message:', error);
-        this.markMessageAsFailed(tempId);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  private sendMessageHttp(messageData: CreateMessageRequest): Observable<BasicResponse> {
-    // Remove messageType before sending to backend
-    const backendMessageData = {
-      chatRoomId: messageData.chatRoomId,
-      content: messageData.content.trim()
-    };
-
-    console.log('📤 Sending HTTP message:', backendMessageData);
-
-    return this.http.post<BasicResponse>(
-      `${this.apiUrl}/messages`,
-      backendMessageData,
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        console.log('✅ HTTP message response:', response);
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  deleteMessage(messageId: number): Observable<BasicResponse> {
-    if (this.stompClient && this.stompClient.connected) {
-      this.deleteMessageWebSocket(messageId);
-      
-      return new Observable(observer => {
-        observer.next({ success: true, message: 'Delete request sent via WebSocket' });
-        observer.complete();
-      });
-    }
-
-    return this.deleteMessageHttp(messageId);
-  }
-
-  private deleteMessageHttp(messageId: number): Observable<BasicResponse> {
-    return this.http.delete<BasicResponse>(
-      `${this.apiUrl}/messages/${messageId}`,
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success && this.currentRoomSubject.value) {
-          this.getRoomMessages(this.currentRoomSubject.value.id).subscribe();
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  // Retry failed message
-  retryMessage(messageId: number): void {
-    const messages = this.messagesSubject.value;
-    const message = messages.find(m => m.id === messageId);
-    
-    if (message && message.status === 'FAILED') {
-      // Remove failed message
-      const filteredMessages = messages.filter(m => m.id !== messageId);
-      this.messagesSubject.next(filteredMessages);
-      
-      // Resend
-      this.sendMessage({
-        chatRoomId: message.chatRoomId,
-        content: message.content
-      }).subscribe();
-    }
-  }
-
-  setCurrentRoom(room: ChatRoom | null): void {
-    if (this.currentRoomSubject.value) {
-      this.unsubscribeFromRoom(this.currentRoomSubject.value.id);
-    }
-
-    this.currentRoomSubject.next(room);
-    
-    if (room) {
-      this.messagesSubject.next([]);
-      this.markRoomAsRead(room.id).subscribe();
-      
-      this.getRoomMessages(room.id).subscribe();
-      
-      if (this.stompClient && this.stompClient.connected) {
-        this.subscribeToRoom(room.id);
-      }
-    }
-  }
-
-  // ===== TYPING METHODS =====
-
-  startTyping(roomId: number): Observable<BasicResponse> {
-    const currentUser = this.getCurrentUserSafe();
-    if (currentUser) {
-      const typingUsers = this.typingUsersSubject.value;
-      const updatedUsers = [
-        ...typingUsers.filter(u => u.userId !== currentUser.id), 
-        { 
-          userId: currentUser.id, 
-          userName: currentUser.name 
-        }
-      ];
-      this.typingUsersSubject.next(updatedUsers);
-    }
-    
-    return new Observable(observer => {
-      observer.next({ success: true, message: 'Typing started' });
-      observer.complete();
-    });
-  }
-
-  stopTyping(roomId: number): Observable<BasicResponse> {
-    const currentUser = this.getCurrentUserSafe();
-    if (currentUser) {
-      const typingUsers = this.typingUsersSubject.value.filter(
-        u => u.userId !== currentUser.id
-      );
-      this.typingUsersSubject.next(typingUsers);
-    }
-    
-    return new Observable(observer => {
-      observer.next({ success: true, message: 'Typing stopped' });
-      observer.complete();
-    });
-  }
-
-  // ===== HTTP METHODS =====
-
-  private initializeChat(): void {
-    this.loadInitialChatRooms();
-  }
-
-  private loadInitialChatRooms(): void {
-    this.getChatRooms().subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          this.updateUnreadCount(response.data);
-        }
-      },
-      error: (error) => console.warn('Failed to load initial chat rooms:', error)
-    });
-  }
-
-  private createHeaders(): HttpHeaders {
+  private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
-    if (!token) {
-      console.warn('No authentication token available for chat service');
-      return new HttpHeaders({
-        'Content-Type': 'application/json'
-      });
-    }
-    
     return new HttpHeaders({
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     });
   }
 
-  private handleError(error: any): Observable<never> {
-    console.error('Chat Service Error:', error);
-    
-    let errorMessage = 'Chat service temporarily unavailable. Please try again later.';
-    
-    if (error.status === 0) {
-      errorMessage = 'Unable to connect to chat service. Please check your internet connection.';
-    } else if (error.status === 401) {
-      errorMessage = 'Please log in to use chat features';
-    } else if (error.status === 403) {
-      errorMessage = 'You do not have permission to access this chat';
-    } else if (error.status === 404) {
-      errorMessage = 'Chat feature not available';
-    } else if (error.status >= 500) {
-      errorMessage = 'Chat service is currently experiencing issues. Please try again later.';
-    } else if (error.error?.message) {
-      errorMessage = error.error.message;
-    }
-
-    return throwError(() => ({
-      status: error.status,
-      message: errorMessage,
-      error: error.error
-    }));
-  }
-
-  getChatRooms(): Observable<ChatRoomResponse> {
-    return this.http.get<ChatRoomResponse>(`${this.apiUrl}/rooms`, {
-      headers: this.createHeaders()
-    }).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          this.chatRoomsSubject.next(response.data);
-          this.updateUnreadCount(response.data);
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  getRoomMessages(roomId: number): Observable<ChatMessageResponse> {
-    return this.http.get<ChatMessageResponse>(
-      `${this.apiUrl}/rooms/${roomId}/messages`,
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          this.messagesSubject.next(response.data);
-          this.markRoomAsRead(roomId).subscribe();
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  deleteMessagesBatch(messageIds: number[]): Observable<BasicResponse> {
-    const request: BatchDeleteRequest = { messageIds };
-    
-    return this.http.post<BasicResponse>(
-      `${this.apiUrl}/messages/batch-delete`,
-      request,
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success && this.currentRoomSubject.value) {
-          this.getRoomMessages(this.currentRoomSubject.value.id).subscribe();
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  markRoomAsRead(roomId: number): Observable<BasicResponse> {
-    return this.http.post<BasicResponse>(
-      `${this.apiUrl}/rooms/${roomId}/mark-read`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success) {
-          this.updateRoomUnreadCount(roomId, 0);
-        }
-      }),
-      catchError(this.handleError)
-    );
-  }
-
-  markRoomAsDelivered(roomId: number): Observable<BasicResponse> {
-    return this.http.post<BasicResponse>(
-      `${this.apiUrl}/rooms/${roomId}/mark-delivered`,
-      {},
-      { headers: this.createHeaders() }
-    ).pipe(catchError(this.handleError));
-  }
-
-  // ===== UTILITY METHODS =====
-
-  generateRoomDisplayName(room: ChatRoom, currentUserId: number): string {
-    if (!room) return 'Unknown Chat';
-    
-    if (room.name) return room.name;
-
-    const otherParticipants = room.participants?.filter(p => p.id !== currentUserId) || [];
-    
-    if (otherParticipants.length === 0) return 'You';
-    if (otherParticipants.length === 1) {
-      return otherParticipants[0].name || 'Unknown User';
-    }
-
-    return otherParticipants.map(p => p.name?.split(' ')[0] || 'User').join(', ');
-  }
-
-  getOtherParticipants(room: ChatRoom, currentUserId: number): ChatUser[] {
-    return room?.participants?.filter(participant => participant.id !== currentUserId) || [];
-  }
-
-  getCurrentUserId(): number {
+  private initializeWebSocketConnection(): void {
     try {
-      const currentUser = this.getCurrentUserSafe();
-      return currentUser?.id || 0;
-    } catch (error) {
-      console.error('Error getting current user ID:', error);
-      return 0;
-    }
-  }
+      const socket = new SockJS('https://rentease-3-sfgx.onrender.com/ws');
+      this.stompClient = new Client({
+        webSocketFactory: () => socket,
+        debug: (str) => console.log('STOMP: ' + str),
+        reconnectDelay: 5000,
+        connectHeaders: {
+          'Authorization': `Bearer ${this.authService.getToken()}`
+        }
+      });
 
-  private getCurrentUserSafe(): ChatUser | null {
-    try {
-      const authUser = this.authService.getCurrentUser();
-      if (!authUser) return null;
+      this.stompClient.onConnect = (frame) => {
+        console.log('WebSocket Connected');
+        this.connectedSubject.next(true);
+        
+        // Subscribe to user queue
+        const userId = this.authService.getCurrentUser()?.id;
+        if (userId) {
+          const userIdNum = Number(userId);
+          this.stompClient.subscribe(`/user/${userIdNum}/queue/messages`, (message: IMessage) => {
+            this.handleIncomingMessage(JSON.parse(message.body));
+          });
 
-      const chatUser: ChatUser = {
-        id: this.extractUserId(authUser),
-        name: authUser.fullName,
-        email: authUser.email,
-        role: authUser.role,
-        avatar: (authUser as any).avatar,
-        isOnline: (authUser as any).isOnline,
-        lastSeen: (authUser as any).lastSeen,
-        phoneNumber: authUser.phoneNumber,
-        profilePicture: (authUser as any).profilePicture
+          this.stompClient.subscribe(`/user/${userIdNum}/queue/messages/deleted`, (message: IMessage) => {
+            this.handleMessageDeleted(JSON.parse(message.body));
+          });
+        }
+
+        // Subscribe to current room if exists
+        const currentRoom = this.currentRoomSubject.value;
+        if (currentRoom?.id) {
+          this.subscribeToRoom(currentRoom.id);
+        }
       };
 
-      return chatUser;
+      this.stompClient.onStompError = (frame) => {
+        console.error('STOMP Error:', frame);
+        this.connectedSubject.next(false);
+      };
+
+      this.stompClient.activate();
     } catch (error) {
-      console.error('Error converting user to chat format:', error);
-      return null;
+      console.error('WebSocket connection error:', error);
+      this.connectedSubject.next(false);
     }
   }
 
-  private extractUserId(authUser: any): number {
-    if (typeof authUser.id === 'number') return authUser.id;
-    if (typeof authUser.id === 'string') return parseInt(authUser.id, 10);
-    return 0;
+  private handleIncomingMessage(messageData: any): void {
+    try {
+      const message: Message = {
+        id: Number(messageData.id),
+        content: messageData.content || '',
+        senderId: Number(messageData.senderId),
+        senderName: messageData.senderName,
+        senderEmail: messageData.senderEmail,
+        chatRoomId: Number(messageData.chatRoomId),
+        sentAt: new Date(messageData.sentAt),
+        timestamp: new Date(messageData.sentAt),
+        messageType: messageData.messageType || 'TEXT',
+        status: messageData.status || 'SENT',
+        fileUrl: messageData.fileUrl,
+        fileName: messageData.fileName,
+        fileSize: messageData.fileSize ? Number(messageData.fileSize) : undefined,
+        canDelete: messageData.canDelete
+      };
+      this.addMessage(message);
+    } catch (error) {
+      console.error('Error handling incoming message:', error);
+    }
   }
 
-  private getCurrentUserEmail(): string {
-    const currentUser = this.getCurrentUserSafe();
-    return currentUser?.email || '';
+  private handleMessageDeleted(deletionData: any): void {
+    if (deletionData.messageId) {
+      this.removeMessage(Number(deletionData.messageId));
+    }
   }
 
-  isMyMessage(message: ChatMessage): boolean {
-    return message.senderId === this.getCurrentUserId();
+  private addMessage(message: Message): void {
+    const currentMessages = this.messagesSubject.value;
+    const messageExists = currentMessages.some(m => m.id === message.id);
+    
+    if (!messageExists) {
+      const updatedMessages = [...currentMessages, message];
+      this.messagesSubject.next(updatedMessages);
+      if (message.chatRoomId) {
+        this.updateRoomLastMessage(message.chatRoomId, message);
+      }
+    }
   }
 
-  // ===== PRIVATE HELPERS =====
+  private removeMessage(messageId: number): void {
+    const currentMessages = this.messagesSubject.value;
+    const updatedMessages = currentMessages.filter(m => m.id !== messageId);
+    this.messagesSubject.next(updatedMessages);
+  }
 
-  private updateRoomUnreadCount(roomId: number, count: number): void {
-    const currentRooms = this.chatRoomsSubject.value;
+  private updateRoomLastMessage(roomId: number, message: Message): void {
+    const currentRooms = this.roomsSubject.value;
     const updatedRooms = currentRooms.map(room => {
       if (room.id === roomId) {
-        return { ...room, unreadCount: count };
+        return { ...room, lastMessage: message };
       }
       return room;
     });
-    this.chatRoomsSubject.next(updatedRooms);
-    this.updateUnreadCount(updatedRooms);
+    this.roomsSubject.next(updatedRooms);
   }
 
-  private updateUnreadCount(rooms: ChatRoom[]): void {
-    const totalUnread = rooms.reduce((total, room) => total + (room.unreadCount || 0), 0);
-    this.unreadCountSubject.next(totalUnread);
+  private subscribeToRoom(roomId: number): void {
+    if (this.stompClient && this.stompClient.connected) {
+      this.stompClient.subscribe(`/topic/chat/${roomId}`, (message: IMessage) => {
+        this.handleIncomingMessage(JSON.parse(message.body));
+      });
+
+      this.stompClient.subscribe(`/topic/chat/${roomId}/deleted`, (message: IMessage) => {
+        this.handleMessageDeleted(JSON.parse(message.body));
+      });
+    }
   }
 
-  // ===== CLEANUP =====
+  // Public API Methods
+  loadRooms(): void {
+    this.http.get<ApiResponse<ChatRoom[]>>(`${this.apiUrl}/rooms`, { headers: this.getHeaders() })
+      .pipe(
+        map(response => response.data || []),
+        catchError(error => {
+          console.error('Error loading rooms:', error);
+          return of([]);
+        })
+      )
+      .subscribe(rooms => {
+        // Ensure all rooms have required properties
+        const processedRooms = rooms.map(room => ({
+          id: Number(room.id) || 0,
+          name: room.name || 'Unknown Chat',
+          type: room.type || '',
+          propertyId: Number(room.propertyId) || 0,
+          propertyName: room.propertyName || '',
+          participants: room.participants || [],
+          lastMessage: room.lastMessage,
+          unreadCount: Number(room.unreadCount) || 0,
+          isGroup: room.isGroup || false,
+          createdAt: room.createdAt ? new Date(room.createdAt) : new Date(),
+          updatedAt: room.updatedAt ? new Date(room.updatedAt) : new Date()
+        }));
+        this.roomsSubject.next(processedRooms);
+      });
+  }
 
-  ngOnDestroy(): void {
+  getMessages(roomId: number): void {
+    this.http.get<ApiResponse<Message[]>>(`${this.apiUrl}/rooms/${roomId}/messages`, { headers: this.getHeaders() })
+      .pipe(
+        map(response => response.data || []),
+        catchError(error => {
+          console.error('Error loading messages:', error);
+          return of([]);
+        })
+      )
+      .subscribe(messages => {
+        const processedMessages = messages.map(msg => ({
+          id: Number(msg.id),
+          content: msg.content || '',
+          senderId: Number(msg.senderId),
+          senderName: msg.senderName,
+          senderEmail: msg.senderEmail,
+          chatRoomId: Number(msg.chatRoomId),
+          sentAt: new Date(msg.sentAt),
+          timestamp: new Date(msg.sentAt),
+          messageType: msg.messageType || 'TEXT',
+          status: msg.status || 'SENT',
+          fileUrl: msg.fileUrl,
+          fileName: msg.fileName,
+          fileSize: msg.fileSize ? Number(msg.fileSize) : undefined,
+          canDelete: msg.canDelete
+        }));
+        this.messagesSubject.next(processedMessages);
+      });
+  }
+
+  sendMessage(content: string, roomId: number): Observable<ApiResponse> {
+    const messageRequest: SendMessageRequest = {
+      content: content,
+      chatRoomId: roomId
+    };
+
+    if (this.stompClient && this.stompClient.connected) {
+      this.stompClient.publish({
+        destination: '/app/chat.sendMessage',
+        body: JSON.stringify(messageRequest)
+      });
+    }
+
+    return this.http.post<ApiResponse>(`${this.apiUrl}/messages`, messageRequest, { headers: this.getHeaders() })
+      .pipe(
+        catchError(error => {
+          console.error('Error sending message:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  deleteMessage(messageId: number): Observable<ApiResponse> {
+    if (this.stompClient && this.stompClient.connected) {
+      const deleteRequest = { messageId: messageId };
+      this.stompClient.publish({
+        destination: '/app/chat.deleteMessage',
+        body: JSON.stringify(deleteRequest)
+      });
+    }
+
+    return this.http.delete<ApiResponse>(`${this.apiUrl}/messages/${messageId}`, { headers: this.getHeaders() })
+      .pipe(
+        tap(() => {
+          this.removeMessage(messageId);
+        }),
+        catchError(error => {
+          console.error('Error deleting message:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`, 
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success && response.data) {
+          const currentRooms = this.roomsSubject.value;
+          this.roomsSubject.next([...currentRooms, response.data]);
+        }
+      }),
+      catchError(error => {
+        console.error('Error creating tenant-landlord chat:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`, 
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success && response.data) {
+          const currentRooms = this.roomsSubject.value;
+          this.roomsSubject.next([...currentRooms, response.data]);
+        }
+      }),
+      catchError(error => {
+        console.error('Error creating tenant-caretaker chat:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`, 
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success && response.data) {
+          const currentRooms = this.roomsSubject.value;
+          this.roomsSubject.next([...currentRooms, response.data]);
+        }
+      }),
+      catchError(error => {
+        console.error('Error creating landlord-caretaker chat:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  selectRoom(room: ChatRoom | null): void {
+    this.currentRoomSubject.next(room);
+    this.messagesSubject.next([]);
+    
+    if (room?.id) {
+      this.getMessages(room.id);
+    }
+  }
+
+  formatTime(timestamp: Date): string {
+    return timestamp.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  }
+
+  formatMessageTime(timestamp: Date): string {
+    const now = new Date();
+    const messageTime = new Date(timestamp);
+    const diffInHours = (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return messageTime.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    } else {
+      return messageTime.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+  }
+
+  disconnect(): void {
     if (this.stompClient) {
       this.stompClient.deactivate();
     }
-    this.roomSubscriptions.clear();
+  }
+
+  getCurrentUserId(): number {
+    const user = this.authService.getCurrentUser();
+    return user?.id ? Number(user.id) : 0;
+  }
+
+  isMyMessage(message: Message): boolean {
+    return message.senderId === this.getCurrentUserId();
   }
 }
