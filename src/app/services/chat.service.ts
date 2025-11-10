@@ -33,6 +33,10 @@ export class ChatService {
   private connectedSubject = new BehaviorSubject<boolean>(false);
   public connected$ = this.connectedSubject.asObservable();
 
+  // East African Time (EAT) configuration
+  private eatTimeZone = 'Africa/Nairobi';
+  private eatLocale = 'en-KE';
+
   constructor(
     private http: HttpClient,
     private authService: AuthService
@@ -59,7 +63,6 @@ export class ChatService {
         return;
       }
 
-      // FIX: Use proper WebSocket URL
       const socket = new SockJS('https://rentease-3-sfgx.onrender.com/ws');
       this.stompClient = new Client({
         webSocketFactory: () => socket,
@@ -137,17 +140,23 @@ export class ChatService {
 
   private handleIncomingMessage(messageData: any): void {
     try {
-      console.log('📝 Processing incoming message:', messageData);
+      console.log('📝 FULL incoming message data:', messageData);
+      
+      // Check if message has proper structure
+      if (!messageData.chatRoomId) {
+        console.error('❌ Message missing chatRoomId:', messageData);
+        return;
+      }
       
       const message: Message = {
         id: Number(messageData.id),
         content: messageData.content || '',
         senderId: Number(messageData.senderId),
-        senderName: messageData.senderName || 'Unknown User',
-        senderEmail: messageData.senderEmail || '',
+        senderName: messageData.senderName || messageData.sender?.name || 'Unknown User',
+        senderEmail: messageData.senderEmail || messageData.sender?.email || '',
         chatRoomId: Number(messageData.chatRoomId),
-        sentAt: new Date(messageData.sentAt),
-        timestamp: new Date(messageData.sentAt),
+        sentAt: new Date(messageData.sentAt || messageData.timestamp),
+        timestamp: new Date(messageData.sentAt || messageData.timestamp),
         messageType: messageData.messageType || 'TEXT',
         status: messageData.status || 'SENT',
         fileUrl: messageData.fileUrl,
@@ -156,6 +165,7 @@ export class ChatService {
         canDelete: messageData.canDelete || false
       };
       
+      console.log('✅ Processed message:', message);
       this.addMessage(message);
     } catch (error) {
       console.error('❌ Error handling incoming message:', error, messageData);
@@ -227,13 +237,15 @@ export class ChatService {
   }
 
   private processRoomData(room: any): ChatRoom {
+    console.log('🔄 Processing room data:', room);
+    
     return {
       id: Number(room.id) || 0,
       name: room.name || 'Unknown Chat',
       type: room.type || 'DIRECT',
       propertyId: Number(room.propertyId) || 0,
       propertyName: room.propertyName || '',
-      participants: room.participants || [],
+      participants: this.processParticipants(room.participants || room.users || []),
       lastMessage: room.lastMessage,
       unreadCount: Number(room.unreadCount) || 0,
       isGroup: room.isGroup || false,
@@ -242,32 +254,85 @@ export class ChatService {
     };
   }
 
+  private processParticipants(participants: any[]): any[] {
+    if (!participants || !Array.isArray(participants)) {
+      console.warn('⚠️ No participants array found, returning empty');
+      return [];
+    }
+
+    return participants.map((participant: any) => ({
+      id: Number(participant.id || participant.userId),
+      name: participant.name || participant.fullName || 'Unknown User',
+      email: participant.email || '',
+      role: participant.role || 'USER',
+      avatar: participant.avatar,
+      isOnline: participant.isOnline || false,
+      lastSeen: participant.lastSeen,
+      phoneNumber: participant.phoneNumber,
+      profilePicture: participant.profilePicture,
+      fullName: participant.fullName || participant.name
+    }));
+  }
+
   private subscribeToRoom(roomId: number): void {
     if (this.stompClient && this.stompClient.connected) {
       this.unsubscribeFromRoom(roomId);
 
-      console.log(`📡 Subscribing to room topics for room ID: ${roomId}`);
+      console.log(`📡 Subscribing to ALL topics for room ID: ${roomId}`);
       
-      const roomMessagesSubscription = this.stompClient.subscribe(`/topic/chat/${roomId}`, (message: IMessage) => {
-        console.log(`📨 Received message for room ${roomId}:`, message.body);
-        this.handleIncomingMessage(JSON.parse(message.body));
+      // Subscribe to multiple possible topics
+      const topics = [
+        `/topic/chat/${roomId}`,
+        `/topic/room/${roomId}`,
+        `/topic/messages/${roomId}`,
+        `/user/queue/room/${roomId}`
+      ];
+
+      topics.forEach(topic => {
+        try {
+          const subscription = this.stompClient!.subscribe(topic, (message: IMessage) => {
+            console.log(`📨 Received message via ${topic}:`, message.body);
+            this.handleIncomingMessage(JSON.parse(message.body));
+          });
+          this.roomSubscriptions.set(topic, subscription);
+          console.log(`✅ Subscribed to: ${topic}`);
+        } catch (error) {
+          console.error(`❌ Failed to subscribe to ${topic}:`, error);
+        }
       });
 
-      const roomDeletedSubscription = this.stompClient.subscribe(`/topic/chat/${roomId}/deleted`, (message: IMessage) => {
-        console.log(`🗑️ Received deletion for room ${roomId}:`, message.body);
-        this.handleMessageDeleted(JSON.parse(message.body));
-      });
+      // Subscribe to deletion topics
+      const deletionTopics = [
+        `/topic/chat/${roomId}/deleted`,
+        `/topic/room/${roomId}/deleted`
+      ];
 
-      // Store subscriptions for cleanup
-      this.roomSubscriptions.set(`/topic/chat/${roomId}`, roomMessagesSubscription);
-      this.roomSubscriptions.set(`/topic/chat/${roomId}/deleted`, roomDeletedSubscription);
+      deletionTopics.forEach(topic => {
+        try {
+          const subscription = this.stompClient!.subscribe(topic, (message: IMessage) => {
+            console.log(`🗑️ Received deletion via ${topic}:`, message.body);
+            this.handleMessageDeleted(JSON.parse(message.body));
+          });
+          this.roomSubscriptions.set(topic, subscription);
+          console.log(`✅ Subscribed to deletion: ${topic}`);
+        } catch (error) {
+          console.error(`❌ Failed to subscribe to deletion ${topic}:`, error);
+        }
+      });
     } else {
       console.warn('⚠️ Cannot subscribe to room - WebSocket not connected');
     }
   }
 
   private unsubscribeFromRoom(roomId: number): void {
-    const topics = [`/topic/chat/${roomId}`, `/topic/chat/${roomId}/deleted`];
+    const topics = [
+      `/topic/chat/${roomId}`,
+      `/topic/room/${roomId}`,
+      `/topic/messages/${roomId}`,
+      `/user/queue/room/${roomId}`,
+      `/topic/chat/${roomId}/deleted`,
+      `/topic/room/${roomId}/deleted`
+    ];
     
     topics.forEach(topic => {
       const subscription = this.roomSubscriptions.get(topic);
@@ -280,9 +345,8 @@ export class ChatService {
   }
 
   private unsubscribeFromAllRooms(): void {
-    // Unsubscribe only from room topics, keep user queues
     const roomTopics = Array.from(this.roomSubscriptions.keys()).filter(key => 
-      key.startsWith('/topic/chat/')
+      key.startsWith('/topic/') || key.startsWith('/user/queue/room/')
     );
     
     roomTopics.forEach(topic => {
@@ -304,7 +368,6 @@ export class ChatService {
     }).pipe(
       map(response => {
         console.log('📋 Rooms API response:', response);
-        // FIX: Handle different response formats
         if (response && typeof response === 'object') {
           if (response.data && Array.isArray(response.data)) {
             return response.data;
@@ -316,17 +379,17 @@ export class ChatService {
             return response;
           }
         }
+        console.warn('⚠️ No rooms data found in response');
         return [];
       }),
       catchError(error => {
         console.error('❌ Error loading rooms:', error);
-        // FIX: Don't return empty array on error, let component handle it
         return of([]);
       })
     ).subscribe(rooms => {
       const processedRooms = rooms.map(room => this.processRoomData(room));
       this.roomsSubject.next(processedRooms);
-      console.log(`✅ Loaded ${processedRooms.length} rooms`);
+      console.log(`✅ Loaded ${processedRooms.length} rooms with participants`);
     });
   }
 
@@ -383,24 +446,31 @@ export class ChatService {
       chatRoomId: roomId
     };
 
+    // CRITICAL FIX: Always send via WebSocket for real-time delivery
     if (this.stompClient && this.stompClient.connected) {
       console.log('📡 Sending message via WebSocket');
-      this.stompClient.publish({
-        destination: '/app/chat.sendMessage',
-        body: JSON.stringify(messageRequest),
-        headers: {
-          'Authorization': `Bearer ${this.authService.getToken()}`
-        }
-      });
+      try {
+        this.stompClient.publish({
+          destination: '/app/chat.sendMessage',
+          body: JSON.stringify(messageRequest),
+          headers: {
+            'Authorization': `Bearer ${this.authService.getToken()}`
+          }
+        });
+        console.log('✅ Message sent via WebSocket');
+      } catch (error) {
+        console.error('❌ WebSocket send error:', error);
+      }
     } else {
-      console.warn('⚠️ WebSocket not connected, sending via HTTP only');
+      console.warn('⚠️ WebSocket not connected, message will not be delivered in real-time');
     }
 
+    // Always send via HTTP as backup
     return this.http.post<ApiResponse>(`${this.apiUrl}/messages`, messageRequest, { 
       headers: this.getHeaders() 
     }).pipe(
       tap(response => {
-        console.log('✅ Message sent successfully:', response);
+        console.log('✅ Message sent successfully via HTTP:', response);
       }),
       catchError(error => {
         console.error('❌ Error sending message:', error);
@@ -438,7 +508,6 @@ export class ChatService {
     );
   }
 
-  // FIX: Create chat rooms with proper error handling
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     console.log(`💬 Creating tenant-landlord chat for property ${propertyId}`);
     
@@ -521,40 +590,97 @@ export class ChatService {
     }
   }
 
+  /**
+   * Format time in East African Time (EAT)
+   */
   formatTime(timestamp: Date): string {
     if (!timestamp || !(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
       return '';
     }
-    return timestamp.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
+    
+    try {
+      return timestamp.toLocaleTimeString(this.eatLocale, { 
+        timeZone: this.eatTimeZone,
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    } catch (error) {
+      console.warn('⚠️ Error formatting time, using default format:', error);
+      return timestamp.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    }
   }
 
+  /**
+   * Format message time in East African Time (EAT) with relative formatting
+   */
   formatMessageTime(timestamp: Date): string {
     if (!timestamp || !(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
       return '';
     }
     
-    const now = new Date();
-    const messageTime = new Date(timestamp);
-    const diffInHours = (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 24) {
-      return messageTime.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      });
-    } else {
-      return messageTime.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
+    try {
+      const now = new Date();
+      const messageTime = new Date(timestamp);
+      const diffInHours = (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);
+      
+      // For today's messages, show time only
+      if (diffInHours < 24) {
+        return messageTime.toLocaleTimeString(this.eatLocale, { 
+          timeZone: this.eatTimeZone,
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        });
+      } 
+      // For messages within the last week, show day and time
+      else if (diffInHours < 168) {
+        return messageTime.toLocaleDateString(this.eatLocale, { 
+          timeZone: this.eatTimeZone,
+          weekday: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+      // For older messages, show date and time
+      else {
+        return messageTime.toLocaleDateString(this.eatLocale, { 
+          timeZone: this.eatTimeZone,
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+    } catch (error) {
+      console.warn('⚠️ Error formatting message time, using default format:', error);
+      
+      // Fallback to default formatting
+      const now = new Date();
+      const messageTime = new Date(timestamp);
+      const diffInHours = (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);
+      
+      if (diffInHours < 24) {
+        return messageTime.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        });
+      } else {
+        return messageTime.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
     }
   }
 
@@ -585,6 +711,7 @@ export class ChatService {
     this.disconnect();
     setTimeout(() => {
       this.initializeWebSocketConnection();
+      this.loadRooms();
     }, 1000);
   }
 }
