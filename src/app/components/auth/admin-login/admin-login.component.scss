@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white; // Changed to white background
+  background: white;
   padding: 20px;
   font-family: 'Inter', sans-serif;
 }
@@ -16,14 +16,14 @@
 
 .security-header {
   margin-bottom: 32px;
-  color: #1e293b; // Changed to dark color for white background
+  color: #1e293b; 
 
   mat-icon {
     font-size: 48px;
     width: 48px;
     height: 48px;
     margin-bottom: 16px;
-    color: #1e3a8a; // Admin blue color
+    color: #1e3a8a; 
   }
 
   h1 {
@@ -194,7 +194,7 @@
   }
 }
 
-// Material Overrides for Admin Theme
+
 ::ng-deep .admin-login-card {
   .mat-form-field {
     font-family: inherit;
@@ -249,7 +249,7 @@
   }
 }
 
-// Responsive Design
+
 @media (max-width: 600px) {
   .admin-login-page {
     padding: 16px;

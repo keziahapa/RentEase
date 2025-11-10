@@ -138,24 +138,24 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
       rememberMe: false 
     };
 
-    console.log('🟡 Attempting admin login with:', loginRequest.email);
+    console.log('Attempting admin login with:', loginRequest.email);
 
     this.authService.login(loginRequest).subscribe({
       next: (response: any) => {
-        console.log('🟢 Login response received:', response);
+        console.log(' Login response received:', response);
         this.isLoading = false;
         
-        // Check if response indicates success but with access denied
+       
         if (response.success === false) {
           this.handleAccessDenied(response.message || 'Access denied');
           return;
         }
 
-        // Get user data from various possible locations
+       
         const user = this.authService.getCurrentUser();
         const userRole = user?.role || response.role || response.user?.role;
 
-        console.log('🔵 Detected user role:', userRole);
+        console.log(' Detected user role:', userRole);
 
         if (userRole === 'ADMIN') {
           this.showSnackbar('Admin login successful!', 'success');
@@ -165,7 +165,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('🔴 Login error:', error);
+        console.error(' Login error:', error);
         this.isLoading = false;
         this.handleApiError(error);
       }
@@ -193,7 +193,7 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
       error: error.error
     });
 
-    // Handle 200 responses with error messages
+   
     if (error.status === 200 && error.error && typeof error.error === 'object') {
       if (error.error.success === false) {
         errorMessage = error.error.message || 'Access denied';
@@ -298,6 +298,6 @@ export class AdminLoginComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Cleanup if needed
+    
   }
 }

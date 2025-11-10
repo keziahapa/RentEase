@@ -5,6 +5,14 @@
   background: #f8fafc;
   min-height: 100vh;
   position: relative;
+  transition: filter 0.3s ease;
+
+  // Blur effect when dialog is open
+  &.dialog-open {
+    filter: blur(4px);
+    pointer-events: none;
+    user-select: none;
+  }
 
   .header-section {
     display: flex;
@@ -578,6 +586,7 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px); // Additional blur for overlay
     display: flex;
     align-items: center;
     justify-content: center;
@@ -593,8 +602,9 @@
       max-height: 90vh;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
       animation: slideIn 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
 
       .dialog-header {
         display: flex;

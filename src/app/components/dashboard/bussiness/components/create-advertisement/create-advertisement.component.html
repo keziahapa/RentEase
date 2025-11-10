@@ -1,12 +1,18 @@
-<div class="create-ad-container">
-  <div class="header">
-    <h2>Create New Advertisement</h2>
-    <p>Create a new advertisement to promote your business</p>
+<div class="create-ad-dialog">
+  <!-- Dialog Header -->
+  <div class="dialog-header">
+    <h2 mat-dialog-title>Create New Advertisement</h2>
+    <button mat-icon-button (click)="onCancel()" class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
   </div>
 
-  <mat-card class="form-card">
-    <mat-card-content>
-      <form (ngSubmit)="onSubmit()" #adForm="ngForm">
+  <!-- Dialog Content -->
+  <mat-dialog-content>
+    <div class="dialog-content">
+      <p class="dialog-subtitle">Create a new advertisement to promote your business</p>
+
+      <form (ngSubmit)="onSubmit()" #adForm="ngForm" class="ad-form">
         <div class="form-row">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Advertisement Title</mat-label>
@@ -64,41 +70,46 @@
           </mat-form-field>
         </div>
 
-        <div class="form-actions">
-          <button
-            mat-button
-            type="button"
-            (click)="onCancel()"
-            [disabled]="isSubmitting">
-            Cancel
-          </button>
-          <button
-            mat-raised-button
-            color="primary"
-            type="submit"
-            [disabled]="isSubmitting">
-            <mat-spinner diameter="20" *ngIf="isSubmitting"></mat-spinner>
-            <span *ngIf="!isSubmitting">Create Advertisement</span>
-            <span *ngIf="isSubmitting">Creating...</span>
-          </button>
+        <!-- Preview Section -->
+        <div class="preview-section" *ngIf="advertisement.mediaUrl">
+          <h3>Preview</h3>
+          <div class="preview-content">
+            <div *ngIf="advertisement.mediaType === 'IMAGE'" class="image-preview">
+              <img [src]="advertisement.mediaUrl" alt="Advertisement preview" (error)="onImageError($event)">
+            </div>
+            <div *ngIf="advertisement.mediaType === 'VIDEO'" class="video-preview">
+              <video controls [src]="advertisement.mediaUrl"></video>
+            </div>
+            <div class="preview-info">
+              <h4>{{ advertisement.title || 'No title' }}</h4>
+              <p>{{ advertisement.description || 'No description' }}</p>
+            </div>
+          </div>
         </div>
       </form>
-    </mat-card-content>
-  </mat-card>
-
-  <div class="preview-section" *ngIf="advertisement.mediaUrl">
-    <h3>Preview</h3>
-    <div class="preview-content">
-      <div *ngIf="advertisement.mediaType === 'IMAGE'" class="image-preview">
-        <img [src]="advertisement.mediaUrl" alt="Advertisement preview" (error)="onImageError($event)">
-      </div>
-      <div *ngIf="advertisement.mediaType === 'VIDEO'" class="video-preview">
-        <video controls [src]="advertisement.mediaUrl"></video>
-      </div>
-      <div class="preview-info">
-        <h4>{{ advertisement.title || 'No title' }}</h4>
-        <p>{{ advertisement.description || 'No description' }}</p>
-      </div>
     </div>
-  </div>
+  </mat-dialog-content>
+
+  <!-- Dialog Actions -->
+  <mat-dialog-actions align="end">
+    <button
+      mat-button
+      type="button"
+      (click)="onCancel()"
+      [disabled]="isSubmitting"
+      class="cancel-btn">
+      Cancel
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      type="button"
+      (click)="onSubmit()"
+      [disabled]="isSubmitting || !advertisement.title || !advertisement.description || !advertisement.mediaUrl"
+      class="submit-btn">
+      <mat-spinner diameter="20" *ngIf="isSubmitting" class="button-spinner"></mat-spinner>
+      <span *ngIf="!isSubmitting">Create Advertisement</span>
+      <span *ngIf="isSubmitting">Creating...</span>
+    </button>
+  </mat-dialog-actions>
 </div>

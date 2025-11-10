@@ -1,7 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -10,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'; // ADD THIS IMPORT
 import { BusinessService } from '../../../../../services/business.service';
 import { CreateAdvertisementRequest } from '../../../../../services/business-interface';
 
@@ -26,7 +26,8 @@ import { CreateAdvertisementRequest } from '../../../../../services/business-int
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatDialogModule // ADD THIS LINE
   ],
   templateUrl: './create-advertisement.component.html',
   styleUrls: ['./create-advertisement.component.scss']
@@ -44,8 +45,9 @@ export class CreateAdvertisementComponent implements OnInit {
 
   constructor(
     private businessService: BusinessService,
-    private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    public dialogRef: MatDialogRef<CreateAdvertisementComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 
   ngOnInit(): void {}
@@ -63,7 +65,7 @@ export class CreateAdvertisementComponent implements OnInit {
             duration: 3000,
             panelClass: ['success-snackbar']
           });
-          this.router.navigate(['/business-dashboard/ads']);
+          this.dialogRef.close('success');
         } else {
           this.snackBar.open(response.message || 'Failed to create advertisement', 'Close', {
             duration: 5000,
@@ -98,13 +100,11 @@ export class CreateAdvertisementComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.router.navigate(['/business-dashboard/ads']);
+    this.dialogRef.close('cancelled');
   }
 
-  // ADD THIS METHOD TO FIX THE ERROR
   onImageError(event: any): void {
     console.error('Image failed to load:', event);
-    // You can set a default image or show an error message
     event.target.style.display = 'none';
   }
 }

@@ -58,7 +58,7 @@ export class PropertyCreateComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Component initialization
+  
   }
 
   onCreateProperty(): void {
@@ -87,7 +87,7 @@ export class PropertyCreateComponent implements OnInit {
         if (response.success || response.property || response.id) {
           this.snackBar.open('Property created successfully!', 'Close', { duration: 3000 });
           
-          // FIX: Close dialog and return success
+       
           this.dialogRef.close('success');
         } else {
           this.snackBar.open(response.message || 'Failed to create property', 'Close', { duration: 3000 });
@@ -101,7 +101,7 @@ export class PropertyCreateComponent implements OnInit {
   }
 
   onCancel(): void {
-    // FIX: Simply close the dialog without navigation
+  
     this.dialogRef.close();
   }
 
@@ -121,12 +121,12 @@ export class PropertyCreateComponent implements OnInit {
     }
   }
 
-  // Helper method to check if form has errors
+
   hasFormErrors(): boolean {
     return this.propertyForm.invalid && this.propertyForm.touched;
   }
 
-  // Get form control for template
+ 
   get formControls() {
     return this.propertyForm.controls;
   }

@@ -104,7 +104,7 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
 
     this.fileError = null;
 
-    // Validate file type
+   
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
     if (!validTypes.includes(file.type)) {
       this.fileError = 'Please select a JPEG, PNG, or PDF file';
@@ -112,7 +112,7 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Validate file size (5MB max)
+
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       this.fileError = 'File size must be less than 5MB';
@@ -122,7 +122,7 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
 
     this.selectedFile = file;
     this.fileName = file.name;
-    console.log('✅ File selected:', file.name, '(', file.size, 'bytes)');
+    console.log(' File selected:', file.name, '(', file.size, 'bytes)');
   }
 
   removeFile(): void {
@@ -154,22 +154,21 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
     this.fileError = null;
 
     try {
-      // ✅ Prepare business data as JSON
       const businessData = {
         businessName: this.businessForm.get('businessName')?.value.trim(),
         businessRegistrationNumber: this.businessForm.get('businessRegistrationNumber')?.value.trim()
       };
 
-      console.log('📤 Submitting business registration:');
+      console.log('Submitting business registration:');
       console.log('Business data:', businessData);
       console.log('File:', this.selectedFile.name, this.selectedFile.size, 'bytes');
 
-      // ✅ Create FormData with proper structure
+    
       const formData = new FormData();
       formData.append('data', JSON.stringify(businessData));
       formData.append('licenseDocument', this.selectedFile, this.selectedFile.name);
 
-      // ✅ Send to backend
+     
       const response = await this.businessService.registerBusiness(formData).toPromise();
 
       this.isLoading = false;
@@ -193,7 +192,7 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
       }
     } catch (error: any) {
       this.isLoading = false;
-      console.error('❌ Business registration error:', error);
+      console.error(' Business registration error:', error);
       
       const errorMessage = error.error?.message || error.message || 'Registration failed. Please try again.';
       this.showMessage(errorMessage, 'error');
@@ -215,7 +214,6 @@ export class BusinessRegistrationComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Form control getters
   get businessName() { 
     return this.businessForm.get('businessName'); 
   }

@@ -185,7 +185,7 @@ export class ChatService {
       
       console.log('✅ Message added to state:', message);
     } else {
-      console.log('⚠️ Message already exists in state:', message.id);
+      console.log(' Message already exists in state:', message.id);
     }
   }
 
@@ -193,7 +193,7 @@ export class ChatService {
     const currentMessages = this.messagesSubject.value;
     const updatedMessages = currentMessages.filter(m => m.id !== messageId);
     this.messagesSubject.next(updatedMessages);
-    console.log('✅ Message removed from state:', messageId);
+    console.log(' Message removed from state:', messageId);
   }
 
   private updateRoomLastMessage(roomId: number, message: Message): void {

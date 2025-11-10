@@ -12,6 +12,7 @@ import { AuthService } from '../../../../../../services/auth.service';
 import { InvitationService } from '../../../../../../services/invitation.service';
 import { Property } from '../../../../../../services/dashboard-interface';
 import { InviteDialogComponent } from '../../invite-dialog/invite-dialog.component';
+import { PropertyCreateComponent } from '../property-create/property-create.component';
 import { SkeletonListComponent } from '../../../../../../shared/components/skeleton/skeleton-list.component';
 
 @Component({
@@ -74,7 +75,27 @@ export class PropertyListComponent implements OnInit {
   }
 
   createProperty() {
-    this.router.navigate(['/landlord-dashboard/property/create']);
+    const dialogRef = this.dialog.open(PropertyCreateComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      disableClose: true,
+      autoFocus: false,
+      data: {} 
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'success') {
+      
+        this.loadProperties();
+        this.snackBar.open('Property created successfully!', 'Close', { 
+          duration: 3000,
+          panelClass: ['success-snackbar']
+        });
+      } else if (result === 'cancelled') {
+        console.log('Property creation cancelled by user');
+      }
+    });
   }
 
   editProperty(propertyId: string, event: Event) {
@@ -82,7 +103,7 @@ export class PropertyListComponent implements OnInit {
     this.router.navigate(['/landlord-dashboard/property', propertyId, 'edit']);
   }
 
-  // Caretaker Invitation Only
+ 
   inviteCaretaker(property: Property, event: Event) {
     event.stopPropagation();
     this.openInviteDialog('caretaker', property);
@@ -95,26 +116,26 @@ export class PropertyListComponent implements OnInit {
         type: type,
         propertyId: property.id,
         propertyName: property.name,
-        availableUnits: [] // Empty for caretaker
+        availableUnits: [] 
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      console.log('📩 Dialog closed with result:', result);
+      console.log(' Dialog closed with result:', result);
       
       if (result && result.cancelled) {
-        console.log('🚫 Invitation cancelled by user');
+        console.log(' Invitation cancelled by user');
         return;
       }
       
       if (result && result.success) {
-        console.log('✅ Dialog returned success, showing success message');
-        // Show success message from the dialog response
+        console.log(' Dialog returned success, showing success message');
+     
         const successMessage = result.message || `${type} invitation sent successfully!`;
         this.snackBar.open(successMessage, 'Close', { duration: 4000 });
       } else if (result && !result.success) {
-        console.log('❌ Dialog returned error:', result.error);
-        // Show error message from the dialog
+        console.log(' Dialog returned error:', result.error);
+       
         const errorMessage = result.error || `Failed to send ${type} invitation`;
         this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
       }
@@ -201,12 +222,12 @@ export class PropertyListComponent implements OnInit {
     console.error('Error loading properties:', error);
   }
 
-  // Debug method to check authentication status
+
   testAuth() {
     const token = this.authService.getToken();
-    console.log('🔐 Token exists:', !!token);
-    console.log('🔐 Token value:', token);
-    console.log('👤 User role:', this.authService.getCurrentUser()?.role);
-    console.log('✅ Is authenticated:', this.authService.isAuthenticated());
+    console.log(' Token exists:', !!token);
+    console.log(' Token value:', token);
+    console.log(' User role:', this.authService.getCurrentUser()?.role);
+    console.log(' Is authenticated:', this.authService.isAuthenticated());
   }
 }
