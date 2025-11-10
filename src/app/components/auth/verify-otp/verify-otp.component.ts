@@ -163,22 +163,18 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       console.log('🔐 OTP Verification Response:', response);
 
       if (response.success) {
-        this.showMessage('Email verified successfully! Redirecting to login...', 'success');
-        
-        // Clear any pending verification data
-        this.authService.clearPendingVerification();
-        
-        // Redirect to login after OTP verification
-        setTimeout(() => {
-          this.router.navigate(['/login'], {
-            queryParams: {
-              email: this.email,
-              message: 'email_verified_please_login'
-            },
-            replaceUrl: true
-          });
-        }, 2000);
-      } else {
+  this.showMessage('Email verified successfully!', 'success');
+  
+  setTimeout(() => {
+    this.router.navigate(['/waiting-landlord'], {
+      queryParams: {
+        email: this.email,
+        userType: this.userType
+      },
+      replaceUrl: true
+    });
+  }, 1500);
+} else {
         throw new Error(response.message || 'Verification failed');
       }
     } catch (error: any) {
