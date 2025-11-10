@@ -227,6 +227,28 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return this.chatService.formatMessageTime(timestamp);
   }
 
+  // ✅ ADDED: Safe method to get last message time
+  getLastMessageTime(room: ChatRoom): string {
+    if (!room?.lastMessage?.sentAt) return '';
+    return this.formatTime(room.lastMessage.sentAt);
+  }
+
+  // ✅ ADDED: Safe method to get unread count
+  getUnreadCount(room: ChatRoom): number {
+    return room?.unreadCount || 0;
+  }
+
+  // ✅ ADDED: Safe method to get participant count
+  getParticipantCount(room: ChatRoom): number {
+    return room?.participants?.length || 0;
+  }
+
+  // ✅ ADDED: Safe method to get message status
+  getMessageStatus(message: Message): string {
+    if (!message?.status) return '✓';
+    return message.status === 'READ' ? '✓✓' : message.status === 'DELIVERED' ? '✓✓' : '✓';
+  }
+
   private scrollToBottom(): void {
     try {
       if (this.messagesContainer?.nativeElement) {

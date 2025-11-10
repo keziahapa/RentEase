@@ -27,11 +27,13 @@
         </div>
         
         <div class="room-meta">
-          <div class="time" *ngIf="room.lastMessage?.sentAt">
-            {{ formatTime(room.lastMessage.sentAt) }}
+          <!-- ✅ FIXED: Use safe method -->
+          <div class="time" *ngIf="getLastMessageTime(room)">
+            {{ getLastMessageTime(room) }}
           </div>
-          <div class="unread-badge" *ngIf="room.unreadCount && room.unreadCount > 0">
-            {{ room.unreadCount }}
+          <!-- ✅ FIXED: Use safe method -->
+          <div class="unread-badge" *ngIf="getUnreadCount(room) > 0">
+            {{ getUnreadCount(room) }}
           </div>
         </div>
       </div>
@@ -58,8 +60,9 @@
       <button class="back-button" (click)="goBack()">←</button>
       <div class="header-info">
         <div class="chat-title">{{ currentRoom.name || 'Chat' }}</div>
-        <div class="chat-participants" *ngIf="currentRoom.participants && currentRoom.participants.length > 0">
-          {{ currentRoom.participants.length }} participant(s)
+        <!-- ✅ FIXED: Use safe method -->
+        <div class="chat-participants" *ngIf="getParticipantCount(currentRoom) > 0">
+          {{ getParticipantCount(currentRoom) }} participant(s)
         </div>
       </div>
       <div class="connection-indicator" [class.connected]="isConnected">
@@ -86,8 +89,9 @@
           </div>
           <div class="message-time">
             {{ formatMessageTime(message.sentAt) }}
-            <span class="message-status" *ngIf="isMyMessage(message) && message.status">
-              {{ message.status === 'READ' ? '✓✓' : message.status === 'DELIVERED' ? '✓✓' : '✓' }}
+            <!-- ✅ FIXED: Use safe method -->
+            <span class="message-status" *ngIf="isMyMessage(message)">
+              {{ getMessageStatus(message) }}
             </span>
           </div>
           

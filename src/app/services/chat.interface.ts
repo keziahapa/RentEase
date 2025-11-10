@@ -40,7 +40,7 @@ export interface ChatRoom {
   propertyId: number;
   propertyName: string;
   participants: User[];
-  lastMessage?: Message;
+   lastMessage: Message | null
   unreadCount: number;
   isGroup: boolean;
   createdAt: Date;
