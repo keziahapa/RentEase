@@ -40,7 +40,7 @@ export interface ChatRoom {
   propertyId: number;
   propertyName: string;
   participants: User[];
-   lastMessage: Message | null
+  lastMessage: Message | null;
   unreadCount: number;
   isGroup: boolean;
   createdAt: Date;
@@ -94,7 +94,23 @@ export interface FileUploadResponse {
   };
 }
 
+// Property & Unit Interfaces
+export interface Property {
+  id: number;
+  name: string;
+  address: string;
+}
+
+export interface Unit {
+  id: number;
+  unitNumber: string;
+  unitType: string;
+  rentAmount: number;
+  propertyId: number;
+  property?: Property;
+}
+
 // Type Aliases
 export type MessageStatus = 'SENT' | 'DELIVERED' | 'READ';
-export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM'; 
-export type ChatRoomType = 'tenant-landlord' | 'tenant-caretaker' | 'landlord-caretaker';
+export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM';
+export type ChatRoomType = 'tenant-landlord' | 'tenant-caretaker' | 'landlord-caretaker' | 'landlord-tenant' | 'caretaker-tenant';

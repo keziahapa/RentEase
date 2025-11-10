@@ -1,24 +1,20 @@
 <div class="chat-container">
-  <!-- Sidebar -->
   <div class="chat-sidebar">
     <div class="sidebar-header">
       <h2>Messages</h2>
       <button 
         class="new-chat-btn" 
         (click)="openNewChatModal()"
-        [disabled]="!currentProperty">
+        [disabled]="loadingProperties">
         + New Chat
       </button>
     </div>
 
     <div class="rooms-list">
-      <!-- Loading State -->
       <div *ngIf="loadingRooms" class="empty-rooms">
         <div class="empty-icon">⏳</div>
         <p>Loading chats...</p>
       </div>
-
-      <!-- Empty State -->
       <div *ngIf="!loadingRooms && rooms.length === 0" class="empty-rooms">
         <div class="empty-icon">💬</div>
         <p>No chats yet</p>
@@ -26,12 +22,11 @@
         <button 
           class="start-chat-btn" 
           (click)="openNewChatModal()"
-          [disabled]="!currentProperty">
+          [disabled]="loadingProperties">
           Start Chat
         </button>
       </div>
 
-      <!-- Rooms List -->
       <div *ngIf="!loadingRooms && rooms.length > 0">
         <div 
           *ngFor="let room of rooms; trackBy: trackByRoomId"
@@ -40,7 +35,7 @@
           (click)="selectRoom(room)">
           
           <div class="room-avatar">
-            {{ room.name?.charAt(0) || 'C' }}
+            {{ room.name?.charAt(0)?.toUpperCase() || 'C' }}
           </div>
           
           <div class="room-info">
@@ -78,15 +73,13 @@
       <button 
         class="start-chat-btn" 
         (click)="openNewChatModal()"
-        [disabled]="!currentProperty">
+        [disabled]="loadingProperties">
         Start New Chat
       </button>
       
-      <!-- Property Info -->
-      <div *ngIf="currentProperty" class="property-info" style="margin-top: 20px; text-align: center;">
-        <strong>Current Property: {{ currentProperty.name }}</strong>
-        <br>
-        <small>{{ currentProperty.address }}</small>
+      <!-- Auto-loaded Property/Unit Info -->
+      <div *ngIf="!loadingProperties" class="property-info" style="margin-top: 20px; text-align: center;">
+        <strong>Available: {{ getCurrentPropertyName() }}</strong>
       </div>
     </div>
 
@@ -130,7 +123,9 @@
             
             <div class="message-time">
               {{ formatMessageTime(message.sentAt) }}
-              <span class="message-status">{{ getMessageStatus(message) }}</span>
+              <span *ngIf="isMyMessage(message)" class="message-status">
+                {{ getMessageStatus(message) }}
+              </span>
             </div>
 
             <div class="message-actions">
@@ -167,20 +162,19 @@
           <textarea
             class="message-input"
             [(ngModel)]="newMessage"
-            (keypress)="onKeyPress($event)"
+            (keydown)="onKeyPress($event)"
             placeholder="Type a message..."
             rows="1">
           </textarea>
 
           <!-- Emoji Picker -->
-          <div *ngIf="emojiMartVisible" class="emoji-picker">
-            <emoji-mart
-              #emojiPicker
-              (emojiClick)="addEmoji($event)"
-              title="Pick your emoji"
-              set="apple">
-            </emoji-mart>
-          </div>
+          <emoji-mart
+            *ngIf="emojiMartVisible"
+            class="emoji-picker"
+            (emojiClick)="addEmoji($event)"
+            title="Pick your emoji"
+            set="apple">
+          </emoji-mart>
         </div>
 
         <button 
@@ -194,38 +188,28 @@
   </div>
 
   <!-- New Chat Modal -->
-  <div class="modal-overlay" *ngIf="showNewChatModal">
-    <div class="modal-content">
+  <div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Start New Chat</h3>
         <button class="close-btn" (click)="closeNewChatModal()">×</button>
       </div>
       
       <div class="modal-body">
-        <!-- Property Info -->
-        <div class="form-group" *ngIf="currentProperty">
-          <label>Property</label>
-          <div class="property-info">
-            <strong>{{ currentProperty.name }}</strong>
-            <br>
-            <small>{{ currentProperty.address }}</small>
-          </div>
-          <span class="form-hint">Chats will be created for this property</span>
-        </div>
-
         <!-- Loading State -->
         <div *ngIf="loadingProperties" class="loading-properties">
-          Loading your property...
+          Loading your data...
         </div>
 
-        <!-- No Property Message -->
-        <div *ngIf="!loadingProperties && !currentProperty" class="no-properties">
-          <p>No property found. You need to be associated with a property to start a chat.</p>
-          <p class="form-hint">Contact your landlord or administrator to get access to a property.</p>
+        <!-- Auto-loaded Resource Info -->
+        <div *ngIf="!loadingProperties" class="property-info">
+          <strong>Using: {{ getCurrentPropertyName() }}</strong>
+          <br>
+          <small>System will automatically use your available property/unit</small>
         </div>
 
         <!-- Chat Type Selection -->
-        <div class="form-group" *ngIf="currentProperty">
+        <div class="form-group">
           <label for="chatType">Chat Type</label>
           <select 
             id="chatType" 
@@ -234,6 +218,8 @@
             <option value="tenant-landlord">Tenant ↔ Landlord</option>
             <option value="tenant-caretaker">Tenant ↔ Caretaker</option>
             <option value="landlord-caretaker">Landlord ↔ Caretaker</option>
+            <option value="landlord-tenant">Landlord → Tenant</option>
+            <option value="caretaker-tenant">Caretaker → Tenant</option>
           </select>
           <span class="form-hint">Select who you want to chat with</span>
         </div>
@@ -244,7 +230,7 @@
         <button 
           class="btn-primary" 
           (click)="createNewChat()"
-          [disabled]="!selectedPropertyId || loadingProperties || loadingRooms">
+          [disabled]="loadingRooms || loadingProperties">
           {{ loadingRooms ? 'Creating...' : 'Create Chat' }}
         </button>
       </div>
