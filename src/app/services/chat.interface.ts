@@ -96,5 +96,5 @@ export interface FileUploadResponse {
 
 // Type Aliases
 export type MessageStatus = 'SENT' | 'DELIVERED' | 'READ';
-export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM';
+export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM'; 
 export type ChatRoomType = 'tenant-landlord' | 'tenant-caretaker' | 'landlord-caretaker';

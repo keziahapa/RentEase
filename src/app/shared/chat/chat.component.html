@@ -1,57 +1,73 @@
 <div class="chat-container">
-  <!-- Left Sidebar: Chat Rooms -->
-  <div class="rooms-section">
-    <div class="rooms-header">
+  <!-- Sidebar -->
+  <div class="chat-sidebar">
+    <div class="sidebar-header">
       <h2>Chats</h2>
-      <button class="new-chat-btn" (click)="openNewChatModal()">➕ New Chat</button>
+      <button class="new-chat-btn" (click)="openNewChatModal()">
+        <span>+ New Chat</span>
+      </button>
     </div>
 
     <div class="rooms-list">
       <div
         *ngFor="let room of rooms; trackBy: trackByRoomId"
         class="room-item"
-        [class.active]="currentRoom?.id === room?.id"
+        [class.active]="currentRoom?.id === room.id"
         (click)="selectRoom(room)"
       >
         <div class="room-avatar">
-          {{ room?.name?.charAt(0) || 'C' }}
+          {{ room.name?.charAt(0)?.toUpperCase() || 'C' }}
         </div>
-
+        
         <div class="room-info">
-          <div class="room-name">{{ room?.name || 'Unknown Chat' }}</div>
-          <div class="last-message" *ngIf="room?.lastMessage?.content; else noMessages">
-            {{ room?.lastMessage?.content }}
+          <div class="room-name">{{ room.name || 'Unknown Chat' }}</div>
+          <div class="last-message">
+            {{ room.lastMessage?.content || 'No messages yet' }}
           </div>
-          <ng-template #noMessages>
-            <div class="last-message">No messages yet</div>
-          </ng-template>
         </div>
-
+        
         <div class="room-meta">
-          <div class="time" *ngIf="room?.lastMessage?.sentAt">
-            {{ formatTime(room?.lastMessage?.sentAt!) }}
+          <div class="time" *ngIf="room.lastMessage?.sentAt">
+            {{ formatTime(room.lastMessage.sentAt) }}
           </div>
-          <div class="unread-badge" *ngIf="room?.unreadCount! > 0">
-            {{ room?.unreadCount }}
+          <div class="unread-badge" *ngIf="room.unreadCount > 0">
+            {{ room.unreadCount }}
           </div>
         </div>
       </div>
 
-      <div *ngIf="rooms.length === 0" class="no-rooms">
-        No active chats.
+      <div *ngIf="rooms.length === 0" class="empty-rooms">
+        <div class="empty-icon">💬</div>
+        <p>No chats yet</p>
+        <button class="start-chat-btn" (click)="openNewChatModal()">
+          Start a conversation
+        </button>
       </div>
+    </div>
+
+    <div class="connection-status" [class.connected]="isConnected" [class.disconnected]="!isConnected">
+      ● {{ getConnectionStatus() }}
+      <button *ngIf="!isConnected" class="reconnect-btn" (click)="reconnect()">Retry</button>
     </div>
   </div>
 
-  <div class="chat-section" *ngIf="currentRoom; else noRoomSelected">
+  <!-- Main Chat Area -->
+  <div class="chat-area" *ngIf="currentRoom; else noRoomSelected">
+    <!-- Chat Header -->
     <div class="chat-header">
-      <button class="back-btn" (click)="goBack()">⬅️</button>
-      <h3>{{ currentRoom?.name || 'Chat' }}</h3>
-      <div class="connection-status" [class.connected]="isConnected" [class.disconnected]="!isConnected">
-        {{ isConnected ? 'Connected' : 'Disconnected' }}
+      <button class="back-button" (click)="goBack()">←</button>
+      <div class="header-info">
+        <div class="chat-title">{{ currentRoom.name }}</div>
+        <div class="chat-participants" *ngIf="currentRoom.participants.length > 0">
+          {{ currentRoom.participants.length }} participant(s)
+        </div>
+      </div>
+      <div class="connection-indicator" [class.connected]="isConnected">
+        {{ isConnected ? 'Online' : 'Offline' }}
       </div>
     </div>
 
+    <!-- Messages Container -->
     <div class="messages-container" #messagesContainer>
       <div
         *ngFor="let message of messages; trackBy: trackByMessageId"
@@ -62,75 +78,145 @@
           [class.my-message]="isMyMessage(message)"
           [class.other-message]="!isMyMessage(message)"
         >
+          <div class="message-sender" *ngIf="!isMyMessage(message) && message.senderName">
+            {{ message.senderName }}
+          </div>
           <div class="message-content">
-            {{ message?.content }}
+            {{ message.content }}
           </div>
           <div class="message-time">
-            {{ formatMessageTime(message?.sentAt!) }}
-            <span *ngIf="isMyMessage(message)" class="message-status">
-              {{ message?.status === 'READ'
-                ? '✓✓'
-                : message?.status === 'DELIVERED'
-                ? '✓✓'
-                : '✓' }}
+            {{ formatMessageTime(message.sentAt) }}
+            <span class="message-status" *ngIf="isMyMessage(message)">
+              {{ message.status === 'READ' ? '✓✓' : message.status === 'DELIVERED' ? '✓✓' : '✓' }}
             </span>
           </div>
+          
           <div class="message-actions" *ngIf="canDelete(message)">
-            <button class="delete-btn" (click)="deleteMessage(message?.id!)" title="Delete message">🗑️</button>
+            <button
+              class="delete-btn"
+              (click)="deleteMessage(message.id)"
+              title="Delete message"
+            >
+              🗑️
+            </button>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="chat-input-section">
-      <button class="emoji-btn" (click)="toggleEmojiPicker()">😊</button>
-
-      <div *ngIf="emojiMartVisible" class="emoji-picker">
-        <emoji-mart (emojiSelect)="addEmoji($event)"></emoji-mart>
+      <div *ngIf="uploadingFiles" class="uploading-indicator">
+        <div class="uploading-text">Uploading files...</div>
       </div>
 
-      <input
-        type="text"
-        placeholder="Type a message..."
-        [(ngModel)]="newMessage"
-        (keydown.enter)="sendMessage()"
-      />
+      <div *ngIf="messages.length === 0" class="no-messages">
+        <div class="no-messages-icon">💬</div>
+        <p>No messages yet</p>
+        <p class="no-messages-hint">Start the conversation by sending a message!</p>
+      </div>
+    </div>
 
-      <button class="attach-btn" (click)="triggerFileInput()">📎</button>
-      <input type="file" hidden #fileInput (change)="onFileSelected($event)" multiple />
+    <!-- Message Input -->
+    <div class="message-input-container">
+      <div class="input-actions">
+        <button class="action-btn emoji-btn" (click)="toggleEmojiPicker()" title="Add emoji">
+          😊
+        </button>
+        <button class="action-btn file-upload" (click)="triggerFileInput()" title="Attach file">
+          📎
+        </button>
+        <input
+          #fileInput
+          type="file"
+          hidden
+          (change)="onFileSelected($event)"
+          multiple
+        />
+      </div>
 
-      <button class="send-btn" (click)="sendMessage()">📤</button>
+      <div class="message-input-wrapper">
+        <input
+          type="text"
+          class="message-input"
+          placeholder="Type a message..."
+          [(ngModel)]="newMessage"
+          (keydown.enter)="sendMessage()"
+          (keypress)="onKeyPress($event)"
+        />
+        
+        <div class="emoji-picker" *ngIf="emojiMartVisible">
+          <emoji-mart (emojiSelect)="addEmoji($event)"></emoji-mart>
+        </div>
+      </div>
+
+      <button
+        class="send-btn"
+        (click)="sendMessage()"
+        [disabled]="!newMessage.trim() || !isConnected"
+        title="Send message"
+      >
+        Send
+      </button>
     </div>
   </div>
 
-
+  <!-- No Room Selected -->
   <ng-template #noRoomSelected>
-    <div class="no-room">
-      <h3>Select a chat to start messaging</h3>
+    <div class="empty-state">
+      <div class="empty-icon">💬</div>
+      <h3>Welcome to Chat</h3>
+      <p>Select a chat from the sidebar or start a new conversation</p>
+      <button class="new-chat-btn" (click)="openNewChatModal()">
+        Start New Chat
+      </button>
     </div>
   </ng-template>
 
-  <div class="modal-overlay" *ngIf="showNewChatModal">
-    <div class="modal-content">
-      <h3>Start a New Chat</h3>
-
-      <label>Chat Type:</label>
-      <select [(ngModel)]="newChatType">
-        <option value="tenant-landlord">Tenant - Landlord</option>
-        <option value="tenant-caretaker">Tenant - Caretaker</option>
-        <option value="landlord-caretaker">Landlord - Caretaker</option>
-      </select>
-
-      <label>Property ID:</label>
-      <input
-        type="number"
-        [(ngModel)]="propertyIdForNewChat"
-        placeholder="Enter property ID"
-      />
-
-      <div class="modal-actions">
-        <button class="create-btn" (click)="createNewChat()">Create</button>
-        <button class="cancel-btn" (click)="closeNewChatModal()">Cancel</button>
+  <!-- New Chat Modal -->
+  <div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Start New Chat</h3>
+        <button class="close-btn" (click)="closeNewChatModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="chatType">Chat Type</label>
+          <select
+            id="chatType"
+            class="form-select"
+            [(ngModel)]="newChatType"
+          >
+            <option value="tenant-landlord">Tenant - Landlord</option>
+            <option value="tenant-caretaker">Tenant - Caretaker</option>
+            <option value="landlord-caretaker">Landlord - Caretaker</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="propertyId">Property ID</label>
+          <input
+            id="propertyId"
+            type="number"
+            class="form-input"
+            [(ngModel)]="propertyIdForNewChat"
+            placeholder="Enter property ID"
+            min="1"
+          />
+          <small class="form-hint">Enter the ID of the property for this chat</small>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeNewChatModal()">
+          Cancel
+        </button>
+        <button
+          class="btn-primary"
+          (click)="createNewChat()"
+          [disabled]="!propertyIdForNewChat"
+        >
+          Create Chat
+        </button>
       </div>
     </div>
   </div>

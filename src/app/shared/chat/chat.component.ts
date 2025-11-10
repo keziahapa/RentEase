@@ -41,19 +41,23 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.chatService.rooms$.subscribe((rooms: ChatRoom[]) => {
       this.rooms = rooms ?? [];
+      console.log('📋 Rooms updated:', this.rooms.length);
     });
 
     this.chatService.currentRoom$.subscribe((room: ChatRoom | null) => {
       this.currentRoom = room;
+      console.log('🎯 Current room:', room);
     });
 
     this.chatService.messages$.subscribe((messages: Message[]) => {
       this.messages = messages ?? [];
+      console.log('💬 Messages updated:', this.messages.length);
       setTimeout(() => this.scrollToBottom(), 100);
     });
 
     this.chatService.connected$.subscribe((connected: boolean) => {
       this.isConnected = connected;
+      console.log('🔌 Connection status:', connected);
     });
   }
 
@@ -88,6 +92,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
+  onKeyPress(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage();
+    }
+  }
+
   deleteMessage(messageId: number): void {
     if (confirm('Are you sure you want to delete this message?')) {
       this.chatService.deleteMessage(messageId).subscribe({
@@ -109,6 +120,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   addEmoji(event: any): void {
     this.newMessage += event.emoji?.native ?? '';
+    this.hideEmojiPicker();
   }
 
   triggerFileInput(): void {
@@ -133,8 +145,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     files.forEach((file) => {
       const fileMessage = `📎 File: ${file.name} (${this.formatFileSize(file.size)})`;
       this.chatService.sendMessage(fileMessage, this.currentRoom!.id).subscribe({
-        complete: () => (this.uploadingFiles = false),
-        error: () => (this.uploadingFiles = false)
+        next: () => {
+          console.log('File message sent successfully');
+        },
+        error: (error) => {
+          console.error('Error sending file message:', error);
+          alert('Failed to send file. Please try again.');
+        },
+        complete: () => {
+          this.uploadingFiles = false;
+        }
       });
     });
   }
@@ -152,6 +172,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   closeNewChatModal(): void {
     this.showNewChatModal = false;
+    this.propertyIdForNewChat = null;
+    this.newChatType = 'tenant-landlord';
   }
 
   createNewChat(): void {
@@ -171,6 +193,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       case 'landlord-caretaker':
         createObservable = this.chatService.createLandlordCaretakerChat(this.propertyIdForNewChat);
         break;
+      default:
+        alert('Invalid chat type');
+        return;
     }
 
     createObservable!.subscribe({
@@ -179,6 +204,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.closeNewChatModal();
           this.selectRoom(response.data);
           alert('Chat created successfully!');
+        } else {
+          alert('Failed to create chat: ' + response?.message);
         }
       },
       error: (error) => {
@@ -193,11 +220,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   formatTime(timestamp: Date): string {
-    return timestamp ? this.chatService.formatTime(timestamp) : '';
+    return this.chatService.formatTime(timestamp);
   }
 
   formatMessageTime(timestamp: Date): string {
-    return timestamp ? this.chatService.formatMessageTime(timestamp) : '';
+    return this.chatService.formatMessageTime(timestamp);
   }
 
   private scrollToBottom(): void {
@@ -221,5 +248,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   canDelete(message: Message): boolean {
     return this.chatService.isMyMessage(message) || (message?.canDelete ?? false);
+  }
+
+  reconnect(): void {
+    this.chatService.reconnect();
+  }
+
+  getConnectionStatus(): string {
+    return this.isConnected ? 'Connected' : 'Disconnected';
   }
 }
