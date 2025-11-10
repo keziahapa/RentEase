@@ -43,7 +43,6 @@
     </div>
   </div>
 
-  <!-- Right Section: Chat Window -->
   <div class="chat-section" *ngIf="currentRoom; else noRoomSelected">
     <div class="chat-header">
       <button class="back-btn" (click)="goBack()">⬅️</button>
@@ -53,7 +52,6 @@
       </div>
     </div>
 
-    <!-- Messages Container -->
     <div class="messages-container" #messagesContainer>
       <div
         *ngFor="let message of messages; trackBy: trackByMessageId"
@@ -84,7 +82,6 @@
       </div>
     </div>
 
-    <!-- Typing/Input Area -->
     <div class="chat-input-section">
       <button class="emoji-btn" (click)="toggleEmojiPicker()">😊</button>
 
@@ -106,14 +103,13 @@
     </div>
   </div>
 
-  <!-- No Room Selected Template -->
+
   <ng-template #noRoomSelected>
     <div class="no-room">
       <h3>Select a chat to start messaging</h3>
     </div>
   </ng-template>
 
-  <!-- New Chat Modal -->
   <div class="modal-overlay" *ngIf="showNewChatModal">
     <div class="modal-content">
       <h3>Start a New Chat</h3>

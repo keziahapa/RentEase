@@ -1,6 +1,5 @@
 <div class="admin-login-page">
   <div class="admin-login-container">
-    <!-- Security Header -->
     <div class="security-header">
       <mat-icon>admin_panel_settings</mat-icon>
       <h1>Admin Portal</h1>
@@ -10,7 +9,7 @@
     <mat-card class="admin-login-card">
       <mat-card-content>
         <form (ngSubmit)="onSubmit()" #loginForm="ngForm" novalidate>
-          <!-- Email Field -->
+        
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Admin Email</mat-label>
             <input
@@ -35,7 +34,6 @@
             </mat-error>
           </mat-form-field>
 
-          <!-- Password Field -->
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Admin Password</mat-label>
             <input
@@ -74,13 +72,13 @@
             </mat-error>
           </mat-form-field>
 
-          <!-- Security Notice -->
+       
           <div class="security-notice">
             <mat-icon>warning</mat-icon>
             <span>This portal is for authorized administrators only. All activities are logged.</span>
           </div>
 
-          <!-- Submit Button -->
+         
           <button
             mat-raised-button
             color="primary"
@@ -101,7 +99,7 @@
       </mat-card-content>
     </mat-card>
 
-    <!-- Back to Main Site -->
+   
     <div class="back-to-main">
       <a 
         (click)="navigateToMainLogin()" 
@@ -112,7 +110,7 @@
       </a>
     </div>
 
-    <!-- Footer Security Info -->
+ 
     <div class="security-footer">
       <div class="security-features">
         <div class="feature">

@@ -4,6 +4,13 @@ import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { ProfilePictureService } from './profile-picture.service';
+import { 
+  LandlordMoveOutNoticeResponse, 
+  MoveOutActionRequest,
+  DashboardResponse,
+  StatsResponse,
+  MoveOutStats 
+} from './dashboard-interface';
 
 @Injectable({
   providedIn: 'root'
@@ -15,6 +22,7 @@ export class PropertyService {
   
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
 
+  // PROFILE METHODS
   getCurrentUserProfile(): Observable<any> {
     return this.profileService.getCurrentUserProfile();
   }
@@ -39,6 +47,7 @@ export class PropertyService {
     return this.profileService.deleteProfilePicture();
   }
 
+  // TENANT METHODS
   getTenantUnits(): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
@@ -68,6 +77,7 @@ export class PropertyService {
     );
   }
 
+  // PROPERTY METHODS
   createProperty(request: any): Observable<any> {
     const backendRequest = {
       name: request.name.trim(),
@@ -134,6 +144,7 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
+  // UNIT METHODS
   getUnitsByPropertyId(propertyId: string): Observable<any[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/landlord/properties/${propertyId}/units`,
@@ -187,6 +198,7 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
+  // DASHBOARD METHODS
   getDashboardStats(): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/api/landlord/dashboard/stats`,
@@ -201,8 +213,8 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
-  // MOVE OUT NOTICES - LANDLORD
-  getLandlordMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<any> {
+  // ✅ FIXED MOVE OUT NOTICES - LANDLORD
+  getLandlordMoveOutNotices(page: number = 1, pageSize: number = 10, status?: string): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
@@ -210,13 +222,13 @@ export class PropertyService {
 
     let params = new HttpParams()
       .set('page', page.toString())
-      .set('limit', limit.toString());
+      .set('limit', pageSize.toString());
 
     if (status) {
       params = params.set('status', status);
     }
 
-    return this.http.get<any>(
+    return this.http.get<LandlordMoveOutNoticeResponse>(
       `${this.apiUrl}/api/landlord/move-out-notices`,
       { 
         headers: this.createHeaders(),
@@ -227,41 +239,37 @@ export class PropertyService {
     );
   }
 
-  // ✅ FIXED: Approve without body (backend expects no body)
-  approveMoveOutNotice(noticeId: number, request?: any): Observable<any> {
+  // ✅ FIXED: Approve without request body
+  approveMoveOutNotice(noticeId: number): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
-    return this.http.post<any>(
+    return this.http.post<LandlordMoveOutNoticeResponse>(
       `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}/approve`,
-      null, // No body - backend doesn't expect any data
+      null,
       { headers: this.createHeaders() }
     ).pipe(
       catchError(error => this.handleMoveOutError(error))
     );
   }
 
-  // ✅ FIXED: Reject with reason as query parameter (not in body)
-  rejectMoveOutNotice(noticeId: number, request?: any): Observable<any> {
+  // ✅ FIXED: Reject with reason as query parameter
+  rejectMoveOutNotice(noticeId: number, reason: string): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
-    // Extract reason from request, with fallback
-    const reason = request?.notes || request?.landlordNotes || 'No reason provided';
-    
-    // Send reason as query parameter
     const params = new HttpParams().set('reason', reason);
 
-    return this.http.post<any>(
+    return this.http.post<LandlordMoveOutNoticeResponse>(
       `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}/reject`,
-      null, // No body needed
+      null,
       { 
         headers: this.createHeaders(),
-        params // Query parameter with reason
+        params
       }
     ).pipe(
       catchError(error => this.handleMoveOutError(error))

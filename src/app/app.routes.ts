@@ -53,7 +53,7 @@ import { AdminLoginComponent } from './components/auth/admin-login/admin-login.c
 import { BusinessManagementComponent } from './components/dashboard/admin/admin-dashboard/components/business-management/business-management.component';
 import { AdvertisementManagementComponent } from './components/dashboard/admin/admin-dashboard/components/advertisement-management/advertisement-management.component';
 import { MoveOutNoticeListComponent } from './components/dashboard/tenant/move-out-notice-list/move-out-notice-list.component';
-import { LandlordMoveOutNoticeDetailsComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-move-out-notice-details/landlord-move-out-notice-details.component';
+
 import { MoveOutNoticeDetailsComponent } from './components/dashboard/tenant/move -out-notice-details/move-out-notice-details.component';
 import { LandlordMoveOutNoticeListComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-move-out-notice-list/landlord-move-out-notice-list.component';
 import { MoveOutActionDialogComponent } from './components/dashboard/landlord/landlord-dashboard/move-out-action-dialog/move-out-action-dialog.component';
@@ -155,7 +155,7 @@ export const routes: Routes = [
       { path: 'chat', component: ChatComponent },
     
       { path: 'move-out-notices', component: LandlordMoveOutNoticeListComponent },
-      { path: 'move-out-notices/:id', component: LandlordMoveOutNoticeDetailsComponent },
+   
       { path: 'move-out-action/:id', component: MoveOutActionDialogComponent },
       { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' }
     ]
