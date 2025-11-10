@@ -45,6 +45,12 @@
     background: #0056b3;
     transform: translateY(-1px);
   }
+  
+  &:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+  }
 }
 
 .rooms-list {
@@ -228,6 +234,7 @@
   margin-right: 15px;
   padding: 5px;
   border-radius: 4px;
+  color: #666;
   
   &:hover {
     background: #f0f0f0;
@@ -327,6 +334,7 @@
 .message-content {
   margin-bottom: 4px;
   line-height: 1.4;
+  white-space: pre-wrap;
 }
 
 .message-time {
@@ -363,6 +371,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: inherit;
   
   &:hover {
     background: rgba(0, 0, 0, 0.2);
@@ -424,6 +433,7 @@
   padding: 8px;
   border-radius: 50%;
   transition: background-color 0.2s ease;
+  color: #666;
   
   &:hover {
     background: #f0f0f0;
@@ -443,6 +453,10 @@
   outline: none;
   font-size: 14px;
   transition: border-color 0.2s ease;
+  resize: none;
+  min-height: 44px;
+  max-height: 120px;
+  font-family: inherit;
   
   &:focus {
     border-color: #007bff;
@@ -565,6 +579,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 4px;
+  color: #666;
   
   &:hover {
     background: #f0f0f0;
@@ -650,6 +665,85 @@
   }
 }
 
+// Property Info Styles (NEW)
+.property-info {
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  
+  strong {
+    color: #1a1a1a;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 4px;
+  }
+  
+  small {
+    color: #666;
+    font-size: 12px;
+  }
+}
+
+.loading-properties {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin: 10px 0;
+}
+
+.no-properties {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin: 10px 0;
+  
+  p {
+    margin-bottom: 8px;
+  }
+}
+
+// Scrollbar Styles
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.rooms-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.rooms-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.rooms-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.rooms-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
 // Responsive Design
 @media (max-width: 768px) {
   .chat-container {
@@ -673,9 +767,7 @@
     margin: 20px;
     max-width: none;
   }
-}
-
-@media (max-width: 480px) {
+  
   .sidebar-header {
     padding: 15px;
     
@@ -705,5 +797,151 @@
   
   .modal-footer {
     padding: 15px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-sidebar {
+    height: 35vh;
+  }
+  
+  .chat-area {
+    height: 65vh;
+  }
+  
+  .message {
+    max-width: 90%;
+    padding: 10px 12px;
+  }
+  
+  .messages-container {
+    padding: 15px;
+  }
+  
+  .modal-overlay {
+    padding: 10px;
+  }
+  
+  .modal-content {
+    margin: 10px;
+  }
+  
+  .modal-header {
+    padding: 20px;
+  }
+  
+  .modal-body {
+    padding: 15px;
+  }
+  
+  .input-actions {
+    gap: 4px;
+  }
+  
+  .action-btn {
+    padding: 6px;
+    font-size: 18px;
+  }
+  
+  .send-btn {
+    padding: 8px 16px;
+  }
+}
+
+// Animation Styles
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message {
+  animation: fadeIn 0.3s ease;
+}
+
+.room-item {
+  animation: fadeIn 0.2s ease;
+}
+
+// Dark mode support (optional)
+@media (prefers-color-scheme: dark) {
+  .chat-container {
+    background: #1a1a1a;
+    color: #ffffff;
+  }
+  
+  .chat-sidebar,
+  .chat-area {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+  
+  .sidebar-header,
+  .chat-header {
+    border-color: #404040;
+    background: #2d2d2d;
+  }
+  
+  .room-item {
+    border-color: #404040;
+    
+    &:hover {
+      background: #3d3d3d;
+    }
+    
+    &.active {
+      background: #1e3a5f;
+    }
+  }
+  
+  .message.other-message {
+    background: #3d3d3d;
+    border-color: #404040;
+    color: #ffffff;
+  }
+  
+  .messages-container {
+    background: #1a1a1a;
+  }
+  
+  .message-input-container {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+  
+  .message-input {
+    background: #3d3d3d;
+    border-color: #404040;
+    color: #ffffff;
+    
+    &:focus {
+      border-color: #007bff;
+    }
+  }
+  
+  .modal-content {
+    background: #2d2d2d;
+    color: #ffffff;
+  }
+  
+  .form-select,
+  .form-input {
+    background: #3d3d3d;
+    border-color: #404040;
+    color: #ffffff;
+    
+    &:focus {
+      border-color: #007bff;
+    }
+  }
+  
+  .property-info {
+    background: #3d3d3d;
+    border-color: #404040;
   }
 }
