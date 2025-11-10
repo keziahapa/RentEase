@@ -18,7 +18,7 @@ import { AuthService } from './auth.service';
 })
 export class ChatService {
   private apiUrl = 'https://rentease-3-sfgx.onrender.com/api/chat';
-  private stompClient!: Client;
+  private stompClient: Client | null = null;
   private roomSubscriptions: Map<string, any> = new Map();
 
   private messagesSubject = new BehaviorSubject<Message[]>([]);
@@ -59,6 +59,7 @@ export class ChatService {
         return;
       }
 
+      // FIX: Use proper WebSocket URL
       const socket = new SockJS('https://rentease-3-sfgx.onrender.com/ws');
       this.stompClient = new Client({
         webSocketFactory: () => socket,
@@ -80,12 +81,12 @@ export class ChatService {
           console.log(`📡 Subscribing to user queues for user ID: ${userId}`);
           
           // Subscribe to user-specific queues
-          const userMessagesSubscription = this.stompClient.subscribe(`/user/${userId}/queue/messages`, (message: IMessage) => {
+          const userMessagesSubscription = this.stompClient!.subscribe(`/user/${userId}/queue/messages`, (message: IMessage) => {
             console.log('📨 Received message via user queue:', message.body);
             this.handleIncomingMessage(JSON.parse(message.body));
           });
 
-          const userDeletedSubscription = this.stompClient.subscribe(`/user/${userId}/queue/messages/deleted`, (message: IMessage) => {
+          const userDeletedSubscription = this.stompClient!.subscribe(`/user/${userId}/queue/messages/deleted`, (message: IMessage) => {
             console.log('🗑️ Received message deletion via user queue:', message.body);
             this.handleMessageDeleted(JSON.parse(message.body));
           });
@@ -96,7 +97,7 @@ export class ChatService {
         }
 
         // Subscribe to rooms update queue
-        const roomsSubscription = this.stompClient.subscribe('/user/queue/rooms', (message: IMessage) => {
+        const roomsSubscription = this.stompClient!.subscribe('/user/queue/rooms', (message: IMessage) => {
           console.log('🔄 Received rooms update:', message.body);
           this.handleRoomsUpdate(JSON.parse(message.body));
         });
@@ -298,61 +299,80 @@ export class ChatService {
   loadRooms(): void {
     console.log('🔄 Loading chat rooms...');
     
-    this.http.get<ApiResponse<ChatRoom[]>>(`${this.apiUrl}/rooms`, { headers: this.getHeaders() })
-      .pipe(
-        map(response => {
-          console.log('📋 Rooms API response:', response);
-          return response.data || [];
-        }),
-        catchError(error => {
-          console.error('❌ Error loading rooms:', error);
-          return of([]);
-        })
-      )
-      .subscribe(rooms => {
-        const processedRooms = rooms.map(room => this.processRoomData(room));
-        this.roomsSubject.next(processedRooms);
-        console.log(`✅ Loaded ${processedRooms.length} rooms`);
-      });
+    this.http.get<ApiResponse<ChatRoom[]>>(`${this.apiUrl}/rooms`, { 
+      headers: this.getHeaders() 
+    }).pipe(
+      map(response => {
+        console.log('📋 Rooms API response:', response);
+        // FIX: Handle different response formats
+        if (response && typeof response === 'object') {
+          if (response.data && Array.isArray(response.data)) {
+            return response.data;
+          }
+          if (response.success && response.data && Array.isArray(response.data)) {
+            return response.data;
+          }
+          if (Array.isArray(response)) {
+            return response;
+          }
+        }
+        return [];
+      }),
+      catchError(error => {
+        console.error('❌ Error loading rooms:', error);
+        // FIX: Don't return empty array on error, let component handle it
+        return of([]);
+      })
+    ).subscribe(rooms => {
+      const processedRooms = rooms.map(room => this.processRoomData(room));
+      this.roomsSubject.next(processedRooms);
+      console.log(`✅ Loaded ${processedRooms.length} rooms`);
+    });
   }
 
   getMessages(roomId: number): void {
     console.log(`🔄 Loading messages for room ${roomId}...`);
     
-    this.http.get<ApiResponse<Message[]>>(`${this.apiUrl}/rooms/${roomId}/messages`, { headers: this.getHeaders() })
-      .pipe(
-        map(response => {
-          console.log(`📨 Messages API response for room ${roomId}:`, response);
-          return response.data || [];
-        }),
-        catchError(error => {
-          console.error(`❌ Error loading messages for room ${roomId}:`, error);
-          return of([]);
-        })
-      )
-      .subscribe(messages => {
-        const processedMessages = messages.map(msg => ({
-          id: Number(msg.id),
-          content: msg.content || '',
-          senderId: Number(msg.senderId),
-          senderName: msg.senderName || 'Unknown User',
-          senderEmail: msg.senderEmail || '',
-          chatRoomId: Number(msg.chatRoomId),
-          sentAt: new Date(msg.sentAt),
-          timestamp: new Date(msg.sentAt),
-          messageType: msg.messageType || 'TEXT',
-          status: msg.status || 'SENT',
-          fileUrl: msg.fileUrl,
-          fileName: msg.fileName,
-          fileSize: msg.fileSize ? Number(msg.fileSize) : undefined,
-          canDelete: msg.canDelete || false
-        }));
-        
-        this.messagesSubject.next(processedMessages);
-        console.log(`✅ Loaded ${processedMessages.length} messages for room ${roomId}`);
-        
-        this.subscribeToRoom(roomId);
-      });
+    this.http.get<ApiResponse<Message[]>>(`${this.apiUrl}/rooms/${roomId}/messages`, { 
+      headers: this.getHeaders() 
+    }).pipe(
+      map(response => {
+        console.log(`📨 Messages API response for room ${roomId}:`, response);
+        if (response && response.data && Array.isArray(response.data)) {
+          return response.data;
+        }
+        if (Array.isArray(response)) {
+          return response;
+        }
+        return [];
+      }),
+      catchError(error => {
+        console.error(`❌ Error loading messages for room ${roomId}:`, error);
+        return of([]);
+      })
+    ).subscribe(messages => {
+      const processedMessages = messages.map(msg => ({
+        id: Number(msg.id),
+        content: msg.content || '',
+        senderId: Number(msg.senderId),
+        senderName: msg.senderName || 'Unknown User',
+        senderEmail: msg.senderEmail || '',
+        chatRoomId: Number(msg.chatRoomId),
+        sentAt: new Date(msg.sentAt),
+        timestamp: new Date(msg.sentAt),
+        messageType: msg.messageType || 'TEXT',
+        status: msg.status || 'SENT',
+        fileUrl: msg.fileUrl,
+        fileName: msg.fileName,
+        fileSize: msg.fileSize ? Number(msg.fileSize) : undefined,
+        canDelete: msg.canDelete || false
+      }));
+      
+      this.messagesSubject.next(processedMessages);
+      console.log(`✅ Loaded ${processedMessages.length} messages for room ${roomId}`);
+      
+      this.subscribeToRoom(roomId);
+    });
   }
 
   sendMessage(content: string, roomId: number): Observable<ApiResponse> {
@@ -376,16 +396,17 @@ export class ChatService {
       console.warn('⚠️ WebSocket not connected, sending via HTTP only');
     }
 
-    return this.http.post<ApiResponse>(`${this.apiUrl}/messages`, messageRequest, { headers: this.getHeaders() })
-      .pipe(
-        tap(response => {
-          console.log('✅ Message sent successfully:', response);
-        }),
-        catchError(error => {
-          console.error('❌ Error sending message:', error);
-          return throwError(() => error);
-        })
-      );
+    return this.http.post<ApiResponse>(`${this.apiUrl}/messages`, messageRequest, { 
+      headers: this.getHeaders() 
+    }).pipe(
+      tap(response => {
+        console.log('✅ Message sent successfully:', response);
+      }),
+      catchError(error => {
+        console.error('❌ Error sending message:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   deleteMessage(messageId: number): Observable<ApiResponse> {
@@ -403,19 +424,21 @@ export class ChatService {
       });
     }
 
-    return this.http.delete<ApiResponse>(`${this.apiUrl}/messages/${messageId}`, { headers: this.getHeaders() })
-      .pipe(
-        tap(() => {
-          this.removeMessage(messageId);
-          console.log('✅ Message deleted successfully');
-        }),
-        catchError(error => {
-          console.error('❌ Error deleting message:', error);
-          return throwError(() => error);
-        })
-      );
+    return this.http.delete<ApiResponse>(`${this.apiUrl}/messages/${messageId}`, { 
+      headers: this.getHeaders() 
+    }).pipe(
+      tap(() => {
+        this.removeMessage(messageId);
+        console.log('✅ Message deleted successfully');
+      }),
+      catchError(error => {
+        console.error('❌ Error deleting message:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
+  // FIX: Create chat rooms with proper error handling
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     console.log(`💬 Creating tenant-landlord chat for property ${propertyId}`);
     

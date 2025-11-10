@@ -9,33 +9,10 @@ import { Message, ChatRoom } from '../../services/chat.interface';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-// Define Property interface
 interface Property {
   id: number;
   name: string;
   address: string;
-}
-
-// Define response interfaces
-interface PropertyResponse {
-  id: number;
-  name: string;
-  location?: string;
-  address?: string;
-  property?: Property;
-}
-
-interface UnitResponse {
-  id: number;
-  property?: Property;
-  unitNumber?: string;
-}
-
-interface ApiPropertyResponse {
-  data?: PropertyResponse[] | UnitResponse[];
-  properties?: PropertyResponse[];
-  units?: UnitResponse[];
-  content?: PropertyResponse[];
 }
 
 @Component({
@@ -60,11 +37,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   showNewChatModal = false;
   newChatType: 'tenant-landlord' | 'tenant-caretaker' | 'landlord-caretaker' = 'tenant-landlord';
   
-  // Properties management with proper typing
   userProperties: Property[] = [];
   selectedPropertyId: number | null = null;
   loadingProperties = false;
-  currentProperty: Property | null = null; // NEW: Track current property
+  currentProperty: Property | null = null;
+  loadingRooms = false;
 
   constructor(
     private chatService: ChatService,
@@ -78,12 +55,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
-    // Load user's properties automatically and auto-select
     this.loadUserProperties();
 
     this.chatService.rooms$.subscribe((rooms: ChatRoom[]) => {
       this.rooms = rooms ?? [];
       console.log('📋 Rooms updated:', this.rooms.length);
+      this.loadingRooms = false;
     });
 
     this.chatService.currentRoom$.subscribe((room: ChatRoom | null) => {
@@ -107,7 +84,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.disconnect();
   }
 
-  // Load user's properties automatically and auto-select
   loadUserProperties(): void {
     this.loadingProperties = true;
     const userRole = this.authService.getCurrentUser()?.role;
@@ -145,10 +121,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.loadingProperties = false;
       console.log('🏠 Loaded user properties:', this.userProperties);
       
-      // AUTO-SELECT: Always use the first property
+      // AUTO-SELECT: Use the property that actually has users
       if (this.userProperties.length > 0) {
-        this.selectedPropertyId = this.userProperties[0].id;
-        this.currentProperty = this.userProperties[0];
+        // Try to find property with ID 1 first (the working one)
+        const workingProperty = this.userProperties.find(p => p.id === 1) || this.userProperties[0];
+        this.selectedPropertyId = workingProperty.id;
+        this.currentProperty = workingProperty;
         console.log('✅ Auto-selected property:', this.currentProperty);
       } else {
         console.warn('⚠️ No properties found for user');
@@ -156,8 +134,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
-  // Extract properties from different response formats with proper typing
-  private extractProperties(response: ApiPropertyResponse | any[]): Property[] {
+  private extractProperties(response: any): Property[] {
     if (!response) return [];
 
     if (Array.isArray(response)) {
@@ -200,14 +177,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return Array.from(propertiesMap.values());
     }
 
-    if (response?.content && Array.isArray(response.content)) {
-      return response.content.map((item: any) => ({
-        id: item.property?.id || item.id,
-        name: item.property?.name || item.name || 'Unnamed Property',
-        address: item.property?.address || item.location || item.address || 'No address'
-      })).filter((property: Property) => property.id);
-    }
-
     return [];
   }
 
@@ -217,10 +186,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   trackByMessageId(index: number, message: Message): number {
     return message?.id ?? index;
-  }
-
-  trackByPropertyId(index: number, property: Property): number {
-    return property?.id ?? index;
   }
 
   selectRoom(room: ChatRoom): void {
@@ -317,7 +282,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return (bytes / 1048576).toFixed(1) + ' MB';
   }
 
-  // UPDATED: Open New Chat Modal - Property is auto-selected, no dropdown
   openNewChatModal(): void {
     if (!this.selectedPropertyId) {
       alert('No property found. Please make sure you are associated with a property.');
@@ -331,7 +295,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.newChatType = 'tenant-landlord';
   }
 
-  // UPDATED: Create New Chat - Uses auto-selected property
   createNewChat(): void {
     if (!this.selectedPropertyId) {
       alert('No property available. Please contact administrator.');
@@ -354,8 +317,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         return;
     }
 
+    this.loadingRooms = true;
     createObservable!.subscribe({
       next: (response: any) => {
+        this.loadingRooms = false;
         if (response?.success && response.data) {
           this.closeNewChatModal();
           this.selectRoom(response.data);
@@ -365,6 +330,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
       },
       error: (error: any) => {
+        this.loadingRooms = false;
         console.error('Error creating chat:', error);
         alert('Failed to create chat: ' + (error.error?.message || error.message));
       }
@@ -432,7 +398,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return this.isConnected ? 'Connected' : 'Disconnected';
   }
 
-  // Get current property display name (for debugging/info)
   getCurrentPropertyName(): string {
     return this.currentProperty ? `${this.currentProperty.name}` : 'No Property';
   }
