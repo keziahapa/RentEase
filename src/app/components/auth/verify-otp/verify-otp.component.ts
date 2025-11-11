@@ -166,17 +166,16 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
   this.showMessage('Email verified successfully!', 'success');
   
   setTimeout(() => {
-    this.router.navigate(['/waiting-landlord'], {
+    this.router.navigate(['/login'], {
       queryParams: {
-        email: this.email,
-        userType: this.userType
+        email: this.email
       },
       replaceUrl: true
     });
   }, 1500);
 } else {
-        throw new Error(response.message || 'Verification failed');
-      }
+  throw new Error(response.message || 'Verification failed');
+}
     } catch (error: any) {
       console.error('🔐 OTP Verification Error:', error);
       this.handleVerificationError(error);

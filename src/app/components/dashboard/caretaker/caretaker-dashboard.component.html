@@ -4,7 +4,7 @@
   <nav class="sidebar" [class.mobile-open]="isMobileMenuOpen">
     <div class="sidebar-header">
       <div class="logo" (click)="navigateToSection('dashboard')">
-        <img src="/images/logo.png" alt="RentEase Logo" class="logo-image">
+        <img src="/images/logo.png" alt="RentEase Logo" class="logo-image" (error)="onLogoError($event)">
       </div>
     </div>
 
@@ -18,45 +18,47 @@
 
       <div class="nav-item" 
            [class.active]="isNavActive('maintenance')" 
-           (click)="navigateToSection('maintenance')">
-        <mat-icon class="nav-icon">build</mat-icon>
+           (click)="navigateToSection('maintenance')"
+           *ngIf="hasFullAccess">
+        <mat-icon class="nav-icon">handyman</mat-icon>
         <span>Maintenance</span>
       </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('inspections')" 
-           (click)="navigateToSection('inspections')">
-        <mat-icon class="nav-icon">home</mat-icon>
+           (click)="navigateToSection('inspections')"
+           *ngIf="hasFullAccess">
+        <mat-icon class="nav-icon">search</mat-icon>
         <span>Inspections</span>
       </div>
 
-      
       <div class="nav-item" 
            [class.active]="isNavActive('properties')" 
-           (click)="navigateToSection('properties')">
-        <mat-icon class="nav-icon">apartment</mat-icon>
+           (click)="navigateToSection('properties')"
+           *ngIf="hasFullAccess">
+        <mat-icon class="nav-icon">home</mat-icon>
         <span>Properties</span>
       </div>
 
-      <!-- ADDED: Chat Navigation Item -->
       <div class="nav-item" 
            [class.active]="isNavActive('chat')" 
-           (click)="navigateToSection('chat')">
+           (click)="navigateToSection('chat')"
+           *ngIf="hasFullAccess">
         <mat-icon class="nav-icon">chat</mat-icon>
         <span>Chat</span>
       </div>
 
-
       <div class="nav-item" 
            [class.active]="isNavActive('reports')" 
-           (click)="navigateToSection('reports')">
+           (click)="navigateToSection('reports')"
+           *ngIf="hasFullAccess">
         <mat-icon class="nav-icon">assessment</mat-icon>
         <span>Reports</span>
       </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('profile')" 
-           (click)="viewProfile()">
+           (click)="navigateToSection('profile')">
         <mat-icon class="nav-icon">account_circle</mat-icon>
         <span>Profile</span>
       </div>
@@ -71,7 +73,16 @@
         </button>
         <div class="greeting-section">
           <h1>{{ getGreetingMessage() }}</h1>
-          <p>Here's what's happening with your caretaking duties today</p>
+          <p>{{ getWaitingMessage() }}</p>
+          
+          <div class="access-status" *ngIf="!hasFullAccess">
+            <button class="check-status-btn" 
+                    (click)="checkInvitationStatus()"
+                    [disabled]="isCheckingInvitation">
+              <mat-icon>refresh</mat-icon>
+              {{ isCheckingInvitation ? 'Checking...' : 'Check Status' }}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -79,6 +90,7 @@
         <div class="header-actions">
           <button class="notification-btn" (click)="viewNotifications()" 
                   [class.has-notifications]="unreadNotificationsCount > 0"
+                  *ngIf="hasFullAccess"
                   matTooltip="{{ unreadNotificationsCount > 0 ? unreadNotificationsCount + ' unread notifications' : 'No new notifications' }}"
                   matTooltipPosition="below">
             <mat-icon>notifications</mat-icon>
@@ -103,6 +115,10 @@
           </div>
 
           <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
+            <button class="dropdown-item" (click)="viewProfile(); $event.stopPropagation()">
+              <mat-icon>account_circle</mat-icon>
+              <span>View Profile</span>
+            </button>
             <button class="dropdown-item" (click)="editProfile(); $event.stopPropagation()">
               <mat-icon>edit</mat-icon>
               <span>Edit Profile</span>
@@ -115,6 +131,24 @@
               <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="access-restricted-banner" *ngIf="!hasFullAccess && currentSection !== 'profile'">
+      <div class="restricted-content">
+        <mat-icon class="restricted-icon">hourglass_empty</mat-icon>
+        <h3>Access Restricted</h3>
+        <p>You need to accept your landlord's invitation to access all features.</p>
+        <div class="restricted-actions">
+          <button class="btn-primary" (click)="navigateToSection('profile')">
+            <mat-icon>account_circle</mat-icon>
+            Go to Profile
+          </button>
+          <button class="btn-secondary" (click)="checkInvitationStatus()" [disabled]="isCheckingInvitation">
+            <mat-icon>refresh</mat-icon>
+            {{ isCheckingInvitation ? 'Checking...' : 'Check Invitation Status' }}
+          </button>
         </div>
       </div>
     </div>

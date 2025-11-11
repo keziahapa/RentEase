@@ -7,7 +7,6 @@
   overflow-x: hidden;
 }
 
-/* Mobile Menu Overlay */
 .mobile-menu-overlay {
   display: none;
   position: fixed;
@@ -25,14 +24,8 @@
     display: block;
     opacity: 1;
   }
-
-  // Touch device optimizations
-  @media (hover: none) and (pointer: coarse) {
-    backdrop-filter: blur(2px);
-  }
 }
 
-/* Sidebar Navigation */
 .sidebar {
   width: 280px;
   background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
@@ -48,7 +41,6 @@
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
   overflow: hidden;
 
-  // Large tablets and small desktops
   @media (max-width: 1024px) {
     transform: translateX(-100%);
     
@@ -57,22 +49,18 @@
     }
   }
 
-  // Tablets
   @media (max-width: 768px) {
     width: 260px;
   }
 
-  // Mobile
   @media (max-width: 480px) {
     width: 240px;
   }
 
-  // Small mobile
   @media (max-width: 360px) {
     width: 220px;
   }
 
-  // Extra small mobile
   @media (max-width: 320px) {
     width: 200px;
   }
@@ -232,7 +220,6 @@
   }
 }
 
-/* Main Content Area */
 .main-content {
   flex: 1;
   margin-left: 280px;
@@ -248,7 +235,6 @@
   }
 }
 
-/* Top Header */
 .top-header {
   background: #ffffff;
   padding: 1rem 2rem;
@@ -285,7 +271,7 @@
   align-items: center;
   gap: 1.5rem;
   flex-shrink: 0;
-  min-width: 0; /* Allow text truncation */
+  min-width: 0;
 
   @media (max-width: 768px) {
     gap: 1rem;
@@ -334,7 +320,6 @@
   }
 }
 
-/* Mobile Menu Button */
 .mobile-menu-btn {
   display: none;
   align-items: center;
@@ -404,9 +389,8 @@
   }
 }
 
-/* Greeting Section */
 .greeting-section {
-  min-width: 0; /* Allow text truncation */
+  min-width: 0;
   flex: 1;
   
   h1 {
@@ -454,7 +438,41 @@
   }
 }
 
-/* Notification Button */
+.access-status {
+  margin-top: 0.5rem;
+  
+  .check-status-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #1e40af;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover:not(:disabled) {
+      background: #1e3a8a;
+      transform: translateY(-1px);
+    }
+    
+    &:disabled {
+      background: #64748b;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
 .notification-btn {
   position: relative;
   padding: 0.75rem;
@@ -568,7 +586,6 @@
   }
 }
 
-/* Profile Section */
 .profile-section {
   position: relative;
   display: flex;
@@ -692,7 +709,6 @@
   }
 }
 
-/* Dropdown Trigger */
 .dropdown-trigger {
   display: flex;
   align-items: center;
@@ -757,7 +773,6 @@
   transform: rotate(180deg);
 }
 
-/* Profile Dropdown Menu */
 .profile-dropdown {
   position: absolute;
   top: 100%;
@@ -854,7 +869,95 @@
   margin: 0.5rem 0;
 }
 
-/* Animation */
+.access-restricted-banner {
+  background: linear-gradient(135deg, #fef3c7 0%, #fef7cd 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 1rem 2rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+  
+  .restricted-content {
+    max-width: 500px;
+    margin: 0 auto;
+    
+    .restricted-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: #f59e0b;
+      margin-bottom: 1rem;
+    }
+    
+    h3 {
+      color: #92400e;
+      margin: 0 0 0.5rem 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    p {
+      color: #92400e;
+      margin: 0 0 1.5rem 0;
+      opacity: 0.8;
+    }
+    
+    .restricted-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      
+      .btn-primary, .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+      }
+      
+      .btn-primary {
+        background: #1e40af;
+        color: white;
+        
+        &:hover {
+          background: #1e3a8a;
+          transform: translateY(-1px);
+        }
+      }
+      
+      .btn-secondary {
+        background: white;
+        color: #1e40af;
+        border: 1px solid #1e40af;
+        
+        &:hover {
+          background: #f8fafc;
+          transform: translateY(-1px);
+        }
+        
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+      }
+    }
+  }
+}
+
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -866,7 +969,6 @@
   }
 }
 
-/* Dashboard Content Area */
 .dashboard-content {
   flex: 1;
   display: flex;
@@ -888,7 +990,6 @@
   }
 }
 
-/* Loading States */
 .loading-spinner {
   display: flex;
   align-items: center;
@@ -900,7 +1001,6 @@
   }
 }
 
-/* Error States */
 .error-message {
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -922,7 +1022,26 @@
   }
 }
 
-/* Landscape Mode Optimizations */
+@media (max-width: 768px) {
+  .access-restricted-banner {
+    margin: 1rem;
+    padding: 1.5rem;
+    
+    .restricted-content {
+      .restricted-actions {
+        flex-direction: column;
+        align-items: center;
+        
+        .btn-primary, .btn-secondary {
+          width: 100%;
+          max-width: 200px;
+          justify-content: center;
+        }
+      }
+    }
+  }
+}
+
 @media (max-height: 500px) and (orientation: landscape) {
   .sidebar-header {
     padding: 1rem 1.5rem;
@@ -938,7 +1057,6 @@
   }
 }
 
-/* High Contrast Mode Support */
 @media (prefers-contrast: high) {
   .sidebar {
     background: #000000;
@@ -958,7 +1076,6 @@
   }
 }
 
-/* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
   .profile-dropdown,
@@ -981,7 +1098,6 @@
   }
 }
 
-/* Touch Device Optimizations */
 @media (hover: none) and (pointer: coarse) {
   .nav-item:hover {
     background: transparent;
@@ -1022,7 +1138,6 @@
   }
 }
 
-/* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
   .dashboard-container {
     background: #0f172a;
@@ -1078,7 +1193,6 @@
   }
 }
 
-/* Print Styles */
 @media print {
   .sidebar,
   .top-header,
@@ -1098,7 +1212,6 @@
   }
 }
 
-/* Extra small devices optimization */
 @media (max-width: 280px) {
   .sidebar {
     width: 180px;

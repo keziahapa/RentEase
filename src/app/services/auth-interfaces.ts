@@ -19,6 +19,7 @@ export interface User {
   verified?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  invitationAccepted?: boolean; // ✅ ADDED
 }
 
 export interface ExtendedUser extends User {
@@ -40,7 +41,6 @@ export interface RegisterRequest {
   role: UserRole | string;
 }
 
-
 export interface AuthResponse {
   token: string;
   tokenType: string;
@@ -55,6 +55,7 @@ export interface AuthResponse {
   message?: string;
   success?: boolean;
   user?: User;
+  invitationAccepted?: boolean; // ✅ ADDED
 }
 
 export interface RegisterResponse {

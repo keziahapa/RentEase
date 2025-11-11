@@ -1,16 +1,18 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
+import { Subscription, interval } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { CaretakerService } from '../../../services/caretaker.service';
+import { InvitationService } from '../../../services/invitation.service';
 import { CaretakerOverviewComponent } from './components/caretaker-overview/caretaker-overview.component';
 import { ChatComponent } from '../../../shared/chat/chat.component';
-
 
 @Component({
   selector: 'app-caretaker-dashboard',
@@ -21,6 +23,7 @@ import { ChatComponent } from '../../../shared/chat/chat.component';
     MatDialogModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
+    MatSnackBarModule,
     RouterOutlet,
     CaretakerOverviewComponent,
     ChatComponent
@@ -46,11 +49,15 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
   unreadMessagesCount: number = 0;
   isLoadingNotifications: boolean = false;
 
+  hasFullAccess: boolean = false;
+  isCheckingInvitation: boolean = false;
+
   private profileUpdateListener: any;
   isLoggingOut: boolean = false;
+  private invitationCheckSubscription: Subscription | null = null;
 
-  greeting: string = '';
-  currentTime: string = '';
+  private invitationService = inject(InvitationService);
+  private snackBar = inject(MatSnackBar);
 
   constructor(
     private router: Router,
@@ -61,19 +68,15 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadUserData();
+    this.checkAccessStatus();
     this.loadDashboardData();
     this.loadNotifications();
-    this.updateGreeting();
-    
-    setInterval(() => {
-      this.updateGreeting();
-    }, 60000);
+    this.startInvitationStatusPolling();
 
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: NavigationEnd) => {
       this.updateCurrentSectionFromRoute(event.urlAfterRedirects);
-      this.loadProfileImage();
     });
 
     this.updateCurrentSectionFromRoute(this.router.url);
@@ -86,6 +89,82 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
       window.removeEventListener('profileImageUpdated', this.profileUpdateListener);
     }
     document.removeEventListener('click', this.handleClickOutside.bind(this));
+    this.invitationCheckSubscription?.unsubscribe();
+  }
+
+  private checkAccessStatus(): void {
+    this.hasFullAccess = this.authService.hasAcceptedInvitation();
+    
+    if (!this.hasFullAccess) {
+      this.checkForAcceptedInvitations();
+    }
+  }
+
+  private checkForAcceptedInvitations(): void {
+    if (this.isCheckingInvitation) return;
+    
+    this.isCheckingInvitation = true;
+    
+    this.invitationService.getReceivedInvitations().subscribe({
+      next: (response: any) => {
+        this.isCheckingInvitation = false;
+        
+        if (response.success && response.data) {
+          const acceptedInvitation = response.data.find((inv: any) => 
+            inv.status === 'accepted' || inv.status === 'active'
+          );
+          
+          if (acceptedInvitation) {
+            this.authService.setInvitationAccepted();
+            this.hasFullAccess = true;
+            this.snackBar.open('🎉 Welcome! Your invitation has been accepted.', 'Close', {
+              duration: 5000,
+              panelClass: ['success-snackbar']
+            });
+            
+            setTimeout(() => {
+              this.loadDashboardData();
+            }, 1000);
+          }
+        }
+      },
+      error: (error) => {
+        this.isCheckingInvitation = false;
+        console.error('Error checking invitations:', error);
+      }
+    });
+  }
+
+  private startInvitationStatusPolling(): void {
+    this.invitationCheckSubscription = interval(30000).subscribe(() => {
+      if (!this.hasFullAccess) {
+        this.checkForAcceptedInvitations();
+      }
+    });
+  }
+
+  checkInvitationStatus(): void {
+    if (this.hasFullAccess) return;
+    
+    this.snackBar.open('🔄 Checking for invitations...', 'Close', {
+      duration: 2000
+    });
+    
+    this.checkForAcceptedInvitations();
+  }
+
+  shouldShowNavItem(section: string): boolean {
+    if (section === 'profile' || section === 'dashboard') {
+      return true;
+    }
+    
+    return this.hasFullAccess;
+  }
+
+  getWaitingMessage(): string {
+    return this.hasFullAccess 
+      ? 'Full access granted! 🎉' 
+      : '⏳ Waiting for landlord invitation. Please check your email and spam folder.';
   }
 
   private updateGreeting(): void {
@@ -264,6 +343,52 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/caretaker-dashboard/chat']);
   }
 
+  navigateToSection(section: string): void {
+    if (section === 'profile' || section === 'dashboard') {
+      this.currentSection = section;
+      this.isMobileMenuOpen = false;
+      this.isProfileMenuOpen = false;
+      document.body.style.overflow = '';
+
+      const routeMap: { [key: string]: string[] } = {
+        'dashboard': ['/caretaker-dashboard'],
+        'profile': ['/caretaker-dashboard/profile/view']
+      };
+
+      const route = routeMap[section];
+      if (route) {
+        this.router.navigate(route);
+      } else {
+        this.router.navigate(['/caretaker-dashboard']);
+      }
+    } 
+    else if (this.hasFullAccess) {
+      this.currentSection = section;
+      this.isMobileMenuOpen = false;
+      this.isProfileMenuOpen = false;
+      document.body.style.overflow = '';
+
+      const routeMap: { [key: string]: string[] } = {
+        'maintenance': ['/caretaker-dashboard/maintenance'],
+        'inspections': ['/caretaker-dashboard/inspections'],
+        'properties': ['/caretaker-dashboard/properties'],
+        'chat': ['/caretaker-dashboard/chat'],
+        'reports': ['/caretaker-dashboard/reports']
+      };
+
+      const route = routeMap[section];
+      if (route) {
+        this.router.navigate(route);
+      }
+    } 
+    else {
+      this.snackBar.open('Please wait for landlord invitation to access this feature.', 'Close', {
+        duration: 3000,
+        panelClass: ['info-snackbar']
+      });
+    }
+  }
+
   private loadProfileImage(): void {
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
@@ -337,30 +462,6 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
     this.isProfileMenuOpen = false;
   }
 
-  navigateToSection(section: string): void {
-    this.currentSection = section;
-    this.isMobileMenuOpen = false;
-    this.isProfileMenuOpen = false;
-    document.body.style.overflow = '';
-
-    const routeMap: { [key: string]: string[] } = {
-      'dashboard': ['/caretaker-dashboard'],
-      'maintenance': ['/caretaker-dashboard/maintenance'],
-      'inspections': ['/caretaker-dashboard/inspections'],
-      'properties': ['/caretaker-dashboard/properties'],
-      'chat': ['/caretaker-dashboard/chat'],
-      'reports': ['/caretaker-dashboard/reports'],
-      'profile': ['/caretaker-dashboard/profile/view']
-    };
-
-    const route = routeMap[section];
-    if (route) {
-      this.router.navigate(route);
-    } else {
-      this.router.navigate(['/caretaker-dashboard']);
-    }
-  }
-
   private updateCurrentSectionFromRoute(url: string): void {
     if (url.includes('/profile/view') || url.includes('/profile/edit')) {
       this.currentSection = 'profile';
@@ -431,4 +532,7 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
   onLogoError(event: any): void {
     console.error('Logo failed to load:', event);
   }
+
+  greeting: string = '';
+  currentTime: string = '';
 }
