@@ -15,7 +15,7 @@ import {
   providedIn: 'root'
 })
 export class TenantService {
-  private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com/api';
+  private readonly apiUrl = 'https://rentease-4.onrender.com/api';
 
   constructor(
     private http: HttpClient,

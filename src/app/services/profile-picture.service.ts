@@ -49,7 +49,7 @@ interface ApiProfileResponse {
   providedIn: 'root'
 })
 export class ProfilePictureService {
-  private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com/api';
+  private readonly apiUrl = 'https://rentease-4.onrender.com/api';
 
   private profileSubject = new BehaviorSubject<UserProfile | null>(null);
   private profilePictureSubject = new BehaviorSubject<string>('');

@@ -25,7 +25,7 @@ export class BusinessService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   
-  private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
+  private readonly apiUrl = 'https://rentease-4.onrender.com';
 
   getRegistrationStatus(): Observable<BusinessStatusResponse> {
     const localBusiness = this.getLocalBusinessData();

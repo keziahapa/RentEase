@@ -20,7 +20,7 @@ export class PropertyService {
   private authService = inject(AuthService);
   private profileService = inject(ProfilePictureService);
   
-  private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
+  private readonly apiUrl = 'https://rentease-4.onrender.com';
 
   // PROFILE METHODS
   getCurrentUserProfile(): Observable<any> {

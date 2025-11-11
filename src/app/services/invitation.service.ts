@@ -11,7 +11,7 @@ export class InvitationService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
   
-  private apiUrl = 'https://rentease-3-sfgx.onrender.com/api';
+  private apiUrl = 'https://rentease-4.onrender.com/api';
 
   private createHeaders(): HttpHeaders {
     const token = this.authService.getToken();

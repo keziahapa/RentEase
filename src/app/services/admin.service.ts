@@ -20,7 +20,7 @@ export class AdminService {
   private http = inject(HttpClient);
   private snackBar = inject(MatSnackBar);
 
-  private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
+  private readonly apiUrl = 'https://rentease-4.onrender.com';
 
  
   private previousStats: Partial<AdminStats> = {};

@@ -14,7 +14,7 @@ import {
 })
 export class MpesaService {
   private http = inject(HttpClient);
-  private apiUrl = 'https://rentease-3-sfgx.onrender.com/api/open/mobile-money';
+  private apiUrl = 'https://rentease-4.onrender.com/api/open/mobile-money';
 
   // Initiate STK Push
   initiateSTKPush(request: STKPushRequest): Observable<STKPushResponse> {

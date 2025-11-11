@@ -17,7 +17,7 @@ import { AuthService } from './auth.service';
   providedIn: 'root'
 })
 export class ChatService {
-  private apiUrl = 'https://rentease-3-sfgx.onrender.com/api/chat';
+  private apiUrl = 'https://rentease-4.onrender.com/api/chat';
   private stompClient: Client | null = null;
   private roomSubscriptions: Map<string, any> = new Map();
 
