@@ -177,7 +177,7 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
       message: `You have a pending ${this.invitationType} invitation. Login to accept it.`
     };
 
-    this.router.navigate(['/login'], { queryParams });
+    this.router.navigate(['/login'], { queryParams, fragment: 'accept-invitation' });
   }
 
   private cleanToken(rawToken: string | null): string | null {
@@ -407,7 +407,8 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
         returnUrl: this.router.url,
         hasPendingInvitation: true,
         invitationType: this.invitationType
-      }
+      },
+      fragment: 'accept-invitation'
     });
   }
 
