@@ -6,6 +6,7 @@
   position: relative;
 }
 
+/* Mobile Menu Overlay */
 .mobile-menu-overlay {
   display: none;
   position: fixed;
@@ -29,6 +30,7 @@
   }
 }
 
+/* Sidebar Navigation */
 .sidebar {
   width: 280px;
   background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
@@ -176,6 +178,7 @@
   transition: all 0.3s ease;
 }
 
+/* Main Content Area */
 .main-content {
   flex: 1;
   margin-left: 280px;
@@ -191,6 +194,7 @@
   }
 }
 
+/* Top Header */
 .top-header {
   background: #ffffff;
   padding: clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem);
@@ -231,6 +235,7 @@
   flex-shrink: 0;
 }
 
+/* Mobile Menu Button */
 .mobile-menu-btn {
   display: none;
   align-items: center;
@@ -267,6 +272,7 @@
   color: #ffffff;
 }
 
+/* Greeting Section */
 .greeting-section {
   min-width: 0;
   flex: 1;
@@ -297,41 +303,7 @@
   }
 }
 
-.access-status {
-  margin-top: 0.5rem;
-  
-  .check-status-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: #1e40af;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    
-    &:hover:not(:disabled) {
-      background: #1e3a8a;
-      transform: translateY(-1px);
-    }
-    
-    &:disabled {
-      background: #64748b;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-    
-    mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-    }
-  }
-}
-
+/* Notification Button */
 .notification-btn {
   position: relative;
   padding: clamp(0.375rem, 1.5vw, 0.75rem);
@@ -397,6 +369,7 @@
   flex-shrink: 0;
 }
 
+/* Profile Section */
 .profile-section {
   position: relative;
   display: flex;
@@ -465,6 +438,39 @@
   height: clamp(18px, 4vw, 24px);
 }
 
+.user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+.user-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dropdown Trigger */
 .dropdown-trigger {
   display: flex;
   align-items: center;
@@ -496,6 +502,7 @@
   transform: rotate(180deg);
 }
 
+/* Profile Dropdown Menu */
 .profile-dropdown {
   position: absolute;
   top: 100%;
@@ -513,6 +520,17 @@
   @media (max-width: 480px) {
     right: -10px;
     min-width: 160px;
+  }
+}
+
+.dropdown-header {
+  padding: 1rem 1.5rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+
+  @media (max-width: 480px) {
+    padding: 0.875rem 1.25rem;
+    display: block;
   }
 }
 
@@ -564,95 +582,7 @@
   margin: 0.5rem 0;
 }
 
-.access-restricted-banner {
-  background: linear-gradient(135deg, #fef3c7 0%, #fef7cd 100%);
-  border: 1px solid #f59e0b;
-  border-radius: 12px;
-  padding: 2rem;
-  margin: 1rem 2rem;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
-  
-  .restricted-content {
-    max-width: 500px;
-    margin: 0 auto;
-    
-    .restricted-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      color: #f59e0b;
-      margin-bottom: 1rem;
-    }
-    
-    h3 {
-      color: #92400e;
-      margin: 0 0 0.5rem 0;
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
-    
-    p {
-      color: #92400e;
-      margin: 0 0 1.5rem 0;
-      opacity: 0.8;
-    }
-    
-    .restricted-actions {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-      
-      .btn-primary, .btn-secondary {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        border: none;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        
-        mat-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
-        }
-      }
-      
-      .btn-primary {
-        background: #1e40af;
-        color: white;
-        
-        &:hover {
-          background: #1e3a8a;
-          transform: translateY(-1px);
-        }
-      }
-      
-      .btn-secondary {
-        background: white;
-        color: #1e40af;
-        border: 1px solid #1e40af;
-        
-        &:hover {
-          background: #f8fafc;
-          transform: translateY(-1px);
-        }
-        
-        &:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-        }
-      }
-    }
-  }
-}
-
+/* Animation */
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -664,6 +594,7 @@
   }
 }
 
+/* Dashboard Content Area */
 .dashboard-content {
   flex: 1;
   display: flex;
@@ -672,6 +603,7 @@
   overflow: hidden;
 }
 
+/* Loading States */
 .loading-spinner {
   display: flex;
   align-items: center;
@@ -679,6 +611,7 @@
   padding: 2rem;
 }
 
+/* Error States */
 .error-message {
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -690,26 +623,7 @@
   font-size: clamp(0.8rem, 2vw, 0.9rem);
 }
 
-@media (max-width: 768px) {
-  .access-restricted-banner {
-    margin: 1rem;
-    padding: 1.5rem;
-    
-    .restricted-content {
-      .restricted-actions {
-        flex-direction: column;
-        align-items: center;
-        
-        .btn-primary, .btn-secondary {
-          width: 100%;
-          max-width: 200px;
-          justify-content: center;
-        }
-      }
-    }
-  }
-}
-
+/* Ultra Small Devices */
 @media (max-width: 320px) {
   .top-header {
     padding: 0.5rem;
@@ -766,6 +680,7 @@
   }
 }
 
+/* Landscape Mode Optimizations */
 @media (max-height: 500px) and (orientation: landscape) {
   .sidebar-header {
     padding: 1rem;
@@ -782,6 +697,7 @@
   }
 }
 
+/* High Contrast Mode Support */
 @media (prefers-contrast: high) {
   .sidebar {
     background: #000000;
@@ -801,6 +717,7 @@
   }
 }
 
+/* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
   .profile-dropdown,
@@ -828,6 +745,7 @@
   }
 }
 
+/* Touch Device Optimizations */
 @media (hover: none) and (pointer: coarse) {
   .nav-item:hover {
     background: transparent;
@@ -860,5 +778,22 @@
   
   .mobile-menu-btn:active {
     transform: scale(0.95);
+  }
+}
+
+/* Very large screens */
+@media (min-width: 1920px) {
+  .sidebar {
+    width: 300px;
+  }
+  
+  .main-content {
+    margin-left: 300px;
+    width: calc(100% - 300px);
+  }
+  
+  .nav-item {
+    font-size: 1rem;
+    padding: 1.25rem 2rem;
   }
 }

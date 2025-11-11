@@ -614,59 +614,6 @@ export class AuthService {
     }
   }
 
-  hasAcceptedInvitation(): boolean {
-    if (!this.isBrowser) return false;
-    
-    const user = this.getCurrentUser();
-    const storedStatus = localStorage.getItem('invitationAccepted');
-    
-    return storedStatus === 'true' || user?.invitationAccepted === true;
-  }
-
-  setInvitationAccepted(): void {
-    if (!this.isBrowser) return;
-    
-    localStorage.setItem('invitationAccepted', 'true');
-    
-    const user = this.getCurrentUser();
-    if (user) {
-      user.invitationAccepted = true;
-      this.updateUserStorage(user);
-      this.currentUserSubject.next(user);
-    }
-  }
-
-  clearInvitationStatus(): void {
-    if (!this.isBrowser) return;
-    localStorage.removeItem('invitationAccepted');
-  }
-
-  needsInvitation(): boolean {
-    const user = this.getCurrentUser();
-    if (!user) return false;
-    
-    const needsInvite = this.isTenant() || this.isCaretaker();
-    return needsInvite && !user.invitationAccepted;
-  }
-
-  hasInvitationAccess(): boolean {
-    const user = this.getCurrentUser();
-    if (!user) return false;
-    
-    if (this.isLandlord() || this.isAdmin()) return true;
-    
-    return !!(user && user.invitationAccepted);
-  }
-
-  getInvitationStatus(): 'pending' | 'accepted' | 'not_needed' {
-    const user = this.getCurrentUser();
-    if (!user) return 'pending';
-    
-    if (this.isLandlord() || this.isAdmin()) return 'not_needed';
-    if (user.invitationAccepted) return 'accepted';
-    return 'pending';
-  }
-
   private getFromStorage(key: string): string | null {
     if (!this.isBrowser) return null;
     try {
@@ -688,7 +635,7 @@ export class AuthService {
 
   private clearAllStorage(): void {
     if (!this.isBrowser) return;
-    const keys = ['authToken', 'refreshToken', 'userData', 'profileImage', 'userEmail', 'userPassword', 'invitationAccepted'];
+    const keys = ['authToken', 'refreshToken', 'userData', 'profileImage', 'userEmail', 'userPassword'];
     keys.forEach(key => this.removeFromStorage(key));
     this.refreshTokenInProgress = false;
     this.refreshTokenSubject.next(null);
@@ -704,8 +651,7 @@ export class AuthService {
       phoneNumber: authResponse.phoneNumber || '',
       role: authResponse.role,
       verified: authResponse.verified,
-      emailVerified: authResponse.verified,
-      invitationAccepted: authResponse.invitationAccepted || false
+      emailVerified: authResponse.verified
     };
 
     const token = authResponse.token;

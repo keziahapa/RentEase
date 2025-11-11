@@ -7,7 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
-import { Subscription, interval } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { TenantService } from '../../../../services/tenant.service';
 import { CommunicationService } from '../../../../services/communication.service';
@@ -50,17 +50,15 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
   unreadMessagesCount: number = 0;
   isLoadingNotifications: boolean = false;
 
+  // 🟢 ADDED: Invitation retry properties
   pendingInvitation: any = null;
   isProcessingInvitation = false;
   hasPendingInvitationAlert = false;
-  hasFullAccess: boolean = false;
-  isCheckingInvitation: boolean = false;
 
   private profileUpdateListener: any;
   isLoggingOut: boolean = false;
   private communicationSubscriptions = new Subscription();
   private notificationSummarySubscription: Subscription | null = null;
-  private invitationCheckSubscription: Subscription | null = null;
 
   private invitationService = inject(InvitationService);
   private snackBar = inject(MatSnackBar);
@@ -75,11 +73,9 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadUserData();
-    this.checkAccessStatus();
-    this.checkPendingInvitations();
+    this.checkPendingInvitations(); // 🟢 ADDED: Check for pending invitations first
     this.loadDashboardData();
     this.loadNotifications();
-    this.startInvitationStatusPolling();
 
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -98,85 +94,10 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     }
     document.removeEventListener('click', this.handleClickOutside.bind(this));
     this.notificationSummarySubscription?.unsubscribe();
-    this.invitationCheckSubscription?.unsubscribe();
     this.communicationSubscriptions.unsubscribe();
   }
 
-  private checkAccessStatus(): void {
-    this.hasFullAccess = this.authService.hasAcceptedInvitation();
-    
-    if (!this.hasFullAccess) {
-      this.checkForAcceptedInvitations();
-    }
-  }
-
-  private checkForAcceptedInvitations(): void {
-    if (this.isCheckingInvitation) return;
-    
-    this.isCheckingInvitation = true;
-    
-    this.invitationService.getReceivedInvitations().subscribe({
-      next: (response: any) => {
-        this.isCheckingInvitation = false;
-        
-        if (response.success && response.data) {
-          const acceptedInvitation = response.data.find((inv: any) => 
-            inv.status === 'accepted' || inv.status === 'active'
-          );
-          
-          if (acceptedInvitation) {
-            this.authService.setInvitationAccepted();
-            this.hasFullAccess = true;
-            this.snackBar.open('🎉 Welcome! Your invitation has been accepted.', 'Close', {
-              duration: 5000,
-              panelClass: ['success-snackbar']
-            });
-            
-            setTimeout(() => {
-              this.loadDashboardData();
-            }, 1000);
-          }
-        }
-      },
-      error: (error) => {
-        this.isCheckingInvitation = false;
-        console.error('Error checking invitations:', error);
-      }
-    });
-  }
-
-  private startInvitationStatusPolling(): void {
-    this.invitationCheckSubscription = interval(30000).subscribe(() => {
-      if (!this.hasFullAccess) {
-        this.checkForAcceptedInvitations();
-      }
-    });
-  }
-
-  checkInvitationStatus(): void {
-    if (this.hasFullAccess) return;
-    
-    this.snackBar.open('🔄 Checking for invitations...', 'Close', {
-      duration: 2000
-    });
-    
-    this.checkForAcceptedInvitations();
-  }
-
-  shouldShowNavItem(section: string): boolean {
-    if (section === 'profile' || section === 'dashboard') {
-      return true;
-    }
-    
-    return this.hasFullAccess;
-  }
-
-  getWaitingMessage(): string {
-    return this.hasFullAccess 
-      ? 'Full access granted! 🎉' 
-      : '⏳ Waiting for landlord invitation. Please check your email and spam folder.';
-  }
-
+  // 🟢 ADDED: Greeting method
   getGreetingMessage(): string {
     const now = new Date();
     const hours = now.getHours();
@@ -194,6 +115,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     return `${greeting}, ${firstName}! 👋`;
   }
 
+  // 🟢 ADDED: Invitation retry logic
   private checkPendingInvitations(): void {
     try {
       const pendingInvitationStr = localStorage.getItem('pendingInvitation');
@@ -201,12 +123,13 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
         this.pendingInvitation = JSON.parse(pendingInvitationStr);
         
         if (this.pendingInvitation && this.pendingInvitation.status === 'queued') {
+          console.log('🔄 Tenant Dashboard: Found pending invitation, attempting to process...');
           this.hasPendingInvitationAlert = true;
           this.processPendingInvitation();
         }
       }
     } catch (error) {
-      console.error('Error checking pending invitations:', error);
+      console.error('❌ Error checking pending invitations:', error);
     }
   }
 
@@ -224,6 +147,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         this.isProcessingInvitation = false;
         this.hasPendingInvitationAlert = false;
+        console.log('✅ Pending invitation accepted successfully:', response);
         
         this.clearPendingInvitation();
         
@@ -232,13 +156,14 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
           panelClass: ['success-snackbar']
         });
 
+        // Refresh to show new data
         setTimeout(() => {
           this.loadDashboardData();
         }, 1000);
       },
       error: (error: any) => {
         this.isProcessingInvitation = false;
-        console.error('Failed to process pending invitation:', error);
+        console.error('❌ Failed to process pending invitation:', error);
         
         if (this.pendingInvitation) {
           this.pendingInvitation.attemptCount++;
@@ -258,6 +183,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
               panelClass: ['warning-snackbar']
             });
             
+            // Schedule next retry with exponential backoff
             this.scheduleNextRetry();
           }
         }
@@ -277,6 +203,8 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
 
     const retryDelay = Math.min(30000, 2000 * Math.pow(2, this.pendingInvitation.attemptCount));
     
+    console.log(`⏰ Scheduling next retry in ${retryDelay}ms`);
+    
     setTimeout(() => {
       if (this.pendingInvitation && this.pendingInvitation.status === 'queued') {
         this.processPendingInvitation();
@@ -284,6 +212,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     }, retryDelay);
   }
 
+  // 🟢 ADDED: Manual retry for template
   retryPendingInvitation(): void {
     if (this.pendingInvitation && !this.isProcessingInvitation) {
       this.processPendingInvitation();
@@ -434,55 +363,6 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     this.router.navigate(['/tenant-dashboard/move-out-notices']);
   }
 
-  navigateToSection(section: string): void {
-    if (section === 'profile' || section === 'dashboard') {
-      this.currentSection = section;
-      this.isMobileMenuOpen = false;
-      this.isProfileMenuOpen = false;
-      document.body.style.overflow = '';
-
-      const routeMap: { [key: string]: string[] } = {
-        'dashboard': ['/tenant-dashboard'],
-        'profile': ['/tenant-dashboard/profile/view']
-      };
-
-      const route = routeMap[section];
-      if (route) {
-        this.router.navigate(route);
-      } else {
-        this.router.navigate(['/tenant-dashboard']);
-      }
-    } 
-    else if (this.hasFullAccess) {
-      this.currentSection = section;
-      this.isMobileMenuOpen = false;
-      this.isProfileMenuOpen = false;
-      document.body.style.overflow = '';
-
-      const routeMap: { [key: string]: string[] } = {
-        'rental': ['/tenant-dashboard/rental'],
-        'payments': ['/tenant-dashboard/payments'],
-        'maintenance': ['/tenant-dashboard/maintenance'],
-        'documents': ['/tenant-dashboard/documents'],
-        'messages': ['/tenant-dashboard/messages'],
-        'chat': ['/tenant-dashboard/chat'],
-        'deposit': ['/tenant-dashboard/deposit'],
-        'move-out': ['/tenant-dashboard/move-out-notices']
-      };
-
-      const route = routeMap[section];
-      if (route) {
-        this.router.navigate(route);
-      }
-    } 
-    else {
-      this.snackBar.open('Please wait for landlord invitation to access this feature.', 'Close', {
-        duration: 3000,
-        panelClass: ['info-snackbar']
-      });
-    }
-  }
-
   private loadProfileImage(): void {
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
@@ -556,6 +436,33 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     this.isProfileMenuOpen = false;
   }
 
+  navigateToSection(section: string): void {
+    this.currentSection = section;
+    this.isMobileMenuOpen = false;
+    this.isProfileMenuOpen = false;
+    document.body.style.overflow = '';
+
+    const routeMap: { [key: string]: string[] } = {
+      'dashboard': ['/tenant-dashboard'],
+      'rental': ['/tenant-dashboard/rental'],
+      'payments': ['/tenant-dashboard/payments'],
+      'maintenance': ['/tenant-dashboard/maintenance'],
+      'documents': ['/tenant-dashboard/documents'],
+      'messages': ['/tenant-dashboard/messages'],
+      'chat': ['/tenant-dashboard/chat'],
+      'deposit': ['/tenant-dashboard/deposit'],
+      'move-out': ['/tenant-dashboard/move-out-notices'],
+      'profile': ['/tenant-dashboard/profile/view']
+    };
+
+    const route = routeMap[section];
+    if (route) {
+      this.router.navigate(route);
+    } else {
+      this.router.navigate(['/tenant-dashboard']);
+    }
+  }
+
   private updateCurrentSectionFromRoute(url: string): void {
     if (url.includes('/profile/view') || url.includes('/profile/edit')) {
       this.currentSection = 'profile';
@@ -627,13 +534,14 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
   refreshDashboard(): void {
     this.loadDashboardData();
     this.loadNotifications();
-    this.checkPendingInvitations();
+    this.checkPendingInvitations(); // 🟢 ADDED: Check invitations on refresh
   }
 
   onLogoError(event: any): void {
     console.error('Logo failed to load:', event);
   }
 
+  // 🟢 ADDED: Template helpers for invitation status
   getInvitationStatus(): string {
     if (!this.pendingInvitation) return '';
     

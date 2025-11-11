@@ -238,6 +238,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   private async handleSuccessfulLogin(response: AuthResponse): Promise<void> {
     this.isLoading = false;
     
+    // Store credentials for silent re-authentication if rememberMe is checked
     if (this.rememberMe) {
       this.authService.storeCredentialsSecurely(
         this.loginData.email.trim().toLowerCase(),
@@ -260,40 +261,26 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.acceptPendingInvitation(pendingToken, response.role);
     } else {
       this.showSnackbar('Login successful!', 'success');
-      await this.checkInvitationStatusAndRedirect(response.role);
-    }
-  }
-
-  private async checkInvitationStatusAndRedirect(userRole?: string): Promise<void> {
-    try {
-      const invitationsResponse = await this.invitationService.getReceivedInvitations().toPromise();
       
-      if (invitationsResponse?.success && invitationsResponse.data) {
-        const acceptedInvitation = invitationsResponse.data.find((inv: any) => 
-          inv.status === 'accepted' || inv.status === 'active'
-        );
-        
-        if (acceptedInvitation) {
-          this.authService.setInvitationAccepted();
-        }
-      }
-    } catch (error) {
-      console.error('Error checking invitation status:', error);
+      // Check business registration for ALL users (not just EXTERNAL_BUSINESS)
+      await this.checkBusinessRegistrationStatus(response.role);
     }
-    
-    await this.checkBusinessRegistrationStatus(userRole);
   }
 
+  // UPDATED: Now accepts userRole parameter and checks for all business users
   private async checkBusinessRegistrationStatus(userRole?: string): Promise<void> {
     try {
+      // Check if user has any business-related role
       const normalizedRole = userRole?.toUpperCase() || '';
       const isBusinessUser = this.isBusinessRole(normalizedRole);
       
       if (!isBusinessUser) {
+        // Not a business user, redirect based on role
         this.redirectBasedOnRole(userRole || '');
         return;
       }
 
+      // Business user - check registration status
       const businessStatus = await this.businessService.getRegistrationStatus().toPromise();
       
       if (businessStatus?.success && businessStatus.data) {
@@ -301,14 +288,18 @@ export class LoginComponent implements OnInit, OnDestroy {
                       businessStatus.data.status?.toUpperCase() ||
                       businessStatus.data.registrationStatus?.toUpperCase();
         
+        console.log('Business registration status:', status);
+        
         switch (status) {
           case 'APPROVED':
           case 'ACTIVE':
+            // Business is approved, go to business dashboard
             this.showSnackbar('Business login successful!', 'success');
             this.router.navigate(['/business-dashboard']);
             break;
           case 'PENDING':
           case 'UNDER_REVIEW':
+            // Business is pending approval, show status page
             this.showSnackbar('Your business registration is under review', 'info');
             this.router.navigate(['/business/registration-status'], {
               queryParams: { status: 'pending' }
@@ -316,21 +307,25 @@ export class LoginComponent implements OnInit, OnDestroy {
             break;
           case 'REJECTED':
           case 'DECLINED':
+            // Business was rejected, redirect to registration to update
             this.showSnackbar('Your business registration was rejected. Please update and resubmit.', 'warning');
             this.router.navigate(['/business/register'], {
               queryParams: { rejected: true }
             });
             break;
           case 'SUSPENDED':
+            // Business is suspended
             this.showSnackbar('Your business account has been suspended. Please contact support.', 'error');
             this.router.navigate(['/business/suspended']);
             break;
           default:
+            // No business found or unknown status, redirect to registration
             this.showSnackbar('Please complete your business registration to continue', 'info');
             this.router.navigate(['/business/register']);
             break;
         }
       } else {
+        // No business registered, redirect to registration
         this.showSnackbar('Please complete your business registration to continue', 'info');
         this.router.navigate(['/business/register']);
       }
@@ -338,20 +333,24 @@ export class LoginComponent implements OnInit, OnDestroy {
       console.error('Error checking business registration status:', error);
       
       if (error.status === 404) {
+        // No business found, redirect to registration
         this.showSnackbar('Please complete your business registration', 'info');
         this.router.navigate(['/business/register']);
       } else {
+        // Other error occurred, check if user is business role and redirect accordingly
         const normalizedRole = userRole?.toUpperCase() || '';
         if (this.isBusinessRole(normalizedRole)) {
           this.showSnackbar('Please complete your business registration', 'info');
           this.router.navigate(['/business/register']);
         } else {
+          // Not a business user, redirect based on role
           this.redirectBasedOnRole(userRole || '');
         }
       }
     }
   }
 
+  // NEW: Helper method to check if user has business-related role
   private isBusinessRole(role: string): boolean {
     const businessRoles = [
       'EXTERNAL_BUSINESS',
@@ -359,7 +358,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       'BUSINESS_OWNER',
       'COMPANY',
       'VENDOR',
-      'ADMIN'
+      'ADMIN' // ✅ ADDED ADMIN HERE
     ];
     return businessRoles.includes(role.toUpperCase());
   }
@@ -379,12 +378,15 @@ export class LoginComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         sessionStorage.removeItem('pendingInvitationToken');
         this.showSnackbar('Invitation could not be accepted, but you are logged in.', 'info');
+        
+        // UPDATED: Check business registration for business users after invitation error
         this.checkBusinessRegistrationStatus(userRole);
       }
     });
   }
 
   private redirectAfterInvitationAcceptance(userRole: string, invitationResponse: any): void {
+    // UPDATED: Check business registration for business users even after invitation
     this.checkBusinessRegistrationStatus(userRole);
   }
 
@@ -396,6 +398,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
     return null;
   }
+
 
   private redirectBasedOnRole(userRole: string): void {
     const normalizedRole = userRole.toUpperCase().trim();
@@ -435,7 +438,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       'landlord': 'Landlord Dashboard',
       'external_business': 'Business Dashboard',
       'business': 'Business Dashboard',
-      'admin': 'Admin Dashboard'
+      'admin': 'Admin Dashboard' // ✅ ADDED THIS LINE
     };
     return names[invitationType] || 'Dashboard';
   }
@@ -489,6 +492,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     const user = this.authService.getCurrentUser();
     
     if (user?.role) {
+      // UPDATED: Check business registration for all business users
       this.checkBusinessRegistrationStatus(user.role);
     } else {
       this.router.navigate(['/dashboard']);

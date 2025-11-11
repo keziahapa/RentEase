@@ -9,7 +9,6 @@
     </div>
 
     <div class="nav-menu">
-      
       <div class="nav-item" 
            [class.active]="isNavActive('dashboard')" 
            (click)="navigateToSection('dashboard')">
@@ -17,66 +16,59 @@
         <span>Dashboard</span>
       </div>
 
-     
       <div class="nav-item" 
            [class.active]="isNavActive('rental')" 
-           (click)="navigateToSection('rental')"
-           *ngIf="hasFullAccess">
+           (click)="navigateToSection('rental')">
         <mat-icon class="nav-icon">home</mat-icon>
         <span>My Rental</span>
       </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('payments')" 
-           (click)="navigateToSection('payments')"
-           *ngIf="hasFullAccess">
+           (click)="navigateToSection('payments')">
         <mat-icon class="nav-icon">payments</mat-icon>
         <span>Payments</span>
       </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('maintenance')" 
-           (click)="navigateToSection('maintenance')"
-           *ngIf="hasFullAccess">
+           (click)="navigateToSection('maintenance')">
         <mat-icon class="nav-icon">handyman</mat-icon>
         <span>Maintenance</span>
       </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('documents')" 
-           (click)="navigateToSection('documents')"
-           *ngIf="hasFullAccess">
+           (click)="navigateToSection('documents')">
         <mat-icon class="nav-icon">description</mat-icon>
         <span>Documents</span>
       </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('move-out')" 
-           (click)="navigateToSection('move-out')"
-           *ngIf="hasFullAccess">
+           (click)="navigateToMoveOutNotices()">
         <mat-icon class="nav-icon">exit_to_app</mat-icon>
         <span>Move Out</span>
       </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('chat')" 
-           (click)="navigateToSection('chat')"
-           *ngIf="hasFullAccess">
+           (click)="navigateToSection('chat')">
         <mat-icon class="nav-icon">chat</mat-icon>
         <span>Chat</span>
       </div>
 
+
       <div class="nav-item" 
            [class.active]="isNavActive('deposit')" 
-           (click)="navigateToSection('deposit')"
-           *ngIf="hasFullAccess">
+           (click)="navigateToSection('deposit')">
         <mat-icon class="nav-icon">account_balance_wallet</mat-icon>
         <span>Deposit</span>
       </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('profile')" 
-           (click)="navigateToSection('profile')">
+           (click)="viewProfile()">
         <mat-icon class="nav-icon">account_circle</mat-icon>
         <span>Profile</span>
       </div>
@@ -91,26 +83,14 @@
         </button>
         <div class="greeting-section">
           <h1>{{ getGreetingMessage() }}</h1>
-          <p>{{ getWaitingMessage() }}</p>
-          
-        
-          <div class="access-status" *ngIf="!hasFullAccess">
-            <button class="check-status-btn" 
-                    (click)="checkInvitationStatus()"
-                    [disabled]="isCheckingInvitation">
-              <mat-icon>refresh</mat-icon>
-              {{ isCheckingInvitation ? 'Checking...' : 'Check Status' }}
-            </button>
-          </div>
+          <p>Here's what's happening with your rental today</p>
         </div>
       </div>
 
       <div class="header-right">
         <div class="header-actions">
-        
           <button class="notification-btn" (click)="viewNotifications()" 
                   [class.has-notifications]="unreadNotificationsCount > 0"
-                  *ngIf="hasFullAccess"
                   matTooltip="{{ unreadNotificationsCount > 0 ? unreadNotificationsCount + ' unread notifications' : 'No new notifications' }}"
                   matTooltipPosition="below">
             <mat-icon>notifications</mat-icon>
@@ -151,25 +131,6 @@
               <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 🟢 ADDED: Access restricted message -->
-    <div class="access-restricted-banner" *ngIf="!hasFullAccess && currentSection !== 'profile'">
-      <div class="restricted-content">
-        <mat-icon class="restricted-icon">hourglass_empty</mat-icon>
-        <h3>Access Restricted</h3>
-        <p>You need to accept your landlord's invitation to access all features.</p>
-        <div class="restricted-actions">
-          <button class="btn-primary" (click)="navigateToSection('profile')">
-            <mat-icon>account_circle</mat-icon>
-            Go to Profile
-          </button>
-          <button class="btn-secondary" (click)="checkInvitationStatus()" [disabled]="isCheckingInvitation">
-            <mat-icon>refresh</mat-icon>
-            {{ isCheckingInvitation ? 'Checking...' : 'Check Invitation Status' }}
-          </button>
         </div>
       </div>
     </div>
