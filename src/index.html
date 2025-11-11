@@ -14,9 +14,8 @@
 <body>
   <app-root></app-root>
 
-  <!-- Add this polyfill script to fix "global is not defined" error -->
+ 
   <script>
-    // Fix for WebSocket libraries (SockJS, StompJS) that need Node.js globals
     if (typeof global === 'undefined') {
       window.global = window;
     }
@@ -25,7 +24,7 @@
       window.globalThis = window;
     }
     
-    // Process polyfill for libraries that expect Node.js process object
+   
     if (typeof process === 'undefined') {
       window.process = {
         env: { 
@@ -42,13 +41,19 @@
       };
     }
     
-    // Buffer polyfill fallback
+   
     if (typeof Buffer === 'undefined') {
       window.Buffer = {
         isBuffer: function() { return false; },
         from: function(data) { return data; },
         alloc: function(size) { return new Uint8Array(size); }
       };
+    }
+
+    
+    if (window.location.pathname.includes('/accept-invitation') && !window.location.hash) {
+      const newUrl = window.location.origin + '/#' + window.location.pathname + window.location.search;
+      window.location.replace(newUrl);
     }
   </script>
 </body>

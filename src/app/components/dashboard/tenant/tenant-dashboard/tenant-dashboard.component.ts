@@ -112,7 +112,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
       greeting = 'Good evening';
     }
     
-    return `${greeting}, ${firstName}! 👋`;
+    return `${greeting}, ${firstName}! `;
   }
 
   // 🟢 ADDED: Invitation retry logic

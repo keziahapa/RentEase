@@ -183,7 +183,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   getGreetingMessage(): string {
     const firstName = this.userDisplayName.split(' ')[0] || 'Admin';
-    return `${this.greeting}, ${firstName}! 👋`;
+    return `${this.greeting}, ${firstName}! `;
   }
 
   @HostListener('document:click', ['$event'])

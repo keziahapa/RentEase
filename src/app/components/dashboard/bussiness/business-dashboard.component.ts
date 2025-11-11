@@ -108,7 +108,7 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
 
   getGreetingMessage(): string {
     const firstName = this.userDisplayName.split(' ')[0];
-    return `${this.greeting}, ${firstName}! 👋`;
+    return `${this.greeting}, ${firstName}! `;
   }
 
   @HostListener('document:click', ['$event'])
