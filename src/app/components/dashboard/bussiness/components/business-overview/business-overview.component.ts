@@ -1,4 +1,3 @@
-// business-overview.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -11,6 +10,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { BusinessService } from '../../../../../services/business.service';
 import { AuthService } from '../../../../../services/auth.service';
 import { Subscription } from 'rxjs';
+import { CreateAdvertisementComponent } from '../create-advertisement/create-advertisement.component';
 
 interface QuickAction {
   icon: string;
@@ -56,7 +56,7 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
       icon: 'add_circle',
       label: 'Create New Ad',
       description: 'Launch a new advertising campaign',
-      route: ['/business-dashboard/ads/create'],
+      route: [],
       color: '#10b981'
     },
     {
@@ -153,7 +153,6 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
         this.isLoadingDashboard = false;
       },
       error: (error: any) => {
-        // Fallback to mock data for demo
         this.processBusinessDashboardData();
         this.isLoadingDashboard = false;
         
@@ -175,7 +174,6 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
   }
 
   private processBusinessDashboardData(response?: any): void {
-    // Mock data for demonstration
     this.dashboardData = {
       totalAds: 12,
       activeAds: 8,
@@ -204,12 +202,31 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
   }
 
   createNewAd() {
-    this.snackBar.open('Redirecting to ad creation...', 'Close', { duration: 2000 });
-    this.router.navigate(['/business-dashboard/ads/create']);
+    const dialogRef = this.dialog.open(CreateAdvertisementComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      disableClose: false,
+      autoFocus: false,
+      data: {}
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'success') {
+        this.snackBar.open('Advertisement created successfully!', 'Close', { 
+          duration: 3000 
+        });
+        this.loadDashboardData();
+      }
+    });
   }
 
   onQuickAction(action: QuickAction) {
-    this.router.navigate(action.route);
+    if (action.label === 'Create New Ad') {
+      this.createNewAd();
+    } else {
+      this.router.navigate(action.route);
+    }
   }
 
   navigateToProfileView() {
@@ -225,7 +242,6 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
     this.snackBar.open('Refreshing dashboard...', 'Close', { duration: 2000 });
   }
 
-  // Helper methods for template
   getTotalAds(): number {
     return this.dashboardData?.totalAds || 0;
   }
@@ -250,7 +266,6 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
     return this.dashboardData?.approvalRate || '0%';
   }
 
-  // Action methods
   viewMyAds() {
     this.router.navigate(['/business-dashboard/ads']);
   }

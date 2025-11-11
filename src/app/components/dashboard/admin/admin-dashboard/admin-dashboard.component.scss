@@ -262,7 +262,7 @@
   }
 
   .top-header {
-    background: #ffffff;
+    background: #ffffff !important;
     border-bottom: 1px solid #e2e8f0;
     padding: clamp(1rem, 3vw, 1.5rem) clamp(1.5rem, 4vw, 2rem);
     display: flex;
@@ -274,6 +274,7 @@
     flex-wrap: wrap;
     gap: 1rem;
     min-height: 80px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
     @media (max-width: 768px) {
       padding: 1rem;
@@ -822,47 +823,47 @@
   }
 
   .main-content .top-header {
-    background: #1e293b;
+    background: #ffffff !important;
     border-color: #334155;
   }
 
   .greeting-section h1 {
-    color: #f1f5f9;
+    color: #1e293b;
   }
 
   .greeting-section p {
-    color: #94a3b8;
+    color: #64748b;
   }
 
   .notification-btn,
   .refresh-btn {
-    background: #334155;
-    border-color: #475569;
-    color: #cbd5e1;
+    background: #ffffff;
+    border-color: #e2e8f0;
+    color: #64748b;
 
     &:hover {
-      background: #475569;
-      border-color: #60a5fa;
-      color: #60a5fa;
+      background: #f8fafc;
+      border-color: #1e40af;
+      color: #1e40af;
     }
   }
 
   .profile-section .user-avatar-wrapper {
     &:hover {
-      background: #334155;
+      background: #f8fafc;
     }
   }
 
   .profile-section .user-info .user-name {
-    color: #f1f5f9;
+    color: #1e293b;
   }
 
   .profile-section .user-info .user-role {
-    color: #94a3b8;
+    color: #64748b;
   }
 
   .dropdown-trigger:hover {
-    background: #334155;
+    background: #f8fafc;
   }
   
   .content-area {

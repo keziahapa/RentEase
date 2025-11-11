@@ -166,13 +166,7 @@
       <div *ngIf="!showOverviewDirectly">
         <router-outlet></router-outlet>
       
-        <div *ngIf="isOverviewPage() && !hasRouterContent()" style="background: orange; padding: 20px; margin-top: 20px;">
-          <h3>⚠️ Router Outlet is Empty - Showing Fallback</h3>
-          <p>This means the AdminOverviewComponent is not loading through routes.</p>
-          <button (click)="forceShowOverview()" style="background: purple; color: white; padding: 10px;">
-            Click to Force Show Overview
-          </button>
-        </div>
+       
       </div>
     </div>
   </main>

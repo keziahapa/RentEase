@@ -16,7 +16,7 @@
 
     h2 {
       margin: 0;
-      color: #1e293b;
+      color: #1e3a8a;
       font-size: 1.5rem;
       font-weight: 700;
     }
@@ -26,8 +26,8 @@
       transition: all 0.3s ease;
 
       &:hover {
-        background: rgba(100, 116, 139, 0.1);
-        color: #1e293b;
+        background: rgba(30, 58, 138, 0.1);
+        color: #1e3a8a;
       }
     }
   }
@@ -73,7 +73,7 @@
         border-top: 1px solid #e2e8f0;
 
         h3 {
-          color: #1e293b;
+          color: #1e3a8a;
           margin-bottom: 16px;
           font-weight: 600;
           font-size: 1.25rem;
@@ -107,7 +107,7 @@
 
             h4 {
               margin: 0 0 8px 0;
-              color: #1e293b;
+              color: #1e3a8a;
               font-weight: 600;
               font-size: 1.1rem;
             }
@@ -139,8 +139,9 @@
       min-width: 100px;
 
       &:hover:not([disabled]) {
-        background: rgba(100, 116, 139, 0.1);
+        background: rgba(30, 58, 138, 0.1);
         border-color: #94a3b8;
+        color: #1e3a8a;
       }
     }
 
@@ -177,7 +178,7 @@
 ::ng-deep .mat-mdc-dialog-container .mdc-dialog__container {
   .mat-mdc-dialog-surface {
     border-radius: 12px !important;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
+    box-shadow: 0 20px 40px rgba(30, 58, 138, 0.2) !important;
   }
 }
 
@@ -189,7 +190,7 @@
 
 // Success and error snackbar styles
 .success-snackbar {
-  background: #22c55e !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
   color: white !important;
 
   .mat-simple-snackbar-action {
@@ -198,7 +199,7 @@
 }
 
 .error-snackbar {
-  background: #ef4444 !important;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
   color: white !important;
 
   .mat-simple-snackbar-action {

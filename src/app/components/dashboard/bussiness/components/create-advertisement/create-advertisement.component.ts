@@ -9,7 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'; // ADD THIS IMPORT
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { BusinessService } from '../../../../../services/business.service';
 import { CreateAdvertisementRequest } from '../../../../../services/business-interface';
 
@@ -27,7 +27,7 @@ import { CreateAdvertisementRequest } from '../../../../../services/business-int
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    MatDialogModule // ADD THIS LINE
+    MatDialogModule
   ],
   templateUrl: './create-advertisement.component.html',
   styleUrls: ['./create-advertisement.component.scss']
