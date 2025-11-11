@@ -3,7 +3,6 @@ import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { BusinessService } from '../services/business.service';
 
-
 export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
@@ -99,20 +98,7 @@ export const authGuard: CanActivateFn = (route, state) => {
   }
 
   if (isBusinessRoute && userRole === 'business') {
-    businessService.isBusinessVerified().subscribe({
-      next: (approved) => {
-        if (!approved) {
-          console.log('Business not approved - redirecting to status page');
-          router.navigate(['/business/registration-status']);
-          return false;
-        }
-      },
-      error: () => {
-        console.log('Error checking approval - redirecting to status page');
-        router.navigate(['/business/registration-status']);
-        return false;
-      }
-    });
+    console.log('Business user - verification handled in dashboard component');
   }
 
   if (isCaretakerRoute && !['caretaker', 'admin'].includes(userRole)) {
