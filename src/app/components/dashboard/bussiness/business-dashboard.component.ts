@@ -295,7 +295,6 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
     const routeMap: { [key: string]: string[] } = {
       'dashboard': ['/business-dashboard'],
       'ads': ['/business-dashboard/ads'],
-      'create-ad': ['/business-dashboard/ads/create'],
       'analytics': ['/business-dashboard/analytics'],
       'billing': ['/business-dashboard/billing'],
       'documents': ['/business-dashboard/documents'],
@@ -316,8 +315,6 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'profile';
     } else if (url === '/business-dashboard' || url === '/business-dashboard/') {
       this.currentSection = 'dashboard';
-    } else if (url.includes('/ads/create')) {
-      this.currentSection = 'create-ad';
     } else if (url.includes('/ads')) {
       this.currentSection = 'ads';
     } else if (url.includes('/analytics')) {
