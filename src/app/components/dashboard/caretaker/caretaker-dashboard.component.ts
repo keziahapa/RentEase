@@ -164,7 +164,7 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
   getWaitingMessage(): string {
     return this.hasFullAccess 
       ? 'Full access granted! 🎉' 
-      : '⏳ Waiting for landlord invitation. Please check your email and spam folder.';
+      : ' Waiting for landlord invitation. Please check your email and spam folder.';
   }
 
   private updateGreeting(): void {

@@ -9,7 +9,7 @@
     </div>
 
     <div class="nav-menu">
-      <!-- Always show Dashboard -->
+      
       <div class="nav-item" 
            [class.active]="isNavActive('dashboard')" 
            (click)="navigateToSection('dashboard')">
@@ -17,7 +17,7 @@
         <span>Dashboard</span>
       </div>
 
-      <!-- Conditionally show other items based on access -->
+     
       <div class="nav-item" 
            [class.active]="isNavActive('rental')" 
            (click)="navigateToSection('rental')"
@@ -74,7 +74,6 @@
         <span>Deposit</span>
       </div>
 
-      <!-- Always show Profile -->
       <div class="nav-item" 
            [class.active]="isNavActive('profile')" 
            (click)="navigateToSection('profile')">
@@ -94,7 +93,7 @@
           <h1>{{ getGreetingMessage() }}</h1>
           <p>{{ getWaitingMessage() }}</p>
           
-          <!-- 🟢 ADDED: Status check button -->
+        
           <div class="access-status" *ngIf="!hasFullAccess">
             <button class="check-status-btn" 
                     (click)="checkInvitationStatus()"
@@ -108,7 +107,7 @@
 
       <div class="header-right">
         <div class="header-actions">
-          <!-- Only show notifications if has access -->
+        
           <button class="notification-btn" (click)="viewNotifications()" 
                   [class.has-notifications]="unreadNotificationsCount > 0"
                   *ngIf="hasFullAccess"

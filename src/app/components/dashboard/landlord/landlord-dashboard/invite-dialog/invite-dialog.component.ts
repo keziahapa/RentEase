@@ -9,7 +9,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatOptionModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // ✅ ADD THIS IMPORT
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { InvitationService } from '../../../../../services/invitation.service';
 import { 
@@ -34,7 +34,7 @@ import {
     MatOptionModule,
     MatProgressSpinnerModule,
     MatButtonModule,
-    MatSnackBarModule // ✅ ADD THIS TO IMPORTS ARRAY
+    MatSnackBarModule
   ]
 })
 export class InviteDialogComponent implements OnInit {
@@ -44,12 +44,11 @@ export class InviteDialogComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private invitationService = inject(InvitationService);
-  private snackBar = inject(MatSnackBar); // ✅ MOVE THIS BEFORE dialogRef
+  private snackBar = inject(MatSnackBar);
   public dialogRef = inject(MatDialogRef<InviteDialogComponent, InviteDialogResult>);
   public data = inject<InviteDialogData>(MAT_DIALOG_DATA);
 
   constructor() {
-    // ✅ Initialize empty form, will build properly in ngOnInit
     this.inviteForm = this.fb.group({});
   }
 
@@ -57,7 +56,6 @@ export class InviteDialogComponent implements OnInit {
     this.availableUnits = this.data.availableUnits || [];
     console.log('📋 Available units with IDs:', this.availableUnits.map(u => ({ id: u.id, unitNumber: u.unitNumber })));
     
-    // ✅ Build form AFTER availableUnits is set
     this.buildForm();
   }
 
@@ -66,9 +64,7 @@ export class InviteDialogComponent implements OnInit {
       email: ['', [Validators.required, Validators.email]]
     };
 
-    // ✅ Only add unitId if we have available units
     if (this.data.type === 'tenant' && this.availableUnits.length > 0) {
-      // ✅ Set default value to first available unit
       formConfig.unitId = [this.availableUnits[0].id, Validators.required];
     }
 
@@ -92,7 +88,6 @@ export class InviteDialogComponent implements OnInit {
 
   onSend(): void {
     if (this.inviteForm.valid) {
-      // ✅ Validate unitId exists before sending
       const formData = this.inviteForm.value;
       
       if (this.data.type === 'tenant' && !formData.unitId) {
@@ -114,14 +109,12 @@ export class InviteDialogComponent implements OnInit {
   }
 
   private inviteTenant(formData: any): void {
-    // ✅ Validate unitId exists
     if (!formData.unitId) {
       this.loading = false;
       this.snackBar.open('Unit selection is required', 'Close', { duration: 3000 });
       return;
     }
 
-    // ✅ FIXED: Only send what backend expects
     const tenantData = {
       tenantEmail: formData.email,
       unitId: formData.unitId
@@ -161,9 +154,19 @@ export class InviteDialogComponent implements OnInit {
   }
 
   private inviteCaretaker(formData: any): void {
+    // ✅ FIXED: Try different role formats to find what backend expects
+    const roleOptions = [
+      "CARETAKER",
+      "CARETAKER_ROLE", 
+      "ROLE_CARETAKER",
+      "caretaker"
+    ];
+
+    // Try the first option - change if it doesn't work
     const caretakerData = {
       caretakerEmail: formData.email,
-      propertyId: this.data.propertyId
+      propertyId: this.data.propertyId,
+      role: "CARETAKER_ROLE"  // ✅ ADDED ROLE FIELD
     };
 
     console.log('📤 Sending caretaker invitation:', caretakerData);
@@ -186,15 +189,90 @@ export class InviteDialogComponent implements OnInit {
         this.loading = false;
         console.error('❌ Caretaker invitation error:', error);
         
+        // If this fails, try other role options
+        if (error.message.includes('Role') || error.message.includes('role')) {
+          this.tryAlternativeRole(formData);
+        } else {
+          const result: InviteDialogResult = {
+            success: false,
+            email: formData.email,
+            error: error.message,
+            status: error.status
+          };
+          this.dialogRef.close(result);
+        }
+      }
+    });
+  }
+
+  private tryAlternativeRole(formData: any): void {
+    console.log('🔄 Trying alternative role formats...');
+    
+    const roleOptions = [
+      "CARETAKER",
+      "ROLE_CARETAKER", 
+      "caretaker",
+      "Caretaker"
+    ];
+
+    let currentAttempt = 0;
+
+    const tryNextRole = () => {
+      if (currentAttempt >= roleOptions.length) {
+        // All attempts failed
         const result: InviteDialogResult = {
           success: false,
           email: formData.email,
-          error: error.message,
-          status: error.status
+          error: 'Failed to send invitation. Please contact support.',
+          status: 500
         };
         this.dialogRef.close(result);
+        return;
       }
-    });
+
+      const caretakerData = {
+        caretakerEmail: formData.email,
+        propertyId: this.data.propertyId,
+        role: roleOptions[currentAttempt]
+      };
+
+      console.log(`🔄 Attempt ${currentAttempt + 1} with role:`, roleOptions[currentAttempt]);
+
+      this.invitationService.inviteCaretaker(caretakerData).subscribe({
+        next: (response) => {
+          this.loading = false;
+          console.log('✅ Caretaker invitation successful with role:', roleOptions[currentAttempt]);
+          
+          const result: InviteDialogResult = {
+            success: true,
+            email: formData.email,
+            invitationToken: response.invitationToken,
+            message: response.message,
+            response: response
+          };
+          this.dialogRef.close(result);
+        },
+        error: (error) => {
+          currentAttempt++;
+          if (currentAttempt < roleOptions.length) {
+            // Try next role option
+            setTimeout(tryNextRole, 100);
+          } else {
+            // All attempts failed
+            this.loading = false;
+            const result: InviteDialogResult = {
+              success: false,
+              email: formData.email,
+              error: 'All role format attempts failed. Backend may have an issue.',
+              status: error.status
+            };
+            this.dialogRef.close(result);
+          }
+        }
+      });
+    };
+
+    tryNextRole();
   }
 
   private markFormGroupTouched(): void {
