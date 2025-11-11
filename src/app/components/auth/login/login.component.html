@@ -10,8 +10,6 @@
       <span>Auto-login in {{countdown}} seconds...</span>
     </div>
 
-    
-
     <form (ngSubmit)="onSubmit()" #loginForm="ngForm" novalidate>
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Email Address</mat-label>
@@ -22,7 +20,7 @@
           name="email"
           placeholder="Enter your email"
           (input)="onEmailInput()"
-          (blur)="onEmailBlur()"
+          (blur)="onFieldBlur('email')"
           required
           [disabled]="isLoading"
         />
@@ -30,10 +28,6 @@
       
         <mat-error *ngIf="emailError">
           {{ emailError }}
-        </mat-error>
-        
-        <mat-error *ngIf="!emailError && loginForm.submitted && !loginData.email.trim()">
-          Email is required
         </mat-error>
       </mat-form-field>
 
@@ -46,7 +40,7 @@
           name="password"
           placeholder="Enter your password"
           (input)="onPasswordInput()"
-          (blur)="onPasswordBlur()"
+          (blur)="onFieldBlur('password')"
           (keydown.space)="$event.preventDefault()" 
           required
           minlength="6"
@@ -65,13 +59,6 @@
         
         <mat-error *ngIf="passwordError">
           {{ passwordError }}
-        </mat-error>
-        
-        <mat-error *ngIf="!passwordError && loginForm.submitted && !loginData.password">
-          Password is required
-        </mat-error>
-        <mat-error *ngIf="!passwordError && loginForm.submitted && loginData.password && loginData.password.length < 6">
-          Password must be at least 6 characters
         </mat-error>
       </mat-form-field>
 

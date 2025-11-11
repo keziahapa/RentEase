@@ -73,6 +73,17 @@ export class RegistrationComponent implements OnInit {
     confirmPassword: ''
   };
 
+  
+  fieldTouched = {
+    role: false,
+    fullName: false,
+    email: false,
+    phoneNumber: false,
+    password: false,
+    confirmPassword: false,
+    terms: false
+  };
+
   ngOnInit(): void {
     this.resetForm();
   }
@@ -88,6 +99,13 @@ export class RegistrationComponent implements OnInit {
     };
     this.agreedToTerms = false;
     this.clearAllErrors();
+    this.resetTouchedFields();
+  }
+
+  resetTouchedFields(): void {
+    Object.keys(this.fieldTouched).forEach(key => {
+      this.fieldTouched[key as keyof typeof this.fieldTouched] = false;
+    });
   }
 
   clearAllErrors(): void {
@@ -98,6 +116,80 @@ export class RegistrationComponent implements OnInit {
 
   clearFieldError(field: keyof RegistrationFieldErrors): void {
     this.fieldErrors[field] = '';
+  }
+
+  
+  onFieldBlur(field: keyof typeof this.fieldTouched): void {
+    this.fieldTouched[field] = true;
+    this.validateField(field);
+  }
+
+ 
+  validateField(field: keyof typeof this.fieldTouched): void {
+    switch(field) {
+      case 'role':
+        if (!this.formData.role) {
+          this.fieldErrors.role = 'Please select a role';
+        } else {
+          this.fieldErrors.role = '';
+        }
+        break;
+      
+      case 'fullName':
+        if (!this.formData.fullName.trim()) {
+          this.fieldErrors.fullName = 'Full name is required';
+        } else if (this.formData.fullName.trim().length < 3) {
+          this.fieldErrors.fullName = 'Full name must be at least 3 characters';
+        } else {
+          this.fieldErrors.fullName = '';
+        }
+        break;
+      
+      case 'email':
+        this.fieldErrors.email = this.validateEmail(this.formData.email);
+        break;
+      
+      case 'phoneNumber':
+        if (!this.formData.phoneNumber.trim()) {
+          this.fieldErrors.phoneNumber = 'Phone number is required';
+        } else {
+          const phoneRegex = /^(\+254|0)[1-9]\d{8}$/;
+          if (!phoneRegex.test(this.formData.phoneNumber.replace(/\s/g, ''))) {
+            this.fieldErrors.phoneNumber = 'Please enter a valid Kenyan phone number (e.g., 0712345678)';
+          } else {
+            this.fieldErrors.phoneNumber = '';
+          }
+        }
+        break;
+      
+      case 'password':
+        if (!this.formData.password) {
+          this.fieldErrors.password = 'Password is required';
+        } else if (this.formData.password.length < 8) {
+          this.fieldErrors.password = 'Password must be at least 8 characters';
+        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(this.formData.password)) {
+          this.fieldErrors.password = 'Must include uppercase, lowercase, number, and special character';
+        } else {
+          this.fieldErrors.password = '';
+        }
+       
+        if (this.fieldTouched.confirmPassword && this.formData.confirmPassword) {
+          this.checkPasswordMatch();
+        }
+        break;
+      
+      case 'confirmPassword':
+        if (!this.formData.confirmPassword) {
+          this.fieldErrors.confirmPassword = 'Please confirm your password';
+        } else {
+          this.checkPasswordMatch();
+        }
+        break;
+      
+      case 'terms':
+        
+        break;
+    }
   }
 
   validateEmail(email: string): string {
@@ -112,7 +204,7 @@ export class RegistrationComponent implements OnInit {
     }
     
     if (!email.includes('.')) {
-      return 'Email needs .com ';
+      return 'Email needs domain (e.g., .com)';
     }
     
     if (!emailRegex.test(email)) {
@@ -130,47 +222,70 @@ export class RegistrationComponent implements OnInit {
     this.hideConfirmPassword = !this.hideConfirmPassword;
   }
 
+ 
   onEmailInput(): void {
-    if (this.formData.email) {
+    if (this.fieldTouched.email) {
       this.fieldErrors.email = this.validateEmail(this.formData.email);
-    } else {
-      this.fieldErrors.email = '';
     }
   }
 
   onPhoneNumberInput(): void {
-    if (this.formData.phoneNumber) {
-      const phoneRegex = /^(\+254|0)[1-9]\d{8}$/;
-      if (!phoneRegex.test(this.formData.phoneNumber.replace(/\s/g, ''))) {
-        this.fieldErrors.phoneNumber = 'Please enter a valid Kenyan phone number';
+    if (this.fieldTouched.phoneNumber) {
+      if (this.formData.phoneNumber) {
+        const phoneRegex = /^(\+254|0)[1-9]\d{8}$/;
+        if (!phoneRegex.test(this.formData.phoneNumber.replace(/\s/g, ''))) {
+          this.fieldErrors.phoneNumber = 'Please enter a valid Kenyan phone number';
+        } else {
+          this.fieldErrors.phoneNumber = '';
+        }
       } else {
-        this.fieldErrors.phoneNumber = '';
+        this.fieldErrors.phoneNumber = 'Phone number is required';
       }
-    } else {
-      this.fieldErrors.phoneNumber = '';
     }
   }
 
   onPasswordInput(): void {
-    this.fieldErrors.password = '';
-    this.checkPasswordMatch();
+    if (this.fieldTouched.password) {
+      this.validateField('password');
+    }
   }
 
   onConfirmPasswordInput(): void {
-    this.fieldErrors.confirmPassword = '';
-    this.checkPasswordMatch();
+    if (this.fieldTouched.confirmPassword) {
+      this.validateField('confirmPassword');
+    }
   }
 
   checkPasswordMatch(): void {
     if (this.formData.confirmPassword && !this.passwordsMatch()) {
       this.fieldErrors.confirmPassword = 'Passwords do not match';
-    } else {
+    } else if (this.formData.confirmPassword) {
       this.fieldErrors.confirmPassword = '';
     }
   }
 
   passwordsMatch(): boolean {
     return this.formData.password === this.formData.confirmPassword && this.formData.confirmPassword !== '';
+  }
+
+ 
+  showFormValidationErrors(): void {
+ 
+    Object.keys(this.fieldTouched).forEach(key => {
+      this.fieldTouched[key as keyof typeof this.fieldTouched] = true;
+    });
+
+   
+    this.validateField('role');
+    this.validateField('fullName');
+    this.validateField('email');
+    this.validateField('phoneNumber');
+    this.validateField('password');
+    this.validateField('confirmPassword');
+
+    if (!this.agreedToTerms) {
+      this.showError('Please agree to Terms and Conditions');
+    }
   }
 
   validateForm(): boolean {
@@ -248,6 +363,12 @@ export class RegistrationComponent implements OnInit {
   }
 
   onSubmit(): void {
+    
+    if (!this.isFormValid) {
+      this.showFormValidationErrors();
+      return;
+    }
+
     if (!this.validateForm()) return;
 
     this.isLoading = true;

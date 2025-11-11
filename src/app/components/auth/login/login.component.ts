@@ -52,6 +52,12 @@ export class LoginComponent implements OnInit, OnDestroy {
   emailError: string = '';
   passwordError: string = '';
 
+  
+  fieldTouched = {
+    email: false,
+    password: false
+  };
+
   ngOnInit(): void {
     if (this.authService.isAuthenticated()) {
       const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
@@ -140,6 +146,34 @@ export class LoginComponent implements OnInit, OnDestroy {
     return '';
   }
 
+  
+  onFieldBlur(field: 'email' | 'password'): void {
+    if (this.isLoading) return;
+    
+    this.fieldTouched[field] = true;
+    this.validateField(field);
+  }
+
+
+  validateField(field: 'email' | 'password'): void {
+    if (field === 'email') {
+      if (this.loginData.email) {
+        this.emailError = this.validateEmail(this.loginData.email);
+      } else {
+        this.emailError = 'Email is required';
+      }
+    } else if (field === 'password') {
+      const password = this.loginData.password;
+      if (!password) {
+        this.passwordError = 'Password is required';
+      } else if (password.length < 6) {
+        this.passwordError = 'Password must be at least 6 characters';
+      } else {
+        this.passwordError = '';
+      }
+    }
+  }
+
   togglePasswordVisibility(): void {
     if (this.isLoading) return;
     this.showPassword = !this.showPassword;
@@ -147,31 +181,29 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   onEmailInput(): void {
     if (this.isLoading) return;
-    this.emailError = '';
-    this.stopAutoSubmit();
-  }
-
-  onEmailBlur(): void {
-    if (this.isLoading) return;
-    const email = this.loginData.email;
-    if (email) {
-      this.emailError = this.validateEmail(email);
+    
+    
+    if (this.fieldTouched.email) {
+      this.emailError = this.validateEmail(this.loginData.email);
+    } else {
+      this.emailError = '';
     }
+    
+    this.stopAutoSubmit();
   }
 
   onPasswordInput(): void {
     if (this.isLoading) return;
-    this.passwordError = '';
+    
+  
+    if (this.fieldTouched.password) {
+      this.validateField('password');
+    } else {
+      this.passwordError = '';
+    }
+    
     this.pendingAutoPassword = null;
     this.stopAutoSubmit();
-  }
-
-  onPasswordBlur(): void {
-    if (this.isLoading) return;
-    const password = this.loginData.password;
-    if (password && password.length < 6) {
-      this.passwordError = 'Password must be at least 6 characters';
-    }
   }
 
   onPasswordPaste(event: ClipboardEvent): void {
@@ -179,6 +211,17 @@ export class LoginComponent implements OnInit, OnDestroy {
     const pastedText = event.clipboardData?.getData('text') || '';
     const cleanText = pastedText.trim();
     this.loginData.password = cleanText;
+  }
+
+  
+  showFormValidationErrors(): void {
+ 
+    this.fieldTouched.email = true;
+    this.fieldTouched.password = true;
+
+    
+    this.validateField('email');
+    this.validateField('password');
   }
 
   validateForm(passwordOverride?: string): boolean {
@@ -205,6 +248,12 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.stopAutoSubmit();
     
     if (this.isLoading) return;
+
+    
+    if (!this.isFormValid) {
+      this.showFormValidationErrors();
+      return;
+    }
     
     const passwordToUse = (passwordOverride ?? this.loginData.password).trim();
 
@@ -238,7 +287,6 @@ export class LoginComponent implements OnInit, OnDestroy {
   private async handleSuccessfulLogin(response: AuthResponse): Promise<void> {
     this.isLoading = false;
     
-   
     if (this.rememberMe) {
       this.authService.storeCredentialsSecurely(
         this.loginData.email.trim().toLowerCase(),
@@ -261,26 +309,20 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.acceptPendingInvitation(pendingToken, response.role);
     } else {
       this.showSnackbar('Login successful!', 'success');
-      
-      
       await this.checkBusinessRegistrationStatus(response.role);
     }
   }
 
-  
   private async checkBusinessRegistrationStatus(userRole?: string): Promise<void> {
     try {
-      
       const normalizedRole = userRole?.toUpperCase() || '';
       const isBusinessUser = this.isBusinessRole(normalizedRole);
       
       if (!isBusinessUser) {
-       
         this.redirectBasedOnRole(userRole || '');
         return;
       }
 
-     
       const businessStatus = await this.businessService.getRegistrationStatus().toPromise();
       
       if (businessStatus?.success && businessStatus.data) {
@@ -293,13 +335,11 @@ export class LoginComponent implements OnInit, OnDestroy {
         switch (status) {
           case 'APPROVED':
           case 'ACTIVE':
-           
             this.showSnackbar('Business login successful!', 'success');
             this.router.navigate(['/business-dashboard']);
             break;
           case 'PENDING':
           case 'UNDER_REVIEW':
-           
             this.showSnackbar('Your business registration is under review', 'info');
             this.router.navigate(['/business/registration-status'], {
               queryParams: { status: 'pending' }
@@ -307,25 +347,21 @@ export class LoginComponent implements OnInit, OnDestroy {
             break;
           case 'REJECTED':
           case 'DECLINED':
-         
             this.showSnackbar('Your business registration was rejected. Please update and resubmit.', 'warning');
             this.router.navigate(['/business/register'], {
               queryParams: { rejected: true }
             });
             break;
           case 'SUSPENDED':
-           
             this.showSnackbar('Your business account has been suspended. Please contact support.', 'error');
             this.router.navigate(['/business/suspended']);
             break;
           default:
-            
             this.showSnackbar('Please complete your business registration to continue', 'info');
             this.router.navigate(['/business/register']);
             break;
         }
       } else {
-       
         this.showSnackbar('Please complete your business registration to continue', 'info');
         this.router.navigate(['/business/register']);
       }
@@ -333,24 +369,20 @@ export class LoginComponent implements OnInit, OnDestroy {
       console.error('Error checking business registration status:', error);
       
       if (error.status === 404) {
-       
         this.showSnackbar('Please complete your business registration', 'info');
         this.router.navigate(['/business/register']);
       } else {
-       
         const normalizedRole = userRole?.toUpperCase() || '';
         if (this.isBusinessRole(normalizedRole)) {
           this.showSnackbar('Please complete your business registration', 'info');
           this.router.navigate(['/business/register']);
         } else {
-        
           this.redirectBasedOnRole(userRole || '');
         }
       }
     }
   }
 
- 
   private isBusinessRole(role: string): boolean {
     const businessRoles = [
       'EXTERNAL_BUSINESS',
@@ -358,7 +390,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       'BUSINESS_OWNER',
       'COMPANY',
       'VENDOR',
-      'ADMIN' 
+      'ADMIN'
     ];
     return businessRoles.includes(role.toUpperCase());
   }
@@ -378,15 +410,12 @@ export class LoginComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         sessionStorage.removeItem('pendingInvitationToken');
         this.showSnackbar('Invitation could not be accepted, but you are logged in.', 'info');
-        
-       
         this.checkBusinessRegistrationStatus(userRole);
       }
     });
   }
 
   private redirectAfterInvitationAcceptance(userRole: string, invitationResponse: any): void {
-   
     this.checkBusinessRegistrationStatus(userRole);
   }
 
@@ -398,7 +427,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
     return null;
   }
-
 
   private redirectBasedOnRole(userRole: string): void {
     const normalizedRole = userRole.toUpperCase().trim();
@@ -412,7 +440,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       'COMPANY': '/business-dashboard',
       'VENDOR': '/business-dashboard',
       'CARETAKER': '/caretaker-dashboard/overview',
-      'ADMIN': '/admin-dashboard' 
+      'ADMIN': '/admin-dashboard'
     };
 
     const dashboardRoute = roleMap[normalizedRole] || '/dashboard';
@@ -438,7 +466,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       'landlord': 'Landlord Dashboard',
       'external_business': 'Business Dashboard',
       'business': 'Business Dashboard',
-      'admin': 'Admin Dashboard' 
+      'admin': 'Admin Dashboard'
     };
     return names[invitationType] || 'Dashboard';
   }
@@ -459,6 +487,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (msg.includes('email') && msg.includes('not found')) {
         this.emailError = 'No account with this email';
         errorMessage = 'This email is not registered';
+        showSnackbar = false;
       } else if (msg.includes('password') && msg.includes('incorrect')) {
         this.passwordError = 'Wrong password';
         errorMessage = 'The password you entered is incorrect';
@@ -467,6 +496,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.emailError = 'Check email or password';
         this.passwordError = 'Check email or password';
         errorMessage = 'The email or password you entered is incorrect';
+        showSnackbar = false;
       } else {
         errorMessage = error.error.message;
       }
@@ -478,9 +508,11 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.emailError = 'Incorrect email or password';
       this.passwordError = 'Incorrect email or password';
       errorMessage = 'The email or password you entered is not correct';
+      showSnackbar = false;
     } else if (error.status === 404) {
       this.emailError = 'Email not registered';
       errorMessage = 'No account found with this email address';
+      showSnackbar = false;
     }
     
     if (showSnackbar) {
@@ -492,7 +524,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     const user = this.authService.getCurrentUser();
     
     if (user?.role) {
-    
       this.checkBusinessRegistrationStatus(user.role);
     } else {
       this.router.navigate(['/dashboard']);
@@ -520,9 +551,11 @@ export class LoginComponent implements OnInit, OnDestroy {
     const trimmedPassword = passwordValue ? passwordValue.trim() : '';
     return (
       this.loginData.email.trim() !== '' &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.loginData.email) &&
       trimmedPassword !== '' &&
       trimmedPassword.length >= 6 &&
-      !this.emailError
+      !this.emailError &&
+      !this.passwordError
     );
   }
 
@@ -538,6 +571,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.isLoading = false;
     this.emailError = '';
     this.passwordError = '';
+    this.fieldTouched = { email: false, password: false };
     this.stopAutoSubmit();
   }
 

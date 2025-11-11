@@ -13,6 +13,8 @@
           name="role" 
           [disabled]="isLoading" 
           required 
+          (blur)="onFieldBlur('role')"
+          (selectionChange)="clearFieldError('role')"
           #roleControl="ngModel">
           <mat-option *ngFor="let role of availableRoles" [value]="role.value">
             {{ role.label }}
@@ -20,9 +22,6 @@
         </mat-select>
         <mat-error *ngIf="fieldErrors.role">
           {{ fieldErrors.role }}
-        </mat-error>
-        <mat-error *ngIf="roleControl.invalid && roleControl.touched && !fieldErrors.role">
-          Please select a role
         </mat-error>
       </mat-form-field>
 
@@ -37,13 +36,10 @@
           required 
           minlength="3"
           (input)="clearFieldError('fullName')"
+          (blur)="onFieldBlur('fullName')"
           #fullNameControl="ngModel" />
         <mat-error *ngIf="fieldErrors.fullName">
           {{ fieldErrors.fullName }}
-        </mat-error>
-        <mat-error *ngIf="fullNameControl.invalid && fullNameControl.touched && !fieldErrors.fullName">
-          <span *ngIf="fullNameControl.errors?.['required']">Full name is required</span>
-          <span *ngIf="fullNameControl.errors?.['minlength']">Full name must be at least 3 characters</span>
         </mat-error>
       </mat-form-field>
 
@@ -58,13 +54,10 @@
           required 
           email
           (input)="onEmailInput()"
+          (blur)="onFieldBlur('email')"
           #emailControl="ngModel" />
         <mat-error *ngIf="fieldErrors.email">
           {{ fieldErrors.email }}
-        </mat-error>
-        <mat-error *ngIf="emailControl.invalid && emailControl.touched && !fieldErrors.email">
-          <span *ngIf="emailControl.errors?.['required']">Email is required</span>
-          <span *ngIf="emailControl.errors?.['email']">Please enter a valid email address</span>
         </mat-error>
       </mat-form-field>
 
@@ -78,13 +71,11 @@
           name="phoneNumber" 
           [disabled]="isLoading" 
           required
-          (input)="clearFieldError('phoneNumber')"
+          (input)="onPhoneNumberInput()"
+          (blur)="onFieldBlur('phoneNumber')"
           #phoneControl="ngModel" />
         <mat-error *ngIf="fieldErrors.phoneNumber">
           {{ fieldErrors.phoneNumber }}
-        </mat-error>
-        <mat-error *ngIf="phoneControl.invalid && phoneControl.touched && !fieldErrors.phoneNumber">
-          Phone number is required
         </mat-error>
       </mat-form-field>
 
@@ -99,6 +90,7 @@
           required 
           minlength="8"
           (input)="onPasswordInput()"
+          (blur)="onFieldBlur('password')"
           #passwordControl="ngModel" />
         <button 
           mat-icon-button 
@@ -110,10 +102,6 @@
         </button>
         <mat-error *ngIf="fieldErrors.password">
           {{ fieldErrors.password }}
-        </mat-error>
-        <mat-error *ngIf="passwordControl.invalid && passwordControl.touched && !fieldErrors.password">
-          <span *ngIf="passwordControl.errors?.['required']">Password is required</span>
-          <span *ngIf="passwordControl.errors?.['minlength']">Password must be at least 8 characters</span>
         </mat-error>
       </mat-form-field>
 
@@ -127,6 +115,7 @@
           [disabled]="isLoading" 
           required
           (input)="onConfirmPasswordInput()"
+          (blur)="onFieldBlur('confirmPassword')"
           #confirmPasswordControl="ngModel" />
         <button 
           mat-icon-button 
@@ -138,12 +127,6 @@
         </button>
         <mat-error *ngIf="fieldErrors.confirmPassword">
           {{ fieldErrors.confirmPassword }}
-        </mat-error>
-        <mat-error *ngIf="confirmPasswordControl.invalid && confirmPasswordControl.touched && !fieldErrors.confirmPassword">
-          <span *ngIf="confirmPasswordControl.errors?.['required']">Please confirm your password</span>
-        </mat-error>
-        <mat-error *ngIf="!fieldErrors.confirmPassword && !passwordsMatch() && formData.confirmPassword">
-          Passwords do not match
         </mat-error>
       </mat-form-field>
 
