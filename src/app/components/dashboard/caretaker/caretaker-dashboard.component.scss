@@ -1,7 +1,26 @@
+/* Make dashboard container white */
+.dashboard-container {
+  background: #ffffff !important;
+}
+
+.main-content {
+  background: #ffffff !important;
+}
+
+.dashboard-content {
+  background: #ffffff !important;
+}
+
+:host {
+  background: #ffffff;
+  display: block;
+  min-height: 100vh;
+}
+
+/* Original CSS below */
 .dashboard-container {
   display: flex;
   min-height: 100vh;
-  background: #f8fafc;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   position: relative;
   overflow-x: hidden;
@@ -1025,56 +1044,56 @@
 /* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
   .dashboard-container {
-    background: #0f172a;
+    background: #ffffff !important;
   }
   
   .top-header {
-    background: #1e293b;
-    border-bottom-color: #334155;
+    background: #ffffff;
+    border-bottom-color: #e2e8f0;
   }
   
   .greeting-section h1 {
-    color: #f1f5f9;
+    color: #1e293b;
   }
   
   .greeting-section p {
-    color: #94a3b8;
+    color: #64748b;
   }
   
   .profile-section {
-    background: #1e293b;
-    border-color: #334155;
+    background: #ffffff;
+    border-color: #e2e8f0;
   }
   
   .profile-section:hover {
-    background: #334155;
+    background: #f8fafc;
   }
   
   .dropdown-trigger {
-    background: #334155;
-    border-color: #475569;
+    background: #f8fafc;
+    border-color: #e2e8f0;
   }
   
   .dropdown-trigger:hover {
-    background: #475569;
+    background: #e2e8f0;
   }
   
   .profile-dropdown {
-    background: #1e293b;
-    border-color: #334155;
+    background: #ffffff;
+    border-color: #e2e8f0;
   }
   
   .dropdown-item {
-    color: #cbd5e1;
+    color: #475569;
   }
   
   .dropdown-item:hover {
-    background: #334155;
-    color: #f1f5f9;
+    background: #f1f5f9;
+    color: #1e293b;
   }
   
   .dropdown-divider {
-    background: #334155;
+    background: #e2e8f0;
   }
 }
 

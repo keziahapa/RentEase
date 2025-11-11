@@ -156,17 +156,16 @@
     </div>
 
     <div class="content-area">
-      <!-- Option 1: Direct rendering (works without routes) -->
+    
       <div *ngIf="showOverviewDirectly" style="border: 3px solid blue; padding: 20px;">
         <h2>🔄 Directly Rendered Overview</h2>
         <app-admin-overview></app-admin-overview>
       </div>
 
-      <!-- Option 2: Router outlet (needs route configuration) -->
+    
       <div *ngIf="!showOverviewDirectly">
         <router-outlet></router-outlet>
-        
-        <!-- Fallback if router outlet is empty -->
+      
         <div *ngIf="isOverviewPage() && !hasRouterContent()" style="background: orange; padding: 20px; margin-top: 20px;">
           <h3>⚠️ Router Outlet is Empty - Showing Fallback</h3>
           <p>This means the AdminOverviewComponent is not loading through routes.</p>
