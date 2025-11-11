@@ -1,4 +1,4 @@
-// business-registration-status.component.ts
+
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -38,8 +38,7 @@ export class BusinessRegistrationStatusComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadBusinessStatus();
-    
-    // Check status every 30 seconds for pending approvals
+ 
     this.checkInterval = setInterval(() => {
       if (this.businessInfo?.verificationStatus === 'PENDING') {
         this.loadBusinessStatus();
@@ -56,20 +55,20 @@ export class BusinessRegistrationStatusComponent implements OnInit, OnDestroy {
         this.businessInfo = response.data;
         this.hasCheckedInitialStatus = true;
         
-        // If business is approved, redirect to dashboard immediately
+      
         if (response.data.verificationStatus === 'APPROVED') {
           this.redirectToDashboard();
           return;
         }
       } else {
-        // No business registration found
+       
         this.businessInfo = null;
         this.hasCheckedInitialStatus = true;
       }
     } catch (error: any) {
       console.error('Error loading business status:', error);
       if (error.status === 404) {
-        // No business registration found
+      
         this.businessInfo = null;
       } else {
         this.showMessage('Error loading business status. Please try again.', 'error');
@@ -138,7 +137,7 @@ export class BusinessRegistrationStatusComponent implements OnInit, OnDestroy {
   }
 
   shouldShowStatusPage(): boolean {
-    // Show status page if still loading, or if business exists and is not approved
+  
     return this.isLoading || 
            !this.hasCheckedInitialStatus || 
            (this.businessInfo && this.businessInfo.verificationStatus !== 'APPROVED');

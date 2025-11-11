@@ -8,7 +8,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   
-  // ✅ Public endpoints that don't need authentication
+ 
   const skipAuth = [
     '/api/auth/login',
     '/api/auth/signup', 
@@ -18,27 +18,27 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     '/api/auth/verify-reset-otp',
     '/api/auth/reset-password',
     '/api/auth/resend-otp',
-    '/api/external-business/register-business',  // ✅ Business registration
-    '/api/external-business/advertisements/approved'  // ✅ Public ads
+    '/api/external-business/register-business',  
+    '/api/external-business/advertisements/approved' 
   ].some(endpoint => req.url.includes(endpoint));
 
   let clonedReq = req;
   const token = authService.getToken();
   
-  console.log('🔐 Interceptor - URL:', req.url);
-  console.log('🔐 Interceptor - Skip auth:', skipAuth);
-  console.log('🔐 Interceptor - Token exists:', !!token);
+  console.log(' Interceptor - URL:', req.url);
+  console.log(' Interceptor - Skip auth:', skipAuth);
+  console.log(' Interceptor - Token exists:', !!token);
   
-  // ✅ Add auth header only for authenticated endpoints
+  
   if (token && !skipAuth) {
     clonedReq = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
       }
     });
-    console.log('🔐 Interceptor - Added Authorization header');
+    console.log(' Interceptor - Added Authorization header');
   } else if (skipAuth) {
-    console.log('🔐 Interceptor - Skipping auth for public endpoint');
+    console.log(' Interceptor - Skipping auth for public endpoint');
   }
 
   return next(clonedReq).pipe(
@@ -48,16 +48,16 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         req.url.includes('/invite-caretaker') ||
         req.url.includes('/invitations/details/'); 
       
-      console.log('🔐 Interceptor - Request failed:', {
+      console.log(' Interceptor - Request failed:', {
         url: req.url,
         status: error.status,
         statusText: error.statusText,
         error: error.error
       });
       
-      // Handle 401 errors for authenticated endpoints
+      
       if (error.status === 401 && !skipAuth && !isInvitationRequest) {
-        console.warn('⚠️ 401 Unauthorized for authenticated endpoint');
+        console.warn(' 401 Unauthorized for authenticated endpoint');
       }
       
       return throwError(() => error);

@@ -53,37 +53,37 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   greeting: string = '';
   currentTime: string = '';
 
-  // ✅ FIX: Make authService public for template
+ 
   public authService = inject(AuthService);
-  public router = inject(Router); // ✅ FIX: Make router public
+  public router = inject(Router); 
   private adminService = inject(AdminService);
   private dialog = inject(MatDialog);
 
-  // ✅ ADD: Debug properties
+
   showOverviewDirectly = false;
   hasRouterContentFlag = false;
 
   ngOnInit(): void {
-    console.log('🔐 Admin Dashboard - Checking authentication...');
+    console.log(' Admin Dashboard - Checking authentication...');
     
-    // Debug current user
+
     this.currentUser = this.authService.getCurrentUser();
-    console.log('🔐 Current user:', this.currentUser);
-    console.log('🔐 User role:', this.currentUser?.role);
-    console.log('🔐 Is admin?', this.authService.isAdmin());
-    console.log('🔐 Is authenticated?', this.authService.isAuthenticated());
+    console.log(' Current user:', this.currentUser);
+    console.log(' User role:', this.currentUser?.role);
+    console.log(' Is admin?', this.authService.isAdmin());
+    console.log(' Is authenticated?', this.authService.isAuthenticated());
     
-    // Debug token
+   
     const token = this.authService.getToken();
-    console.log('🔐 Token exists?', !!token);
+    console.log(' Token exists?', !!token);
     
     if (token) {
       this.authService.debugToken();
     }
 
-    // Check if user is actually an admin
+    
     if (!this.authService.isAdmin()) {
-      console.error('🚫 ACCESS DENIED: User is not an admin');
+      console.error(' ACCESS DENIED: User is not an admin');
       this.router.navigate(['/dashboard']);
       return;
     }
@@ -100,7 +100,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       this.router.events.pipe(
         filter(event => event instanceof NavigationEnd)
       ).subscribe((event: NavigationEnd) => {
-        console.log('🔄 Route changed to:', event.url);
+        console.log(' Route changed to:', event.url);
         this.updateCurrentSectionFromRoute(event.urlAfterRedirects);
         this.loadProfileImage();
       });
@@ -108,15 +108,15 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       this.updateCurrentSectionFromRoute(this.router.url);
       this.setupProfileUpdateListener();
     } catch (error) {
-      console.error('❌ Error initializing admin dashboard:', error);
+      console.error(' Error initializing admin dashboard:', error);
     }
   }
 
-  // ✅ ADD: Test admin access method
+  
   testAdminAccess() {
     console.log('🔧 Testing admin access...');
     
-    // Temporarily set admin user for testing
+    
     const testAdminUser = {
       id: 1,
       email: 'admin@test.com',
@@ -130,31 +130,30 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     console.log('🔧 Test admin user set');
     this.loadUserData();
     
-    // Force reload
+   
     this.router.navigate(['/admin-dashboard']).then(() => {
       window.location.reload();
     });
   }
 
-  // ✅ ADD: Debug method to check storage
+  
   debugStorage() {
-    console.log('🗂️ Local Storage:', {
+    console.log(' Local Storage:', {
       userData: localStorage.getItem('userData'),
       authToken: localStorage.getItem('authToken'),
       userRole: this.authService.getCurrentUser()?.role
     });
   }
 
-  // ✅ ADD: Debug method to force show overview
   forceShowOverview() {
-    console.log('🚀 Forcing overview to show directly');
+    console.log(' Forcing overview to show directly');
     this.showOverviewDirectly = true;
     this.currentSection = 'overview';
   }
 
-  // ✅ ADD: Check if router has content
+
   hasRouterContent(): boolean {
-    // This is a simple check - you might need a better way
+   
     const outlet = document.querySelector('router-outlet');
     return outlet ? outlet.children.length > 0 : false;
   }
@@ -229,13 +228,13 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         this.userRole = this.formatUserRole(this.currentUser.role);
         this.loadProfileImage();
       } else {
-        console.warn('⚠️ No current user found');
+        console.warn(' No current user found');
         this.userDisplayName = 'Admin';
         this.userRole = 'Administrator';
         this.profileImage = this.generateInitialAvatar('Admin');
       }
     } catch (error) {
-      console.error('❌ Error loading user data:', error);
+      console.error(' Error loading user data:', error);
       this.userDisplayName = 'Admin';
       this.userRole = 'Administrator';
     }
@@ -358,7 +357,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.isProfileMenuOpen = false;
   }
 
-  // ✅ FIXED: Updated navigateToSection with correct routes
+  
   navigateToSection(section: string): void {
     this.currentSection = section;
     this.isMobileMenuOpen = false;
@@ -366,7 +365,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     document.body.style.overflow = '';
 
     const routeMap: { [key: string]: string[] } = {
-      'overview': ['/admin-dashboard/overview'], // ✅ CHANGED: Added /overview
+      'overview': ['/admin-dashboard/overview'], 
       'users': ['/admin-dashboard/users'],
       'properties': ['/admin-dashboard/properties'],
       'businesses': ['/admin-dashboard/businesses'],
@@ -389,7 +388,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ✅ FIXED: Updated route detection
+  
   private updateCurrentSectionFromRoute(url: string): void {
     if (!url) {
       this.currentSection = 'overview';
@@ -472,7 +471,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.profileImage = this.generateInitialAvatar(this.userDisplayName);
   }
 
-  // ✅ FIXED: Updated overview page check
+  
   isOverviewPage(): boolean {
     return this.router.url.includes('/overview') || 
            this.router.url === '/admin-dashboard' || 

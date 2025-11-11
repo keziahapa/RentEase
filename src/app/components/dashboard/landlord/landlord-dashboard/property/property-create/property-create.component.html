@@ -1,13 +1,12 @@
 <div class="property-create-container">
-  <!-- Create Property Dialog -->
+
   <div class="create-dialog-overlay">
     <div class="create-dialog-content" (click)="$event.stopPropagation()">
-      <!-- Dialog Header -->
+     
       <div class="dialog-header">
         <h2>Create New Property</h2>
       </div>
 
-      <!-- Dialog Content -->
       <div class="dialog-content">
         <form [formGroup]="propertyForm">
           <mat-form-field appearance="outline" class="full-width">

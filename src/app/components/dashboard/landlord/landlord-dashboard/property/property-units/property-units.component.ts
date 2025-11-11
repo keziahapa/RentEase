@@ -71,7 +71,7 @@ export class PropertyUnitsComponent implements OnInit {
 
   displayedColumns: string[] = ['unitNumber', 'type', 'rent', 'status', 'tenant', 'actions'];
 
-  // Add Unit Dialog properties
+
   showAddUnitDialog = false;
   unitForm: FormGroup;
   isSubmittingUnit = false;
@@ -87,7 +87,7 @@ export class PropertyUnitsComponent implements OnInit {
     { value: 'RETAIL', label: 'Retail Shop' }
   ];
 
-  // Use inject() function for all dependencies
+  
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private propertyService = inject(PropertyService);
@@ -175,7 +175,7 @@ export class PropertyUnitsComponent implements OnInit {
     });
   }
 
-  // Add Unit Dialog Methods
+
   openAddUnitDialog(): void {
     this.showAddUnitDialog = true;
     this.unitForm.reset({
@@ -207,7 +207,7 @@ export class PropertyUnitsComponent implements OnInit {
       description: this.unitForm.value.description?.trim() || ''
     };
 
-    // Check for duplicate unit numbers
+   
     const duplicateUnit = this.units.find(unit => 
       unit.unitNumber?.toLowerCase() === unitData.unitNumber.toLowerCase()
     );
@@ -218,7 +218,6 @@ export class PropertyUnitsComponent implements OnInit {
       return;
     }
 
-    // Real API call to create unit
     this.propertyService.createUnit(this.propertyId, unitData).subscribe({
       next: (response: any) => {
         this.isSubmittingUnit = false;
@@ -226,7 +225,7 @@ export class PropertyUnitsComponent implements OnInit {
         if (response.success || response.unit || response.id) {
           this.snackBar.open(`Unit ${unitData.unitNumber} created successfully!`, 'Close', { duration: 3000 });
           this.closeAddUnitDialog();
-          this.loadPropertyAndUnits(); // Refresh the units list
+          this.loadPropertyAndUnits(); 
         } else {
           this.snackBar.open(response.message || 'Failed to create unit', 'Close', { duration: 3000 });
         }
@@ -267,7 +266,7 @@ export class PropertyUnitsComponent implements OnInit {
     this.annualRevenue = this.monthlyRevenue * 12;
   }
 
-  // Tenant Invitation Methods
+ 
   inviteTenantToProperty(event: Event) {
     event.preventDefault();
     event.stopPropagation();
@@ -320,20 +319,20 @@ export class PropertyUnitsComponent implements OnInit {
   }
 
   private handleTenantInvitationResult(result: any) {
-    console.log('📩 Tenant invitation dialog result:', result);
+    console.log(' Tenant invitation dialog result:', result);
     
     if (result && result.cancelled) {
-      console.log('🚫 Tenant invitation cancelled by user');
+      console.log(' Tenant invitation cancelled by user');
       return;
     }
     
     if (result && result.success) {
-      console.log('✅ Tenant invitation successful from dialog');
+      console.log(' Tenant invitation successful from dialog');
       const successMessage = result.message || 'Tenant invitation sent successfully!';
       this.snackBar.open(successMessage, 'Close', { duration: 4000 });
-      this.loadPropertyAndUnits(); // Refresh to show updated status
+      this.loadPropertyAndUnits(); 
     } else if (result && !result.success) {
-      console.log('❌ Tenant invitation failed from dialog:', result.error);
+      console.log(' Tenant invitation failed from dialog:', result.error);
       const errorMessage = result.error || 'Failed to send tenant invitation';
       this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
     }
@@ -537,15 +536,15 @@ export class PropertyUnitsComponent implements OnInit {
     return typeMap[this.property?.propertyType || ''] || this.property?.propertyType || 'Property';
   }
 
-  // Debug method to check authentication status
+  
   testAuth() {
     const token = this.authService.getToken();
-    console.log('🔐 Token exists:', !!token);
-    console.log('🔐 Token value:', token);
-    console.log('👤 User role:', this.authService.getCurrentUser()?.role);
-    console.log('✅ Is authenticated:', this.authService.isAuthenticated());
-    console.log('🏠 Property ID:', this.propertyId);
-    console.log('🏠 Property:', this.property);
-    console.log('🚪 Units count:', this.units.length);
+    console.log(' Token exists:', !!token);
+    console.log(' Token value:', token);
+    console.log(' User role:', this.authService.getCurrentUser()?.role);
+    console.log(' Is authenticated:', this.authService.isAuthenticated());
+    console.log(' Property ID:', this.propertyId);
+    console.log(' Property:', this.property);
+    console.log(' Units count:', this.units.length);
   }
 }

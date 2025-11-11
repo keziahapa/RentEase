@@ -20,12 +20,12 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     '/api/auth/refresh-token',
     '/api/external-business/advertisements/approved',
     '/api/public/',
-    '/api/open/'  // ADDED THIS - This fixes your 401 error
+    '/api/open/' 
   ];
 
   const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
 
-  // Remove Authorization header from public endpoints
+  
   if (isPublicEndpoint) {
     const cleanRequest = req.clone({
       headers: req.headers.delete('Authorization')
@@ -33,7 +33,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     return next(cleanRequest);
   }
 
-  // Add Authorization header to protected endpoints
+ 
   let finalRequest = req;
   const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
   
@@ -47,7 +47,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
 
   return next(finalRequest).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Show error only once
+    
       if (error.status === 401 && !isPublicEndpoint && !errorShown) {
         errorShown = true;
         snackBar.open('Please log in to continue', 'Close', { 
@@ -55,7 +55,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
           panelClass: ['snackbar-info']
         });
         
-        // Redirect after a delay
+       
         setTimeout(() => {
           localStorage.clear();
           window.location.href = '/#/login';

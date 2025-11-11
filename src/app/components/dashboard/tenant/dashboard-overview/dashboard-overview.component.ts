@@ -119,7 +119,6 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
     this.isLoadingDashboard = true;
     this.dashboardError = '';
 
-    // Load tenant units data
     const unitsSub = this.tenantService.getTenantUnits().subscribe({
       next: (response: any) => {
         this.processTenantData(response);
@@ -174,19 +173,19 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
     if (upcomingNotice) {
       upcomingMoveOutDate = upcomingNotice.moveOutDate;
       
-      // Update lease end days if move out is sooner
+    
       const moveOutDays = this.calculateDaysUntilDate(upcomingNotice.moveOutDate);
       if (moveOutDays > 0 && moveOutDays < this.tenantData.leaseEndDays) {
         this.tenantData.leaseEndDays = moveOutDays;
       }
     }
 
-    // Update tenant data with move-out information
+    
     this.tenantData.pendingMoveOutNotices = pendingNotices;
     this.tenantData.upcomingMoveOutDate = upcomingMoveOutDate;
     this.tenantData.hasActiveMoveOut = pendingNotices > 0 || !!upcomingMoveOutDate;
 
-    // Add move-out activity to recent activities if applicable
+   
     if (pendingNotices > 0) {
       this.addMoveOutActivity(pendingNotices, upcomingMoveOutDate);
     }
@@ -206,7 +205,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
       message += ` - Scheduled for ${formattedDate}`;
     }
 
-    // Add move-out activity to the top of recent activities
+    
     this.recentActivities.unshift({
       type: 'Move Out Notice',
       message: message,
@@ -214,7 +213,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
       icon: 'exit_to_app'
     });
 
-    // Keep only the latest 4 activities
+  
     if (this.recentActivities.length > 4) {
       this.recentActivities = this.recentActivities.slice(0, 4);
     }
@@ -241,10 +240,10 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
         nextPaymentDate: primaryUnit.nextPaymentDate
       };
 
-      // Generate recent activities based on real data
+      
       this.generateRecentActivities(primaryUnit);
     } else {
-      // Fallback data if no units found
+      
       this.tenantData = {
         currentRent: 0,
         paymentStatus: 'No Data',
@@ -271,7 +270,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
   private generateRecentActivities(unit: any): void {
     const activities: TenantActivity[] = [];
 
-    // Add payment activity based on status
+    
     if (unit.paymentStatus === 'Current') {
       activities.push({
         type: 'Rent Payment',
@@ -288,7 +287,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Add maintenance activity if there are open requests
+    
     if (unit.openMaintenanceRequests > 0) {
       activities.push({
         type: 'Maintenance',
@@ -298,7 +297,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Add lease activity
+    
     const leaseEndDays = this.calculateDaysUntilDate(unit.leaseEndDate);
     if (leaseEndDays <= 30) {
       activities.push({
@@ -309,7 +308,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
       });
     }
 
-    // Fill with default activities if needed
+   
     const defaultActivities: TenantActivity[] = [
       {
         type: 'Welcome',
@@ -328,7 +327,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
     this.recentActivities = [...activities, ...defaultActivities].slice(0, 4);
   }
 
-  // Navigation methods
+  
   onQuickAction(action: TenantQuickAction) {
     if (action.label === 'Move Out Notice') {
       this.submitMoveOutNotice();
@@ -368,7 +367,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
             duration: 5000,
             panelClass: ['success-snackbar']
           });
-          // Reload dashboard data to reflect changes
+         
           this.loadDashboardData();
         } else {
           this.snackBar.open(response.message || 'Failed to submit move-out notice', 'Close', { 
@@ -400,7 +399,7 @@ export class DashboardOverviewComponent implements OnInit, OnDestroy {
     this.snackBar.open('Refreshing dashboard...', 'Close', { duration: 2000 });
   }
 
-  // Getters for template
+ 
   getCurrentRent(): number {
     return this.tenantData?.currentRent || 0;
   }

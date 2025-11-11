@@ -22,11 +22,10 @@ export class AdminService {
 
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
 
-  // Store previous period data for growth calculations
+ 
   private previousStats: Partial<AdminStats> = {};
 
   constructor() {
-    console.log('AdminService initialized');
     this.loadPreviousStats();
   }
 
@@ -111,8 +110,6 @@ export class AdminService {
   }
 
   getDashboardStats(): Observable<ApiResponse<AdminStats>> {
-    console.log('AdminService: Calculating dashboard stats from real data...');
-    
     return forkJoin({
       businesses: this.getBusinesses().pipe(catchError(error => of({ success: false, message: error.message, data: [] }))),
       pendingBusinesses: this.getPendingBusinesses().pipe(catchError(error => of({ success: false, message: error.message, data: [] }))),
@@ -122,13 +119,11 @@ export class AdminService {
       pendingExternalBusinesses: this.getPendingExternalBusinesses().pipe(catchError(error => of({ success: false, message: error.message, data: [] })))
     }).pipe(
       map(results => {
-        // Calculate stats from real data
+    
         const stats = this.calculateStatsFromRealData(results);
         
-        // Save for next growth calculation
+      
         this.saveCurrentStats(stats);
-        
-        console.log('AdminService: Real stats calculated:', stats);
         
         return {
           success: true,
@@ -151,47 +146,40 @@ export class AdminService {
     const externalBusinesses = data.externalBusinesses.data || [];
     const pendingExternalBusinesses = data.pendingExternalBusinesses.data || [];
 
-    console.log('Calculating stats from:', {
-      businesses: businesses.length,
-      pendingBusinesses: pendingBusinesses.length,
-      advertisements: advertisements.length,
-      pendingAdvertisements: pendingAdvertisements.length,
-      externalBusinesses: externalBusinesses.length,
-      pendingExternalBusinesses: pendingExternalBusinesses.length
-    });
+
 
     // Calculate total businesses (internal + external)
     const allBusinesses = [...businesses, ...externalBusinesses];
     const allPendingBusinesses = [...pendingBusinesses, ...pendingExternalBusinesses];
     const totalBusinesses = allBusinesses.length + allPendingBusinesses.length;
 
-    // Calculate active businesses (approved status)
+   
     const activeBusinesses = allBusinesses.filter((business: Business) => 
       business.status === 'approved' || 
       business.registrationStatus === 'APPROVED' ||
       business.status === 'active'
     ).length;
 
-    // Calculate pending approvals
+  
     const pendingApprovals = allPendingBusinesses.length + pendingAdvertisements.length;
 
-    // Calculate active disputes from businesses with disputes
+   
     const activeDisputes = allBusinesses.filter((business: Business) => 
       business.hasActiveDispute || 
       business.disputeStatus === 'active' ||
       (business.rejectionReason && business.rejectionReason.includes('dispute'))
     ).length;
 
-    // Calculate user statistics from actual business data
+
     const userStats = this.calculateUserStats(allBusinesses, allPendingBusinesses, advertisements);
     
-    // Calculate property statistics from actual business data
+ 
     const propertyStats = this.calculatePropertyStats(allBusinesses);
     
-    // Calculate revenue statistics from actual business and advertisement data
+   
     const revenueStats = this.calculateRevenueStats(allBusinesses, advertisements);
     
-    // Calculate growth rates based on previous data
+   
     const growthRates = this.calculateGrowthRates(
       userStats.totalUsers, 
       propertyStats.totalProperties, 
@@ -220,51 +208,50 @@ export class AdminService {
   }
 
   private calculateUserStats(businesses: Business[], pendingBusinesses: Business[], advertisements: Advertisement[]): any {
-    // Calculate real user counts based on actual business data
     
-    // Each approved business represents the business owner
+    
     const businessOwners = businesses.length;
     
-    // Each business has employees (estimate based on business size)
+   
     const businessEmployees = businesses.reduce((total: number, business: Business) => {
-      if (business.totalJobs > 100) return total + 5; // large business
-      if (business.totalJobs > 50) return total + 3; // medium business
-      return total + 1; // small business
+      if (business.totalJobs > 100) return total + 5; 
+      if (business.totalJobs > 50) return total + 3; 
+      return total + 1; 
     }, 0);
     
-    // Pending business applicants
+  
     const pendingOwners = pendingBusinesses.length;
     
-    // Estimate tenants based on properties managed by businesses
+    
     const totalTenants = businesses.reduce((total: number, business: Business) => {
-      // Estimate tenants based on business activity
+ 
       const baseTenants = business.totalJobs || 0;
       const ratingMultiplier = business.rating > 4 ? 2 : 1;
       return total + (baseTenants * ratingMultiplier);
     }, 0);
     
-    // Estimate landlords (businesses that manage properties)
+    
     const landlords = businesses.filter((business: Business) => 
       business.category?.toLowerCase().includes('property') ||
       business.category?.toLowerCase().includes('real estate') ||
       business.description?.toLowerCase().includes('property management')
     ).length;
     
-    // Estimate caretakers (maintenance/service businesses)
+    
     const caretakers = businesses.filter((business: Business) => 
       business.category?.toLowerCase().includes('maintenance') ||
       business.category?.toLowerCase().includes('caretaker') ||
       business.category?.toLowerCase().includes('service')
     ).length;
     
-    // Advertisement viewers/clicks
+   
     const adViewers = advertisements.reduce((total: number, ad: Advertisement) => {
       return total + (ad.views || 0) + (ad.clicks || 0);
     }, 0);
     
-    // Calculate totals
+   
     const totalUsers = businessOwners + businessEmployees + pendingOwners + totalTenants + landlords + caretakers + Math.floor(adViewers / 10);
-    const admins = Math.max(1, Math.floor(totalUsers * 0.01)); // 1% admin ratio
+    const admins = Math.max(1, Math.floor(totalUsers * 0.01)); 
 
     return {
       totalUsers,
@@ -276,22 +263,21 @@ export class AdminService {
   }
 
   private calculatePropertyStats(businesses: Business[]): any {
-    // Calculate properties based on actual business data
     const propertiesFromBusinesses = businesses.reduce((total: number, business: Business) => {
       let properties = 0;
       
-      // Estimate properties based on business type and activity
+      
       if (business.category?.toLowerCase().includes('property')) {
-        // Property management businesses manage more properties
+     
         properties += business.totalJobs ? Math.floor(business.totalJobs * 1.5) : 10;
       } else if (business.category?.toLowerCase().includes('real estate')) {
         properties += business.totalJobs ? Math.floor(business.totalJobs * 2) : 15;
       } else {
-        // Other businesses might have their own properties
+       
         properties += business.totalJobs ? Math.floor(business.totalJobs * 0.5) : 1;
       }
       
-      // Successful businesses (high rating) manage more properties
+     
       if (business.rating > 4) {
         properties = Math.floor(properties * 1.5);
       }
@@ -299,7 +285,7 @@ export class AdminService {
       return total + Math.max(properties, 1);
     }, 0);
 
-    // Add base properties for the platform
+   
     const baseProperties = Math.max(50, businesses.length * 3);
     const totalProperties = baseProperties + propertiesFromBusinesses;
 
@@ -307,48 +293,46 @@ export class AdminService {
   }
 
   private calculateRevenueStats(businesses: Business[], advertisements: Advertisement[]): any {
-    // Calculate revenue from actual business and advertisement data
-    
-    // Revenue from businesses (subscription fees, commissions)
+   
     const businessRevenue = businesses.reduce((total: number, business: Business) => {
       let revenue = 0;
       
-      // Base subscription fee based on business size
+      
       if (business.totalJobs > 100) {
-        revenue += 500; // large business subscription
+        revenue += 500; 
       } else if (business.totalJobs > 50) {
-        revenue += 300; // medium business subscription
+        revenue += 300; 
       } else {
-        revenue += 100; // small business subscription
+        revenue += 100; 
       }
       
-      // Commission from business transactions
+      
       if (business.totalJobs) {
-        revenue += business.totalJobs * 10; // $10 commission per job
+        revenue += business.totalJobs * 10; 
       }
       
-      // Premium businesses pay more
+     
       if (business.rating > 4.5) {
-        revenue += 200; // premium features
+        revenue += 200; 
       }
       
       return total + revenue;
     }, 0);
     
-    // Revenue from advertisements
+  
     const advertisementRevenue = advertisements.reduce((total: number, ad: Advertisement) => {
       let revenue = 0;
       
-      // Base ad revenue
+    
       if (ad.status === 'APPROVED') {
-        revenue += 50; // base ad fee
+        revenue += 50; 
         
-        // Performance-based revenue
+       
         if (ad.clicks) {
-          revenue += ad.clicks * 0.5; // $0.50 per click
+          revenue += ad.clicks * 0.5; 
         }
         if (ad.views) {
-          revenue += ad.views * 0.01; // $0.01 per view
+          revenue += ad.views * 0.01; 
         }
       }
       
@@ -356,8 +340,8 @@ export class AdminService {
     }, 0);
     
     const monthlyRevenue = businessRevenue + advertisementRevenue;
-    const commissionRevenue = monthlyRevenue * 0.15; // 15% commission
-    const platformEarnings = monthlyRevenue * 0.85; // 85% platform earnings
+    const commissionRevenue = monthlyRevenue * 0.15; 
+    const platformEarnings = monthlyRevenue * 0.85; 
 
     return {
       monthlyRevenue,
@@ -406,13 +390,11 @@ export class AdminService {
 
   getBusinesses(): Observable<ApiResponse<Business[]>> {
     const url = `${this.apiUrl}/api/admin/businesses`;
-    console.log('AdminService: Calling getBusinesses:', url);
-    
+
     return this.http.get<ApiResponse<Business[]>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('AdminService: Businesses loaded:', response)),
       catchError(error => {
         console.error('AdminService: Businesses error:', error);
         return this.handleError(error);
@@ -422,13 +404,11 @@ export class AdminService {
 
   getPendingBusinesses(): Observable<ApiResponse<Business[]>> {
     const url = `${this.apiUrl}/api/admin/businesses/pending`;
-    console.log('AdminService: Calling getPendingBusinesses:', url);
-    
+
     return this.http.get<ApiResponse<Business[]>>(
       url,
       { headers: this.createHeaders() }
     ).pipe(
-      tap(response => console.log('AdminService: Pending businesses loaded:', response)),
       catchError(error => {
         console.error('AdminService: Pending businesses error:', error);
         return this.handleError(error);

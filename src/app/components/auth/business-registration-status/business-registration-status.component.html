@@ -1,4 +1,4 @@
-<!-- business-registration-status.component.html -->
+
 <div class="business-status-container">
   <mat-card class="status-card">
     <mat-card-header>
@@ -10,16 +10,16 @@
     </mat-card-header>
 
     <mat-card-content>
-      <!-- Loading State -->
+   
       <div *ngIf="isLoading" class="loading-state">
         <mat-progress-spinner diameter="50" mode="indeterminate"></mat-progress-spinner>
         <p>Checking your business status...</p>
       </div>
 
-      <!-- Status Page Content (Show only if not approved) -->
+     
       <div *ngIf="shouldShowStatusPage() && !isLoading" class="status-content">
         
-        <!-- No Business Found State -->
+      
         <div *ngIf="!businessInfo" class="no-business-state">
           <mat-icon class="no-business-icon">business_center</mat-icon>
           <h2>No Business Registration Found</h2>
@@ -37,10 +37,10 @@
           </div>
         </div>
 
-        <!-- Business Status States -->
+       
         <div *ngIf="businessInfo" class="business-status-states">
           
-          <!-- Pending Approval State -->
+        
           <div *ngIf="businessInfo.verificationStatus === 'PENDING'" class="status-section pending-section">
             <div class="status-header">
               <mat-icon [color]="getStatusColor(businessInfo.verificationStatus)" class="status-icon">
@@ -90,7 +90,7 @@
             </div>
           </div>
 
-          <!-- Rejected State -->
+        
           <div *ngIf="businessInfo.verificationStatus === 'REJECTED'" class="status-section rejected-section">
             <div class="status-header">
               <mat-icon [color]="getStatusColor(businessInfo.verificationStatus)" class="status-icon">
@@ -141,7 +141,6 @@
             </div>
           </div>
 
-          <!-- Action Buttons -->
           <div class="action-buttons">
             <button mat-raised-button color="primary" (click)="refreshStatus()" [disabled]="isLoading">
               <mat-icon>refresh</mat-icon>
@@ -159,7 +158,7 @@
             </button>
           </div>
 
-          <!-- Auto-check Notice -->
+          
           <div class="auto-check-notice" *ngIf="businessInfo.verificationStatus === 'PENDING'">
             <mat-icon>info</mat-icon>
             <span>Status updates automatically every 30 seconds</span>
@@ -167,7 +166,7 @@
         </div>
       </div>
 
-      <!-- Redirecting State (Briefly shown when approved) -->
+    
       <div *ngIf="!shouldShowStatusPage() && !isLoading" class="redirecting-state">
         <mat-icon class="success-icon">check_circle</mat-icon>
         <h2>Business Approved!</h2>

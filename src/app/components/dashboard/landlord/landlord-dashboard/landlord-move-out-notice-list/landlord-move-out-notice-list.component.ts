@@ -51,12 +51,12 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
   hasNext = false;
   hasPrev = false;
 
-  // Filters
+  
   filterStatus: string = '';
   searchTerm: string = '';
   propertyFilter: string = '';
 
-  // Stats
+  
   stats = {
     pending: 0,
     approved: 0,
@@ -75,8 +75,7 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
 
   loadMoveOutNotices(page: number = 1): void {
     this.isLoading = true;
-    
-    // Convert filter status if needed
+   
     let apiStatus = this.filterStatus;
     if (this.filterStatus === 'PENDING') {
       apiStatus = 'PENDING_APPROVAL';
@@ -97,23 +96,23 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
           this.hasPrev = response.pagination?.hasPrev || false;
           this.calculateStats();
           
-          console.log('📋 Loaded notices:', this.moveOutNotices);
+          console.log(' Loaded notices:', this.moveOutNotices);
         } else {
           this.snackBar.open(response.message || 'Failed to load move-out notices', 'Close', { duration: 5000 });
         }
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('❌ Error loading notices:', error);
+        console.error(' Error loading notices:', error);
         this.snackBar.open('Failed to load move-out notices', 'Close', { duration: 5000 });
         this.isLoading = false;
       }
     });
   }
 
-  // ✅ FIXED: Transform notice data with status normalization
+ 
   private transformNoticeData(notice: any): LandlordMoveOutNotice {
-    // ✅ Normalize status: "PENDING_APPROVAL" → "PENDING"
+    
     let normalizedStatus = notice.status || 'PENDING';
     if (normalizedStatus === 'PENDING_APPROVAL') {
       normalizedStatus = 'PENDING';
@@ -121,29 +120,28 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
 
     return {
       ...notice,
-      // ✅ Ensure tenant data exists with fallbacks
+   
       tenant: notice.tenant || {
         fullName: notice.tenantName || notice.tenantFullName || 'Unknown Tenant',
         email: notice.tenantEmail || 'N/A',
         phone: notice.tenantPhone || 'N/A'
       },
-      // ✅ Ensure property data exists with fallbacks
+     
       property: notice.property || {
         name: notice.propertyName || 'Unknown Property',
         address: notice.propertyAddress || 'Address not available',
         id: notice.propertyId
       },
-      // ✅ Ensure unit data exists with fallbacks
       unit: notice.unit || {
         unitNumber: notice.unitNumber || 'Unknown Unit',
         id: notice.unitId
       },
-      // ✅ Ensure all required fields have fallbacks
+     
       moveOutDate: notice.moveOutDate || '',
       reason: notice.reason || 'OTHER',
       notes: notice.notes || '',
       submittedAt: notice.submittedAt || notice.createdAt || new Date().toISOString(),
-      // ✅ Use normalized status
+    
       status: normalizedStatus
     };
   }
@@ -215,7 +213,7 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
     }
   }
 
-  // ✅ FIXED: Approve Notice Method
+
   approveNotice(notice: LandlordMoveOutNotice): void {
     if (!notice.id) return;
 
@@ -240,7 +238,7 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('❌ Approve error:', error);
+            console.error(' Approve error:', error);
             this.snackBar.open('Failed to approve move-out notice', 'Close', { duration: 5000 });
           }
         });
@@ -248,7 +246,7 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
     });
   }
 
-  // ✅ FIXED: Reject Notice Method
+ 
   rejectNotice(notice: LandlordMoveOutNotice): void {
     if (!notice.id) return;
 
@@ -275,7 +273,7 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('❌ Reject error:', error);
+            console.error(' Reject error:', error);
             this.snackBar.open('Failed to reject move-out notice', 'Close', { duration: 5000 });
           }
         });

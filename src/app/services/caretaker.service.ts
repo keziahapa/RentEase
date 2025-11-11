@@ -1,4 +1,4 @@
-// caretaker.service.ts
+
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
@@ -134,7 +134,7 @@ export class CaretakerService {
     );
   }
 
-  // ===== MOVE-OUT NOTICE METHODS =====
+ 
   getMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<MoveOutNotice[]> {
     let params = new HttpParams()
       .set('page', page.toString())

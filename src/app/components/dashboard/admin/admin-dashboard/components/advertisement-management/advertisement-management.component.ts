@@ -1,4 +1,4 @@
-// advertisement-management.component.ts
+
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';

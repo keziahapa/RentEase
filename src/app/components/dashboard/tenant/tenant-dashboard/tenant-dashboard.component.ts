@@ -50,7 +50,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
   unreadMessagesCount: number = 0;
   isLoadingNotifications: boolean = false;
 
-  // 🟢 ADDED: Invitation retry properties
+
   pendingInvitation: any = null;
   isProcessingInvitation = false;
   hasPendingInvitationAlert = false;
@@ -73,7 +73,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadUserData();
-    this.checkPendingInvitations(); // 🟢 ADDED: Check for pending invitations first
+    this.checkPendingInvitations(); 
     this.loadDashboardData();
     this.loadNotifications();
 
@@ -97,7 +97,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     this.communicationSubscriptions.unsubscribe();
   }
 
-  // 🟢 ADDED: Greeting method
+ 
   getGreetingMessage(): string {
     const now = new Date();
     const hours = now.getHours();
@@ -115,7 +115,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     return `${greeting}, ${firstName}! `;
   }
 
-  // 🟢 ADDED: Invitation retry logic
+  
   private checkPendingInvitations(): void {
     try {
       const pendingInvitationStr = localStorage.getItem('pendingInvitation');
@@ -123,13 +123,13 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
         this.pendingInvitation = JSON.parse(pendingInvitationStr);
         
         if (this.pendingInvitation && this.pendingInvitation.status === 'queued') {
-          console.log('🔄 Tenant Dashboard: Found pending invitation, attempting to process...');
+          console.log('Tenant Dashboard: Found pending invitation, attempting to process...');
           this.hasPendingInvitationAlert = true;
           this.processPendingInvitation();
         }
       }
     } catch (error) {
-      console.error('❌ Error checking pending invitations:', error);
+      console.error(' Error checking pending invitations:', error);
     }
   }
 
@@ -138,7 +138,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
 
     this.isProcessingInvitation = true;
     
-    this.snackBar.open('🔄 Processing pending invitation...', 'Close', { 
+    this.snackBar.open(' Processing pending invitation...', 'Close', { 
       duration: 3000,
       panelClass: ['info-snackbar']
     });
@@ -147,23 +147,22 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         this.isProcessingInvitation = false;
         this.hasPendingInvitationAlert = false;
-        console.log('✅ Pending invitation accepted successfully:', response);
+        console.log(' Pending invitation accepted successfully:', response);
         
         this.clearPendingInvitation();
         
-        this.snackBar.open('🎉 Invitation accepted successfully!', 'Close', { 
+        this.snackBar.open(' Invitation accepted successfully!', 'Close', { 
           duration: 5000,
           panelClass: ['success-snackbar']
         });
 
-        // Refresh to show new data
         setTimeout(() => {
           this.loadDashboardData();
         }, 1000);
       },
       error: (error: any) => {
         this.isProcessingInvitation = false;
-        console.error('❌ Failed to process pending invitation:', error);
+        console.error(' Failed to process pending invitation:', error);
         
         if (this.pendingInvitation) {
           this.pendingInvitation.attemptCount++;
@@ -171,19 +170,19 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
           this.pendingInvitation.lastError = error.message;
           
           if (this.pendingInvitation.attemptCount >= this.pendingInvitation.maxRetries) {
-            this.snackBar.open('❌ Invitation failed after multiple attempts. Please contact support.', 'Close', { 
+            this.snackBar.open(' Invitation failed after multiple attempts. Please contact support.', 'Close', { 
               duration: 7000,
               panelClass: ['error-snackbar']
             });
             this.clearPendingInvitation();
           } else {
             localStorage.setItem('pendingInvitation', JSON.stringify(this.pendingInvitation));
-            this.snackBar.open('⏳ Invitation will retry later', 'Close', { 
+            this.snackBar.open(' Invitation will retry later', 'Close', { 
               duration: 3000,
               panelClass: ['warning-snackbar']
             });
             
-            // Schedule next retry with exponential backoff
+            
             this.scheduleNextRetry();
           }
         }
@@ -203,7 +202,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
 
     const retryDelay = Math.min(30000, 2000 * Math.pow(2, this.pendingInvitation.attemptCount));
     
-    console.log(`⏰ Scheduling next retry in ${retryDelay}ms`);
+    console.log(` Scheduling next retry in ${retryDelay}ms`);
     
     setTimeout(() => {
       if (this.pendingInvitation && this.pendingInvitation.status === 'queued') {
@@ -212,7 +211,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     }, retryDelay);
   }
 
-  // 🟢 ADDED: Manual retry for template
+ 
   retryPendingInvitation(): void {
     if (this.pendingInvitation && !this.isProcessingInvitation) {
       this.processPendingInvitation();
@@ -534,14 +533,14 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
   refreshDashboard(): void {
     this.loadDashboardData();
     this.loadNotifications();
-    this.checkPendingInvitations(); // 🟢 ADDED: Check invitations on refresh
+    this.checkPendingInvitations(); 
   }
 
   onLogoError(event: any): void {
     console.error('Logo failed to load:', event);
   }
 
-  // 🟢 ADDED: Template helpers for invitation status
+ 
   getInvitationStatus(): string {
     if (!this.pendingInvitation) return '';
     

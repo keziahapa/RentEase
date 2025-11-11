@@ -7,8 +7,7 @@ export interface BusinessRegistration {
   phoneNumber?: string;
   ownerName?: string;
   ownerEmail?: string;
-  
-  // ADD THESE PROPERTIES:
+
   status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   registrationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';

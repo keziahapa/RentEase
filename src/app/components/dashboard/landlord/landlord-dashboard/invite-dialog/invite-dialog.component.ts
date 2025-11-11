@@ -54,7 +54,7 @@ export class InviteDialogComponent implements OnInit {
 
   ngOnInit() {
     this.availableUnits = this.data.availableUnits || [];
-    console.log('📋 Available units with IDs:', this.availableUnits.map(u => ({ id: u.id, unitNumber: u.unitNumber })));
+    console.log(' Available units with IDs:', this.availableUnits.map(u => ({ id: u.id, unitNumber: u.unitNumber })));
     
    
     this.buildForm();
@@ -99,7 +99,7 @@ export class InviteDialogComponent implements OnInit {
       }
 
       this.loading = true;
-      console.log('📤 Form data:', formData);
+      console.log(' Form data:', formData);
       
       if (this.data.type === 'tenant') {
         this.inviteTenant(formData);
@@ -124,12 +124,12 @@ export class InviteDialogComponent implements OnInit {
       unitId: formData.unitId
     };
 
-    console.log('📤 Sending tenant invitation:', tenantData);
+    console.log(' Sending tenant invitation:', tenantData);
 
     this.invitationService.inviteTenant(tenantData).subscribe({
       next: (response) => {
         this.loading = false;
-        console.log('✅ Tenant invitation response:', response);
+        console.log(' Tenant invitation response:', response);
         
         const result: InviteDialogResult = {
           success: true,
@@ -143,7 +143,7 @@ export class InviteDialogComponent implements OnInit {
       },
       error: (error) => {
         this.loading = false;
-        console.error('❌ Tenant invitation error:', error);
+        console.error(' Tenant invitation error:', error);
         
         const result: InviteDialogResult = {
           success: false,
@@ -163,12 +163,12 @@ export class InviteDialogComponent implements OnInit {
       propertyId: this.data.propertyId
     };
 
-    console.log('📤 Sending caretaker invitation:', caretakerData);
+    console.log(' Sending caretaker invitation:', caretakerData);
 
     this.invitationService.inviteCaretaker(caretakerData).subscribe({
       next: (response) => {
         this.loading = false;
-        console.log('✅ Caretaker invitation response:', response);
+        console.log(' Caretaker invitation response:', response);
         
         const result: InviteDialogResult = {
           success: true,

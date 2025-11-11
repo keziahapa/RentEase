@@ -28,7 +28,7 @@ export interface NewChatModalData {
   styleUrls: ['./new-chat-modal.component.scss']
 })
 export class NewChatModalComponent {
-  // ✅ Use inject() instead of @Inject decorator
+ 
   public dialogRef = inject(MatDialogRef<NewChatModalComponent>);
   public data = inject<NewChatModalData>(MAT_DIALOG_DATA);
 

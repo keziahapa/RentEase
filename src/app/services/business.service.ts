@@ -28,14 +28,14 @@ export class BusinessService {
   private readonly apiUrl = 'https://rentease-3-sfgx.onrender.com';
 
   getRegistrationStatus(): Observable<BusinessStatusResponse> {
-    console.log('🔍 [1] Starting getRegistrationStatus()...');
-    console.log('🔍 [1a] API URL:', `${this.apiUrl}/api/external-business/registration-status`);
+    console.log(' [1] Starting getRegistrationStatus()...');
+    console.log(' [1a] API URL:', `${this.apiUrl}/api/external-business/registration-status`);
     
     const localBusiness = this.getLocalBusinessData();
     if (localBusiness) {
-      console.log('🔍 [1b] Found local business data:', localBusiness);
+      console.log('[1b] Found local business data:', localBusiness);
     } else {
-      console.log('🔍 [1c] No local business data found');
+      console.log(' [1c] No local business data found');
     }
     
     return this.http.get<any>(
@@ -46,27 +46,27 @@ export class BusinessService {
       }
     ).pipe(
       map(response => {
-        console.log('🔍 [2] Full HTTP Response received:');
-        console.log('🔍 [2a] Status:', response.status);
-        console.log('🔍 [2b] Body exists:', !!response.body);
-        console.log('🔍 [2c] Body content:', response.body);
+        console.log(' [2] Full HTTP Response received:');
+        console.log(' [2a] Status:', response.status);
+        console.log(' [2b] Body exists:', !!response.body);
+        console.log(' [2c] Body content:', response.body);
         
         if (response.body) {
-          console.log('🔍 [2d] Body keys:', Object.keys(response.body));
+          console.log(' [2d] Body keys:', Object.keys(response.body));
         }
 
         if (!response.body) {
-          console.log('🔍 [3] EMPTY RESPONSE BODY');
+          console.log(' [3] EMPTY RESPONSE BODY');
           return this.handleNoBusinessData(localBusiness);
         }
 
         if (response.body.success !== undefined) {
-          console.log('🔍 [4] Response has success wrapper:', response.body.success);
-          console.log('🔍 [4a] Response data type:', typeof response.body.data);
+          console.log(' [4] Response has success wrapper:', response.body.success);
+          console.log(' [4a] Response data type:', typeof response.body.data);
           
           if (response.body.success && response.body.data) {
             if (typeof response.body.data === 'string') {
-              console.log('🔍 [4b] String status received:', response.body.data);
+              console.log('[4b] String status received:', response.body.data);
               
               const businessData: BusinessRegistration = {
                 verificationStatus: response.body.data as any,
@@ -76,7 +76,7 @@ export class BusinessService {
                 businessRegistrationNumber: 'N/A'
               };
               
-              console.log('🔍 [4c] Created business object:', businessData);
+              console.log('[4c] Created business object:', businessData);
               this.updateLocalBusinessData(businessData);
               
               return {
@@ -86,17 +86,17 @@ export class BusinessService {
               } as BusinessStatusResponse;
             }
             
-            console.log('🔍 [4d] Object business data found:', response.body.data);
+            console.log(' [4d] Object business data found:', response.body.data);
             this.updateLocalBusinessData(response.body.data);
             return response.body;
           } else {
-            console.log('🔍 [4e] Response success is false or no data');
+            console.log(' [4e] Response success is false or no data');
             return this.handleNoBusinessData(localBusiness);
           }
         }
 
         if (response.body.businessName || response.body.registrationStatus || response.body.verificationStatus || response.body.id) {
-          console.log('🔍 [5] Found direct business data:', response.body);
+          console.log(' [5] Found direct business data:', response.body);
           this.updateLocalBusinessData(response.body);
           return {
             success: true,
@@ -106,7 +106,7 @@ export class BusinessService {
         }
 
         if (Array.isArray(response.body)) {
-          console.log('🔍 [6] Response body is array:', response.body);
+          console.log(' [6] Response body is array:', response.body);
           if (response.body.length > 0) {
             this.updateLocalBusinessData(response.body[0]);
             return {
@@ -117,22 +117,22 @@ export class BusinessService {
           }
         }
 
-        console.log('🔍 [7] Unknown response structure:', response.body);
+        console.log(' [7] Unknown response structure:', response.body);
         return this.handleNoBusinessData(localBusiness);
       }),
       catchError(error => {
-        console.log('🔍 [8] ERROR in getRegistrationStatus():', error);
+        console.log(' [8] ERROR in getRegistrationStatus():', error);
         
         if (error.status === 404) {
-          console.log('🔍 [8a] 404 - Business not found');
+          console.log(' [8a] 404 - Business not found');
         } else if (error.status === 401) {
-          console.log('🔍 [8b] 401 - Authentication failed');
+          console.log(' [8b] 401 - Authentication failed');
         } else if (error.status === 403) {
-          console.log('🔍 [8c] 403 - Access denied');
+          console.log(' [8c] 403 - Access denied');
         }
 
         if (localBusiness) {
-          console.log('🔍 [8d] Using local business data after error');
+          console.log(' [8d] Using local business data after error');
           return of({
             success: true,
             message: 'Using local business data',
@@ -140,7 +140,7 @@ export class BusinessService {
           } as BusinessStatusResponse);
         }
 
-        console.log('🔍 [8e] No business data available after error');
+        console.log(' [8e] No business data available after error');
         return of({
           success: false,
           message: `No business registration found: ${error.message}`,
@@ -151,10 +151,10 @@ export class BusinessService {
   }
 
   private handleNoBusinessData(localBusiness: any): BusinessStatusResponse {
-    console.log('🔍 [9] No business data found in response');
+    console.log(' [9] No business data found in response');
     
     if (localBusiness) {
-      console.log('🔍 [9a] Using local business data as fallback');
+      console.log('[9a] Using local business data as fallback');
       return {
         success: true,
         message: 'Using local business data',
@@ -162,7 +162,7 @@ export class BusinessService {
       } as BusinessStatusResponse;
     }
     
-    console.log('🔍 [9b] No business data anywhere');
+    console.log(' [9b] No business data anywhere');
     return {
       success: false,
       message: 'No business registration found',
@@ -583,7 +583,7 @@ export class BusinessService {
   }
 
   private handleError = (error: HttpErrorResponse): Observable<never> => {
-    console.error('❌ Business Service Error:', error);
+    console.error(' Business Service Error:', error);
     
     let errorMessage = 'An unexpected error occurred';
     

@@ -74,17 +74,17 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     private tenantService: TenantService,
     private snackBar: MatSnackBar
   ) {
-    // Set minimum date to tomorrow
+  
     this.minDate = new Date();
     this.minDate.setDate(this.minDate.getDate() + 1);
     
-    // Set maximum date to 1 year from now
+  
     this.maxDate = new Date();
     this.maxDate.setFullYear(this.maxDate.getFullYear() + 1);
   }
 
   ngOnInit(): void {
-    console.log('🔍 MoveOut Dialog Initialized');
+    console.log(' MoveOut Dialog Initialized');
     this.loadCurrentPropertyData();
   }
 
@@ -139,9 +139,9 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
       notes: ['', [Validators.maxLength(1000)]]
     });
 
-    console.log('📝 Form initialized with values:', this.noticeForm.value);
-    console.log('✅ Form valid after init:', this.noticeForm.valid);
-    console.log('🏠 Current property data:', this.currentProperty);
+    console.log(' Form initialized with values:', this.noticeForm.value);
+    console.log(' Form valid after init:', this.noticeForm.valid);
+    console.log(' Current property data:', this.currentProperty);
   }
 
   onCancel(): void {
@@ -149,15 +149,15 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   onSubmit(): void {
-    console.log('🔘 Submit clicked - Form valid:', this.noticeForm.valid, 'Terms accepted:', this.termsAccepted);
+    console.log(' Submit clicked - Form valid:', this.noticeForm.valid, 'Terms accepted:', this.termsAccepted);
     
-    // Double submission protection
+    
     if (this.isSubmitting) {
-      console.warn('⚠️ Submission already in progress, ignoring duplicate click');
+      console.warn(' Submission already in progress, ignoring duplicate click');
       return;
     }
     
-    // Mark all fields as touched to show errors
+  
     this.markFormGroupTouched();
     
     if (this.noticeForm.valid && this.termsAccepted) {
@@ -165,26 +165,26 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
       
       const formValue = this.noticeForm.value;
       
-      // ✅ INCLUDE COMPLETE PROPERTY AND UNIT DATA
+     
       const noticeData: MoveOutNoticeRequest = {
         ...formValue,
         moveOutDate: this.formatDate(formValue.moveOutDate),
-        // ✅ Ensure propertyId and unitId come from the loaded data
+      
         propertyId: this.currentProperty.propertyId,
         unitId: this.currentProperty.unitId,
-        // ✅ Include property display information
+    
         propertyName: this.currentProperty.name,
         unitNumber: this.currentProperty.unitNumber,
         propertyAddress: this.currentProperty.address
       };
 
-      console.log('📤 Submitting move-out notice with complete data:', noticeData);
-      console.log('🏠 Current property info:', this.currentProperty);
+      console.log(' Submitting move-out notice with complete data:', noticeData);
+      console.log(' Current property info:', this.currentProperty);
 
       this.tenantService.submitMoveOutNotice(noticeData).subscribe({
         next: (response: any) => {
           this.isSubmitting = false;
-          console.log('📥 Move-out notice response:', response);
+          console.log(' Move-out notice response:', response);
           
           if (response.success) {
             this.snackBar.open('Move-out notice submitted successfully!', 'Close', { 
@@ -192,10 +192,10 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
               panelClass: ['success-snackbar']
             });
             
-            // ✅ RETURN COMPLETE DATA INCLUDING PROPERTY INFO
+            
             this.dialogRef.close({ 
               success: true, 
-              data: noticeData, // This now includes property/unit data
+              data: noticeData,
               response: response.data
             });
           } else {
@@ -207,7 +207,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
         },
         error: (error) => {
           this.isSubmitting = false;
-          console.error('❌ Error submitting move-out notice:', error);
+          console.error(' Error submitting move-out notice:', error);
           
           if (error.status === 401 || error.sessionExpired) {
             this.snackBar.open('Session expired. Please login again.', 'Close', { 
@@ -224,9 +224,9 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
         }
       });
     } else {
-      console.log('❌ Form validation failed');
-      console.log('📊 Form valid:', this.noticeForm.valid);
-      console.log('📝 Terms accepted:', this.termsAccepted);
+      console.log(' Form validation failed');
+      console.log(' Form valid:', this.noticeForm.valid);
+      console.log(' Terms accepted:', this.termsAccepted);
       
       if (!this.termsAccepted) {
         this.snackBar.open('Please accept the terms and conditions', 'Close', { 
@@ -252,7 +252,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     return `${year}-${month}-${day}`;
   }
 
-  // Helper methods for template
+ 
   getMoveOutDateError(): string {
     const control = this.noticeForm.get('moveOutDate');
     if (control?.hasError('required') && control.touched) {
@@ -279,7 +279,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
 
   onTermsChange(checked: boolean): void {
     this.termsAccepted = checked;
-    console.log('📝 Terms accepted:', checked);
+    console.log(' Terms accepted:', checked);
   }
 
   getReasonDisplayName(reasonValue: string): string {
@@ -298,6 +298,6 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   ngOnDestroy(): void {
-    console.log('🔍 MoveOut Dialog Destroyed');
+    console.log(' MoveOut Dialog Destroyed');
   }
 }

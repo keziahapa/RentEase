@@ -70,39 +70,39 @@ export class TenantService {
   }
 
   submitMoveOutNotice(request: MoveOutNoticeRequest): Observable<any> {
-    console.log('🚀 Submitting move-out notice with data:', request);
-    
+    console.log('Submitting move-out notice with data:', request);
+
     return this.http.post<any>(
       `${this.apiUrl}/tenant/move-out-notices`,
       request,
-      { 
+      {
         headers: this.createHeaders()
-        // 🟢 REMOVED observe: 'response' - This was causing the issue
+
       }
     ).pipe(
       map(response => {
-        console.log('✅ Move-out notice submitted successfully:', response);
+        console.log('Move-out notice submitted successfully:', response);
         return {
           success: true,
           message: 'Move-out notice submitted successfully!',
-          data: response?.data || request // 🟢 FIXED: response is now the actual API response
+          data: response?.data || request
         };
       }),
       catchError(error => {
-        console.error('❌ Error submitting move-out notice:', error);
-        
-        // Handle 401 specifically
+        console.error('Error submitting move-out notice:', error);
+
+       
         if (error.status === 401) {
-          console.warn('🔄 Token expired during submission');
-          return of({ 
-            success: false, 
+          console.warn('Token expired during submission');
+          return of({
+            success: false,
             message: 'Session expired. Please login again.',
-            sessionExpired: true 
+            sessionExpired: true
           });
         }
-        
-        return of({ 
-          success: false, 
+
+        return of({
+          success: false,
           message: error.error?.message || 'Failed to submit move-out notice',
           error: error
         });

@@ -50,7 +50,7 @@
     </div>
   </div>
 
-  <!-- Filters Section -->
+
   <div class="filters-section">
     <div class="filter-group">
       <mat-form-field appearance="outline" class="filter-field">
@@ -152,7 +152,7 @@
 
           <!-- ACTION BUTTONS -->
           <div class="notice-actions">
-            <!-- Approve/Reject Buttons (only show for pending notices) -->
+          
             <div class="action-buttons-group" *ngIf="notice.status === 'PENDING'">
               <button class="action-btn approve-btn" (click)="approveNotice(notice)">
                 <mat-icon>check_circle</mat-icon>

@@ -240,10 +240,10 @@
     </mat-card>
   </div>
 
-  <!-- Add Unit Dialog -->
+ 
   <div class="add-unit-dialog-overlay" *ngIf="showAddUnitDialog" (click)="closeAddUnitDialog()">
     <div class="add-unit-dialog-content" (click)="$event.stopPropagation()">
-      <!-- Dialog Header -->
+     
       <div class="dialog-header">
         <h2>Add New Unit</h2>
         <button mat-icon-button (click)="closeAddUnitDialog()" class="close-btn">
@@ -251,7 +251,7 @@
         </button>
       </div>
 
-      <!-- Dialog Content -->
+  
       <div class="dialog-content">
         <form [formGroup]="unitForm">
           <mat-form-field appearance="outline" class="full-width">

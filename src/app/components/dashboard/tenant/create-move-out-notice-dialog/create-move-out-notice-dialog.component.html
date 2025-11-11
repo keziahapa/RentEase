@@ -5,16 +5,16 @@
   </h2>
   
   <mat-dialog-content>
-    <!-- Loading State -->
+   
     <div *ngIf="isLoadingData" class="loading-state">
       <mat-spinner diameter="40"></mat-spinner>
       <p>Loading your property information...</p>
     </div>
 
-    <!-- Form -->
+  
     <form [formGroup]="noticeForm" class="notice-form" *ngIf="!isLoadingData">
       
-      <!-- Current Property Info -->
+     
       <div class="property-info-section">
         <div class="property-header">
           <mat-icon>home</mat-icon>
@@ -36,7 +36,7 @@
         </div>
       </div>
 
-      <!-- Move-Out Date -->
+  
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Intended Move-Out Date</mat-label>
         <input matInput 
@@ -61,7 +61,7 @@
         </mat-error>
       </mat-form-field>
 
-      <!-- Reason Selection -->
+
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Reason for Moving Out</mat-label>
         <mat-select formControlName="reason" required>
@@ -76,7 +76,7 @@
         </mat-error>
       </mat-form-field>
 
-      <!-- Additional Notes -->
+      
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Additional Notes (Optional)</mat-label>
         <textarea matInput 
@@ -93,7 +93,7 @@
         </mat-error>
       </mat-form-field>
 
-      <!-- Information Box -->
+    
       <div class="info-box">
         <div class="info-header">
           <mat-icon>info</mat-icon>
@@ -111,7 +111,7 @@
         </div>
       </div>
 
-      <!-- Terms Agreement -->
+     
       <div class="terms-section">
         <mat-checkbox (change)="onTermsChange($event.checked)" 
                      [checked]="termsAccepted"
@@ -126,7 +126,7 @@
     </form>
   </mat-dialog-content>
 
-  <!-- Dialog Actions -->
+ 
   <mat-dialog-actions>
     <button mat-stroked-button 
             type="button" 

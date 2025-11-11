@@ -79,7 +79,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         console.log('🔍 OTP Component - Query Params:', params);
 
         if (!this.email) {
-          // Try to get email from session storage as fallback
+        
           const pendingEmail = this.authService.getPendingEmail();
           if (pendingEmail) {
             this.email = pendingEmail;
@@ -156,11 +156,11 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         type: 'email_verification'
       };
 
-      console.log('🔐 Verifying OTP:', verifyRequest);
+      console.log(' Verifying OTP:', verifyRequest);
 
       const response = await firstValueFrom(this.authService.verifyOtp(verifyRequest));
 
-      console.log('🔐 OTP Verification Response:', response);
+      console.log(' OTP Verification Response:', response);
 
       if (response.success) {
   this.showMessage('Email verified successfully!', 'success');
@@ -177,7 +177,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
   throw new Error(response.message || 'Verification failed');
 }
     } catch (error: any) {
-      console.error('🔐 OTP Verification Error:', error);
+      console.error(' OTP Verification Error:', error);
       this.handleVerificationError(error);
       this.shakeInputs();
       this.clearOtpInputs();
@@ -238,7 +238,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
         throw new Error(response.message || 'Failed to resend code');
       }
     } catch (error: any) {
-      console.error('🔐 Resend OTP Error:', error);
+      console.error(' Resend OTP Error:', error);
       this.showMessage(error.message || 'Failed to resend code. Please try again.', 'error');
     } finally {
       this.isResending = false;
@@ -270,19 +270,18 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     let value = input.value.toUpperCase();
     
-    // Validate input based on position
     if (position === 1) {
-      // First character must be a letter
+    
       value = value.replace(/[^A-Z]/g, '');
     } else {
-      // Remaining characters must be numbers
+      
       value = value.replace(/[^0-9]/g, '');
     }
 
     const digitKey = `digit${position}` as keyof typeof this.otpData;
     this.otpData[digitKey] = value.slice(-1);
 
-    // Auto-focus next input
+ 
     if (value && position < 7) {
       const nextInput = this.otpInputs.toArray()[position];
       if (nextInput) {
@@ -290,7 +289,7 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
       }
     }
 
-    // Auto-submit when complete
+   
     if (this.isOtpComplete() && !this.isLoading) {
       setTimeout(() => this.verifyOtp(), 300);
     }
@@ -302,16 +301,16 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     if (event.key === 'Backspace') {
       event.preventDefault();
       if (!this.otpData[digitKey] && position > 1) {
-        // Move to previous input if current is empty
+       
         const prevInput = this.otpInputs.toArray()[position - 2];
         if (prevInput) {
           prevInput.nativeElement.focus();
-          // Clear the previous input
+    
           const prevKey = `digit${position - 1}` as keyof typeof this.otpData;
           this.otpData[prevKey] = '';
         }
       } else {
-        // Clear current input
+      
         this.otpData[digitKey] = '';
       }
     } else if (event.key === 'Enter' && this.isOtpComplete() && !this.isLoading) {
@@ -333,13 +332,13 @@ export class VerifyOtpComponent implements AfterViewInit, OnInit, OnDestroy {
     const cleanOtp = pastedData.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
 
     if (cleanOtp.length === 7 && /^[A-Z][0-9]{6}$/.test(cleanOtp)) {
-      // Fill all inputs with pasted data
+    
       for (let i = 0; i < 7; i++) {
         const key = `digit${i + 1}` as keyof typeof this.otpData;
         this.otpData[key] = cleanOtp[i];
       }
       
-      // Auto-verify after paste
+     
       setTimeout(() => {
         if (this.isOtpComplete() && !this.isLoading) {
           this.verifyOtp();
