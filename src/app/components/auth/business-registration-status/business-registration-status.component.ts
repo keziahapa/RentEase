@@ -1,4 +1,3 @@
-
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -40,7 +39,7 @@ export class BusinessRegistrationStatusComponent implements OnInit, OnDestroy {
     this.loadBusinessStatus();
  
     this.checkInterval = setInterval(() => {
-      if (this.businessInfo?.verificationStatus === 'PENDING') {
+      if (!this.businessInfo || this.businessInfo.verificationStatus !== 'APPROVED') {
         this.loadBusinessStatus();
       }
     }, 30000);
@@ -55,20 +54,17 @@ export class BusinessRegistrationStatusComponent implements OnInit, OnDestroy {
         this.businessInfo = response.data;
         this.hasCheckedInitialStatus = true;
         
-      
         if (response.data.verificationStatus === 'APPROVED') {
           this.redirectToDashboard();
           return;
         }
       } else {
-       
         this.businessInfo = null;
         this.hasCheckedInitialStatus = true;
       }
     } catch (error: any) {
       console.error('Error loading business status:', error);
       if (error.status === 404) {
-      
         this.businessInfo = null;
       } else {
         this.showMessage('Error loading business status. Please try again.', 'error');
@@ -96,8 +92,14 @@ export class BusinessRegistrationStatusComponent implements OnInit, OnDestroy {
   }
 
   logout() {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+    this.authService.logout().subscribe({
+      next: () => {
+        this.router.navigate(['/login']);
+      },
+      error: () => {
+        this.router.navigate(['/login']);
+      }
+    });
   }
 
   private showMessage(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
@@ -137,7 +139,6 @@ export class BusinessRegistrationStatusComponent implements OnInit, OnDestroy {
   }
 
   shouldShowStatusPage(): boolean {
-  
     return this.isLoading || 
            !this.hasCheckedInitialStatus || 
            (this.businessInfo && this.businessInfo.verificationStatus !== 'APPROVED');
