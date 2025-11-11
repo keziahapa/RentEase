@@ -3,19 +3,14 @@ import { HttpInterceptorFn, HttpErrorResponse, HttpRequest, HttpHandlerFn } from
 import { catchError, throwError } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
-/**
- * Auth Interceptor
- * - Attaches Bearer token to protected endpoints.
- * - Skips token for public endpoints (auth, otp, etc.).
- * - Handles 401 errors with a friendly snackbar + redirect.
- */
+
 
 let errorShown = false;
 
 export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: HttpHandlerFn) => {
   const snackBar = inject(MatSnackBar);
 
-  // ✅ Define only truly public endpoints
+ 
   const publicEndpoints = [
     '/api/auth/login',
     '/api/auth/signup',
@@ -30,10 +25,10 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     '/api/open/'
   ];
 
-  // Check if request matches a public endpoint
+  
   const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
 
-  // 🔹 Remove token for public endpoints only
+ 
   if (isPublicEndpoint) {
     const cleanRequest = req.clone({
       headers: req.headers.delete('Authorization')
@@ -41,7 +36,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     return next(cleanRequest);
   }
 
-  // 🔹 Otherwise, attach the token
+  
   const token = localStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('authToken');
   let finalRequest = req;
 
@@ -59,7 +54,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     });
   }
 
-  // 🔹 Handle response errors (esp. 401)
+  
   return next(finalRequest).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401 && !isPublicEndpoint && !errorShown) {
