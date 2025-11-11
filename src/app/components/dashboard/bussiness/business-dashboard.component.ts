@@ -25,7 +25,7 @@ interface Advertisement {
   id: string;
   title: string;
   description: string;
-  status: 'ACTIVE' | 'PENDING' | 'REJECTED' | 'PAUSED' | 'COMPLETED';
+  status: 'ACTIVE' | 'PENDING' | 'REJECTED' | 'PAUSED' | 'COMPLETED' | 'APPROVED';
   mediaUrl: string;
   mediaType: 'IMAGE' | 'VIDEO';
   budget: number;
@@ -185,22 +185,36 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
 
     this.businessService.getAdvertisements().subscribe({
       next: (response: any) => {
+        console.log('API Response:', response);
+        
+        let ads: Advertisement[] = [];
+        
+        // Handle different response formats
         if (Array.isArray(response)) {
-          this.advertisements = response;
-          this.calculateDashboardStats(this.advertisements);
+          ads = response;
         } else if (response?.data && Array.isArray(response.data)) {
-          this.advertisements = response.data;
-          this.calculateDashboardStats(this.advertisements);
+          ads = response.data;
         } else if (response?.success && response.data && Array.isArray(response.data)) {
-          this.advertisements = response.data;
-          this.calculateDashboardStats(this.advertisements);
+          ads = response.data;
+        } else if (response?.advertisements && Array.isArray(response.advertisements)) {
+          ads = response.advertisements;
+        } else if (response?.content && Array.isArray(response.content)) {
+          ads = response.content;
         } else {
-          this.dashboardError = 'Failed to load advertisements data';
+          console.warn('Unexpected response format:', response);
+          this.dashboardError = 'Unexpected data format received';
           this.setDefaultDashboardData();
+          this.isLoadingDashboard = false;
+          return;
         }
+
+        console.log('Processed advertisements:', ads);
+        this.advertisements = ads;
+        this.calculateDashboardStats(ads);
         this.isLoadingDashboard = false;
       },
       error: (error) => {
+        console.error('Error loading advertisements:', error);
         this.dashboardError = error.message || 'Failed to load dashboard data';
         this.setDefaultDashboardData();
         this.isLoadingDashboard = false;
@@ -209,16 +223,40 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
   }
 
   private calculateDashboardStats(ads: Advertisement[]): void {
+    console.log('Calculating stats from:', ads.length, 'ads');
+    
     const totalAds = ads.length;
-    const activeAds = ads.filter(ad => ad.status === 'ACTIVE').length;
-    const pendingAds = ads.filter(ad => ad.status === 'PENDING').length;
     
-    const totalSpent = ads.reduce((sum, ad) => sum + (ad.spent || 0), 0);
-    const totalClicks = ads.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
-    const totalViews = ads.reduce((sum, ad) => sum + (ad.views || 0), 0);
+    // Count ads by status
+    const activeAds = ads.filter(ad => 
+      ad.status === 'ACTIVE' || ad.status === 'APPROVED'
+    ).length;
     
-    const approvedAds = ads.filter(ad => ad.status === 'ACTIVE' || ad.status === 'COMPLETED').length;
+    const pendingAds = ads.filter(ad => 
+      ad.status === 'PENDING'
+    ).length;
+    
+    // Calculate financial and engagement metrics
+    const totalSpent = ads.reduce((sum, ad) => sum + (this.parseNumber(ad.spent) || 0), 0);
+    const totalClicks = ads.reduce((sum, ad) => sum + (this.parseNumber(ad.clicks) || 0), 0);
+    const totalViews = ads.reduce((sum, ad) => sum + (this.parseNumber(ad.views) || 0), 0);
+    
+    // Calculate approval rate (approved = active + completed)
+    const approvedAds = ads.filter(ad => 
+      ad.status === 'ACTIVE' || ad.status === 'APPROVED' || ad.status === 'COMPLETED'
+    ).length;
+    
     const approvalRate = totalAds > 0 ? Math.round((approvedAds / totalAds) * 100) : 0;
+
+    console.log('Calculated stats:', {
+      totalAds,
+      activeAds,
+      pendingAds,
+      totalSpent,
+      totalClicks,
+      totalViews,
+      approvalRate
+    });
 
     this.dashboardData = {
       totalAds,
@@ -233,7 +271,17 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
     };
   }
 
+  private parseNumber(value: any): number {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+  }
+
   private setDefaultDashboardData(): void {
+    console.log('Setting default dashboard data');
     this.dashboardData = {
       totalAds: 0,
       activeAds: 0,
@@ -251,8 +299,11 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
     this.isLoadingNotifications = true;
     
     setTimeout(() => {
-      const pendingAdsCount = this.advertisements.filter(ad => ad.status === 'PENDING').length;
-      this.unreadNotificationsCount = pendingAdsCount > 0 ? pendingAdsCount : 0;
+      const pendingAdsCount = this.advertisements.filter(ad => 
+        ad.status === 'PENDING'
+      ).length;
+      
+      this.unreadNotificationsCount = pendingAdsCount;
       this.isLoadingNotifications = false;
     }, 500);
   }
