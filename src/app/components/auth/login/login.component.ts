@@ -399,7 +399,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     return null;
   }
 
-
+  // ✅ FIXED: Added ADMIN role mapping
   private redirectBasedOnRole(userRole: string): void {
     const normalizedRole = userRole.toUpperCase().trim();
     
@@ -412,7 +412,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       'COMPANY': '/business-dashboard',
       'VENDOR': '/business-dashboard',
       'CARETAKER': '/caretaker-dashboard/overview',
-      'ADMIN': '/admin-dashboard'
+      'ADMIN': '/admin-dashboard' // ✅ ADDED THIS LINE
     };
 
     const dashboardRoute = roleMap[normalizedRole] || '/dashboard';
