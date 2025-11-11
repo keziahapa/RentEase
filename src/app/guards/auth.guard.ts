@@ -15,35 +15,43 @@ export const authGuard: CanActivateFn = (route, state) => {
     url: state.url,
     isAuthenticated: isAuthenticated,
     rawRole: user?.role,
-    normalizedRole: userRole,
-    fullUrl: window.location.href
+    normalizedRole: userRole
   });
 
-  
   const currentPath = extractPathFromUrl(state.url);
   
-  
-  const isAdminRoute = currentPath.startsWith('/admin-dashboard') || currentPath.startsWith('/admin/');
-  const isLandlordRoute = currentPath.startsWith('/landlord-dashboard');
-  const isTenantRoute = currentPath.startsWith('/tenant-dashboard');
-  const isBusinessRoute = currentPath.startsWith('/business-dashboard');
-  const isCaretakerRoute = currentPath.startsWith('/caretaker-dashboard');
+  console.log('Current Path:', currentPath);
 
- 
+  const publicRoutes = [
+    '/login',
+    '/admin/login', 
+    '/business-login',
+    '/landlord-login',
+    '/tenant-login',
+    '/caretaker-login',
+    '/register',
+    '/forgot-password',
+    '/reset-password'
+  ];
+
+  const isPublicRoute = publicRoutes.some(publicRoute => 
+    currentPath.startsWith(publicRoute)
+  );
+
+  if (isPublicRoute) {
+    console.log('Public route - allowing access');
+    return true;
+  }
+
   if (!isAuthenticated) {
     console.log('User not authenticated, redirecting to login');
-    
-    
-    if (currentPath.includes('/login') || currentPath.includes('/admin/login')) {
-      return true;
-    }
     
     const queryParams = {
       returnUrl: state.url,
       ...route.queryParams
     };
 
-    if (isAdminRoute) {
+    if (currentPath.startsWith('/admin-dashboard') || currentPath.startsWith('/admin/')) {
       console.log('Redirecting to admin login');
       router.navigate(['/admin/login'], { queryParams });
     } else {
@@ -53,7 +61,12 @@ export const authGuard: CanActivateFn = (route, state) => {
     return false;
   }
 
- 
+  const isAdminRoute = currentPath.startsWith('/admin-dashboard') || currentPath.startsWith('/admin/');
+  const isLandlordRoute = currentPath.startsWith('/landlord-dashboard');
+  const isTenantRoute = currentPath.startsWith('/tenant-dashboard');
+  const isBusinessRoute = currentPath.startsWith('/business-dashboard');
+  const isCaretakerRoute = currentPath.startsWith('/caretaker-dashboard');
+
   if (isAdminRoute && userRole !== 'admin') {
     console.log('Non-admin user trying to access admin routes');
     redirectToUserDashboard(userRole, router);
@@ -66,16 +79,14 @@ export const authGuard: CanActivateFn = (route, state) => {
     return false;
   }
 
-  if (isTenantRoute) {
-    if (userRole !== 'tenant') {
-      console.log('Non-tenant user trying to access tenant routes');
-      if (userRole === 'admin') {
-        router.navigate(['/admin-dashboard/overview']);
-      } else {
-        redirectToUserDashboard(userRole, router);
-      }
-      return false;
+  if (isTenantRoute && userRole !== 'tenant') {
+    console.log('Non-tenant user trying to access tenant routes');
+    if (userRole === 'admin') {
+      router.navigate(['/admin-dashboard/overview']);
+    } else {
+      redirectToUserDashboard(userRole, router);
     }
+    return false;
   }
 
   if (isBusinessRoute && !['business', 'admin'].includes(userRole)) {
@@ -90,7 +101,6 @@ export const authGuard: CanActivateFn = (route, state) => {
     return false;
   }
 
-
   if (currentPath === '/' || currentPath === '/dashboard') {
     console.log('Root/dashboard path - Redirecting to user dashboard');
     redirectToUserDashboard(userRole, router);
@@ -101,14 +111,12 @@ export const authGuard: CanActivateFn = (route, state) => {
   return true;
 };
 
-
 function extractPathFromUrl(url: string): string {
-
   if (url.includes('#')) {
     const hashPart = url.split('#')[1];
-    return hashPart.split('?')[0]; 
+    return hashPart.split('?')[0];
   }
-  return url.split('?')[0]; 
+  return url.split('?')[0];
 }
 
 function normalizeRole(role: string | undefined): string {
