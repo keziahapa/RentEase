@@ -25,7 +25,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
 
   const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
 
-  
+  // Remove Authorization header for public endpoints
   if (isPublicEndpoint) {
     const cleanRequest = req.clone({
       headers: req.headers.delete('Authorization')
@@ -33,9 +33,9 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     return next(cleanRequest);
   }
 
- 
+  // ✅ FIXED: Use correct token key 'authToken' instead of 'auth_token'
   let finalRequest = req;
-  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const token = localStorage.getItem('authToken') || localStorage.getItem('token');
   
   if (token) {
     finalRequest = req.clone({
@@ -47,7 +47,6 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
 
   return next(finalRequest).pipe(
     catchError((error: HttpErrorResponse) => {
-    
       if (error.status === 401 && !isPublicEndpoint && !errorShown) {
         errorShown = true;
         snackBar.open('Please log in to continue', 'Close', { 
@@ -55,7 +54,6 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
           panelClass: ['snackbar-info']
         });
         
-       
         setTimeout(() => {
           localStorage.clear();
           window.location.href = '/#/login';

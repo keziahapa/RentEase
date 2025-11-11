@@ -101,10 +101,10 @@ export class BusinessService {
         }
 
         return of({
-          success: false,
-          message: `No business registration found: ${error.message}`,
-          data: null
-        } as BusinessStatusResponse);
+            success: false,
+            message: `No business registration found: ${error.message}`,
+            data: null
+          } as BusinessStatusResponse);
       })
     );
   }
@@ -125,24 +125,12 @@ export class BusinessService {
     } as BusinessStatusResponse;
   }
 
+  // ✅ SIMPLIFIED: Let interceptor handle authentication headers
   registerBusiness(formData: FormData): Observable<ApiResponse<BusinessRegistration>> {
-    // Get the token
-    const token = this.authService.getToken();
-    
-    if (!token) {
-      return throwError(() => new Error('No authentication token available'));
-    }
-
-    // Create headers with Authorization
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${token}`
-      // Don't set Content-Type - let browser set it automatically for FormData
-    });
-
     return this.http.post<ApiResponse<BusinessRegistration>>(
       `${this.apiUrl}/api/external-business/register-business`,
-      formData,
-      { headers }  // ✅ NOW INCLUDES AUTH HEADER
+      formData
+      // No manual headers needed - interceptor will add Authorization
     ).pipe(
       tap(response => {
         if (response.success && response.data) {
@@ -327,25 +315,13 @@ export class BusinessService {
   }
 
   uploadAdvertisementMedia(file: File): Observable<UploadResponse> {
-    const token = this.authService.getToken();
-    if (!token) {
-      return throwError(() => ({ 
-        status: 401, 
-        message: 'No authentication token found' 
-      } as ErrorResponse));
-    }
-
     const formData = new FormData();
     formData.append('file', file);
     
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${token}`
-    });
-
+    // Let interceptor handle auth headers for FormData too
     return this.http.post<UploadResponse>(
       `${this.apiUrl}/api/external-business/upload-media`,
-      formData,
-      { headers }
+      formData
     ).pipe(
       catchError(this.handleError)
     );
