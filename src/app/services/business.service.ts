@@ -126,9 +126,23 @@ export class BusinessService {
   }
 
   registerBusiness(formData: FormData): Observable<ApiResponse<BusinessRegistration>> {
+    // Get the token
+    const token = this.authService.getToken();
+    
+    if (!token) {
+      return throwError(() => new Error('No authentication token available'));
+    }
+
+    // Create headers with Authorization
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+      // Don't set Content-Type - let browser set it automatically for FormData
+    });
+
     return this.http.post<ApiResponse<BusinessRegistration>>(
       `${this.apiUrl}/api/external-business/register-business`,
-      formData
+      formData,
+      { headers }  // ✅ NOW INCLUDES AUTH HEADER
     ).pipe(
       tap(response => {
         if (response.success && response.data) {
