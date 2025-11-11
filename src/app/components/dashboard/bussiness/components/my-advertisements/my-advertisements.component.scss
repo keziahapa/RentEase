@@ -1,5 +1,6 @@
 .my-ads-container {
   padding: 20px;
+  background: #ffffff; // Add white background
 }
 
 .header {
@@ -27,6 +28,7 @@
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
+  background: #ffffff; // Add white background
   
   p {
     margin-top: 16px;
@@ -38,6 +40,7 @@
   text-align: center;
   padding: 80px 20px;
   color: #64748b;
+  background: #ffffff; // Add white background
   
   mat-icon {
     font-size: 80px;
@@ -63,10 +66,12 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
+  background: #ffffff; // Add white background
 }
 
 .ad-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: #ffffff; // Ensure card background is white
   
   &:hover {
     transform: translateY(-2px);
@@ -92,6 +97,7 @@
 
 mat-card-header {
   padding: 16px 16px 0;
+  background: #ffffff; // Ensure header background is white
   
   .spacer {
     flex: 1;
@@ -175,6 +181,7 @@ mat-chip {
 
 mat-card-actions {
   padding: 8px 16px 16px;
+  background: #ffffff; // Ensure actions background is white
   
   button {
     min-width: auto;
@@ -192,6 +199,7 @@ mat-card-actions {
 @media (max-width: 768px) {
   .my-ads-container {
     padding: 16px;
+    background: #ffffff;
   }
   
   .header {
@@ -201,11 +209,13 @@ mat-card-actions {
   
   .ads-grid {
     grid-template-columns: 1fr;
+    background: #ffffff;
   }
   
   mat-card-actions {
     flex-direction: column;
     gap: 8px;
+    background: #ffffff;
     
     button {
       width: 100%;

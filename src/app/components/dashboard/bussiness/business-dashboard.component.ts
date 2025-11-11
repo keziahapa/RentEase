@@ -21,6 +21,23 @@ interface DashboardStats {
   registrationStatus: string;
 }
 
+interface Advertisement {
+  id: string;
+  title: string;
+  description: string;
+  status: 'ACTIVE' | 'PENDING' | 'REJECTED' | 'PAUSED' | 'COMPLETED';
+  mediaUrl: string;
+  mediaType: 'IMAGE' | 'VIDEO';
+  budget: number;
+  spent: number;
+  clicks: number;
+  views: number;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  rejectionReason?: string;
+}
+
 @Component({
   selector: 'app-business-dashboard',
   standalone: true,
@@ -48,6 +65,8 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
   dashboardData: DashboardStats | null = null;
   isLoadingDashboard: boolean = false;
   dashboardError: string | null = null;
+
+  advertisements: Advertisement[] = [];
 
   unreadNotificationsCount: number = 0;
   isLoadingNotifications: boolean = false;
@@ -164,32 +183,76 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
     this.isLoadingDashboard = true;
     this.dashboardError = null;
 
-    this.businessService.getBusinessDashboardData().subscribe({
+    this.businessService.getAdvertisements().subscribe({
       next: (response: any) => {
-        if (response.success && response.data) {
-          this.dashboardData = response.data;
-        } else if (response.data) {
-          // Handle case where response is the data directly
-          this.dashboardData = response.data;
+        if (Array.isArray(response)) {
+          this.advertisements = response;
+          this.calculateDashboardStats(this.advertisements);
+        } else if (response?.data && Array.isArray(response.data)) {
+          this.advertisements = response.data;
+          this.calculateDashboardStats(this.advertisements);
+        } else if (response?.success && response.data && Array.isArray(response.data)) {
+          this.advertisements = response.data;
+          this.calculateDashboardStats(this.advertisements);
         } else {
-          this.dashboardError = 'Failed to load business data';
+          this.dashboardError = 'Failed to load advertisements data';
+          this.setDefaultDashboardData();
         }
         this.isLoadingDashboard = false;
       },
       error: (error) => {
         this.dashboardError = error.message || 'Failed to load dashboard data';
+        this.setDefaultDashboardData();
         this.isLoadingDashboard = false;
-        console.error('Business dashboard data error:', error);
       }
     });
+  }
+
+  private calculateDashboardStats(ads: Advertisement[]): void {
+    const totalAds = ads.length;
+    const activeAds = ads.filter(ad => ad.status === 'ACTIVE').length;
+    const pendingAds = ads.filter(ad => ad.status === 'PENDING').length;
+    
+    const totalSpent = ads.reduce((sum, ad) => sum + (ad.spent || 0), 0);
+    const totalClicks = ads.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
+    const totalViews = ads.reduce((sum, ad) => sum + (ad.views || 0), 0);
+    
+    const approvedAds = ads.filter(ad => ad.status === 'ACTIVE' || ad.status === 'COMPLETED').length;
+    const approvalRate = totalAds > 0 ? Math.round((approvedAds / totalAds) * 100) : 0;
+
+    this.dashboardData = {
+      totalAds,
+      activeAds,
+      pendingAds,
+      totalSpent,
+      totalClicks,
+      totalViews,
+      approvalRate: `${approvalRate}%`,
+      businessName: this.userDisplayName,
+      registrationStatus: 'Verified'
+    };
+  }
+
+  private setDefaultDashboardData(): void {
+    this.dashboardData = {
+      totalAds: 0,
+      activeAds: 0,
+      pendingAds: 0,
+      totalSpent: 0,
+      totalClicks: 0,
+      totalViews: 0,
+      approvalRate: '0%',
+      businessName: this.userDisplayName,
+      registrationStatus: 'Verified'
+    };
   }
 
   private loadNotifications(): void {
     this.isLoadingNotifications = true;
     
-    // Mock notifications - replace with actual API call
     setTimeout(() => {
-      this.unreadNotificationsCount = 2;
+      const pendingAdsCount = this.advertisements.filter(ad => ad.status === 'PENDING').length;
+      this.unreadNotificationsCount = pendingAdsCount > 0 ? pendingAdsCount : 0;
       this.isLoadingNotifications = false;
     }, 500);
   }
@@ -197,8 +260,9 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
   viewNotifications(): void {
     this.closeProfileMenu();
     this.closeMobileMenu();
-    // Implement navigation to notifications
-    console.log('Navigate to notifications');
+    this.router.navigate(['/business-dashboard/ads'], { 
+      queryParams: { status: 'PENDING' } 
+    });
   }
 
   viewProfile(): void {
@@ -346,18 +410,13 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
 
     this.authService.logout().subscribe({
       next: (response: any) => {
-        console.log('Logout successful:', response.message);
         this.isLoggingOut = false;
-        
         localStorage.removeItem('businessProfileImage');
         sessionStorage.clear();
-        
         this.router.navigate(['/login']);
       },
       error: (error) => {
-        console.error('Logout error:', error);
         this.isLoggingOut = false;
-        
         localStorage.removeItem('businessProfileImage');
         sessionStorage.clear();
         this.router.navigate(['/login']);
@@ -378,7 +437,34 @@ export class BusinessDashboardComponent implements OnInit, OnDestroy {
   }
 
   onLogoError(event: any): void {
-    console.error('Logo failed to load:', event);
     this.profileImage = this.generateInitialAvatar(this.userDisplayName);
+  }
+
+  getTotalAds(): number {
+    return this.dashboardData?.totalAds || 0;
+  }
+
+  getActiveAds(): number {
+    return this.dashboardData?.activeAds || 0;
+  }
+
+  getPendingAds(): number {
+    return this.dashboardData?.pendingAds || 0;
+  }
+
+  getTotalSpent(): number {
+    return this.dashboardData?.totalSpent || 0;
+  }
+
+  getTotalClicks(): number {
+    return this.dashboardData?.totalClicks || 0;
+  }
+
+  getTotalViews(): number {
+    return this.dashboardData?.totalViews || 0;
+  }
+
+  getApprovalRate(): string {
+    return this.dashboardData?.approvalRate || '0%';
   }
 }
