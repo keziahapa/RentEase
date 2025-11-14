@@ -219,6 +219,7 @@
     gap: clamp(0.75rem, 2vw, 1rem);
     padding: clamp(0.875rem, 2vw, 1rem);
     width: 100%;
+    background: #ffffff;
   }
 
   .stat-icon {
@@ -230,6 +231,7 @@
     justify-content: center;
     color: white;
     flex-shrink: 0;
+    background: #3b82f6; // Blue background for icons only
 
     mat-icon {
       font-size: clamp(18px, 3vw, 22px);
@@ -241,6 +243,7 @@
   .stat-info {
     flex: 1;
     min-width: 0;
+    background: #ffffff;
 
     .stat-value {
       font-size: clamp(1.25rem, 3vw, 1.5rem);
@@ -320,6 +323,7 @@
   grid-template-columns: 2fr 1fr;
   gap: clamp(1rem, 3vw, 2rem);
   width: 100%;
+  background: #ffffff;
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
@@ -431,6 +435,7 @@
     .action-content {
       flex: 1;
       min-width: 0;
+      background: #ffffff;
 
       .action-label {
         display: block;
@@ -455,12 +460,7 @@
       color: #cbd5e1;
       transition: transform 0.3s ease;
       flex-shrink: 0;
-
-      mat-icon {
-        font-size: clamp(18px, 3vw, 20px);
-        width: clamp(18px, 3vw, 20px);
-        height: clamp(18px, 3vw, 20px);
-      }
+      background: #ffffff;
     }
   }
 }
@@ -514,6 +514,7 @@
     .activity-content {
       flex: 1;
       min-width: 0;
+      background: #ffffff;
 
       .activity-type {
         font-weight: 600;
@@ -582,6 +583,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
     gap: clamp(1rem, 2vw, 1.5rem);
+    background: #ffffff;
 
     @media (max-width: 480px) {
       grid-template-columns: 1fr;
@@ -623,6 +625,7 @@
         justify-content: center;
         color: white;
         flex-shrink: 0;
+        background: #3b82f6; // Blue background for icons only
 
         mat-icon {
           font-size: clamp(20px, 4vw, 28px);
@@ -634,6 +637,7 @@
       .approval-info {
         flex: 1;
         min-width: 0;
+        background: #ffffff;
 
         h3 {
           font-size: clamp(1.125rem, 3vw, 1.25rem);
@@ -726,7 +730,7 @@
     gap: clamp(0.75rem, 2vw, 1rem);
     padding: clamp(0.75rem, 2vw, 1rem);
     border-radius: clamp(10px, 2vw, 12px);
-    background: #f8fafc;
+    background: #ffffff;
     transition: all 0.3s ease;
     min-height: 80px;
     border: 1px solid #f1f5f9;
@@ -756,21 +760,22 @@
       justify-content: center;
       color: white;
       flex-shrink: 0;
+      background: #3b82f6; // Blue background for icons only
 
       &.landlords {
-        background: linear-gradient(135deg, #1e40af, #1e3a8a);
+        background: #3b82f6;
       }
 
       &.tenants {
-        background: linear-gradient(135deg, #1e40af, #1e3a8a);
+        background: #3b82f6;
       }
 
       &.caretakers {
-        background: linear-gradient(135deg, #1e40af, #1e3a8a);
+        background: #3b82f6;
       }
 
       &.businesses {
-        background: linear-gradient(135deg, #1e40af, #1e3a8a);
+        background: #3b82f6;
       }
 
       mat-icon {
@@ -783,6 +788,7 @@
     .breakdown-info {
       flex: 1;
       min-width: 0;
+      background: #ffffff;
 
       h4 {
         font-size: clamp(1.25rem, 3vw, 1.5rem);

@@ -449,6 +449,7 @@
   }
 }
 
+/* ✅ WHITE BACKGROUND FOR GREETING SECTION */
 .greeting-section {
   min-width: 0;
   flex: 1;
@@ -660,6 +661,7 @@
   }
 }
 
+/* ✅ WHITE BACKGROUND FOR PROFILE SECTION */
 .profile-section {
   position: relative;
   display: flex;
@@ -710,6 +712,7 @@
   padding: 0.25rem;
   flex-shrink: 0;
   min-width: 0;
+  background: #ffffff;
 }
 
 @media (max-width: 480px) {
