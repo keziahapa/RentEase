@@ -9,8 +9,9 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { BusinessService } from '../../../../../services/business.service';
 import { AuthService } from '../../../../../services/auth.service';
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin } from 'rxjs';
 import { CreateAdvertisementComponent } from '../create-advertisement/create-advertisement.component';
+import { Advertisement } from '../../../../../services/business-interface';
 
 interface QuickAction {
   icon: string;
@@ -25,6 +26,7 @@ interface RecentActivity {
   message: string;
   time: string;
   icon: string;
+  date: Date;
 }
 
 @Component({
@@ -50,6 +52,8 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
     totalClicks: 0,
     approvalRate: '0%'
   };
+
+  advertisements: Advertisement[] = [];
 
   quickActions: QuickAction[] = [
     {
@@ -96,32 +100,7 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
     }
   ];
 
-  recentActivities: RecentActivity[] = [
-    {
-      type: 'Ad Approved',
-      message: 'Your "Summer Sale" ad has been approved',
-      time: '1 day ago',
-      icon: 'check_circle'
-    },
-    {
-      type: 'New Click',
-      message: 'Your restaurant ad received 15 new clicks',
-      time: '2 days ago',
-      icon: 'trending_up'
-    },
-    {
-      type: 'Payment Processed',
-      message: 'Monthly advertising fee processed',
-      time: '3 days ago',
-      icon: 'payments'
-    },
-    {
-      type: 'Ad Created',
-      message: 'New "Grand Opening" campaign created',
-      time: '1 week ago',
-      icon: 'campaign'
-    }
-  ];
+  recentActivities: RecentActivity[] = [];
 
   isLoadingDashboard = true;
   dashboardError = '';
@@ -147,18 +126,29 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
     this.isLoadingDashboard = true;
     this.dashboardError = '';
 
-    const dashboardSub = this.businessService.getBusinessDashboardData().subscribe({
-      next: (response: any) => {
-        this.processBusinessDashboardData(response);
+    // Load both advertisements and dashboard data
+    const loadSub = forkJoin({
+      ads: this.businessService.getAdvertisements(),
+      dashboard: this.businessService.getBusinessDashboardData()
+    }).subscribe({
+      next: (response) => {
+        this.advertisements = response.ads || [];
+        this.processRealDashboardData();
+        this.generateRealRecentActivities();
         this.isLoadingDashboard = false;
       },
       error: (error: any) => {
-        this.processBusinessDashboardData();
+        console.error('Dashboard load error:', error);
+        
+        // Try to load from local storage as fallback
+        this.advertisements = this.businessService['getLocalAdvertisements']() || [];
+        this.processRealDashboardData();
+        this.generateRealRecentActivities();
         this.isLoadingDashboard = false;
         
         if (error.status !== 404) {
           this.dashboardError = error?.message || 'Failed to load dashboard data';
-          this.snackBar.open(this.dashboardError, 'Close', { duration: 5000 });
+          this.snackBar.open('Some data loaded from cache', 'Close', { duration: 3000 });
         }
         
         if (error.status === 401) {
@@ -170,34 +160,135 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.subscriptions.add(dashboardSub);
+    this.subscriptions.add(loadSub);
   }
 
-  private processBusinessDashboardData(response?: any): void {
+  private processRealDashboardData(): void {
+    const totalAds = this.advertisements.length;
+    const activeAds = this.advertisements.filter(ad => ad.status === 'APPROVED').length;
+    const pendingAds = this.advertisements.filter(ad => ad.status === 'PENDING').length;
+    const rejectedAds = this.advertisements.filter(ad => ad.status === 'REJECTED').length;
+    
+    // Calculate total clicks and views from actual ad data
+    const totalClicks = this.advertisements.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
+    const totalViews = this.advertisements.reduce((sum, ad) => sum + (ad.views || 0), 0);
+    
+    // Calculate total spent (assuming 500 KES per ad as base cost)
+    const baseAdCost = 500;
+    const totalSpent = totalAds * baseAdCost;
+    
+    // Calculate approval rate
+    const approvalRate = totalAds > 0 
+      ? `${Math.round((activeAds / totalAds) * 100)}%`
+      : '0%';
+
     this.dashboardData = {
-      totalAds: 12,
-      activeAds: 8,
-      pendingAds: 2,
-      totalSpent: 12500,
-      totalClicks: 345,
-      approvalRate: '83%',
-      businessName: 'Premium Restaurant',
-      registrationStatus: 'Verified'
+      totalAds,
+      activeAds,
+      pendingAds,
+      rejectedAds,
+      totalSpent,
+      totalClicks,
+      totalViews,
+      approvalRate
     };
   }
 
-  navigateToSection(section: string) {
-    const routeMap: { [key: string]: string[] } = {
-      'create-ad': ['/business-dashboard/ads/create'],
-      'my-ads': ['/business-dashboard/ads'],
-      'analytics': ['/business-dashboard/analytics'],
-      'billing': ['/business-dashboard/billing'],
-      'profile': ['/business-dashboard/profile/edit']
-    };
+  private generateRealRecentActivities(): void {
+    this.recentActivities = [];
 
-    const route = routeMap[section];
-    if (route) {
-      this.router.navigate(route);
+    // Sort advertisements by date (newest first)
+    const sortedAds = [...this.advertisements].sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.createdAt);
+      const dateB = new Date(b.updatedAt || b.createdAt);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    // Generate activities from real ad data
+    sortedAds.forEach(ad => {
+      const createdDate = new Date(ad.createdAt);
+      const updatedDate = new Date(ad.updatedAt || ad.createdAt);
+
+      // Ad creation activity
+      this.recentActivities.push({
+        type: 'Ad Created',
+        message: `"${ad.title}" campaign created`,
+        time: this.getRelativeTime(createdDate),
+        icon: 'campaign',
+        date: createdDate
+      });
+
+      // Ad approval/rejection activity (if status changed)
+      if (ad.status === 'APPROVED' && ad.updatedAt) {
+        this.recentActivities.push({
+          type: 'Ad Approved',
+          message: `Your "${ad.title}" ad has been approved`,
+          time: this.getRelativeTime(updatedDate),
+          icon: 'check_circle',
+          date: updatedDate
+        });
+      } else if (ad.status === 'REJECTED' && ad.updatedAt) {
+        this.recentActivities.push({
+          type: 'Ad Rejected',
+          message: `Your "${ad.title}" ad was rejected${ad.rejectionReason ? ': ' + ad.rejectionReason : ''}`,
+          time: this.getRelativeTime(updatedDate),
+          icon: 'cancel',
+          date: updatedDate
+        });
+      }
+
+      // Click activity (if ad has clicks)
+      if (ad.clicks && ad.clicks > 0 && ad.status === 'APPROVED') {
+        this.recentActivities.push({
+          type: 'New Clicks',
+          message: `Your "${ad.title}" ad received ${ad.clicks} click${ad.clicks > 1 ? 's' : ''}`,
+          time: this.getRelativeTime(updatedDate),
+          icon: 'trending_up',
+          date: updatedDate
+        });
+      }
+    });
+
+    // Sort all activities by date (newest first) and take top 10
+    this.recentActivities.sort((a, b) => b.date.getTime() - a.date.getTime());
+    this.recentActivities = this.recentActivities.slice(0, 10);
+
+    // If no activities, show a placeholder
+    if (this.recentActivities.length === 0) {
+      this.recentActivities.push({
+        type: 'Getting Started',
+        message: 'Create your first advertisement to see activity here',
+        time: 'Just now',
+        icon: 'info',
+        date: new Date()
+      });
+    }
+  }
+
+  private getRelativeTime(date: Date): string {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    const diffWeeks = Math.floor(diffDays / 7);
+    const diffMonths = Math.floor(diffDays / 30);
+
+    if (diffSecs < 60) {
+      return 'Just now';
+    } else if (diffMins < 60) {
+      return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else if (diffDays < 7) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else if (diffWeeks < 4) {
+      return `${diffWeeks} week${diffWeeks > 1 ? 's' : ''} ago`;
+    } else if (diffMonths < 12) {
+      return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString();
     }
   }
 
@@ -216,7 +307,7 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
         this.snackBar.open('Advertisement created successfully!', 'Close', { 
           duration: 3000 
         });
-        this.loadDashboardData();
+        this.loadDashboardData(); // Reload to show new ad in stats and activities
       }
     });
   }
@@ -227,14 +318,6 @@ export class BusinessOverviewComponent implements OnInit, OnDestroy {
     } else {
       this.router.navigate(action.route);
     }
-  }
-
-  navigateToProfileView() {
-    this.router.navigate(['/business-dashboard/profile/view']);
-  }
-
-  navigateToProfileEdit() {
-    this.router.navigate(['/business-dashboard/profile/edit']);
   }
 
   refreshDashboard(): void {

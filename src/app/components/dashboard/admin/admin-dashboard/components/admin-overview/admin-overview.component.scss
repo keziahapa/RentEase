@@ -170,37 +170,42 @@
   background: #ffffff;
 }
 
-/* Stats Grid */
+/* Stats Grid - Reduced Size */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: clamp(0.75rem, 2vw, 1rem);
   width: 100%;
 
   @media (max-width: 640px) {
+    grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 480px) {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
 }
 
 .stat-card {
-  border-radius: clamp(12px, 2vw, 16px);
+  border-radius: clamp(10px, 2vw, 12px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid #e2e8f0;
   transition: all 0.3s ease;
   overflow: hidden;
   background: #ffffff;
-  min-height: 120px;
+  min-height: 100px;
   display: flex;
   align-items: center;
 
   @media (max-width: 480px) {
-    min-height: 100px;
+    min-height: 90px;
   }
 
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     border-color: #cbd5e1;
   }
 
@@ -212,14 +217,14 @@
     display: flex;
     align-items: center;
     gap: clamp(0.75rem, 2vw, 1rem);
-    padding: clamp(1rem, 3vw, 1.5rem);
+    padding: clamp(0.875rem, 2vw, 1rem);
     width: 100%;
   }
 
   .stat-icon {
-    width: clamp(50px, 8vw, 60px);
-    height: clamp(50px, 8vw, 60px);
-    border-radius: clamp(10px, 2vw, 12px);
+    width: clamp(40px, 6vw, 48px);
+    height: clamp(40px, 6vw, 48px);
+    border-radius: clamp(8px, 2vw, 10px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -227,9 +232,9 @@
     flex-shrink: 0;
 
     mat-icon {
-      font-size: clamp(20px, 4vw, 28px);
-      width: clamp(20px, 4vw, 28px);
-      height: clamp(20px, 4vw, 28px);
+      font-size: clamp(18px, 3vw, 22px);
+      width: clamp(18px, 3vw, 22px);
+      height: clamp(18px, 3vw, 22px);
     }
   }
 
@@ -238,10 +243,10 @@
     min-width: 0;
 
     .stat-value {
-      font-size: clamp(1.5rem, 4vw, 2rem);
-      font-weight: 800;
+      font-size: clamp(1.25rem, 3vw, 1.5rem);
+      font-weight: 700;
       color: #1e293b;
-      margin: 0 0 0.25rem 0;
+      margin: 0 0 0.125rem 0;
       line-height: 1;
       white-space: nowrap;
       overflow: hidden;
@@ -250,8 +255,8 @@
 
     .stat-label {
       color: #64748b;
-      margin: 0 0 0.5rem 0;
-      font-size: clamp(0.8rem, 2vw, 0.9rem);
+      margin: 0 0 0.375rem 0;
+      font-size: clamp(0.75rem, 2vw, 0.8rem);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -261,9 +266,9 @@
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
-      font-size: clamp(0.75rem, 2vw, 0.8rem);
+      font-size: clamp(0.7rem, 2vw, 0.75rem);
       font-weight: 600;
-      padding: 0.25rem 0.5rem;
+      padding: 0.2rem 0.4rem;
       border-radius: 6px;
       white-space: nowrap;
       background: #f8fafc;
@@ -280,17 +285,17 @@
       }
 
       mat-icon {
-        font-size: clamp(14px, 3vw, 16px);
-        width: clamp(14px, 3vw, 16px);
-        height: clamp(14px, 3vw, 16px);
+        font-size: clamp(12px, 2vw, 14px);
+        width: clamp(12px, 2vw, 14px);
+        height: clamp(12px, 2vw, 14px);
       }
     }
 
     .stat-tag {
       display: inline-block;
-      padding: 0.25rem 0.5rem;
+      padding: 0.2rem 0.4rem;
       border-radius: 6px;
-      font-size: clamp(0.75rem, 2vw, 0.8rem);
+      font-size: clamp(0.7rem, 2vw, 0.75rem);
       font-weight: 600;
       white-space: nowrap;
       background: #f8fafc;

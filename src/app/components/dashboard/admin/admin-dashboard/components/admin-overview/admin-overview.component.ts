@@ -127,7 +127,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
       next: (results) => {
         console.log('Dashboard data loaded:', results);
 
-      
+        // Transform stats data
         if (results.stats.success && results.stats.data) {
           this.dashboardData = this.transformStatsData(results.stats.data);
           console.log('Dashboard stats transformed:', this.dashboardData);
@@ -135,7 +135,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
           throw new Error(results.stats.message || 'Failed to load dashboard statistics');
         }
 
-      
+        // Calculate real pending businesses count
         if (results.pendingBusinesses.success) {
           this.pendingBusinessesCount = results.pendingBusinesses.data.length;
         } else {
@@ -143,7 +143,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
           this.pendingBusinessesCount = 0;
         }
 
-       
+        // Calculate real pending advertisements count
         if (results.pendingAdvertisements.success) {
           this.pendingAdvertisementsCount = results.pendingAdvertisements.data.length;
         } else {
@@ -151,7 +151,10 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
           this.pendingAdvertisementsCount = 0;
         }
 
-      
+        // Update dashboard data with real calculated values
+        this.updateCalculatedStats();
+
+        // Generate recent activities
         this.generateRecentActivities();
         
         this.isLoadingDashboard = false;
@@ -191,16 +194,35 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     };
   }
 
+  private updateCalculatedStats() {
+    if (this.dashboardData) {
+      // Calculate real active businesses (assuming active businesses are total minus pending)
+      const calculatedActiveBusinesses = Math.max(0, (this.dashboardData.activeBusinesses || 0) - this.pendingBusinessesCount);
+      this.dashboardData.activeBusinesses = calculatedActiveBusinesses;
+
+      // Calculate real pending approvals (sum of pending businesses and advertisements)
+      const calculatedPendingApprovals = this.pendingBusinessesCount + this.pendingAdvertisementsCount;
+      this.dashboardData.pendingApprovals = calculatedPendingApprovals;
+
+      console.log('Calculated stats:', {
+        activeBusinesses: calculatedActiveBusinesses,
+        pendingApprovals: calculatedPendingApprovals,
+        pendingBusinesses: this.pendingBusinessesCount,
+        pendingAdvertisements: this.pendingAdvertisementsCount
+      });
+    }
+  }
+
   private generateRecentActivities() {
     this.recentActivities = [];
 
-    
+    // Add activities based on real data
     if (this.pendingBusinessesCount > 0) {
       this.recentActivities.push({
         type: 'Pending Business Applications',
         message: `${this.pendingBusinessesCount} business application(s) awaiting review`,
         icon: 'business',
-        time: 'Recently'
+        time: 'Requires attention'
       });
     }
 
@@ -209,12 +231,12 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
         type: 'Pending Advertisements',
         message: `${this.pendingAdvertisementsCount} advertisement(s) awaiting approval`,
         icon: 'campaign',
-        time: 'Recently'
+        time: 'Requires attention'
       });
     }
 
     if (this.dashboardData) {
-
+      // User growth activity
       if (this.dashboardData.userGrowth > 0) {
         this.recentActivities.push({
           type: 'User Growth',
@@ -224,7 +246,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
         });
       }
 
-     
+      // Revenue activity
       if (this.dashboardData.monthlyRevenue > 0) {
         this.recentActivities.push({
           type: 'Revenue Update',
@@ -234,7 +256,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
         });
       }
 
-  
+      // Disputes activity
       if (this.dashboardData.activeDisputes > 0) {
         this.recentActivities.push({
           type: 'Active Disputes',
@@ -244,7 +266,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
         });
       }
 
-     
+      // System health activity
       if (this.dashboardData.systemHealth && this.dashboardData.systemHealth !== 'healthy') {
         this.recentActivities.push({
           type: 'System Health',
@@ -255,7 +277,7 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
       }
     }
 
-    
+    // Default activity if no others
     if (this.recentActivities.length === 0) {
       this.recentActivities.push({
         type: 'System Status',
@@ -325,7 +347,6 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     this.router.navigate(['/admin-dashboard/advertisements']);
   }
 
- 
   getDisplayValue(value: number | undefined): string {
     return value !== undefined ? this.formatNumber(value) : '0';
   }
@@ -335,11 +356,9 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     return `${growth >= 0 ? '+' : ''}${growth}%`;
   }
 
- 
   getErrorMessage(): string {
     return this.dashboardError || 'An unknown error occurred';
   }
-
 
   getSystemHealthColor(): string {
     if (!this.dashboardData?.systemHealth) return '#6b7280';
@@ -353,7 +372,6 @@ export class AdminOverviewComponent implements OnInit, OnDestroy {
     }
   }
 
-  
   getSystemHealthIcon(): string {
     if (!this.dashboardData?.systemHealth) return 'help';
     
