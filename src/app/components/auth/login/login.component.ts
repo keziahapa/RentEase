@@ -52,7 +52,6 @@ export class LoginComponent implements OnInit, OnDestroy {
   emailError: string = '';
   passwordError: string = '';
 
-  
   fieldTouched = {
     email: false,
     password: false
@@ -146,14 +145,12 @@ export class LoginComponent implements OnInit, OnDestroy {
     return '';
   }
 
-  
   onFieldBlur(field: 'email' | 'password'): void {
     if (this.isLoading) return;
     
     this.fieldTouched[field] = true;
     this.validateField(field);
   }
-
 
   validateField(field: 'email' | 'password'): void {
     if (field === 'email') {
@@ -182,7 +179,6 @@ export class LoginComponent implements OnInit, OnDestroy {
   onEmailInput(): void {
     if (this.isLoading) return;
     
-    
     if (this.fieldTouched.email) {
       this.emailError = this.validateEmail(this.loginData.email);
     } else {
@@ -194,7 +190,6 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   onPasswordInput(): void {
     if (this.isLoading) return;
-    
   
     if (this.fieldTouched.password) {
       this.validateField('password');
@@ -213,13 +208,10 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.loginData.password = cleanText;
   }
 
-  
   showFormValidationErrors(): void {
- 
     this.fieldTouched.email = true;
     this.fieldTouched.password = true;
 
-    
     this.validateField('email');
     this.validateField('password');
   }
@@ -249,7 +241,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     
     if (this.isLoading) return;
 
-    
     if (!this.isFormValid) {
       this.showFormValidationErrors();
       return;
@@ -308,9 +299,59 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (pendingToken && hasPendingInvitation) {
       this.acceptPendingInvitation(pendingToken, response.role);
     } else {
-      this.showSnackbar('Login successful!', 'success');
-      await this.checkBusinessRegistrationStatus(response.role);
+      const accessLevel = await this.checkUserAccessLevel();
+      
+      if (accessLevel === 'full') {
+        this.showSnackbar('Login successful!', 'success');
+        await this.checkBusinessRegistrationStatus(response.role);
+      } else {
+        this.redirectToPendingDashboard(response.role, accessLevel);
+      }
     }
+  }
+
+  private async checkUserAccessLevel(): Promise<'full' | 'pending'> {
+    try {
+      const invitationsResponse = await this.invitationService.getReceivedInvitations().toPromise();
+      
+      if (invitationsResponse.success && invitationsResponse.data) {
+        const acceptedInvitations = invitationsResponse.data.filter(
+          (inv: any) => inv.status?.toUpperCase() === 'ACCEPTED'
+        );
+        
+        if (acceptedInvitations.length > 0) {
+          return 'full';
+        }
+        
+        const pendingInvitations = invitationsResponse.data.filter(
+          (inv: any) => inv.status?.toUpperCase() === 'PENDING'
+        );
+        
+        if (pendingInvitations.length > 0) {
+          return 'pending';
+        }
+      }
+      
+      return 'pending';
+    } catch (error) {
+      console.error('Error checking invitation status:', error);
+      return 'pending';
+    }
+  }
+
+  private redirectToPendingDashboard(role: string, accessLevel: 'full' | 'pending'): void {
+    const baseRoutes: { [key: string]: string } = {
+      'TENANT': '/tenant-pending-dashboard',
+      'CARETAKER': '/caretaker-pending-dashboard'
+    };
+    
+    const baseRoute = baseRoutes[role.toUpperCase()] || '/pending-dashboard';
+    
+    const queryParams = {
+      hasPendingInvitations: accessLevel === 'pending' ? 'true' : 'false'
+    };
+    
+    this.router.navigate([baseRoute], { queryParams });
   }
 
   private async checkBusinessRegistrationStatus(userRole?: string): Promise<void> {

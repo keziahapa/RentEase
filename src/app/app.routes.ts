@@ -15,7 +15,6 @@ import { MaintenanceComponent } from './components/dashboard/tenant/maintenance/
 import { DocumentsComponent } from './components/dashboard/tenant/documents/documents.component';
 import { ReviewComponent } from './components/dashboard/tenant/review/review.component';
 import { SettingsComponent } from './components/dashboard/tenant/settings/settings.component';
-
 import { FinancialsComponent } from './components/dashboard/landlord/landlord-dashboard/financials/financials';
 import { InvoicesComponent } from './components/dashboard/landlord/landlord-dashboard/financials/invoices/invoices';
 import { PaymentComponent } from './components/dashboard/landlord/landlord-dashboard/financials/payment/payment';
@@ -53,7 +52,6 @@ import { AdminLoginComponent } from './components/auth/admin-login/admin-login.c
 import { BusinessManagementComponent } from './components/dashboard/admin/admin-dashboard/components/business-management/business-management.component';
 import { AdvertisementManagementComponent } from './components/dashboard/admin/admin-dashboard/components/advertisement-management/advertisement-management.component';
 import { MoveOutNoticeListComponent } from './components/dashboard/tenant/move-out-notice-list/move-out-notice-list.component';
-
 import { MoveOutNoticeDetailsComponent } from './components/dashboard/tenant/move -out-notice-details/move-out-notice-details.component';
 import { LandlordMoveOutNoticeListComponent } from './components/dashboard/landlord/landlord-dashboard/landlord-move-out-notice-list/landlord-move-out-notice-list.component';
 import { MoveOutActionDialogComponent } from './components/dashboard/landlord/landlord-dashboard/move-out-action-dialog/move-out-action-dialog.component';
@@ -62,6 +60,8 @@ import { DashboardOverviewComponent } from './components/dashboard/tenant/dashbo
 import { BusinessRegistrationComponent } from '../app/components/auth/business-registration/business-registration.component';
 import { BusinessRegistrationStatusComponent } from '../app/components/auth/business-registration-status/business-registration-status.component';
 import { UsersViewComponent } from './components/dashboard/admin/admin-dashboard/components/users-view/users-view.component';
+import { TenantPendingDashboardComponent } from './components/dashboard/tenant/tenant-pending-dashboard/tenant-pending-dashboard.component';
+import { CaretakerPendingDashboardComponent } from './components/dashboard/caretaker/components/caretaker-pending-dashboard/caretaker-pending-dashboard.component';
 
 
 export const routes: Routes = [
@@ -79,6 +79,8 @@ export const routes: Routes = [
   { path: 'privacy', component: PrivacyComponent },
   { path: 'accept-invitation', component: AcceptInvitationComponent },
   { path: 'waiting-landlord', component: WaitingLandlordComponent },
+  { path: 'tenant-pending-dashboard', component: TenantPendingDashboardComponent, canActivate: [authGuard] },
+  { path: 'caretaker-pending-dashboard', component: CaretakerPendingDashboardComponent, canActivate: [authGuard] },
 
   { 
     path: 'business/register', 
@@ -114,7 +116,6 @@ export const routes: Routes = [
       { path: 'payments', component: PaymentsComponent },
       { path: 'maintenance', component: MaintenanceComponent },
       { path: 'documents', component: DocumentsComponent },
-     
       { path: 'chat', component: ChatComponent },
       { path: 'reviews', component: ReviewComponent },
       { path: 'settings', component: SettingsComponent },
@@ -153,9 +154,7 @@ export const routes: Routes = [
       { path: 'maintenance', component: LandlordMaintenanceComponent },
       { path: 'tenants', component: LandlordTenantsComponent },
       { path: 'chat', component: ChatComponent },
-    
       { path: 'move-out-notices', component: LandlordMoveOutNoticeListComponent },
-   
       { path: 'move-out-action/:id', component: MoveOutActionDialogComponent },
       { path: 'dashboard', redirectTo: 'home', pathMatch: 'full' }
     ]
@@ -229,7 +228,7 @@ export const routes: Routes = [
   component: AdminDashboardComponent,
   canActivate: [authGuard], 
   children: [
-    { path: '', redirectTo: 'overview', pathMatch: 'full' }, // ✅ This should work
+    { path: '', redirectTo: 'overview', pathMatch: 'full' },
     { path: 'overview', component: AdminOverviewComponent },
     { path: 'businesses', component: BusinessManagementComponent },
     { path: 'advertisements', component: AdvertisementManagementComponent },

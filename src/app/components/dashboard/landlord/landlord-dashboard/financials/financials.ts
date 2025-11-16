@@ -1,4 +1,4 @@
-// financials.component.ts
+
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
@@ -68,15 +68,15 @@ export class FinancialsComponent implements OnInit, AfterViewInit, OnDestroy {
   private trendsChart?: Chart;
   private routeSubscription?: Subscription;
 
-  // Control overview visibility - only show when no child routes are active
+
   showOverview = true;
 
-  // Table column definitions
+  
   invoiceColumns: string[] = ['tenantName', 'unit', 'invoiceDate', 'amount', 'status', 'actions'];
   paymentColumns: string[] = ['tenantName', 'unit', 'paymentMethod', 'amount', 'dateReceived', 'status'];
   expenseColumns: string[] = ['property', 'expenseType', 'amount', 'date', 'status', 'actions'];
 
-  // Sample data
+
   invoices: Invoice[] = [
     { id: 1, tenantName: 'John Smith', unit: 'Unit 101', invoiceDate: '2024-01-01', amount: 1200, status: 'Paid' },
     { id: 2, tenantName: 'Mary Johnson', unit: 'Unit 202', invoiceDate: '2024-01-01', amount: 1500, status: 'Pending' },
@@ -99,7 +99,7 @@ export class FinancialsComponent implements OnInit, AfterViewInit, OnDestroy {
     { id: 4, property: 'Building Common', expenseType: 'Maintenance', amount: 800, date: '2024-01-22', status: 'Unpaid' }
   ];
 
-  // Computed properties for financial stats
+ 
   get monthlyIncome(): number {
     return this.payments
       .filter(p => this.isCurrentMonth(new Date(p.dateReceived)) && p.status === 'Completed')
@@ -139,36 +139,36 @@ export class FinancialsComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit() {
     console.log('Financials component initialized');
     
-    // Listen to route changes to control overview visibility
+    
     this.routeSubscription = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
-        // Show overview only when on the exact financials route (no child routes)
+      
         this.showOverview = this.isFinancialsOverviewRoute(event.url);
         console.log('Route changed:', event.url, 'Show overview:', this.showOverview);
         
-        // Initialize charts when showing overview
+       
         if (this.showOverview) {
           setTimeout(() => this.initializeCharts(), 100);
         } else {
-          // Destroy charts when navigating away from overview
+         
           this.destroyCharts();
         }
       });
 
-    // Set initial state based on current route
+  
     this.showOverview = this.isFinancialsOverviewRoute(this.router.url);
   }
 
   ngAfterViewInit() {
-    // Initialize charts if showing overview
+   
     if (this.showOverview) {
       setTimeout(() => this.initializeCharts(), 200);
     }
   }
 
   ngOnDestroy() {
-    // Clean up subscriptions and charts
+   
     if (this.routeSubscription) {
       this.routeSubscription.unsubscribe();
     }
