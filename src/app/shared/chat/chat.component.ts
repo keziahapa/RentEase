@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { PropertyService } from '../../services/property.service';
-import { Message, ChatRoom, Property, Unit, ChatRoomType } from '../../services/chat.interface';
+import { Message, ChatRoom, Property, Unit, ChatRoomType, ApiResponse } from '../../services/chat.interface';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -242,10 +242,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   createNewChat(): void {
-    const userRole = this.authService.getCurrentUser()?.role;
-    
     let resourceId: number | null = null;
-    let createObservable;
+    let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
     switch (this.newChatType) {
       case 'tenant-landlord':
@@ -281,6 +279,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       case 'caretaker-tenant':
         createObservable = this.chatService.createCaretakerTenantChat(resourceId);
         break;
+      default:
+        alert('Invalid chat type selected.');
+        return;
+    }
+
+    if (!createObservable) {
+      alert('Failed to initialize chat creation.');
+      return;
     }
 
     this.loadingRooms = true;
