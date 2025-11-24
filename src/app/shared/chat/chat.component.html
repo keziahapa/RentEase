@@ -186,7 +186,7 @@
     </div>
   </div>
 
-  <!-- New Chat Modal with Role-based Options -->
+ 
   <div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -217,13 +217,11 @@
             <button class="option-btn" (click)="createChat('tenant-landlord')">
               <mat-icon>business</mat-icon>
               <span>Message Landlord</span>
-              <small>For rent inquiries, property issues</small>
             </button>
             
             <button class="option-btn" (click)="createChat('tenant-caretaker')">
               <mat-icon>engineering</mat-icon>
               <span>Message Caretaker</span>
-              <small>For maintenance, repairs</small>
             </button>
           </div>
 
@@ -232,13 +230,11 @@
             <button class="option-btn" (click)="createChat('landlord-caretaker')">
               <mat-icon>engineering</mat-icon>
               <span>Message Caretaker</span>
-              <small>Coordinate property management</small>
             </button>
             
             <button class="option-btn" (click)="createChat('landlord-tenant')">
               <mat-icon>people</mat-icon>
               <span>Message Tenants</span>
-              <small>Property updates, announcements</small>
             </button>
           </div>
 
@@ -247,13 +243,11 @@
             <button class="option-btn" (click)="createChat('tenant-caretaker')">
               <mat-icon>people</mat-icon>
               <span>Message Tenants</span>
-              <small>Maintenance updates, scheduling</small>
             </button>
             
             <button class="option-btn" (click)="createChat('landlord-caretaker')">
               <mat-icon>business</mat-icon>
               <span>Message Landlord</span>
-              <small>Property reports, issues</small>
             </button>
           </div>
         </div>
