@@ -271,12 +271,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       case 'landlord-caretaker':
         createObservable = this.chatService.createLandlordCaretakerChat(resourceId);
         break;
-      case 'landlord-tenant':
-        createObservable = this.chatService.createLandlordTenantChat(resourceId);
-        break;
-      case 'caretaker-tenant':
-        createObservable = this.chatService.createCaretakerTenantChat(resourceId);
-        break;
+      
       default:
         alert('Invalid chat type selected.');
         return;
