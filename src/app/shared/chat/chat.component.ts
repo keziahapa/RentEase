@@ -5,6 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { PropertyService } from '../../services/property.service';
+import { CaretakerService } from '../../services/caretaker.service'; 
 import { Message, ChatRoom, Property, Unit, ChatRoomType, ApiResponse } from '../../services/chat.interface';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -36,7 +37,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   loadingProperties = false;
   loadingRooms = false;
   shouldScrollToBottom = false;
- emojis = [
+
+  emojis = [
     '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
     '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
     '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
@@ -58,7 +60,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   constructor(
     private chatService: ChatService,
     private authService: AuthService,
-    private propertyService: PropertyService
+    private propertyService: PropertyService,
+    private caretakerService: CaretakerService // Add this
   ) {}
 
   ngOnInit(): void {
@@ -68,6 +71,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
 
     this.userRole = this.authService.getCurrentUser()?.role?.toUpperCase() || '';
+    console.log('User role:', this.userRole);
+    
     this.loadUserDataAutomatically();
     this.initializeSubscriptions();
   }
@@ -115,8 +120,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         dataObservable = this.propertyService.getTenantUnits();
         break;
       case 'LANDLORD':
-      case 'CARETAKER':
         dataObservable = this.propertyService.getProperties();
+        break;
+      case 'CARETAKER':
+       
+        dataObservable = this.caretakerService.getProperties();
         break;
       default:
         this.loadingProperties = false;
@@ -129,8 +137,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         return of([]);
       })
     ).subscribe((response: any) => {
+      console.log('Raw response for', this.userRole, ':', response);
       this.processUserData(response, this.userRole);
       this.loadingProperties = false;
+      console.log('Processed properties:', this.userProperties);
+      console.log('Processed units:', this.userUnits);
     });
   }
 
@@ -159,6 +170,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       })).filter((property: Property) => property.id);
     }
 
+    
     if (response?.data && Array.isArray(response.data)) {
       return response.data.map((item: any) => ({
         id: item.property?.id || item.id,
@@ -219,9 +231,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
     
-    if ((this.userRole === 'LANDLORD' || this.userRole === 'CARETAKER') && this.userProperties.length === 0) {
+    if (this.userRole === 'LANDLORD' && this.userProperties.length === 0) {
       alert('No properties available. Please create a property first.');
       return;
+    }
+    
+    
+    if (this.userRole === 'CARETAKER' && this.userProperties.length === 0) {
+      console.log('No properties found for caretaker, but allowing chat creation');
     }
     
     this.showNewChatModal = true;
@@ -243,6 +260,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
+    
     switch (chatType) {
       case 'tenant-landlord':
         createObservable = this.chatService.createTenantLandlordChat(resourceId);
