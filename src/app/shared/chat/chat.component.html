@@ -6,23 +6,25 @@
         class="new-chat-btn" 
         (click)="openNewChatModal()"
         [disabled]="loadingProperties">
-        + New Chat
+        <mat-icon>add</mat-icon>
+        New Chat
       </button>
     </div>
 
     <div class="rooms-list">
       <div *ngIf="loadingRooms" class="empty-rooms">
-        <div class="empty-icon">⏳</div>
+        <mat-icon>schedule</mat-icon>
         <p>Loading chats...</p>
       </div>
       <div *ngIf="!loadingRooms && rooms.length === 0" class="empty-rooms">
-        <div class="empty-icon">💬</div>
+        <mat-icon>forum</mat-icon>
         <p>No chats yet</p>
         <p>Start a new conversation</p>
         <button 
           class="start-chat-btn" 
           (click)="openNewChatModal()"
           [disabled]="loadingProperties">
+          <mat-icon>chat</mat-icon>
           Start Chat
         </button>
       </div>
@@ -35,7 +37,7 @@
           (click)="selectRoom(room)">
           
           <div class="room-avatar">
-            {{ room.name?.charAt(0)?.toUpperCase() || 'C' }}
+            <mat-icon>person</mat-icon>
           </div>
           
           <div class="room-info">
@@ -56,9 +58,10 @@
     </div>
 
     <div class="connection-status" [class.connected]="isConnected" [class.disconnected]="!isConnected">
-      <span class="status-dot"></span>
+      <mat-icon class="status-dot">fiber_manual_record</mat-icon>
       {{ getConnectionStatus() }}
       <button *ngIf="!isConnected" class="reconnect-btn" (click)="reconnect()">
+        <mat-icon>refresh</mat-icon>
         Reconnect
       </button>
     </div>
@@ -66,13 +69,14 @@
 
   <div class="chat-area">
     <div *ngIf="!currentRoom" class="empty-state">
-      <div class="empty-icon">💬</div>
+      <mat-icon>forum</mat-icon>
       <h3>Welcome to Chat</h3>
       <p>Select a conversation from the sidebar or start a new one</p>
       <button 
         class="start-chat-btn" 
         (click)="openNewChatModal()"
         [disabled]="loadingProperties">
+        <mat-icon>chat</mat-icon>
         Start New Chat
       </button>
       
@@ -83,7 +87,9 @@
 
     <div *ngIf="currentRoom" class="chat-area-active">
       <div class="chat-header">
-        <button class="back-button" (click)="goBack()">←</button>
+        <button class="back-button" (click)="goBack()">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
         <div class="header-info">
           <div class="chat-title">{{ currentRoom.name }}</div>
           <div class="chat-participants">
@@ -91,14 +97,14 @@
           </div>
         </div>
         <div class="connection-indicator" [class.connected]="isConnected" [class.disconnected]="!isConnected">
-          <span class="status-dot"></span>
+          <mat-icon class="status-dot">fiber_manual_record</mat-icon>
           {{ getConnectionStatus() }}
         </div>
       </div>
 
       <div #messagesContainer class="messages-container">
         <div *ngIf="messages.length === 0" class="no-messages">
-          <div class="no-messages-icon">💬</div>
+          <mat-icon>forum</mat-icon>
           <p>No messages yet</p>
           <p class="no-messages-hint">Send a message to start the conversation</p>
         </div>
@@ -118,27 +124,30 @@
             <div class="message-footer">
               <span class="message-time">{{ formatMessageTime(message.sentAt) }}</span>
               <span *ngIf="isMyMessage(message)" class="message-status">
-                {{ getMessageStatus(message) }}
+                <mat-icon *ngIf="message.status === 'READ'">done_all</mat-icon>
+                <mat-icon *ngIf="message.status === 'DELIVERED'">done_all</mat-icon>
+                <mat-icon *ngIf="!message.status || message.status === 'SENT'">done</mat-icon>
               </span>
               <button 
                 *ngIf="canDelete(message)" 
                 class="delete-btn" 
                 (click)="deleteMessage(message.id)"
                 title="Delete message">
-                🗑️
+                <mat-icon>delete</mat-icon>
               </button>
             </div>
           </div>
         </div>
 
         <div *ngIf="uploadingFiles" class="uploading-indicator">
+          <mat-icon>cloud_upload</mat-icon>
           <div class="uploading-text">Uploading files...</div>
         </div>
       </div>
 
       <div class="message-input-container">
         <button class="action-btn emoji-btn" (click)="toggleEmojiPicker()" title="Add emoji">
-          😊
+          <mat-icon>mood</mat-icon>
         </button>
         
         <div class="message-input-wrapper">
@@ -163,7 +172,7 @@
         </div>
 
         <button class="action-btn attach-btn" (click)="triggerFileInput()" title="Attach file">
-          📎
+          <mat-icon>attach_file</mat-icon>
         </button>
         <input #fileInput type="file" hidden (change)="onFileSelected($event)" multiple>
 
@@ -171,53 +180,89 @@
           class="send-btn" 
           (click)="sendMessage()"
           [disabled]="!newMessage.trim() || !currentRoom">
-          ➤
+          <mat-icon>send</mat-icon>
         </button>
       </div>
     </div>
   </div>
 
+  <!-- New Chat Modal with Role-based Options -->
   <div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Start New Chat</h3>
-        <button class="close-btn" (click)="closeNewChatModal()">×</button>
+        <button class="close-btn" (click)="closeNewChatModal()">
+          <mat-icon>close</mat-icon>
+        </button>
       </div>
       
       <div class="modal-body">
         <div *ngIf="loadingProperties" class="loading-properties">
+          <mat-icon>schedule</mat-icon>
           Loading your data...
         </div>
 
         <div *ngIf="!loadingProperties" class="property-info">
+          <mat-icon>location_on</mat-icon>
           <strong>Using: {{ getCurrentPropertyName() }}</strong>
           <br>
           <small>System will automatically use your available property/unit</small>
         </div>
 
-        <div class="form-group">
-          <label for="chatType">Chat Type</label>
-          <select 
-            id="chatType" 
-            class="form-select" 
-            [(ngModel)]="newChatType">
-            <option value="tenant-landlord">Tenant ↔ Landlord</option>
-            <option value="tenant-caretaker">Tenant ↔ Caretaker</option>
-            <option value="landlord-caretaker">Landlord ↔ Caretaker</option>
-            <option value="landlord-tenant">Landlord → Tenant</option>
-            <option value="caretaker-tenant">Caretaker → Tenant</option>
-          </select>
-          <span class="form-hint">Select who you want to chat with</span>
+        <div class="chat-options" *ngIf="!loadingProperties">
+          <h4>Who would you like to message?</h4>
+          
+         
+          <div *ngIf="userRole === 'TENANT'" class="option-buttons">
+            <button class="option-btn" (click)="createChat('tenant-landlord')">
+              <mat-icon>business</mat-icon>
+              <span>Message Landlord</span>
+              <small>For rent inquiries, property issues</small>
+            </button>
+            
+            <button class="option-btn" (click)="createChat('tenant-caretaker')">
+              <mat-icon>engineering</mat-icon>
+              <span>Message Caretaker</span>
+              <small>For maintenance, repairs</small>
+            </button>
+          </div>
+
+          
+          <div *ngIf="userRole === 'LANDLORD'" class="option-buttons">
+            <button class="option-btn" (click)="createChat('landlord-caretaker')">
+              <mat-icon>engineering</mat-icon>
+              <span>Message Caretaker</span>
+              <small>Coordinate property management</small>
+            </button>
+            
+            <button class="option-btn" (click)="createChat('landlord-tenant')">
+              <mat-icon>people</mat-icon>
+              <span>Message Tenants</span>
+              <small>Property updates, announcements</small>
+            </button>
+          </div>
+
+          
+          <div *ngIf="userRole === 'CARETAKER'" class="option-buttons">
+            <button class="option-btn" (click)="createChat('tenant-caretaker')">
+              <mat-icon>people</mat-icon>
+              <span>Message Tenants</span>
+              <small>Maintenance updates, scheduling</small>
+            </button>
+            
+            <button class="option-btn" (click)="createChat('landlord-caretaker')">
+              <mat-icon>business</mat-icon>
+              <span>Message Landlord</span>
+              <small>Property reports, issues</small>
+            </button>
+          </div>
         </div>
       </div>
       
       <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeNewChatModal()">Cancel</button>
-        <button 
-          class="btn-primary" 
-          (click)="createNewChat()"
-          [disabled]="loadingRooms || loadingProperties">
-          {{ loadingRooms ? 'Creating...' : 'Create Chat' }}
+        <button class="btn-secondary" (click)="closeNewChatModal()">
+          <mat-icon>cancel</mat-icon>
+          Cancel
         </button>
       </div>
     </div>

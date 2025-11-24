@@ -386,6 +386,10 @@ export class ChatService {
   }
 
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    if (!propertyId) {
+      return throwError(() => new Error('Property ID is required'));
+    }
+
     return this.http.post<ApiResponse<ChatRoom>>(
       `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`, 
       {}, 
@@ -406,6 +410,10 @@ export class ChatService {
   }
 
   createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    if (!propertyId) {
+      return throwError(() => new Error('Property ID is required'));
+    }
+
     return this.http.post<ApiResponse<ChatRoom>>(
       `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`, 
       {}, 
@@ -426,6 +434,10 @@ export class ChatService {
   }
 
   createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    if (!propertyId) {
+      return throwError(() => new Error('Property ID is required'));
+    }
+
     return this.http.post<ApiResponse<ChatRoom>>(
       `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`, 
       {}, 
@@ -446,6 +458,10 @@ export class ChatService {
   }
 
   createLandlordTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
+    if (!unitId) {
+      return throwError(() => new Error('Unit ID is required'));
+    }
+
     return this.http.post<ApiResponse<ChatRoom>>(
       `${this.apiUrl}/landlord/tenant/${unitId}`, 
       {}, 
@@ -466,6 +482,10 @@ export class ChatService {
   }
 
   createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
+    if (!unitId) {
+      return throwError(() => new Error('Unit ID is required'));
+    }
+
     return this.http.post<ApiResponse<ChatRoom>>(
       `${this.apiUrl}/caretaker/tenant/${unitId}`, 
       {}, 
@@ -506,20 +526,53 @@ export class ChatService {
     this.roomsSubject.next(updatedRooms);
   }
 
+  
+  getCurrentUserId(): number {
+    const user = this.authService.getCurrentUser();
+    
+    if (!user?.id) {
+      return 0;
+    }
+    
+   
+    if (typeof user.id === 'number') {
+      return user.id;
+    }
+    
+    if (typeof user.id === 'string') {
+      const parsedId = parseInt(user.id, 10);
+      return isNaN(parsedId) ? 0 : parsedId;
+    }
+    
+    return 0;
+  }
+
+  
+  isMyMessage(message: Message): boolean {
+    const currentUserId = this.getCurrentUserId();
+    return message.senderId === currentUserId;
+  }
+
   formatTime(timestamp: Date): string {
     if (!timestamp || !(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
       return '';
     }
     
     try {
-      return timestamp.toLocaleTimeString(this.eatLocale, { 
+      const date = new Date(timestamp);
+      date.setHours(date.getHours() + 3);
+      
+      return date.toLocaleTimeString(this.eatLocale, { 
         timeZone: this.eatTimeZone,
         hour: '2-digit', 
         minute: '2-digit',
         hour12: true 
       });
     } catch (error) {
-      return timestamp.toLocaleTimeString('en-US', { 
+      const date = new Date(timestamp);
+      date.setHours(date.getHours() + 3);
+      
+      return date.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
         minute: '2-digit',
         hour12: true 
@@ -535,6 +588,8 @@ export class ChatService {
     try {
       const now = new Date();
       const messageTime = new Date(timestamp);
+      messageTime.setHours(messageTime.getHours() + 3);
+      
       const diffInHours = (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);
       
       if (diffInHours < 24) {
@@ -565,6 +620,8 @@ export class ChatService {
     } catch (error) {
       const now = new Date();
       const messageTime = new Date(timestamp);
+      messageTime.setHours(messageTime.getHours() + 3);
+      
       const diffInHours = (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);
       
       if (diffInHours < 24) {
@@ -592,15 +649,6 @@ export class ChatService {
     }
   }
 
-  getCurrentUserId(): number {
-    const user = this.authService.getCurrentUser();
-    return user?.id ? Number(user.id) : 0;
-  }
-
-  isMyMessage(message: Message): boolean {
-    return message.senderId === this.getCurrentUserId();
-  }
-
   getConnectionStatus(): boolean {
     return this.connectedSubject.value;
   }
@@ -608,8 +656,18 @@ export class ChatService {
   reconnect(): void {
     this.disconnect();
     setTimeout(() => {
-      this.initializeWebSocketConnection();
-      this.loadRooms();
-    }, 1000);
+      try {
+        this.initializeWebSocketConnection();
+        this.loadRooms();
+        
+        
+        const currentRoom = this.currentRoomSubject.value;
+        if (currentRoom) {
+          setTimeout(() => this.subscribeToRoom(currentRoom.id), 1000);
+        }
+      } catch (error) {
+        console.error('Reconnection failed:', error);
+      }
+    }, 2000);
   }
 }

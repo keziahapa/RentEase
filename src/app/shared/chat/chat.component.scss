@@ -472,7 +472,10 @@
   }
 
   .message-status {
-    opacity: 0.7;
+    opacity: 1;
+    font-weight: 600;
+    margin-left: 4px;
+    transition: color 0.3s ease;
   }
 
   .delete-btn {
