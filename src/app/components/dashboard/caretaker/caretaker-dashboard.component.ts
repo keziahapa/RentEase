@@ -224,9 +224,7 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
       vacantUnits,
       pendingMaintenance,
       scheduledInspections,
-      completedJobs: Math.floor(Math.random() * 20) + 5,
-      responseRate: 92,
-      tenantSatisfaction: 4.5
+    
     };
   }
 
@@ -346,7 +344,6 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
     const routeMap: { [key: string]: string[] } = {
       'dashboard': ['/caretaker-dashboard'],
       'maintenance': ['/caretaker-dashboard/maintenance'],
-      'inspections': ['/caretaker-dashboard/inspections'],
       'properties': ['/caretaker-dashboard/properties'],
       'chat': ['/caretaker-dashboard/chat'],
       'reports': ['/caretaker-dashboard/reports'],
@@ -368,8 +365,6 @@ export class CaretakerDashboardComponent implements OnInit, OnDestroy {
       this.currentSection = 'dashboard';
     } else if (url.includes('/maintenance')) {
       this.currentSection = 'maintenance';
-    } else if (url.includes('/inspections')) {
-      this.currentSection = 'inspections';
     } else if (url.includes('/properties')) {
       this.currentSection = 'properties';
     } else if (url.includes('/chat')) {

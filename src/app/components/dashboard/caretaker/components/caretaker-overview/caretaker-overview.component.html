@@ -1,5 +1,29 @@
 <div class="overview-view">
+  
   <div class="stats-grid">
+  
+    <div class="stat-card">
+      <div class="stat-icon properties">
+        <mat-icon>apartment</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{formatNumber(stats.totalProperties)}}</div>
+        <div class="stat-label">Total Properties</div>
+      </div>
+    </div>
+
+    
+    <div class="stat-card">
+      <div class="stat-icon units">
+        <mat-icon>home</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{formatNumber(stats.occupiedUnits)}}</div>
+        <div class="stat-label">Occupied Units</div>
+      </div>
+    </div>
+
+    
     <div class="stat-card">
       <div class="stat-icon maintenance">
         <mat-icon>build</mat-icon>
@@ -10,57 +34,19 @@
       </div>
     </div>
 
+   
     <div class="stat-card">
-      <div class="stat-icon inspections">
-        <mat-icon>home</mat-icon>
+      <div class="stat-icon messages">
+        <mat-icon>message</mat-icon>
       </div>
       <div class="stat-info">
-        <div class="stat-value">{{formatNumber(stats.scheduledInspections)}}</div>
-        <div class="stat-label">Scheduled Inspections</div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon deposits">
-        <mat-icon>account_balance</mat-icon>
-      </div>
-      <div class="stat-info">
-        <div class="stat-value">{{formatNumber(stats.activeDepositCases)}}</div>
-        <div class="stat-label">Active Deposit Cases</div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon completed">
-        <mat-icon>check_circle</mat-icon>
-      </div>
-      <div class="stat-info">
-        <div class="stat-value">{{formatNumber(stats.completedJobs)}}</div>
-        <div class="stat-label">Completed Jobs</div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon response">
-        <mat-icon>timer</mat-icon>
-      </div>
-      <div class="stat-info">
-        <div class="stat-value">{{stats.responseRate}}%</div>
-        <div class="stat-label">Response Rate</div>
-      </div>
-    </div>
-
-    <div class="stat-card">
-      <div class="stat-icon satisfaction">
-        <mat-icon>star</mat-icon>
-      </div>
-      <div class="stat-info">
-        <div class="stat-value">{{stats.tenantSatisfaction}}/5</div>
-        <div class="stat-label">Tenant Satisfaction</div>
+        <div class="stat-value">{{formatNumber(stats.unreadMessages)}}</div>
+        <div class="stat-label">Unread Messages</div>
       </div>
     </div>
   </div>
 
+  
   <div class="quick-actions-section">
     <h3>Quick Actions</h3>
     <div class="actions-grid">
@@ -74,11 +60,13 @@
     </div>
   </div>
 
+
   <div class="recent-activity">
+   
     <div class="activity-section">
       <h3>Recent Maintenance Requests</h3>
       <div class="activity-list">
-        <div *ngFor="let request of maintenanceRequests.slice(0, 3)" class="activity-item">
+        <div *ngFor="let request of maintenanceRequests.slice(0, 5)" class="activity-item">
           <div class="activity-icon" [class]="getPriorityClass(request.priority)">
             <mat-icon>build</mat-icon>
           </div>
@@ -86,54 +74,88 @@
             <div class="activity-title">{{request.title}}</div>
             <div class="activity-details">
               <span class="tenant">{{request.tenantName}}</span> • 
-              <span class="property">{{request.property}}</span>
+              <span class="property">{{request.propertyName}}</span>
             </div>
             <div class="activity-status">
-              <span class="status-badge" [class]="getStatusClass(request.status)">{{request.status}}</span>
+              <span class="status-badge" [class]="getStatusClass(request.status)">
+                {{request.status}}
+              </span>
             </div>
+            <div class="activity-date">{{formatDate(request.dateSubmitted)}}</div>
           </div>
+        </div>
+        <div *ngIf="maintenanceRequests.length === 0" class="empty-state">
+          <mat-icon>build</mat-icon>
+          <p>No maintenance requests</p>
         </div>
       </div>
     </div>
 
+   
     <div class="activity-section">
-      <h3>Upcoming Inspections</h3>
+      <h3>Move Out Notices</h3>
       <div class="activity-list">
-        <div *ngFor="let inspection of inspections.slice(0, 3)" class="activity-item">
-          <div class="activity-icon" [class]="getInspectionTypeClass(inspection.type)">
-            <mat-icon>home</mat-icon>
+        <div *ngFor="let notice of moveOutNotices.slice(0, 5)" class="activity-item" (click)="viewMoveOutNotice(notice.id)">
+          <div class="activity-icon move-out">
+            <mat-icon>exit_to_app</mat-icon>
           </div>
           <div class="activity-content">
-            <div class="activity-title">{{inspection.type | titlecase}} Inspection</div>
+            <div class="activity-title">{{notice.tenantName}} - {{notice.unitNumber}}</div>
             <div class="activity-details">
-              <span class="tenant">{{inspection.tenantName}}</span> • 
-              <span class="property">{{inspection.property}}</span>
+              <span class="property">{{notice.propertyName}}</span>
             </div>
-            <div class="activity-date">{{formatDate(inspection.date)}}</div>
+            <div class="activity-status">
+              <span class="status-badge" [class]="getMoveOutStatusClass(notice.status)">
+                {{notice.status}}
+              </span>
+            </div>
+            <div class="activity-date">Move-out: {{formatDate(notice.moveOutDate)}}</div>
           </div>
         </div>
-        <div *ngIf="inspections.length === 0" class="empty-state">No upcoming inspections scheduled.</div>
+        <div *ngIf="moveOutNotices.length === 0" class="empty-state">
+          <mat-icon>exit_to_app</mat-icon>
+          <p>No move-out notices</p>
+        </div>
       </div>
     </div>
 
+   
     <div class="activity-section">
-      <h3>Verified Vacancy Status</h3>
+      <h3>Recent Messages</h3>
       <div class="activity-list">
-        <div *ngFor="let vacancy of vacancyEvents.slice(0, 3)" class="activity-item">
-          <div class="activity-icon vacancy-icon" [ngClass]="getVacancyStatusClass(vacancy.status)">
-            <mat-icon>verified_user</mat-icon>
+        <div *ngFor="let room of chatRooms.slice(0, 5)" class="activity-item" (click)="openChat(room.id)">
+          <div class="activity-icon chat">
+            <mat-icon>message</mat-icon>
+            <span *ngIf="room.unreadCount > 0" class="unread-badge">{{room.unreadCount}}</span>
           </div>
           <div class="activity-content">
-            <div class="activity-title">{{vacancy.property}} • {{vacancy.unit}}</div>
+            <div class="activity-title">{{room.name}}</div>
             <div class="activity-details">
-              <span class="tenant">{{vacancy.tenantName}}</span> • 
-              <span class="status-badge" [class]="getVacancyStatusClass(vacancy.status)">{{vacancy.status | titlecase}}</span>
+              <span class="last-message">{{room.lastMessage?.content || 'No messages yet'}}</span>
             </div>
-            <div class="activity-date">Move-out: {{formatDate(vacancy.moveOutDate)}}</div>
+            <div class="activity-date">{{formatDate(room.updatedAt)}}</div>
           </div>
         </div>
-        <div *ngIf="vacancyEvents.length === 0" class="empty-state">No pending vacancy verifications.</div>
+        <div *ngIf="chatRooms.length === 0" class="empty-state">
+          <mat-icon>message</mat-icon>
+          <p>No messages</p>
+        </div>
       </div>
+    </div>
+  </div>
+
+  
+  <div *ngIf="isLoadingDashboard" class="loading-section">
+    <mat-icon>refresh</mat-icon>
+    <p>Loading dashboard data...</p>
+  </div>
+
+  
+  <div *ngIf="loadError && !isLoadingDashboard" class="error-section">
+    <div class="error-message">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{loadError}}</p>
+      <button class="retry-btn" (click)="loadDashboardData()">Try Again</button>
     </div>
   </div>
 </div>

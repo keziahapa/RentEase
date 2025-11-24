@@ -198,7 +198,6 @@ export const routes: Routes = [
       { path: '', redirectTo: 'overview', pathMatch: 'full' },
       { path: 'overview', component: CaretakerOverviewComponent },
       { path: 'maintenance', component: CaretakerOverviewComponent },
-      { path: 'inspections', component: CaretakerOverviewComponent },
       { path: 'deposits', component: CaretakerOverviewComponent },
       { path: 'reports', component: CaretakerOverviewComponent },
       { 

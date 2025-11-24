@@ -61,7 +61,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     private chatService: ChatService,
     private authService: AuthService,
     private propertyService: PropertyService,
-    private caretakerService: CaretakerService // Add this
+    private caretakerService: CaretakerService 
   ) {}
 
   ngOnInit(): void {
