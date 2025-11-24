@@ -1,104 +1,146 @@
-// User Interface
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  avatar?: string;
-  isOnline?: boolean;
-  lastSeen?: string;
-  phoneNumber?: string;
-  profilePicture?: string;
-  fullName?: string;
-}
+export type ChatRoomType = 
+  | 'tenant-landlord' 
+  | 'tenant-caretaker' 
+  | 'landlord-caretaker' 
+  | 'landlord-tenant' 
+  | 'caretaker-tenant'
+  | 'TENANT_LANDLORD'
+  | 'TENANT_CARETAKER'
+  | 'LANDLORD_CARETAKER'
+  | 'LANDLORD_TENANT'
+  | 'CARETAKER_TENANT'
+  | 'DIRECT'
+  | 'GROUP';
 
-// Message Interface
+export type MessageType = 'TEXT' | 'FILE' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+
+export type MessageStatus = 'SENT' | 'DELIVERED' | 'READ' | 'DELETED';
+
 export interface Message {
   id: number;
   content: string;
   senderId: number;
-  senderName?: string;
+  senderName: string;
   senderEmail?: string;
   chatRoomId: number;
   sentAt: Date;
-  messageType: 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM';
-  status: 'SENT' | 'DELIVERED' | 'READ';
+  timestamp: Date;
+  messageType: MessageType;
+  status: MessageStatus;
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;
-  isDeleted?: boolean;
-  deletedForEveryone?: boolean;
   canDelete?: boolean;
-  timestamp?: Date;
+  isEdited?: boolean;
+  deletedAt?: Date;
+  sender?: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    profilePicture?: string;
+  };
 }
 
-// Chat Room Interface
 export interface ChatRoom {
   id: number;
   name: string;
-  type: string;
-  propertyId: number;
-  propertyName: string;
-  participants: User[];
+  type: ChatRoomType;
+  propertyId?: number;
+  propertyName?: string;
+  unitId?: number;
+  unitNumber?: string;
+  participants: Participant[];
   lastMessage: Message | null;
   unreadCount: number;
   isGroup: boolean;
   createdAt: Date;
   updatedAt: Date;
+  createdBy?: number;
+  isActive?: boolean;
 }
 
-// Request Interfaces
+export interface Participant {
+  id: number;
+  userId?: number;
+  name: string;
+  fullName?: string;
+  email: string;
+  role: 'TENANT' | 'LANDLORD' | 'CARETAKER' | 'ADMIN' | 'USER';
+  avatar?: string;
+  profilePicture?: string;
+  isOnline: boolean;
+  lastSeen?: Date;
+  phoneNumber?: string;
+  joinedAt?: Date;
+  isAdmin?: boolean;
+}
+
 export interface SendMessageRequest {
   content: string;
   chatRoomId: number;
+  messageType?: MessageType;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+}
+
+export interface MarkReadRequest {
+  messageId?: number;
+  messageIds?: number[];
+}
+
+export interface MarkDeliveredRequest {
+  messageId?: number;
+  messageIds?: number[];
 }
 
 export interface BatchDeleteRequest {
   messageIds: number[];
-}
-
-// API Response Interface
-export interface ApiResponse<T = any> {
-  success: boolean;
-  message: string;
-  data: T;
-}
-
-// WebSocket Message Interfaces
-export interface WebSocketSendMessageRequest {
   chatRoomId: number;
-  content: string;
-  messageType?: 'TEXT' | 'IMAGE' | 'FILE';
 }
 
-export interface WebSocketDeleteMessageRequest {
+export interface DeleteMessageRequest {
   messageId: number;
 }
 
-export interface WebSocketDeleteMessageResponse {
-  success: boolean;
-  message: string;
-  messageId?: number;
-  chatRoomId: number;
+export interface CreateChatRoomRequest {
+  propertyId?: number;
+  unitId?: number;
+  type: ChatRoomType;
+  participantIds?: number[];
 }
 
-// File Upload Interface
-export interface FileUploadResponse {
+export interface ApiResponse<T = any> {
   success: boolean;
   message: string;
-  data: {
-    fileUrl: string;
-    fileName: string;
-    fileSize: number;
-    mimeType: string;
-  };
+  data?: T;
+  error?: string;
+  errors?: string[];
+  timestamp?: string | Date;
+  status?: number;
 }
 
-// Property & Unit Interfaces
+export interface PaginatedResponse<T> {
+  success: boolean;
+  message: string;
+  data: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
 export interface Property {
   id: number;
   name: string;
   address: string;
+  location?: string;
+  description?: string;
+  ownerId?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Unit {
@@ -107,10 +149,30 @@ export interface Unit {
   unitType: string;
   rentAmount: number;
   propertyId: number;
-  property?: Property;
+  status?: 'AVAILABLE' | 'OCCUPIED' | 'MAINTENANCE' | 'UNAVAILABLE';
+  bedrooms?: number;
+  bathrooms?: number;
+  squareFeet?: number;
+  tenantId?: number;
 }
 
-// Type Aliases
-export type MessageStatus = 'SENT' | 'DELIVERED' | 'READ';
-export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM';
-export type ChatRoomType = 'tenant-landlord' | 'tenant-caretaker' | 'landlord-caretaker' | 'landlord-tenant' | 'caretaker-tenant';
+export interface WebSocketMessage {
+  type: 'MESSAGE' | 'DELETED' | 'DELIVERED' | 'READ' | 'TYPING' | 'ONLINE' | 'OFFLINE';
+  data: any;
+  chatRoomId?: number;
+  userId?: number;
+  timestamp: Date;
+}
+
+export interface TypingIndicator {
+  userId: number;
+  userName: string;
+  chatRoomId: number;
+  isTyping: boolean;
+}
+
+export interface OnlineStatus {
+  userId: number;
+  isOnline: boolean;
+  lastSeen?: Date;
+}

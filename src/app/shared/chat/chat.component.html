@@ -56,6 +56,7 @@
     </div>
 
     <div class="connection-status" [class.connected]="isConnected" [class.disconnected]="!isConnected">
+      <span class="status-dot"></span>
       {{ getConnectionStatus() }}
       <button *ngIf="!isConnected" class="reconnect-btn" (click)="reconnect()">
         Reconnect
@@ -63,9 +64,7 @@
     </div>
   </div>
 
-  <!-- Chat Area -->
   <div class="chat-area">
-    <!-- No Room Selected -->
     <div *ngIf="!currentRoom" class="empty-state">
       <div class="empty-icon">💬</div>
       <h3>Welcome to Chat</h3>
@@ -77,15 +76,12 @@
         Start New Chat
       </button>
       
-      <!-- Auto-loaded Property/Unit Info -->
-      <div *ngIf="!loadingProperties" class="property-info" style="margin-top: 20px; text-align: center;">
+      <div *ngIf="!loadingProperties" class="property-info">
         <strong>Available: {{ getCurrentPropertyName() }}</strong>
       </div>
     </div>
 
-    <!-- Room Selected -->
     <div *ngIf="currentRoom" class="chat-area-active">
-      <!-- Chat Header -->
       <div class="chat-header">
         <button class="back-button" (click)="goBack()">←</button>
         <div class="header-info">
@@ -95,20 +91,18 @@
           </div>
         </div>
         <div class="connection-indicator" [class.connected]="isConnected" [class.disconnected]="!isConnected">
+          <span class="status-dot"></span>
           {{ getConnectionStatus() }}
         </div>
       </div>
 
-      <!-- Messages -->
       <div #messagesContainer class="messages-container">
-        <!-- No Messages -->
         <div *ngIf="messages.length === 0" class="no-messages">
           <div class="no-messages-icon">💬</div>
           <p>No messages yet</p>
           <p class="no-messages-hint">Send a message to start the conversation</p>
         </div>
 
-        <!-- Messages List -->
         <div *ngFor="let message of messages; trackBy: trackByMessageId" class="message-wrapper">
           <div 
             class="message" 
@@ -121,14 +115,11 @@
             
             <div class="message-content">{{ message.content }}</div>
             
-            <div class="message-time">
-              {{ formatMessageTime(message.sentAt) }}
+            <div class="message-footer">
+              <span class="message-time">{{ formatMessageTime(message.sentAt) }}</span>
               <span *ngIf="isMyMessage(message)" class="message-status">
                 {{ getMessageStatus(message) }}
               </span>
-            </div>
-
-            <div class="message-actions">
               <button 
                 *ngIf="canDelete(message)" 
                 class="delete-btn" 
@@ -140,54 +131,52 @@
           </div>
         </div>
 
-        <!-- Uploading Indicator -->
         <div *ngIf="uploadingFiles" class="uploading-indicator">
           <div class="uploading-text">Uploading files...</div>
         </div>
       </div>
 
-      <!-- Message Input -->
       <div class="message-input-container">
-        <div class="input-actions">
-          <button class="action-btn" (click)="toggleEmojiPicker()" title="Add emoji">
-            😊
-          </button>
-          <button class="action-btn" (click)="triggerFileInput()" title="Attach file">
-            📎
-          </button>
-          <input #fileInput type="file" hidden (change)="onFileSelected($event)" multiple>
-        </div>
-
+        <button class="action-btn emoji-btn" (click)="toggleEmojiPicker()" title="Add emoji">
+          😊
+        </button>
+        
         <div class="message-input-wrapper">
           <textarea
             class="message-input"
             [(ngModel)]="newMessage"
             (keydown)="onKeyPress($event)"
             placeholder="Type a message..."
-            rows="1">
-          </textarea>
+            rows="1"></textarea>
 
-          <!-- Emoji Picker -->
-          <emoji-mart
-            *ngIf="emojiMartVisible"
-            class="emoji-picker"
-            (emojiClick)="addEmoji($event)"
-            title="Pick your emoji"
-            set="apple">
-          </emoji-mart>
+          <div *ngIf="showEmojiPicker" class="emoji-picker">
+            <div class="emoji-grid">
+              <button 
+                *ngFor="let emoji of emojis" 
+                class="emoji-item"
+                (click)="addEmoji(emoji)"
+                [title]="emoji">
+                {{ emoji }}
+              </button>
+            </div>
+          </div>
         </div>
+
+        <button class="action-btn attach-btn" (click)="triggerFileInput()" title="Attach file">
+          📎
+        </button>
+        <input #fileInput type="file" hidden (change)="onFileSelected($event)" multiple>
 
         <button 
           class="send-btn" 
           (click)="sendMessage()"
           [disabled]="!newMessage.trim() || !currentRoom">
-          Send
+          ➤
         </button>
       </div>
     </div>
   </div>
 
-  <!-- New Chat Modal -->
   <div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -196,19 +185,16 @@
       </div>
       
       <div class="modal-body">
-        <!-- Loading State -->
         <div *ngIf="loadingProperties" class="loading-properties">
           Loading your data...
         </div>
 
-        <!-- Auto-loaded Resource Info -->
         <div *ngIf="!loadingProperties" class="property-info">
           <strong>Using: {{ getCurrentPropertyName() }}</strong>
           <br>
           <small>System will automatically use your available property/unit</small>
         </div>
 
-        <!-- Chat Type Selection -->
         <div class="form-group">
           <label for="chatType">Chat Type</label>
           <select 

@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PickerComponent } from '@ctrl/ngx-emoji-mart';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { PropertyService } from '../../services/property.service';
@@ -12,7 +11,7 @@ import { catchError } from 'rxjs/operators';
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, PickerComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss']
 })
@@ -20,24 +19,41 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesContainer') private messagesContainer!: ElementRef;
   @ViewChild('fileInput') private fileInput!: ElementRef;
   
-  // Chat Data
   rooms: ChatRoom[] = [];
   currentRoom: ChatRoom | null = null;
   messages: Message[] = [];
   newMessage = '';
   isConnected = false;
-  emojiMartVisible = false;
+  showEmojiPicker = false;
   uploadingFiles = false;
-  
-  // Auto-managed Properties & Units
+
   userProperties: Property[] = [];
   userUnits: Unit[] = [];
   
-  // UI States
   showNewChatModal = false;
   newChatType: ChatRoomType = 'tenant-landlord';
   loadingProperties = false;
   loadingRooms = false;
+  shouldScrollToBottom = false;
+
+  emojis = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
+    '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
+    '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
+    '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥',
+    '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮',
+    '🤧', '🥵', '🥶', '😶‍🌫️', '🥴', '😵', '🤯', '🤠', '🥳', '😎',
+    '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳',
+    '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖',
+    '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬',
+    '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉',
+    '👆', '👇', '☝️', '✋', '🤚', '🖐️', '🖖', '👋', '🤝', '💪',
+    '🙏', '✍️', '💅', '🤳', '💃', '🕺', '👯', '🧘', '🛀', '🛌',
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
+    '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️',
+    '✨', '💫', '⭐', '🌟', '✴️', '🎊', '🎉', '🎈', '🎁', '🏆',
+    '🥇', '🥈', '🥉', '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉'
+  ];
 
   constructor(
     private chatService: ChatService,
@@ -62,24 +78,24 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private initializeSubscriptions(): void {
     this.chatService.rooms$.subscribe((rooms: ChatRoom[]) => {
       this.rooms = rooms ?? [];
-      console.log('📋 Rooms updated:', this.rooms.length);
       this.loadingRooms = false;
     });
 
     this.chatService.currentRoom$.subscribe((room: ChatRoom | null) => {
       this.currentRoom = room;
-      console.log('🎯 Current room:', room);
     });
 
     this.chatService.messages$.subscribe((messages: Message[]) => {
+      const oldLength = this.messages.length;
       this.messages = messages ?? [];
-      console.log('💬 Messages updated:', this.messages.length);
-      setTimeout(() => this.scrollToBottom(), 100);
+      
+      if (this.messages.length > oldLength) {
+        this.shouldScrollToBottom = true;
+      }
     });
 
     this.chatService.connected$.subscribe((connected: boolean) => {
       this.isConnected = connected;
-      console.log('🔌 Connection status:', connected);
     });
   }
 
@@ -91,8 +107,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.loadingProperties = false;
       return;
     }
-
-    console.log(`👤 Loading data for user role: ${userRole}`);
 
     let dataObservable: Observable<any>;
 
@@ -125,16 +139,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       case 'TENANT':
         this.userUnits = this.extractUnits(response);
         this.userProperties = this.extractPropertiesFromUnits(response);
-        console.log('✅ Tenant data loaded:', {
-          units: this.userUnits,
-          properties: this.userProperties
-        });
         break;
 
       case 'LANDLORD':
       case 'CARETAKER':
         this.userProperties = this.extractProperties(response);
-        console.log('✅ Landlord/Caretaker properties loaded:', this.userProperties);
         break;
     }
   }
@@ -282,14 +291,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         if (response?.success && response.data) {
           this.closeNewChatModal();
           this.selectRoom(response.data);
-          console.log('✅ Chat created successfully');
         } else {
           alert('Failed to create chat: ' + (response?.message || 'Unknown error'));
         }
       },
       error: (error: any) => {
         this.loadingRooms = false;
-        console.error('❌ Backend error creating chat:', error);
+        console.error('Backend error creating chat:', error);
         alert('Failed to create chat: ' + (error.error?.message || error.message));
       }
     });
@@ -301,18 +309,23 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   selectRoom(room: ChatRoom): void {
     this.chatService.selectRoom(room);
+    this.shouldScrollToBottom = true;
   }
 
   sendMessage(): void {
     if (this.newMessage.trim() && this.currentRoom) {
-      this.chatService.sendMessage(this.newMessage.trim(), this.currentRoom.id).subscribe({
+      const messageToSend = this.newMessage.trim();
+      this.newMessage = '';
+      this.hideEmojiPicker();
+      
+      this.chatService.sendMessage(messageToSend, this.currentRoom.id).subscribe({
         next: () => {
-          this.newMessage = '';
-          this.hideEmojiPicker();
+          this.shouldScrollToBottom = true;
         },
         error: (error: any) => {
           console.error('Error sending message:', error);
           alert('Failed to send message. Please try again.');
+          this.newMessage = messageToSend;
         }
       });
     }
@@ -337,17 +350,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   toggleEmojiPicker(): void {
-    this.emojiMartVisible = !this.emojiMartVisible;
+    this.showEmojiPicker = !this.showEmojiPicker;
   }
 
   hideEmojiPicker(): void {
-    this.emojiMartVisible = false;
+    this.showEmojiPicker = false;
   }
 
-  addEmoji(event: any): void {
-    if (event.emoji && event.emoji.native) {
-      this.newMessage += event.emoji.native;
-    }
+  addEmoji(emoji: string): void {
+    this.newMessage += emoji;
     this.hideEmojiPicker();
   }
 
@@ -374,7 +385,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       const fileMessage = `📎 File: ${file.name} (${this.formatFileSize(file.size)})`;
       this.chatService.sendMessage(fileMessage, this.currentRoom!.id).subscribe({
         next: () => {
-          console.log('File message sent successfully');
+          this.shouldScrollToBottom = true;
         },
         error: (error: any) => {
           console.error('Error sending file message:', error);
@@ -458,10 +469,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private scrollToBottom(): void {
+    if (!this.shouldScrollToBottom) return;
+    
     try {
       if (this.messagesContainer?.nativeElement) {
         const container = this.messagesContainer.nativeElement;
-        container.scrollTop = container.scrollHeight;
+        setTimeout(() => {
+          container.scrollTop = container.scrollHeight;
+          this.shouldScrollToBottom = false;
+        }, 50);
       }
     } catch (err) {
       console.error('Error scrolling to bottom:', err);
