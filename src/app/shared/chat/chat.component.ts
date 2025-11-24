@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { PropertyService } from '../../services/property.service';
@@ -11,7 +12,7 @@ import { catchError } from 'rxjs/operators';
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, MatIconModule],
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss']
 })
@@ -29,14 +30,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   userProperties: Property[] = [];
   userUnits: Unit[] = [];
+  userRole: string = '';
   
   showNewChatModal = false;
-  newChatType: ChatRoomType = 'tenant-landlord';
   loadingProperties = false;
   loadingRooms = false;
   shouldScrollToBottom = false;
-
-  emojis = [
+ emojis = [
     '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
     '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
     '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
@@ -67,6 +67,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
+    this.userRole = this.authService.getCurrentUser()?.role?.toUpperCase() || '';
     this.loadUserDataAutomatically();
     this.initializeSubscriptions();
   }
@@ -101,16 +102,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private loadUserDataAutomatically(): void {
     this.loadingProperties = true;
-    const userRole = this.authService.getCurrentUser()?.role;
     
-    if (!userRole) {
+    if (!this.userRole) {
       this.loadingProperties = false;
       return;
     }
 
     let dataObservable: Observable<any>;
 
-    switch(userRole.toUpperCase()) {
+    switch(this.userRole) {
       case 'TENANT':
         dataObservable = this.propertyService.getTenantUnits();
         break;
@@ -129,13 +129,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         return of([]);
       })
     ).subscribe((response: any) => {
-      this.processUserData(response, userRole);
+      this.processUserData(response, this.userRole);
       this.loadingProperties = false;
     });
   }
 
   private processUserData(response: any, userRole: string): void {
-    switch(userRole.toUpperCase()) {
+    switch(userRole) {
       case 'TENANT':
         this.userUnits = this.extractUnits(response);
         this.userProperties = this.extractPropertiesFromUnits(response);
@@ -214,48 +214,28 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   openNewChatModal(): void {
-    const userRole = this.authService.getCurrentUser()?.role;
-    
-    if (userRole?.toUpperCase() === 'TENANT') {
-      if (this.userUnits.length === 0) {
-        alert('No units assigned to you. Please contact your landlord.');
-        return;
-      }
-      this.newChatType = 'tenant-landlord';
-    } 
-    else if (userRole?.toUpperCase() === 'LANDLORD') {
-      if (this.userProperties.length === 0) {
-        alert('No properties available. Please create a property first.');
-        return;
-      }
-      this.newChatType = 'landlord-caretaker';
+    if (this.userRole === 'TENANT' && this.userUnits.length === 0) {
+      alert('No units assigned to you. Please contact your landlord.');
+      return;
     }
-    else if (userRole?.toUpperCase() === 'CARETAKER') {
-      if (this.userProperties.length === 0) {
-        alert('No properties assigned to you. Please contact administrator.');
-        return;
-      }
-      this.newChatType = 'tenant-caretaker';
+    
+    if ((this.userRole === 'LANDLORD' || this.userRole === 'CARETAKER') && this.userProperties.length === 0) {
+      alert('No properties available. Please create a property first.');
+      return;
     }
     
     this.showNewChatModal = true;
   }
 
-  createNewChat(): void {
+  createChat(chatType: ChatRoomType): void {
     let resourceId: number | null = null;
     let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
-    switch (this.newChatType) {
-      case 'tenant-landlord':
-      case 'tenant-caretaker':
-      case 'landlord-caretaker':
-        resourceId = this.userProperties.length > 0 ? this.userProperties[0].id : null;
-        break;
-        
-      case 'landlord-tenant':
-      case 'caretaker-tenant':
-        resourceId = this.userUnits.length > 0 ? this.userUnits[0].id : null;
-        break;
+   
+    if (this.userRole === 'TENANT') {
+      resourceId = this.userUnits.length > 0 ? this.userUnits[0].id : null;
+    } else {
+      resourceId = this.userProperties.length > 0 ? this.userProperties[0].id : null;
     }
 
     if (!resourceId) {
@@ -263,7 +243,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
-    switch (this.newChatType) {
+    switch (chatType) {
       case 'tenant-landlord':
         createObservable = this.chatService.createTenantLandlordChat(resourceId);
         break;
@@ -388,7 +368,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.uploadingFiles = true;
     files.forEach((file: File) => {
-      const fileMessage = `📎 File: ${file.name} (${this.formatFileSize(file.size)})`;
+      const fileMessage = `File: ${file.name} (${this.formatFileSize(file.size)})`;
       this.chatService.sendMessage(fileMessage, this.currentRoom!.id).subscribe({
         next: () => {
           this.shouldScrollToBottom = true;
@@ -443,11 +423,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return room?.participants?.length || 0;
   }
 
-  getMessageStatus(message: Message): string {
-    if (!message?.status) return '✓';
-    return message.status === 'READ' ? '✓✓' : message.status === 'DELIVERED' ? '✓✓' : '✓';
-  }
-
   canDelete(message: Message): boolean {
     return this.chatService.isMyMessage(message) || (message?.canDelete ?? false);
   }
@@ -465,8 +440,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   getCurrentPropertyName(): string {
-    const userRole = this.authService.getCurrentUser()?.role;
-    if (userRole?.toUpperCase() === 'TENANT' && this.userUnits.length > 0) {
+    if (this.userRole === 'TENANT' && this.userUnits.length > 0) {
       return `Unit ${this.userUnits[0].unitNumber}`;
     } else if (this.userProperties.length > 0) {
       return this.userProperties[0].name;
