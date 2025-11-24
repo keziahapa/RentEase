@@ -18,6 +18,14 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+
+  @media (max-width: 768px) {
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 480px) {
+    gap: 1rem;
+  }
 }
 
 /* Stats Grid */
@@ -26,6 +34,10 @@
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   @media (max-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
@@ -56,15 +68,23 @@
     transform: translateY(-2px);
   }
 
+  @media (max-width: 1024px) {
+    padding: 1.25rem;
+    min-height: 110px;
+  }
+
   @media (max-width: 768px) {
     padding: 1.25rem;
     min-height: 110px;
+    gap: 0.875rem;
   }
 
   @media (max-width: 480px) {
     padding: 1rem;
     min-height: 100px;
-    gap: 0.875rem;
+    gap: 0.75rem;
+    flex-direction: column;
+    text-align: center;
   }
 }
 
@@ -77,11 +97,23 @@
   justify-content: center;
   color: white;
   flex-shrink: 0;
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
 
   mat-icon {
     font-size: 28px;
     width: 28px;
     height: 28px;
+  }
+
+  @media (max-width: 1024px) {
+    width: 50px;
+    height: 50px;
+    
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
   }
 
   @media (max-width: 768px) {
@@ -105,16 +137,6 @@
       height: 20px;
     }
   }
-
-  // All icons use the same blue color to match landlord theme
-  &.maintenance,
-  &.inspections,
-  &.deposits,
-  &.completed,
-  &.response,
-  &.satisfaction {
-    background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-  }
 }
 
 .stat-info {
@@ -127,6 +149,10 @@
     color: #1e293b;
     line-height: 1;
     margin-bottom: 0.25rem;
+
+    @media (max-width: 1024px) {
+      font-size: 1.5rem;
+    }
 
     @media (max-width: 768px) {
       font-size: 1.5rem;
@@ -160,6 +186,10 @@
     margin: 0 0 1rem 0;
     line-height: 1.2;
 
+    @media (max-width: 768px) {
+      font-size: 1.375rem;
+    }
+
     @media (max-width: 480px) {
       font-size: 1.25rem;
     }
@@ -170,6 +200,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -201,6 +235,10 @@
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   }
 
+  @media (max-width: 1024px) {
+    padding: 1.25rem;
+  }
+
   @media (max-width: 768px) {
     padding: 1.25rem;
     gap: 0.875rem;
@@ -209,6 +247,8 @@
   @media (max-width: 480px) {
     padding: 1rem;
     gap: 0.75rem;
+    flex-direction: column;
+    text-align: center;
   }
 }
 
@@ -228,7 +268,7 @@
     height: 24px;
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: 1024px) {
     width: 44px;
     height: 44px;
     
@@ -236,6 +276,17 @@
       font-size: 22px;
       width: 22px;
       height: 22px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    width: 40px;
+    height: 40px;
+    
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
     }
   }
 }
@@ -268,6 +319,10 @@
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
 
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 1.5rem;
@@ -285,6 +340,10 @@
     font-weight: 700;
     margin: 0 0 1rem 0;
     line-height: 1.2;
+
+    @media (max-width: 768px) {
+      font-size: 1.125rem;
+    }
 
     @media (max-width: 480px) {
       font-size: 1.125rem;
@@ -305,6 +364,8 @@
   gap: 1rem;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 
   &:last-child {
     border-bottom: none;
@@ -312,6 +373,11 @@
 
   &:hover {
     background: #f8fafc;
+  }
+
+  @media (max-width: 1024px) {
+    padding: 1rem 1.25rem;
+    gap: 0.875rem;
   }
 
   @media (max-width: 768px) {
@@ -322,6 +388,8 @@
   @media (max-width: 480px) {
     padding: 0.875rem 1rem;
     gap: 0.75rem;
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
@@ -335,11 +403,28 @@
   background: #f1f5f9;
   color: #64748b;
   flex-shrink: 0;
+  position: relative;
 
   mat-icon {
     font-size: 20px;
     width: 20px;
     height: 20px;
+  }
+
+  .unread-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
   }
 
   @media (max-width: 480px) {
@@ -354,51 +439,36 @@
   }
 
   // Priority classes for maintenance requests
-  &.high-priority {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-  }
-
-  &.medium-priority {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-  }
-
-  &.low-priority {
+  &.priority-low {
     background: rgba(16, 185, 129, 0.1);
     color: #10b981;
   }
 
-  // Inspection type classes
-  &.routine-inspection {
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+  &.priority-medium {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
   }
 
-  &.move-in-inspection {
-    background: rgba(139, 92, 246, 0.1);
-    color: #8b5cf6;
+  &.priority-high {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
   }
 
-  &.move-out-inspection {
+  &.priority-urgent {
+    background: rgba(239, 68, 68, 0.2);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  // Special icons
+  &.move-out {
     background: rgba(236, 72, 153, 0.1);
     color: #ec4899;
   }
 
-  // Vacancy status classes
-  &.vacancy-icon.pending {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-  }
-
-  &.vacancy-icon.verified {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-  }
-
-  &.vacancy-icon.rejected {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+  &.chat {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
   }
 }
 
@@ -418,6 +488,7 @@
 
     @media (max-width: 480px) {
       font-size: 0.9rem;
+      white-space: normal;
     }
   }
 
@@ -432,6 +503,10 @@
     }
 
     .property {
+      font-style: italic;
+    }
+
+    .last-message {
       font-style: italic;
     }
 
@@ -463,37 +538,37 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
 
-  &.pending {
+  &.status-pending {
     background: rgba(245, 158, 11, 0.1);
     color: #d97706;
     border: 1px solid rgba(245, 158, 11, 0.2);
   }
 
-  &.in-progress {
+  &.status-progress {
     background: rgba(59, 130, 246, 0.1);
     color: #2563eb;
     border: 1px solid rgba(59, 130, 246, 0.2);
   }
 
-  &.completed {
+  &.status-completed {
     background: rgba(16, 185, 129, 0.1);
     color: #059669;
     border: 1px solid rgba(16, 185, 129, 0.2);
   }
 
-  &.cancelled {
+  &.status-cancelled {
     background: rgba(107, 114, 128, 0.1);
     color: #6b7280;
     border: 1px solid rgba(107, 114, 128, 0.2);
   }
 
-  &.verified {
+  &.status-approved {
     background: rgba(16, 185, 129, 0.1);
     color: #059669;
     border: 1px solid rgba(16, 185, 129, 0.2);
   }
 
-  &.rejected {
+  &.status-rejected {
     background: rgba(239, 68, 68, 0.1);
     color: #dc2626;
     border: 1px solid rgba(239, 68, 68, 0.2);
@@ -523,18 +598,15 @@
     font-size: 0.9rem;
     line-height: 1.4;
   }
-}
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .overview-view {
-    gap: 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .overview-view {
-    gap: 1rem;
+  @media (max-width: 480px) {
+    padding: 1.5rem;
+    
+    mat-icon {
+      font-size: 2.5rem;
+      width: 2.5rem;
+      height: 2.5rem;
+    }
   }
 }
 
@@ -549,10 +621,35 @@
   min-height: 300px;
   background: #ffffff;
 
+  mat-icon {
+    font-size: 3rem;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 1rem;
+    color: #64748b;
+    animation: spin 1s linear infinite;
+  }
+
   p {
     margin-top: 1rem;
     color: #64748b;
     font-size: 1rem;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 480px) {
+    padding: 3rem 1rem;
+    min-height: 250px;
+    
+    mat-icon {
+      font-size: 2.5rem;
+      width: 2.5rem;
+      height: 2.5rem;
+    }
   }
 }
 
@@ -612,5 +709,53 @@
         transform: translateY(0);
       }
     }
+
+    @media (max-width: 480px) {
+      padding: 1rem;
+      
+      mat-icon {
+        font-size: 2.5rem;
+        width: 2.5rem;
+        height: 2.5rem;
+      }
+      
+      .retry-btn {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+/* Mobile-first responsive design */
+@media (max-width: 480px) {
+  .admin-overview {
+    padding: 0.5rem;
+  }
+
+  .overview-view {
+    gap: 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recent-activity {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .action-btn {
+    flex-direction: column;
+    text-align: center;
   }
 }
