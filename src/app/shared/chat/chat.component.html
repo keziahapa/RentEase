@@ -41,7 +41,7 @@
           </div>
           
           <div class="room-info">
-            <div class="room-name">{{ room.name || 'Unknown Chat' }}</div>
+            <div class="room-name">{{ formatChatName(room.name) }}</div>
             <div class="last-message">
               {{ room.lastMessage?.content || 'No messages yet' }}
             </div>
@@ -91,7 +91,7 @@
           <mat-icon>arrow_back</mat-icon>
         </button>
         <div class="header-info">
-          <div class="chat-title">{{ currentRoom.name }}</div>
+          <div class="chat-title">{{ formatChatName(currentRoom.name) }}</div>
           <div class="chat-participants">
             {{ getParticipantCount(currentRoom) }} participants
           </div>
@@ -186,7 +186,7 @@
     </div>
   </div>
 
- 
+  <!-- Modal for New Chat -->
   <div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -212,42 +212,78 @@
         <div class="chat-options" *ngIf="!loadingProperties">
           <h4>Who would you like to message?</h4>
           
-         
+          <!-- Tenant Options -->
           <div *ngIf="userRole === 'TENANT'" class="option-buttons">
-            <button class="option-btn" (click)="createChat('tenant-landlord')">
-              <mat-icon>business</mat-icon>
-              <span>Message Landlord</span>
+            <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)">
+              <div class="option-icon">
+                <mat-icon>business</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Landlord</span>
+                <span class="option-subtitle">Property inquiries & requests</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
             </button>
             
-            <button class="option-btn" (click)="createChat('tenant-caretaker')">
-              <mat-icon>engineering</mat-icon>
-              <span>Message Caretaker</span>
+            <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
+              <div class="option-icon">
+                <mat-icon>engineering</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Caretaker</span>
+                <span class="option-subtitle">Maintenance & support</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
             </button>
           </div>
 
-          
+          <!-- Landlord Options -->
           <div *ngIf="userRole === 'LANDLORD'" class="option-buttons">
-            <button class="option-btn" (click)="createChat('landlord-caretaker')">
-              <mat-icon>engineering</mat-icon>
-              <span>Message Caretaker</span>
+            <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)">
+              <div class="option-icon">
+                <mat-icon>engineering</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Caretaker</span>
+                <span class="option-subtitle">Property management</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
             </button>
             
-            <button class="option-btn" (click)="createChat('landlord-tenant')">
-              <mat-icon>people</mat-icon>
-              <span>Message Tenants</span>
+            <button class="option-btn tenant-btn" (click)="createChat(CHAT_TYPES.LANDLORD_TENANT)">
+              <div class="option-icon">
+                <mat-icon>people</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Tenants</span>
+                <span class="option-subtitle">Tenant communication</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
             </button>
           </div>
 
-          
+          <!-- Caretaker Options -->
           <div *ngIf="userRole === 'CARETAKER'" class="option-buttons">
-            <button class="option-btn" (click)="createChat('tenant-caretaker')">
-              <mat-icon>people</mat-icon>
-              <span>Message Tenants</span>
+            <button class="option-btn tenant-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
+              <div class="option-icon">
+                <mat-icon>people</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Tenants</span>
+                <span class="option-subtitle">Maintenance updates</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
             </button>
             
-            <button class="option-btn" (click)="createChat('landlord-caretaker')">
-              <mat-icon>business</mat-icon>
-              <span>Message Landlord</span>
+            <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)">
+              <div class="option-icon">
+                <mat-icon>business</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Landlord</span>
+                <span class="option-subtitle">Report & updates</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
             </button>
           </div>
         </div>

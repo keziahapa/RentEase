@@ -38,6 +38,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   loadingRooms = false;
   shouldScrollToBottom = false;
 
+  // Chat type constants
+  readonly CHAT_TYPES = {
+    TENANT_LANDLORD: 'tenant-landlord',
+    TENANT_CARETAKER: 'tenant-caretaker',
+    LANDLORD_CARETAKER: 'landlord-caretaker',
+    LANDLORD_TENANT: 'landlord-tenant'
+  };
+
   emojis = [
     '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
     '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
@@ -123,7 +131,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         dataObservable = this.propertyService.getProperties();
         break;
       case 'CARETAKER':
-       
         dataObservable = this.caretakerService.getProperties();
         break;
       default:
@@ -170,7 +177,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       })).filter((property: Property) => property.id);
     }
 
-    
     if (response?.data && Array.isArray(response.data)) {
       return response.data.map((item: any) => ({
         id: item.property?.id || item.id,
@@ -236,7 +242,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
     
-    
     if (this.userRole === 'CARETAKER' && this.userProperties.length === 0) {
       console.log('No properties found for caretaker, but allowing chat creation');
     }
@@ -248,7 +253,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     let resourceId: number | null = null;
     let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
-   
     if (this.userRole === 'TENANT') {
       resourceId = this.userUnits.length > 0 ? this.userUnits[0].id : null;
     } else {
@@ -260,18 +264,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
-    
     switch (chatType) {
-      case 'tenant-landlord':
+      case this.CHAT_TYPES.TENANT_LANDLORD:
         createObservable = this.chatService.createTenantLandlordChat(resourceId);
         break;
-      case 'tenant-caretaker':
+      case this.CHAT_TYPES.TENANT_CARETAKER:
         createObservable = this.chatService.createTenantCaretakerChat(resourceId);
         break;
-      case 'landlord-caretaker':
+      case this.CHAT_TYPES.LANDLORD_CARETAKER:
         createObservable = this.chatService.createLandlordCaretakerChat(resourceId);
         break;
-      
       default:
         alert('Invalid chat type selected.');
         return;
@@ -300,6 +302,19 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         alert('Failed to create chat: ' + (error.error?.message || error.message));
       }
     });
+  }
+
+  formatChatName(roomName: string): string {
+    if (!roomName) return 'Chat';
+
+    const nameMap: { [key: string]: string } = {
+      'tenant-landlord': 'Chat with Landlord',
+      'tenant-caretaker': 'Chat with Caretaker',
+      'landlord-caretaker': 'Chat with Caretaker',
+      'landlord-tenant': 'Chat with Tenants'
+    };
+
+    return nameMap[roomName] || roomName;
   }
 
   closeNewChatModal(): void {
