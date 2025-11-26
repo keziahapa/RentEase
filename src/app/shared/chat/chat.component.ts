@@ -345,9 +345,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       
       if (otherParticipants.length === 1) {
         const otherUser = otherParticipants[0];
-        return otherUser.name;
+        return this.getParticipantDisplayName(otherUser, room.type);
       } else if (otherParticipants.length > 1) {
-        const names = otherParticipants.map(p => p.name).join(', ');
+        const names = otherParticipants.map(p => this.getParticipantDisplayName(p, room.type)).join(', ');
         return names.length > 30 ? names.substring(0, 30) + '...' : names;
       }
     }
@@ -360,6 +360,26 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     };
     
     return roleBasedNames[room.type] || 'Chat';
+  }
+
+  private getParticipantDisplayName(participant: any, roomType: string): string {
+    const role = participant.role?.toUpperCase();
+    const name = participant.name || participant.fullName || 'Unknown User';
+    
+    switch (role) {
+      case 'TENANT':
+        const unitInfo = participant.unitNumber ? ` - Unit ${participant.unitNumber}` : '';
+        return `${name}${unitInfo}`;
+      
+      case 'CARETAKER':
+        return 'Caretaker';
+      
+      case 'LANDLORD':
+        return name;
+      
+      default:
+        return name;
+    }
   }
 
   private formatRole(role: string): string {
@@ -380,8 +400,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (otherParticipants.length === 1) {
       const otherUser = otherParticipants[0];
       return {
-        title: otherUser.name,
-        subtitle: this.formatRole(otherUser.role)
+        title: this.getParticipantDisplayName(otherUser, this.currentRoom.type),
+        subtitle: this.getParticipantSubtitle(otherUser)
       };
     }
     
@@ -401,6 +421,25 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     };
     
     return headerTitles[this.currentRoom.type] || { title: 'Chat', subtitle: '' };
+  }
+
+  private getParticipantSubtitle(participant: any): string {
+    const role = participant.role?.toUpperCase();
+    
+    switch (role) {
+      case 'TENANT':
+        const unitInfo = participant.unitNumber ? `Unit ${participant.unitNumber}` : 'Tenant';
+        return unitInfo;
+      
+      case 'CARETAKER':
+        return 'Property Caretaker';
+      
+      case 'LANDLORD':
+        return 'Property Owner';
+      
+      default:
+        return this.formatRole(participant.role);
+    }
   }
 
   closeNewChatModal(): void {
