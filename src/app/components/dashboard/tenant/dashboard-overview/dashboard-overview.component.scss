@@ -14,6 +14,16 @@
   background: #f8fafc;
   width: 100%;
   max-height: calc(100vh - 80px);
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+    max-height: calc(100vh - 70px);
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.75rem;
+    max-height: calc(100vh - 60px);
+  }
 }
 
 /* Header Section */
@@ -26,11 +36,11 @@
   
   .header-content {
     flex: 1;
-    min-width: 0; /* Prevent text overflow */
+    min-width: 0;
     
     .dashboard-title {
       color: #1e293b;
-      font-size: clamp(1.5rem, 4vw, 1.75rem); /* Responsive font size */
+      font-size: clamp(1.5rem, 4vw, 1.75rem);
       font-weight: 700;
       margin: 0 0 0.5rem 0;
       line-height: 1.2;
@@ -39,7 +49,7 @@
     
     .dashboard-subtitle {
       color: #64748b;
-      font-size: clamp(0.9rem, 2.5vw, 1rem); /* Responsive font size */
+      font-size: clamp(0.9rem, 2.5vw, 1rem);
       margin: 0;
       line-height: 1.4;
     }
@@ -50,7 +60,7 @@
   display: flex;
   gap: 1rem;
   flex-shrink: 0;
-  flex-wrap: wrap; /* Allow buttons to wrap */
+  flex-wrap: wrap;
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -75,12 +85,12 @@
   align-items: center;
   gap: 0.5rem;
   font-weight: 600;
-  font-size: clamp(0.85rem, 2vw, 0.9rem); /* Responsive font size */
+  font-size: clamp(0.85rem, 2vw, 0.9rem);
   box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
   white-space: nowrap;
   flex-shrink: 0;
-  flex: 1; /* Make buttons flexible */
-  min-width: fit-content; /* Ensure buttons don't shrink too much */
+  flex: 1;
+  min-width: fit-content;
   justify-content: center;
   
   &:hover:not([disabled]) {
@@ -106,28 +116,12 @@
     flex-shrink: 0;
   }
   
-  &.maintenance-btn {
-   background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-    
-    &:hover:not([disabled]) {
-     background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-    }
-  }
-  
-  &.move-out-btn {
-  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-    
-    &:hover:not([disabled]) {
-     background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-    }
-  }
-  
   @media (max-width: 480px) {
     padding: 0.875rem 1.25rem;
   }
 }
 
-/* Stats Grid - Reduced Size & Single Line */
+/* Stats Grid - Fixed Content Fitting */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -171,8 +165,6 @@
   position: relative;
   overflow: hidden;
 
-  /* Removed blue border gradient */
-  
   @media (max-width: 768px) {
     padding: 0.875rem;
     min-height: 75px;
@@ -192,54 +184,13 @@
   transform: translateY(-1px);
 }
 
-.move-out-stat {
-  cursor: pointer;
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
-  }
-}
-
-/* Single line stat layout */
-.stat-header {
+/* Fixed Stat Layout - Ensure content fits properly */
+.stat-content {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 0;
-  flex: 1;
-}
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
-.stat-title {
-  font-size: 0.7rem;
-  color: #64748b;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  line-height: 1.2;
-  margin-bottom: 0.25rem;
-}
-
-.stat-value {
-  font-size: clamp(1.25rem, 3vw, 1.5rem);
-  font-weight: 800;
-  color: #1e293b;
-  line-height: 1;
-  margin-bottom: 0.125rem;
-}
-
-.stat-subtitle {
-  font-size: 0.75rem;
-  color: #64748b;
-  font-weight: 500;
-  line-height: 1.2;
+  width: 100%;
+  min-width: 0; /* Crucial for text truncation */
 }
 
 .stat-icon {
@@ -272,6 +223,52 @@
   }
 }
 
+.stat-info {
+  flex: 1;
+  min-width: 0; /* Crucial for text truncation */
+  overflow: hidden; /* Prevent content overflow */
+}
+
+.stat-value {
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1;
+  margin-bottom: 0.125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  width: 100%;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  width: 100%;
+}
+
+.stat-subtitle {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  width: 100%;
+}
+
+/* Stat Icon Colors */
 .rent-icon {
   background: rgba(16, 185, 129, 0.1);
   color: #10b981;
@@ -308,7 +305,7 @@
   
   h2 {
     color: #1e293b;
-    font-size: clamp(1.25rem, 3.5vw, 1.5rem); /* Responsive font size */
+    font-size: clamp(1.25rem, 3.5vw, 1.5rem);
     font-weight: 700;
     margin: 0 0 0.25rem 0;
     line-height: 1.2;
@@ -317,7 +314,7 @@
   p {
     color: #64748b;
     margin: 0;
-    font-size: clamp(0.85rem, 2.5vw, 0.9rem); /* Responsive font size */
+    font-size: clamp(0.85rem, 2.5vw, 0.9rem);
     line-height: 1.4;
   }
 }
@@ -384,6 +381,7 @@
   justify-content: center;
   color: white;
   flex-shrink: 0;
+  background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
   
   mat-icon {
     font-size: 24px;
@@ -409,7 +407,7 @@
   
   h3 {
     color: #1e293b;
-    font-size: clamp(0.95rem, 2.5vw, 1rem); /* Responsive font size */
+    font-size: clamp(0.95rem, 2.5vw, 1rem);
     font-weight: 600;
     margin: 0 0 0.25rem 0;
     line-height: 1.2;
@@ -420,7 +418,7 @@
   
   p {
     color: #64748b;
-    font-size: clamp(0.8rem, 2vw, 0.85rem); /* Responsive font size */
+    font-size: clamp(0.8rem, 2vw, 0.85rem);
     margin: 0;
     line-height: 1.4;
     display: -webkit-box;
@@ -453,7 +451,7 @@
   }
   
   @media (max-width: 480px) {
-    display: none; /* Hide arrow on very small screens to save space */
+    display: none;
   }
 }
 
@@ -550,7 +548,7 @@
   
   h4 {
     color: #1e293b;
-    font-size: clamp(0.9rem, 2.5vw, 0.95rem); /* Responsive font size */
+    font-size: clamp(0.9rem, 2.5vw, 0.95rem);
     font-weight: 600;
     margin: 0 0 0.25rem 0;
     line-height: 1.2;
@@ -561,7 +559,7 @@
   
   p {
     color: #64748b;
-    font-size: clamp(0.8rem, 2vw, 0.85rem); /* Responsive font size */
+    font-size: clamp(0.8rem, 2vw, 0.85rem);
     margin: 0;
     line-height: 1.4;
     overflow: hidden;
@@ -572,7 +570,7 @@
 
 .activity-time {
   color: #94a3b8;
-  font-size: clamp(0.75rem, 2vw, 0.8rem); /* Responsive font size */
+  font-size: clamp(0.75rem, 2vw, 0.8rem);
   white-space: nowrap;
   flex-shrink: 0;
   
@@ -621,7 +619,7 @@
   h3 {
     color: #1e293b;
     margin-bottom: 0.5rem;
-    font-size: clamp(1.1rem, 3vw, 1.25rem); /* Responsive font size */
+    font-size: clamp(1.1rem, 3vw, 1.25rem);
     line-height: 1.2;
   }
   
@@ -630,7 +628,7 @@
     margin-bottom: 2rem;
     max-width: 400px;
     line-height: 1.4;
-    font-size: clamp(0.9rem, 2.5vw, 1rem); /* Responsive font size */
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
   }
 }
 
@@ -663,13 +661,6 @@
   .error-snackbar {
     background: #ef4444 !important;
     color: white !important;
-  }
-  
-  .move-out-dialog-container {
-    .mat-mdc-dialog-container {
-      border-radius: 12px;
-      padding: 0;
-    }
   }
 }
 
@@ -758,5 +749,41 @@
   .stat-card:hover,
   .quick-action-card:hover:not(.disabled) {
     transform: none;
+  }
+}
+
+/* Fix for very long numbers */
+.stat-value {
+  &.long-number {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+  }
+}
+
+/* Ensure content never overflows */
+.stat-card {
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* Additional responsive fixes for very small screens */
+@media (max-width: 320px) {
+  .stat-value {
+    font-size: 1.125rem;
+  }
+  
+  .stat-label {
+    font-size: 0.65rem;
+  }
+  
+  .stat-icon {
+    width: 28px;
+    height: 28px;
+    
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
   }
 }
