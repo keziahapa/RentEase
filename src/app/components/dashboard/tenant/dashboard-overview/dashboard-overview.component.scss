@@ -121,60 +121,63 @@
   }
 }
 
-/* Stats Grid - Fixed Content Fitting */
+/* Stats Grid - Updated to ensure all content is visible */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
   margin-bottom: 2rem;
   
   @media (max-width: 1024px) {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.875rem;
   }
   
   @media (max-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.625rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
   
   @media (max-width: 640px) {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.625rem;
   }
   
   @media (max-width: 480px) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
   
   @media (max-width: 360px) {
     grid-template-columns: 1fr;
+    gap: 0.625rem;
   }
 }
 
 .stat-card {
   background: #ffffff;
-  padding: 1rem;
+  padding: 1.25rem 1rem;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
   transition: all 0.3s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  min-height: 80px;
+  min-height: 90px;
   display: flex;
   align-items: center;
   gap: 0.75rem;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 
   @media (max-width: 768px) {
-    padding: 0.875rem;
-    min-height: 75px;
+    padding: 1.125rem 0.875rem;
+    min-height: 85px;
     gap: 0.625rem;
   }
   
   @media (max-width: 480px) {
-    padding: 0.75rem;
-    min-height: 70px;
-    gap: 0.5rem;
+    padding: 1rem 0.75rem;
+    min-height: 80px;
+    gap: 0.75rem;
   }
 }
 
@@ -184,18 +187,18 @@
   transform: translateY(-1px);
 }
 
-/* Fixed Stat Layout - Ensure content fits properly */
+/* Updated Stat Layout - Ensure ALL content is visible */
 .stat-content {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   width: 100%;
-  min-width: 0; /* Crucial for text truncation */
+  min-width: 0;
 }
 
 .stat-icon {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -206,66 +209,82 @@
   flex-shrink: 0;
   
   mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+  
+  @media (max-width: 768px) {
+    width: 36px;
+    height: 36px;
+    
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
   }
   
   @media (max-width: 480px) {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     
     mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+      font-size: 17px;
+      width: 17px;
+      height: 17px;
     }
   }
 }
 
 .stat-info {
   flex: 1;
-  min-width: 0; /* Crucial for text truncation */
-  overflow: hidden; /* Prevent content overflow */
+  min-width: 0;
+  overflow: visible; /* Changed from hidden to visible */
 }
 
 .stat-value {
-  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-size: clamp(1.1rem, 3vw, 1.4rem);
   font-weight: 800;
   color: #1e293b;
-  line-height: 1;
+  line-height: 1.1;
   margin-bottom: 0.125rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal; /* Changed from nowrap to normal */
+  overflow: visible; /* Changed from hidden to visible */
+  text-overflow: clip; /* Changed from ellipsis to clip */
   display: block;
   width: 100%;
+  word-break: break-word; /* Allow breaking long words */
+  hyphens: auto; /* Enable hyphenation */
 }
 
 .stat-label {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal; /* Changed from nowrap to normal */
+  overflow: visible; /* Changed from hidden to visible */
+  text-overflow: clip; /* Changed from ellipsis to clip */
   display: block;
   width: 100%;
+  word-break: break-word;
 }
 
 .stat-subtitle {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: #64748b;
   font-weight: 500;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal; /* Changed from nowrap to normal */
+  overflow: visible; /* Changed from hidden to visible */
+  text-overflow: clip; /* Changed from ellipsis to clip */
   display: block;
   width: 100%;
+  word-break: break-word;
+  margin-top: 0.125rem;
 }
 
 /* Stat Icon Colors */
@@ -411,9 +430,10 @@
     font-weight: 600;
     margin: 0 0 0.25rem 0;
     line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible; /* Ensure text is visible */
+    text-overflow: clip;
+    white-space: normal; /* Allow wrapping */
+    word-break: break-word;
   }
   
   p {
@@ -421,10 +441,11 @@
     font-size: clamp(0.8rem, 2vw, 0.85rem);
     margin: 0;
     line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    display: block; /* Changed from -webkit-box to block */
+    overflow: visible; /* Ensure text is visible */
+    text-overflow: clip;
+    white-space: normal; /* Allow wrapping */
+    word-break: break-word;
   }
 }
 
@@ -552,9 +573,10 @@
     font-weight: 600;
     margin: 0 0 0.25rem 0;
     line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible; /* Ensure text is visible */
+    text-overflow: clip;
+    white-space: normal; /* Allow wrapping */
+    word-break: break-word;
   }
   
   p {
@@ -562,9 +584,10 @@
     font-size: clamp(0.8rem, 2vw, 0.85rem);
     margin: 0;
     line-height: 1.4;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible; /* Ensure text is visible */
+    text-overflow: clip;
+    white-space: normal; /* Allow wrapping */
+    word-break: break-word;
   }
 }
 
@@ -675,12 +698,12 @@
   }
   
   .stats-grid {
-    gap: 0.5rem;
+    gap: 0.625rem;
   }
   
   .stat-card {
-    padding: 0.75rem;
-    min-height: 65px;
+    padding: 0.875rem 0.75rem;
+    min-height: 75px;
   }
   
   .quick-action-card {
@@ -752,38 +775,76 @@
   }
 }
 
-/* Fix for very long numbers */
-.stat-value {
-  &.long-number {
-    font-size: clamp(1rem, 2.5vw, 1.25rem);
+/* Fix for very long content - ensure everything is visible */
+.stat-value,
+.stat-label,
+.stat-subtitle {
+  &.long-content {
+    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+    line-height: 1.1;
+    word-break: break-word;
+    hyphens: auto;
   }
 }
 
-/* Ensure content never overflows */
-.stat-card {
+/* Ensure content never overflows and is always visible */
+.stat-card,
+.quick-action-card,
+.activity-item {
   * {
     box-sizing: border-box;
+  }
+  
+  .stat-info,
+  .action-content,
+  .activity-main {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
   }
 }
 
 /* Additional responsive fixes for very small screens */
 @media (max-width: 320px) {
   .stat-value {
-    font-size: 1.125rem;
+    font-size: 1rem;
   }
   
   .stat-label {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
   }
   
   .stat-icon {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     
     mat-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
     }
   }
+  
+  /* Ensure single column layout on very small screens */
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Force visible text in all scenarios */
+.stat-info h3,
+.stat-info p,
+.action-content h3,
+.action-content p,
+.activity-main h4,
+.activity-main p {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
 }
