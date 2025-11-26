@@ -231,7 +231,7 @@
     justify-content: center;
     color: white;
     flex-shrink: 0;
-    background: #3b82f6; // Blue background for icons only
+    background: #3b82f6;
 
     mat-icon {
       font-size: clamp(18px, 3vw, 22px);
@@ -625,7 +625,7 @@
         justify-content: center;
         color: white;
         flex-shrink: 0;
-        background: #3b82f6; // Blue background for icons only
+        background: #3b82f6;
 
         mat-icon {
           font-size: clamp(20px, 4vw, 28px);
@@ -760,7 +760,7 @@
       justify-content: center;
       color: white;
       flex-shrink: 0;
-      background: #3b82f6; // Blue background for icons only
+      background: #3b82f6;
 
       &.landlords {
         background: #3b82f6;
@@ -840,5 +840,63 @@
   .approval-card:hover,
   .breakdown-item:hover {
     transform: none !important;
+  }
+}
+
+/* Additional responsive improvements */
+@media (max-width: 320px) {
+  .admin-overview {
+    padding: 0.375rem;
+  }
+
+  .overview-header {
+    margin-bottom: 1rem;
+  }
+
+  .stats-grid {
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    min-height: 85px;
+  }
+
+  .content-grid {
+    gap: 0.75rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .stat-card,
+  .actions-card,
+  .activity-card,
+  .breakdown-card,
+  .approval-card {
+    border: 2px solid #000000;
+  }
+
+  .refresh-btn {
+    border: 2px solid #000000;
+  }
+}
+
+/* Print styles */
+@media print {
+  .admin-overview {
+    background: white;
+  }
+
+  .refresh-btn {
+    display: none;
+  }
+
+  .stat-card,
+  .actions-card,
+  .activity-card,
+  .breakdown-card,
+  .approval-card {
+    box-shadow: none;
+    border: 1px solid #000000;
   }
 }

@@ -426,16 +426,15 @@
   }
   
   &.has-notifications {
-    background: #dc2626;
-    border-color: #b91c1c;
-    
+    background: #1e40af;
+    border-color: #1e3a8a;
     mat-icon {
       color: #ffffff;
     }
     
     &:hover {
-      background: #b91c1c;
-      border-color: #991b1b;
+      background: #1e40af;
+    border-color: #1e3a8a;
     }
   }
 }
@@ -464,7 +463,7 @@
   position: absolute;
   top: -4px;
   right: -4px;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
   color: #ffffff;
   font-size: 0.7rem;
   padding: 0.2rem 0.4rem;

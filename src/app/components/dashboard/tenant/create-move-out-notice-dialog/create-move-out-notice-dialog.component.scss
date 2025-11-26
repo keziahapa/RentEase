@@ -635,7 +635,7 @@
       letter-spacing: normal;
       padding: 0 24px;
       height: 44px;
-      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
       color: white;
       transition: all 0.3s ease;
       box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
@@ -764,15 +764,35 @@
     }
   }
 
-  // Backdrop styling
+  // Backdrop styling with blur effect
+  .cdk-overlay-dark-backdrop {
+    background: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: backdropFadeIn 0.3s ease-out;
+    
+    @media (max-width: 768px) {
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    
+    @media (max-width: 480px) {
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+  }
+
+  // Backdrop styling for dialog container
   .mat-dialog-container {
+    backdrop-filter: blur(0); // Ensure dialog content isn't blurred
+    
     @media (max-width: 360px) {
       padding: 0 !important;
     }
   }
 }
 
-// Animation
+// Animation for dialog container
 @keyframes slideInUp {
   from {
     opacity: 0;
@@ -781,6 +801,18 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+// Animation for backdrop blur
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0) saturate(100%);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(12px) saturate(180%);
   }
 }
 
@@ -891,5 +923,30 @@ mat-checkbox:focus-visible ::ng-deep .mat-checkbox-inner-container {
   .cancel-btn,
   .submit-btn .button-spinner {
     display: none;
+  }
+}
+
+// Fallback for browsers that don't support backdrop-filter
+@supports not ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+  ::ng-deep .cdk-overlay-dark-backdrop {
+    background: rgba(0, 0, 0, 0.7) !important;
+    animation: backdropFadeInFallback 0.3s ease-out;
+  }
+  
+  @keyframes backdropFadeInFallback {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+// For reduced motion preferences
+@media (prefers-reduced-motion: reduce) {
+  ::ng-deep .cdk-overlay-dark-backdrop {
+    animation: none;
+  }
+  
+  @keyframes backdropFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 }
