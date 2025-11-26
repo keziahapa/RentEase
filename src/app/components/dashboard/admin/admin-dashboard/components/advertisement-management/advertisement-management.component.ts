@@ -1,4 +1,3 @@
-
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -13,7 +12,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatMenuModule } from '@angular/material/menu';
 import { Subscription } from 'rxjs';
 import { AdminService } from '../../../../../../services/admin.service';
-import { Advertisement} from '../../../../../../services/admin-interfaces';
+import { Advertisement } from '../../../../../../services/admin-interfaces';
 import { SkeletonListComponent } from '../../../../../../shared/components/skeleton/skeleton-list.component';
 
 @Component({
@@ -43,7 +42,8 @@ export class AdvertisementManagementComponent implements OnInit, OnDestroy {
 
   advertisements: Advertisement[] = [];
   pendingAdvertisements: Advertisement[] = [];
-  displayedColumns: string[] = ['title', 'business', 'mediaType', 'status', 'createdAt', 'actions'];
+  displayedColumns: string[] = ['media', 'title', 'business', 'mediaType', 'status', 'createdAt', 'actions'];
+  pendingDisplayedColumns: string[] = ['media', 'title', 'business', 'mediaType', 'createdAt', 'actions'];
   
   isLoading = false;
   isLoadingPending = false;
@@ -152,8 +152,13 @@ export class AdvertisementManagementComponent implements OnInit, OnDestroy {
   }
 
   viewAdvertisementDetails(advertisementId: number) {
-    // Navigate to advertisement details page or open dialog
     this.router.navigate(['/admin-dashboard/advertisements', advertisementId]);
+  }
+
+  previewMedia(ad: Advertisement) {
+    if (ad.mediaType === 'IMAGE' && ad.mediaUrl) {
+      window.open(ad.mediaUrl, '_blank');
+    }
   }
 
   getStatusClass(status: string): string {
@@ -179,5 +184,9 @@ export class AdvertisementManagementComponent implements OnInit, OnDestroy {
 
   getMediaTypeIcon(mediaType: string): string {
     return mediaType === 'IMAGE' ? 'image' : 'videocam';
+  }
+
+  hasMedia(ad: Advertisement): boolean {
+    return !!(ad.mediaUrl && ad.mediaUrl.trim() !== '');
   }
 }

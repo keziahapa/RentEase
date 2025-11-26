@@ -59,18 +59,7 @@
         </mat-card-content>
 
         <mat-card-actions align="end">
-          <button mat-button color="primary" (click)="viewAd(ad.id)">
-            <mat-icon>visibility</mat-icon>
-            View
-          </button>
-          <button mat-button (click)="editAd(ad.id)" [disabled]="ad.status === 'PENDING'">
-            <mat-icon>edit</mat-icon>
-            Edit
-          </button>
-          <button mat-button color="warn" (click)="deleteAd(ad.id)">
-            <mat-icon>delete</mat-icon>
-            Delete
-          </button>
+  
         </mat-card-actions>
       </mat-card>
     </div>

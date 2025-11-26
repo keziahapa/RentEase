@@ -1,4 +1,3 @@
-
 <div class="advertisement-management">
   <div class="header">
     <div class="header-content">
@@ -12,11 +11,9 @@
 
   <mat-card>
     <mat-tab-group (selectedTabChange)="onTabChange($event)">
-  
       <mat-tab label="All Advertisements">
         <div class="tab-content">
           <div class="table-container">
-          
             <app-skeleton-list 
               *ngIf="isLoading"
               [count]="5"
@@ -24,9 +21,21 @@
               [height]="'60px'">
             </app-skeleton-list>
 
-           
             <table *ngIf="!isLoading" mat-table [dataSource]="advertisements" class="advertisements-table">
-            
+              <ng-container matColumnDef="media">
+                <th mat-header-cell *matHeaderCellDef>Media</th>
+                <td mat-cell *matCellDef="let ad">
+                  <div class="media-preview" (click)="previewMedia(ad)">
+                    <div *ngIf="hasMedia(ad) && ad.mediaType === 'IMAGE'" class="media-image-container">
+                      <img [src]="ad.mediaUrl" [alt]="ad.title" class="media-image">
+                    </div>
+                    <div *ngIf="!hasMedia(ad)" class="no-media">
+                      <mat-icon>image_not_supported</mat-icon>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
               <ng-container matColumnDef="title">
                 <th mat-header-cell *matHeaderCellDef>Advertisement Title</th>
                 <td mat-cell *matCellDef="let ad">
@@ -37,7 +46,6 @@
                 </td>
               </ng-container>
 
-            
               <ng-container matColumnDef="business">
                 <th mat-header-cell *matHeaderCellDef>Business</th>
                 <td mat-cell *matCellDef="let ad">
@@ -45,7 +53,6 @@
                 </td>
               </ng-container>
 
-          
               <ng-container matColumnDef="mediaType">
                 <th mat-header-cell *matHeaderCellDef>Media Type</th>
                 <td mat-cell *matCellDef="let ad">
@@ -56,7 +63,6 @@
                 </td>
               </ng-container>
 
-             
               <ng-container matColumnDef="status">
                 <th mat-header-cell *matHeaderCellDef>Status</th>
                 <td mat-cell *matCellDef="let ad">
@@ -66,7 +72,6 @@
                 </td>
               </ng-container>
 
-            
               <ng-container matColumnDef="createdAt">
                 <th mat-header-cell *matHeaderCellDef>Created Date</th>
                 <td mat-cell *matCellDef="let ad">
@@ -74,7 +79,6 @@
                 </td>
               </ng-container>
 
-           
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
                 <td mat-cell *matCellDef="let ad">
@@ -102,7 +106,6 @@
               <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
             </table>
 
-          
             <div *ngIf="!isLoading && advertisements.length === 0" class="empty-state">
               <mat-icon>campaign</mat-icon>
               <h3>No Advertisements Found</h3>
@@ -112,7 +115,6 @@
         </div>
       </mat-tab>
 
-    
       <mat-tab label="Pending Approval">
         <div class="tab-content">
           <div class="pending-count" *ngIf="!isLoadingPending">
@@ -120,7 +122,6 @@
           </div>
 
           <div class="table-container">
-           
             <app-skeleton-list 
               *ngIf="isLoadingPending"
               [count]="5"
@@ -128,9 +129,21 @@
               [height]="'60px'">
             </app-skeleton-list>
 
-         
             <table *ngIf="!isLoadingPending" mat-table [dataSource]="pendingAdvertisements" class="advertisements-table">
-           
+              <ng-container matColumnDef="media">
+                <th mat-header-cell *matHeaderCellDef>Media</th>
+                <td mat-cell *matCellDef="let ad">
+                  <div class="media-preview" (click)="previewMedia(ad)">
+                    <div *ngIf="hasMedia(ad) && ad.mediaType === 'IMAGE'" class="media-image-container">
+                      <img [src]="ad.mediaUrl" [alt]="ad.title" class="media-image">
+                    </div>
+                    <div *ngIf="!hasMedia(ad)" class="no-media">
+                      <mat-icon>image_not_supported</mat-icon>
+                    </div>
+                  </div>
+                </td>
+              </ng-container>
+
               <ng-container matColumnDef="title">
                 <th mat-header-cell *matHeaderCellDef>Advertisement Title</th>
                 <td mat-cell *matCellDef="let ad">
@@ -141,7 +154,6 @@
                 </td>
               </ng-container>
 
-         
               <ng-container matColumnDef="business">
                 <th mat-header-cell *matHeaderCellDef>Business</th>
                 <td mat-cell *matCellDef="let ad">
@@ -149,7 +161,6 @@
                 </td>
               </ng-container>
 
-           
               <ng-container matColumnDef="mediaType">
                 <th mat-header-cell *matHeaderCellDef>Media Type</th>
                 <td mat-cell *matCellDef="let ad">
@@ -160,7 +171,6 @@
                 </td>
               </ng-container>
 
-         
               <ng-container matColumnDef="createdAt">
                 <th mat-header-cell *matHeaderCellDef>Created Date</th>
                 <td mat-cell *matCellDef="let ad">
@@ -168,7 +178,6 @@
                 </td>
               </ng-container>
 
-             
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
                 <td mat-cell *matCellDef="let ad">
@@ -185,11 +194,10 @@
                 </td>
               </ng-container>
 
-              <tr mat-header-row *matHeaderRowDef="['title', 'business', 'mediaType', 'createdAt', 'actions']"></tr>
-              <tr mat-row *matRowDef="let row; columns: ['title', 'business', 'mediaType', 'createdAt', 'actions'];"></tr>
+              <tr mat-header-row *matHeaderRowDef="pendingDisplayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: pendingDisplayedColumns;"></tr>
             </table>
 
-           
             <div *ngIf="!isLoadingPending && pendingAdvertisements.length === 0" class="empty-state">
               <mat-icon>check_circle</mat-icon>
               <h3>No Pending Approvals</h3>

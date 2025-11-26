@@ -8,6 +8,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { PropertyService } from '../../../../../services/property.service';
 import { AuthService } from '../../../../../services/auth.service';
+import { TenantService } from '../../../../../services/tenant.service';
 import { Subscription } from 'rxjs';
 import { PropertyCreateComponent } from '../property/property-create/property-create.component';
 import { MoveOutActionDialogComponent } from '../move-out-action-dialog/move-out-action-dialog.component';
@@ -118,40 +119,16 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     }
   ];
 
-  recentActivities: RecentActivity[] = [
-    {
-      type: 'Property Added',
-      message: 'Springfield Apartments was added',
-      time: '2 hours ago',
-      icon: 'apartment'
-    },
-    {
-      type: 'Payment Received',
-      message: 'KES 25,000 from John Doe - Unit 4B',
-      time: '5 hours ago',
-      icon: 'payments'
-    },
-    {
-      type: 'Maintenance Request',
-      message: 'New request for leaking faucet in Unit 2A',
-      time: '1 day ago',
-      icon: 'handyman'
-    },
-    {
-      type: 'Tenant Added',
-      message: 'Sarah Johnson moved into Unit 3C',
-      time: '2 days ago',
-      icon: 'person_add'
-    }
-  ];
-
+  recentActivities: RecentActivity[] = [];
   isLoadingDashboard = true;
+  isLoadingActivities = true;
   dashboardError = '';
   private subscriptions = new Subscription();
 
   constructor(
     private propertyService: PropertyService,
     private authService: AuthService,
+    private tenantService: TenantService,
     private router: Router,
     private snackBar: MatSnackBar,
     private dialog: MatDialog
@@ -159,6 +136,7 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadDashboardData();
+    this.loadRecentActivities();
   }
 
   ngOnDestroy() {
@@ -183,6 +161,188 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     } catch (error) {
       this.handleDashboardError(error);
     }
+  }
+
+  loadRecentActivities() {
+    this.isLoadingActivities = true;
+    
+   
+    const propertiesSub = this.propertyService.getProperties().subscribe({
+      next: (response: any) => {
+        const properties = this.normalizePropertiesResponse(response);
+        this.processPropertyActivities(properties);
+      },
+      error: (error: any) => {
+        console.error('Error loading properties for activities:', error);
+      }
+    });
+
+    
+    const tenantUnitsSub = this.tenantService.getTenantUnits().subscribe({
+      next: (response: any) => {
+        const tenantUnits = this.normalizeTenantUnitsResponse(response);
+        this.processTenantActivities(tenantUnits);
+      },
+      error: (error: any) => {
+        console.error('Error loading tenant units for activities:', error);
+      }
+    });
+
+   
+    const moveOutSub = this.propertyService.getLandlordMoveOutNotices(1, 10).subscribe({
+      next: (response: LandlordMoveOutNoticeResponse) => {
+        if (response.success) {
+          const notices = Array.isArray(response.data) ? response.data : [];
+          this.processMoveOutActivities(notices);
+        }
+        this.isLoadingActivities = false;
+      },
+      error: (error: any) => {
+        console.error('Error loading move-out notices for activities:', error);
+        this.isLoadingActivities = false;
+      }
+    });
+
+    this.subscriptions.add(propertiesSub);
+    this.subscriptions.add(tenantUnitsSub);
+    this.subscriptions.add(moveOutSub);
+  }
+
+  private processPropertyActivities(properties: any[]): void {
+    
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const recentProperties = properties
+      .filter(property => {
+        const createdDate = new Date(property.createdAt || property.createdDate || Date.now());
+        return createdDate >= oneWeekAgo;
+      })
+      .slice(0, 3); 
+
+    recentProperties.forEach(property => {
+      this.recentActivities.push({
+        type: 'Property Added',
+        message: `${property.name || 'New Property'} was added to your portfolio`,
+        time: this.getTimeAgo(property.createdAt || property.createdDate || new Date()),
+        icon: 'apartment'
+      });
+    });
+
+    this.sortRecentActivities();
+  }
+
+  private processTenantActivities(tenantUnits: any[]): void {
+    
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const recentOccupancies = tenantUnits
+      .filter(unit => {
+        const moveInDate = new Date(unit.leaseStartDate || unit.createdAt || Date.now());
+        return moveInDate >= oneWeekAgo;
+      })
+      .slice(0, 2); 
+
+    recentOccupancies.forEach(unit => {
+      const tenantName = unit.tenantName || 'New Tenant';
+      const propertyName = unit.propertyName || 'Property';
+      const unitNumber = unit.unitNumber || 'Unit';
+      
+      this.recentActivities.push({
+        type: 'Tenant Added',
+        message: `${tenantName} moved into ${unitNumber} - ${propertyName}`,
+        time: this.getTimeAgo(unit.leaseStartDate || unit.createdAt || new Date()),
+        icon: 'person_add'
+      });
+    });
+
+    this.sortRecentActivities();
+  }
+
+  private processMoveOutActivities(notices: LandlordMoveOutNotice[]): void {
+    
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const recentNotices = notices
+      .filter(notice => {
+       
+        const noticeDate = new Date(notice.submittedAt || Date.now());
+        return noticeDate >= oneWeekAgo;
+      })
+      .slice(0, 2);
+
+    recentNotices.forEach(notice => {
+      const tenantName = notice.tenant?.fullName || 'Tenant';
+      const propertyName = notice.property?.name || 'Property';
+      const status = notice.status?.toLowerCase() || 'submitted';
+      
+      let activityType = 'Move Out Request';
+      let icon = 'exit_to_app';
+      
+      if (status === 'approved') {
+        activityType = 'Move Out Approved';
+        icon = 'check_circle';
+      } else if (status === 'rejected') {
+        activityType = 'Move Out Rejected';
+        icon = 'cancel';
+      }
+
+      this.recentActivities.push({
+        type: activityType,
+        message: `${activityType} for ${tenantName} - ${propertyName}`,
+        
+        time: this.getTimeAgo(notice.submittedAt || new Date()),
+        icon: icon
+      });
+    });
+
+    this.sortRecentActivities();
+  }
+
+  private sortRecentActivities(): void {
+    
+    if (this.recentActivities.length > 6) {
+      this.recentActivities = this.recentActivities.slice(0, 6);
+    }
+  }
+
+  private getTimeAgo(dateString: string | Date): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    } else if (diffInDays < 7) {
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  }
+
+  private normalizeTenantUnitsResponse(response: any): any[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+    if (response?.data && Array.isArray(response.data)) {
+      return response.data;
+    }
+    if (response?.units && Array.isArray(response.units)) {
+      return response.units;
+    }
+    if (response?.content && Array.isArray(response.content)) {
+      return response.content;
+    }
+    if (response?.success && Array.isArray(response.data)) {
+      return response.data;
+    }
+    return [];
   }
 
   private loadMoveOutData(): void {
@@ -235,30 +395,6 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     this.dashboardData.pendingMoveOutNotices = pendingNotices;
     this.dashboardData.approvedMoveOutNotices = approvedNotices;
     this.dashboardData.upcomingMoveOuts = upcomingMoveOuts;
-
-    this.addMoveOutActivities(notices);
-  }
-
-  private addMoveOutActivities(notices: LandlordMoveOutNotice[]): void {
-    const recentMoveOutNotices = notices
-      .filter(notice => notice.status === 'PENDING')
-      .slice(0, 2);
-
-    recentMoveOutNotices.forEach(notice => {
-      const tenantName = notice.tenant?.fullName || 'Tenant';
-      const propertyName = notice.property?.name || 'Property';
-      
-      this.recentActivities.unshift({
-        type: 'Move Out Request',
-        message: `New move-out request from ${tenantName} - ${propertyName}`,
-        time: 'Recently',
-        icon: 'exit_to_app'
-      });
-    });
-
-    if (this.recentActivities.length > 6) {
-      this.recentActivities = this.recentActivities.slice(0, 6);
-    }
   }
 
   private updateDashboardWithMoveOutData(): void {
@@ -358,6 +494,7 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
       if (result === 'success') {
         this.snackBar.open('Property added successfully!', 'Close', { duration: 3000 });
         this.loadDashboardData();
+        this.loadRecentActivities();
       }
     });
   }
@@ -384,6 +521,7 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
 
   refreshDashboard(): void {
     this.loadDashboardData();
+    this.loadRecentActivities();
     this.snackBar.open('Refreshing dashboard...', 'Close', { duration: 2000 });
   }
 
@@ -409,6 +547,7 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
           { duration: 3000 }
         );
         this.loadDashboardData();
+        this.loadRecentActivities();
       }
     });
   }
