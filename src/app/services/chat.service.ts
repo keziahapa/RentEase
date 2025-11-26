@@ -140,7 +140,6 @@ export class ChatService {
         this.markMessageAsRead(message.chatRoomId, message.id);
       }
     } catch (error) {
-      console.error('Error handling incoming message:', error, messageData);
     }
   }
 
@@ -258,7 +257,6 @@ export class ChatService {
         });
         this.roomSubscriptions.set(topic, subscription);
       } catch (error) {
-        console.error(`Failed to subscribe to ${topic}:`, error);
       }
     }
   }
@@ -279,7 +277,7 @@ export class ChatService {
       { messageId },
       { headers: this.getHeaders() }
     ).subscribe({
-      error: (error) => console.error('Error marking message as read:', error)
+      error: (error) => {}
     });
   }
 
@@ -291,7 +289,6 @@ export class ChatService {
       { headers: this.getHeaders() }
     ).pipe(
       catchError(error => {
-        console.error('Error marking message as delivered:', error);
         return throwError(() => error);
       })
     );
@@ -309,7 +306,6 @@ export class ChatService {
         return [];
       }),
       catchError(error => {
-        console.error('Error loading rooms:', error);
         return of([]);
       })
     ).subscribe(rooms => {
@@ -330,7 +326,6 @@ export class ChatService {
         return [];
       }),
       catchError(error => {
-        console.error(`Error loading messages for room ${roomId}:`, error);
         return of([]);
       })
     ).subscribe(messages => {
@@ -359,7 +354,6 @@ export class ChatService {
           }
         });
       } catch (error) {
-        console.error('WebSocket send error:', error);
       }
     }
 
@@ -372,7 +366,6 @@ export class ChatService {
         }
       }),
       catchError(error => {
-        console.error('Error sending message:', error);
         return throwError(() => error);
       })
     );
@@ -398,7 +391,6 @@ export class ChatService {
         this.removeMessage(messageId);
       }),
       catchError(error => {
-        console.error('Error deleting message:', error);
         return throwError(() => error);
       })
     );
@@ -413,7 +405,6 @@ export class ChatService {
         messageIds.forEach(messageId => this.removeMessage(messageId));
       }),
       catchError(error => {
-        console.error('Error deleting multiple messages:', error);
         return throwError(() => error);
       })
     );
@@ -434,7 +425,6 @@ export class ChatService {
         }
       }),
       catchError(error => {
-        console.error('Error creating tenant-landlord chat:', error);
         return throwError(() => error);
       })
     );
@@ -454,7 +444,6 @@ export class ChatService {
         }
       }),
       catchError(error => {
-        console.error('Error creating tenant-caretaker chat:', error);
         return throwError(() => error);
       })
     );
@@ -474,7 +463,25 @@ export class ChatService {
         }
       }),
       catchError(error => {
-        console.error('Error creating landlord-caretaker chat:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  createLandlordTenantChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/rooms/landlord-tenant/${propertyId}`, 
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success && response.data) {
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          this.roomsSubject.next([...currentRooms, newRoom]);
+        }
+      }),
+      catchError(error => {
         return throwError(() => error);
       })
     );

@@ -41,7 +41,7 @@
           </div>
           
           <div class="room-info">
-            <div class="room-name">{{ formatChatName(room.name) }}</div>
+            <div class="room-name">{{ formatChatName(room) }}</div>
             <div class="last-message">
               {{ room.lastMessage?.content || 'No messages yet' }}
             </div>
@@ -91,10 +91,8 @@
           <mat-icon>arrow_back</mat-icon>
         </button>
         <div class="header-info">
-          <div class="chat-title">{{ formatChatName(currentRoom.name) }}</div>
-          <div class="chat-participants">
-            {{ getParticipantCount(currentRoom) }} participants
-          </div>
+          <div class="chat-title">{{ getChatHeaderInfo().title }}</div>
+          <div class="chat-subtitle">{{ getChatHeaderInfo().subtitle }}</div>
         </div>
         <div class="connection-indicator" [class.connected]="isConnected" [class.disconnected]="!isConnected">
           <mat-icon class="status-dot">fiber_manual_record</mat-icon>
@@ -116,7 +114,7 @@
             [class.other-message]="!isMyMessage(message)">
             
             <div *ngIf="!isMyMessage(message)" class="message-sender">
-              {{ message.senderName }}
+              {{ getMessageSenderInfo(message) }}
             </div>
             
             <div class="message-content">{{ message.content }}</div>
@@ -186,7 +184,6 @@
     </div>
   </div>
 
-  <!-- Modal for New Chat -->
   <div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -212,9 +209,8 @@
         <div class="chat-options" *ngIf="!loadingProperties">
           <h4>Who would you like to message?</h4>
           
-          <!-- Tenant Options -->
           <div *ngIf="userRole === 'TENANT'" class="option-buttons">
-            <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)">
+            <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES['TENANT_LANDLORD'])">
               <div class="option-icon">
                 <mat-icon>business</mat-icon>
               </div>
@@ -225,7 +221,7 @@
               <mat-icon class="arrow-icon">arrow_forward</mat-icon>
             </button>
             
-            <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
+            <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES['TENANT_CARETAKER'])">
               <div class="option-icon">
                 <mat-icon>engineering</mat-icon>
               </div>
@@ -237,9 +233,8 @@
             </button>
           </div>
 
-          <!-- Landlord Options -->
           <div *ngIf="userRole === 'LANDLORD'" class="option-buttons">
-            <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)">
+            <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES['LANDLORD_CARETAKER'])">
               <div class="option-icon">
                 <mat-icon>engineering</mat-icon>
               </div>
@@ -250,7 +245,7 @@
               <mat-icon class="arrow-icon">arrow_forward</mat-icon>
             </button>
             
-            <button class="option-btn tenant-btn" (click)="createChat(CHAT_TYPES.LANDLORD_TENANT)">
+            <button class="option-btn tenant-btn" (click)="createChat(CHAT_TYPES['LANDLORD_TENANT'])">
               <div class="option-icon">
                 <mat-icon>people</mat-icon>
               </div>
@@ -262,9 +257,8 @@
             </button>
           </div>
 
-          <!-- Caretaker Options -->
           <div *ngIf="userRole === 'CARETAKER'" class="option-buttons">
-            <button class="option-btn tenant-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
+            <button class="option-btn tenant-btn" (click)="createChat(CHAT_TYPES['TENANT_CARETAKER'])">
               <div class="option-icon">
                 <mat-icon>people</mat-icon>
               </div>
@@ -275,7 +269,7 @@
               <mat-icon class="arrow-icon">arrow_forward</mat-icon>
             </button>
             
-            <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)">
+            <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES['LANDLORD_CARETAKER'])">
               <div class="option-icon">
                 <mat-icon>business</mat-icon>
               </div>
