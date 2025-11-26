@@ -345,20 +345,21 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       
       if (otherParticipants.length === 1) {
         const otherUser = otherParticipants[0];
-        return `${otherUser.name} (${this.formatRole(otherUser.role)})`;
+        return otherUser.name;
       } else if (otherParticipants.length > 1) {
-        return `${otherParticipants.length} people`;
+        const names = otherParticipants.map(p => p.name).join(', ');
+        return names.length > 30 ? names.substring(0, 30) + '...' : names;
       }
     }
     
-    const nameMap: { [key: string]: string } = {
+    const roleBasedNames: { [key: string]: string } = {
       'tenant-landlord': 'Landlord',
-      'tenant-caretaker': 'Caretaker',
+      'tenant-caretaker': 'Caretaker', 
       'landlord-caretaker': 'Caretaker',
-      'landlord-tenant': 'Tenants Group'
+      'landlord-tenant': 'Tenants'
     };
-
-    return nameMap[room.type] || room.name || 'Chat';
+    
+    return roleBasedNames[room.type] || 'Chat';
   }
 
   private formatRole(role: string): string {
@@ -382,18 +383,24 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         title: otherUser.name,
         subtitle: this.formatRole(otherUser.role)
       };
-    } else if (otherParticipants.length > 1) {
+    }
+    
+    if (otherParticipants.length > 1) {
       const roles = [...new Set(otherParticipants.map(p => this.formatRole(p.role)))].join(', ');
       return {
-        title: `${otherParticipants.length} people`,
+        title: `${otherParticipants.length} participants`,
         subtitle: roles
       };
     }
     
-    return {
-      title: this.formatChatName(this.currentRoom),
-      subtitle: 'Group chat'
+    const headerTitles: { [key: string]: { title: string, subtitle: string } } = {
+      'tenant-landlord': { title: 'Landlord', subtitle: 'Property owner' },
+      'tenant-caretaker': { title: 'Caretaker', subtitle: 'Property maintenance' },
+      'landlord-caretaker': { title: 'Caretaker', subtitle: 'Property manager' },
+      'landlord-tenant': { title: 'Tenants', subtitle: 'Property residents' }
     };
+    
+    return headerTitles[this.currentRoom.type] || { title: 'Chat', subtitle: '' };
   }
 
   closeNewChatModal(): void {

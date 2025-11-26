@@ -299,59 +299,38 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (pendingToken && hasPendingInvitation) {
       this.acceptPendingInvitation(pendingToken, response.role);
     } else {
-      const accessLevel = await this.checkUserAccessLevel();
-      
-      if (accessLevel === 'full') {
-        this.showSnackbar('Login successful!', 'success');
-        await this.checkBusinessRegistrationStatus(response.role);
-      } else {
-        this.redirectToPendingDashboard(response.role, accessLevel);
-      }
+      await this.handleUserRedirect(response.role);
     }
   }
 
-  private async checkUserAccessLevel(): Promise<'full' | 'pending'> {
-    try {
-      const invitationsResponse = await this.invitationService.getReceivedInvitations().toPromise();
-      
-      if (invitationsResponse.success && invitationsResponse.data) {
-        const acceptedInvitations = invitationsResponse.data.filter(
-          (inv: any) => inv.status?.toUpperCase() === 'ACCEPTED'
-        );
-        
-        if (acceptedInvitations.length > 0) {
-          return 'full';
-        }
-        
-        const pendingInvitations = invitationsResponse.data.filter(
-          (inv: any) => inv.status?.toUpperCase() === 'PENDING'
-        );
-        
-        if (pendingInvitations.length > 0) {
-          return 'pending';
-        }
-      }
-      
-      return 'pending';
-    } catch (error) {
-      console.error('Error checking invitation status:', error);
-      return 'pending';
+  private async handleUserRedirect(userRole?: string): Promise<void> {
+    const normalizedRole = (userRole || '').toUpperCase().trim();
+    
+    if (this.isBusinessRole(normalizedRole)) {
+      await this.checkBusinessRegistrationStatus(userRole);
+    } else {
+      this.redirectToDashboard(userRole);
     }
   }
 
-  private redirectToPendingDashboard(role: string, accessLevel: 'full' | 'pending'): void {
-    const baseRoutes: { [key: string]: string } = {
-      'TENANT': '/tenant-pending-dashboard',
-      'CARETAKER': '/caretaker-pending-dashboard'
-    };
-    
-    const baseRoute = baseRoutes[role.toUpperCase()] || '/pending-dashboard';
-    
-    const queryParams = {
-      hasPendingInvitations: accessLevel === 'pending' ? 'true' : 'false'
-    };
-    
-    this.router.navigate([baseRoute], { queryParams });
+  private acceptPendingInvitation(token: string, userRole: string): void {
+    this.invitationService.acceptInvitation(token).subscribe({
+      next: (invitationResponse: any) => {
+        sessionStorage.removeItem('pendingInvitationToken');
+        localStorage.removeItem('pendingInvitation');
+        
+        const invitationType = invitationResponse.invitationType || 'tenant';
+        const dashboardName = this.getDashboardDisplayName(invitationType);
+        this.showSnackbar(`Invitation accepted! Redirecting to your ${dashboardName}...`, 'success');
+        
+        this.redirectToDashboard(userRole);
+      },
+      error: (error: any) => {
+        sessionStorage.removeItem('pendingInvitationToken');
+        this.showSnackbar('Invitation could not be accepted, but you are logged in.', 'info');
+        this.redirectToDashboard(userRole);
+      }
+    });
   }
 
   private async checkBusinessRegistrationStatus(userRole?: string): Promise<void> {
@@ -360,7 +339,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       const isBusinessUser = this.isBusinessRole(normalizedRole);
       
       if (!isBusinessUser) {
-        this.redirectBasedOnRole(userRole || '');
+        this.redirectToDashboard(userRole || '');
         return;
       }
 
@@ -418,7 +397,7 @@ export class LoginComponent implements OnInit, OnDestroy {
           this.showSnackbar('Please complete your business registration', 'info');
           this.router.navigate(['/business/register']);
         } else {
-          this.redirectBasedOnRole(userRole || '');
+          this.redirectToDashboard(userRole || '');
         }
       }
     }
@@ -436,41 +415,8 @@ export class LoginComponent implements OnInit, OnDestroy {
     return businessRoles.includes(role.toUpperCase());
   }
 
-  private acceptPendingInvitation(token: string, userRole: string): void {
-    this.invitationService.acceptInvitation(token).subscribe({
-      next: (invitationResponse: any) => {
-        sessionStorage.removeItem('pendingInvitationToken');
-        localStorage.removeItem('pendingInvitation');
-        
-        const invitationType = invitationResponse.invitationType || 'tenant';
-        const dashboardName = this.getDashboardDisplayName(invitationType);
-        this.showSnackbar(`Invitation accepted! Redirecting to your ${dashboardName}...`, 'success');
-        
-        this.redirectAfterInvitationAcceptance(userRole, invitationResponse);
-      },
-      error: (error: any) => {
-        sessionStorage.removeItem('pendingInvitationToken');
-        this.showSnackbar('Invitation could not be accepted, but you are logged in.', 'info');
-        this.checkBusinessRegistrationStatus(userRole);
-      }
-    });
-  }
-
-  private redirectAfterInvitationAcceptance(userRole: string, invitationResponse: any): void {
-    this.checkBusinessRegistrationStatus(userRole);
-  }
-
-  private getInvitationDashboard(invitationResponse: any): string | null {
-    if (invitationResponse.invitationType === 'tenant') {
-      return '/tenant-dashboard/dashboard';
-    } else if (invitationResponse.invitationType === 'caretaker') {
-      return '/caretaker-dashboard/overview';
-    }
-    return null;
-  }
-
-  private redirectBasedOnRole(userRole: string): void {
-    const normalizedRole = userRole.toUpperCase().trim();
+  private redirectToDashboard(userRole?: string): void {
+    const normalizedRole = (userRole || '').toUpperCase().trim();
     
     const roleMap: Record<string, string> = {
       'LANDLORD': '/landlord-dashboard/home',
@@ -558,16 +504,6 @@ export class LoginComponent implements OnInit, OnDestroy {
     
     if (showSnackbar) {
       this.showSnackbar(errorMessage, 'error');
-    }
-  }
-
-  private redirectToDashboard(): void {
-    const user = this.authService.getCurrentUser();
-    
-    if (user?.role) {
-      this.checkBusinessRegistrationStatus(user.role);
-    } else {
-      this.router.navigate(['/dashboard']);
     }
   }
 
