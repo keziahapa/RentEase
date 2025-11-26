@@ -11,6 +11,7 @@ import {
   ApiResponse
 } from './chat.interface';
 import { AuthService } from './auth.service';
+import { TenantService } from './tenant.service';
 
 @Injectable({
   providedIn: 'root'
@@ -38,7 +39,8 @@ export class ChatService {
 
   constructor(
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private tenantService: TenantService
   ) {
     this.initializeWebSocketConnection();
     this.loadRooms();
@@ -232,18 +234,28 @@ export class ChatService {
       return [];
     }
 
-    return participants.map((participant: any) => ({
-      id: Number(participant.id || participant.userId),
-      name: participant.name || participant.fullName || 'Unknown User',
-      email: participant.email || '',
-      role: participant.role || 'USER',
-      avatar: participant.avatar,
-      isOnline: participant.isOnline || false,
-      lastSeen: participant.lastSeen,
-      phoneNumber: participant.phoneNumber,
-      profilePicture: participant.profilePicture,
-      fullName: participant.fullName || participant.name
-    }));
+    return participants.map((participant: any) => {
+      const processedParticipant = {
+        id: Number(participant.id || participant.userId),
+        name: participant.name || participant.fullName || 'Unknown User',
+        email: participant.email || '',
+        role: participant.role || 'USER',
+        avatar: participant.avatar,
+        isOnline: participant.isOnline || false,
+        lastSeen: participant.lastSeen,
+        phoneNumber: participant.phoneNumber,
+        profilePicture: participant.profilePicture,
+        fullName: participant.fullName || participant.name,
+        unitNumber: participant.unitNumber || participant.unit?.unitNumber,
+        propertyId: participant.propertyId || participant.unit?.propertyId
+      };
+
+      if (processedParticipant.role === 'TENANT' && !processedParticipant.unitNumber) {
+        const tenantData = this.tenantService.getTenantUnits();
+      }
+
+      return processedParticipant;
+    });
   }
 
   private subscribeToRoom(roomId: number): void {
@@ -398,17 +410,17 @@ export class ChatService {
 
  
   deleteMultipleMessages(messageIds: number[]): Observable<ApiResponse> {
-    return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, messageIds, { 
-      headers: this.getHeaders() 
-    }).pipe(
-      tap(() => {
-        messageIds.forEach(messageId => this.removeMessage(messageId));
-      }),
-      catchError(error => {
-        return throwError(() => error);
-      })
-    );
-  }
+  return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, messageIds, { 
+    headers: this.getHeaders() 
+  }).pipe(
+    tap(() => {
+      messageIds.forEach(messageId => this.removeMessage(messageId));
+    }),
+    catchError(error => {
+      return throwError(() => error);
+    })
+  );
+}
 
 
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
