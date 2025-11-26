@@ -8,7 +8,8 @@ import {
   Message, 
   ChatRoom, 
   SendMessageRequest, 
-  ApiResponse
+  ApiResponse,
+  Participant  // Add this import
 } from './chat.interface';
 import { AuthService } from './auth.service';
 import { TenantService } from './tenant.service';
@@ -195,7 +196,7 @@ export class ChatService {
   }
 
   private processRoomData(room: any): ChatRoom {
-    return {
+    const processedRoom: ChatRoom = {
       id: Number(room.id) || 0,
       name: room.name || 'Unknown Chat',
       type: room.type || 'DIRECT',
@@ -208,6 +209,10 @@ export class ChatService {
       createdAt: room.createdAt ? new Date(room.createdAt) : new Date(),
       updatedAt: room.updatedAt ? new Date(room.updatedAt) : new Date()
     };
+
+    this.enrichRoomWithTenantData(processedRoom);
+    
+    return processedRoom;
   }
 
   private processMessageData(messageData: any): Message {
@@ -229,33 +234,64 @@ export class ChatService {
     };
   }
 
-  private processParticipants(participants: any[]): any[] {
+  private processParticipants(participants: any[]): Participant[] {
     if (!participants || !Array.isArray(participants)) {
       return [];
     }
 
     return participants.map((participant: any) => {
-      const processedParticipant = {
+      const processedParticipant: Participant = {
         id: Number(participant.id || participant.userId),
+        userId: Number(participant.userId || participant.id),
         name: participant.name || participant.fullName || 'Unknown User',
+        fullName: participant.fullName || participant.name,
         email: participant.email || '',
         role: participant.role || 'USER',
         avatar: participant.avatar,
-        isOnline: participant.isOnline || false,
-        lastSeen: participant.lastSeen,
-        phoneNumber: participant.phoneNumber,
         profilePicture: participant.profilePicture,
-        fullName: participant.fullName || participant.name,
+        isOnline: participant.isOnline || false,
+        lastSeen: participant.lastSeen ? new Date(participant.lastSeen) : undefined,
+        phoneNumber: participant.phoneNumber,
+        joinedAt: participant.joinedAt ? new Date(participant.joinedAt) : undefined,
+        isAdmin: participant.isAdmin || false,
         unitNumber: participant.unitNumber || participant.unit?.unitNumber,
-        propertyId: participant.propertyId || participant.unit?.propertyId
+        propertyId: participant.propertyId || participant.unit?.propertyId,
+        unit: participant.unit
       };
 
       if (processedParticipant.role === 'TENANT' && !processedParticipant.unitNumber) {
-        const tenantData = this.tenantService.getTenantUnits();
+        this.enrichTenantWithUnitData(processedParticipant);
       }
 
       return processedParticipant;
     });
+  }
+
+  private enrichTenantWithUnitData(participant: Participant): void {
+    if (participant.id === this.getCurrentUserId()) {
+      this.tenantService.getTenantUnits().subscribe({
+        next: (response) => {
+          const units = Array.isArray(response?.data) ? response.data : [];
+          if (units.length > 0) {
+            const primaryUnit = units[0];
+            participant.unitNumber = primaryUnit.unitNumber || 'N/A';
+            participant.propertyId = primaryUnit.propertyId;
+          }
+        },
+        error: (error) => {
+        }
+      });
+    }
+  }
+
+  private enrichRoomWithTenantData(room: ChatRoom): void {
+    if (room.type === 'landlord-tenant' || room.type === 'tenant-landlord') {
+      room.participants.forEach(participant => {
+        if (participant.role === 'TENANT' && !participant.unitNumber) {
+          this.enrichTenantWithUnitData(participant);
+        }
+      });
+    }
   }
 
   private subscribeToRoom(roomId: number): void {
@@ -282,7 +318,6 @@ export class ChatService {
     }
   }
 
-  
   private markMessageAsRead(roomId: number, messageId: number): void {
     this.http.post<ApiResponse>(
       `${this.apiUrl}/rooms/${roomId}/mark-read`,
@@ -293,7 +328,6 @@ export class ChatService {
     });
   }
 
- 
   markMessageAsDelivered(roomId: number, messageId: number): Observable<ApiResponse> {
     return this.http.post<ApiResponse>(
       `${this.apiUrl}/rooms/${roomId}/mark-delivered`,
@@ -306,7 +340,6 @@ export class ChatService {
     );
   }
 
- 
   loadRooms(): void {
     this.http.get<ApiResponse<ChatRoom[]>>(`${this.apiUrl}/rooms`, { 
       headers: this.getHeaders() 
@@ -325,7 +358,6 @@ export class ChatService {
       this.roomsSubject.next(processedRooms);
     });
   }
-
 
   getMessages(roomId: number): void {
     this.http.get<ApiResponse<Message[]>>(`${this.apiUrl}/rooms/${roomId}/messages`, { 
@@ -348,7 +380,6 @@ export class ChatService {
       this.subscribeToRoom(roomId);
     });
   }
-
 
   sendMessage(content: string, roomId: number): Observable<ApiResponse> {
     const messageRequest: SendMessageRequest = {
@@ -383,7 +414,6 @@ export class ChatService {
     );
   }
 
- 
   deleteMessage(messageId: number): Observable<ApiResponse> {
     if (this.stompClient && this.stompClient.connected) {
       const deleteRequest = { messageId: messageId };
@@ -408,20 +438,18 @@ export class ChatService {
     );
   }
 
- 
   deleteMultipleMessages(messageIds: number[]): Observable<ApiResponse> {
-  return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, messageIds, { 
-    headers: this.getHeaders() 
-  }).pipe(
-    tap(() => {
-      messageIds.forEach(messageId => this.removeMessage(messageId));
-    }),
-    catchError(error => {
-      return throwError(() => error);
-    })
-  );
-}
-
+    return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, messageIds, { 
+      headers: this.getHeaders() 
+    }).pipe(
+      tap(() => {
+        messageIds.forEach(messageId => this.removeMessage(messageId));
+      }),
+      catchError(error => {
+        return throwError(() => error);
+      })
+    );
+  }
 
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
@@ -498,8 +526,6 @@ export class ChatService {
       })
     );
   }
-
-  
 
   selectRoom(room: ChatRoom | null): void {
     this.currentRoomSubject.next(room);

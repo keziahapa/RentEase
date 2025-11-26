@@ -74,6 +74,12 @@ export interface Participant {
   phoneNumber?: string;
   joinedAt?: Date;
   isAdmin?: boolean;
+  unitNumber?: string;  // Add this line
+  propertyId?: number;  // Add this line
+  unit?: {              // Add this optional unit object
+    unitNumber?: string;
+    propertyId?: number;
+  };
 }
 
 export interface SendMessageRequest {
