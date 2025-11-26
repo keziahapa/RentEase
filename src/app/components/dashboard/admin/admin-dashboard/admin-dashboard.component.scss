@@ -449,7 +449,7 @@
   }
 }
 
-/* ✅ WHITE BACKGROUND FOR GREETING SECTION */
+
 .greeting-section {
   min-width: 0;
   flex: 1;
@@ -457,7 +457,7 @@
   padding: 1rem 1.5rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
+ 
 }
 
 @media (max-width: 768px) {
@@ -661,7 +661,7 @@
   }
 }
 
-/* ✅ WHITE BACKGROUND FOR PROFILE SECTION */
+
 .profile-section {
   position: relative;
   display: flex;
@@ -671,7 +671,6 @@
   border-radius: 12px;
   transition: all 0.3s ease;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
   flex-shrink: 0;
   max-width: 100%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);

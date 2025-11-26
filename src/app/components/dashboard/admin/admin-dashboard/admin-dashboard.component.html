@@ -50,12 +50,6 @@
         </div>
       </div>
 
-      <div class="nav-item" 
-           [class.active]="isNavActive('disputes')" 
-           (click)="navigateToSection('disputes')">
-        <mat-icon class="nav-icon">gavel</mat-icon>
-        <span>Disputes</span>
-      </div>
 
       <div class="nav-item" 
            [class.active]="isNavActive('transactions')" 
@@ -111,9 +105,6 @@
             </span>
           </button>
 
-          <button class="refresh-btn" (click)="refreshDashboard()" matTooltip="Refresh Data">
-            <mat-icon>refresh</mat-icon>
-          </button>
         </div>
 
         <div class="profile-section">
