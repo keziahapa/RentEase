@@ -1246,12 +1246,12 @@
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .dashboard-container {
-    background: #0f172a;
+    background: #ffffff;
   }
   
   .top-header {
-    background: #1e293b;
-    border-bottom-color: #334155;
+    background: #ffffff;
+    border-bottom-color: #ffffff;
   }
   
   .greeting-section {
@@ -1291,7 +1291,7 @@
   }
   
   .content-area {
-    background: #0f172a;
+    background: #ffffff;
   }
 }
 
