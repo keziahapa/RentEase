@@ -8,8 +8,8 @@ import { PropertyService } from '../../services/property.service';
 import { CaretakerService } from '../../services/caretaker.service';
 import { TenantService } from '../../services/tenant.service';
 import { Message, ChatRoom, Property, Unit, ChatRoomType, ApiResponse, Participant } from '../../services/chat.interface';
-import { Observable, of, timer } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
 interface EnrichedChatInfo {
@@ -423,14 +423,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private handleAuthError(error?: any): void {
     console.log('Handling auth error...', error);
     
-    // Check if we're already authenticated
-    if (this.authService.isAuthenticated()) {
-      console.log('User is authenticated but got error, attempting token refresh...');
+    // Check if we can refresh the token
+    if (this.authService.canRefreshToken()) {
+      console.log('Attempting token refresh...');
       this.authService.refreshToken().subscribe({
         next: (success) => {
           if (success) {
-            console.log('Token refreshed successfully');
-            // Reconnect chat service to use new token
+            console.log('Token refreshed successfully, reconnecting chat...');
             this.chatService.reconnect();
           } else {
             console.error('Token refresh failed, logging out');
@@ -443,14 +442,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
       });
     } else {
-      console.log('User not authenticated, redirecting to login');
+      console.log('Cannot refresh token, redirecting to login');
       this.redirectToLogin();
     }
   }
 
   private redirectToLogin(): void {
-    localStorage.clear();
-    sessionStorage.clear();
+    this.authService.logoutSync();
     this.router.navigate(['/login']);
   }
 
@@ -542,43 +540,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   selectRoom(room: ChatRoom): void {
-    // Add authentication check
+    // Simple authentication check
     if (!this.authService.isAuthenticated()) {
-      console.warn('User not authenticated, attempting token refresh...');
-      this.authService.refreshToken().subscribe({
-        next: (success) => {
-          if (success) {
-            console.log('Token refreshed, selecting room...');
-            this.chatService.selectRoom(room);
-            this.shouldScrollToBottom = true;
-          } else {
-            this.redirectToLogin();
-          }
-        },
-        error: () => {
-          this.redirectToLogin();
-        }
-      });
+      this.handleAuthError();
       return;
     }
 
-    // Check if token is about to expire
-    if (this.authService.isTokenAboutToExpire()) {
-      console.log('Token about to expire, refreshing before room selection...');
-      this.authService.refreshToken().subscribe({
-        next: (success) => {
-          if (success) {
-            this.chatService.selectRoom(room);
-            this.shouldScrollToBottom = true;
-          } else {
-            this.redirectToLogin();
-          }
-        }
-      });
-      return;
-    }
-
-    // Token is valid, proceed normally
     this.chatService.selectRoom(room);
     this.shouldScrollToBottom = true;
   }

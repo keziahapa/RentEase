@@ -1,4 +1,3 @@
-// chat.service.ts
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject, of, timer } from 'rxjs';
@@ -48,6 +47,10 @@ export class ChatService {
     private http: HttpClient,
     private tenantService: TenantService
   ) {
+    this.initializeService();
+  }
+
+  private initializeService(): void {
     // Initialize only if authenticated
     if (this.authService.isAuthenticated()) {
       this.initializeWebSocketConnection();
@@ -57,8 +60,10 @@ export class ChatService {
     // Listen for authentication changes
     this.authService.isAuthenticated$.subscribe(isAuthenticated => {
       if (isAuthenticated) {
+        console.log('🔄 Auth state changed: authenticated, reconnecting chat...');
         this.reconnect();
       } else {
+        console.log('🔄 Auth state changed: not authenticated, disconnecting chat...');
         this.disconnect();
       }
     });
@@ -92,23 +97,7 @@ export class ChatService {
       switch (error.status) {
         case 401:
           console.error('Authentication failed - Token expired or invalid');
-          // Attempt token refresh
-          this.authService.refreshToken().subscribe({
-            next: (refreshed) => {
-              if (refreshed) {
-                console.log('Token refreshed successfully, retrying operation');
-                // Retry the original operation after refresh
-                this.reconnect();
-              } else {
-                console.error('Token refresh failed, redirecting to login');
-                this.authService.logoutSync();
-              }
-            },
-            error: (refreshError) => {
-              console.error('Token refresh error:', refreshError);
-              this.authService.logoutSync();
-            }
-          });
+          // The auth service will handle the refresh automatically
           return throwError(() => new Error('Authentication failed. Please login again.'));
 
         case 403:
@@ -131,25 +120,6 @@ export class ChatService {
     
     console.error('Network error:', error);
     return throwError(() => new Error('Network error. Please check your connection.'));
-  }
-
-  private retryWithBackoff(maxRetries: number, delay: number) {
-    return (source: Observable<any>) =>
-      source.pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delayWhen((error, retryCount) => {
-              if (retryCount >= maxRetries) {
-                throw error;
-              }
-              const backoffDelay = delay * Math.pow(2, retryCount);
-              console.log(`Retry ${retryCount + 1}/${maxRetries} after ${backoffDelay}ms`);
-              return timer(backoffDelay);
-            }),
-            take(maxRetries)
-          )
-        )
-      );
   }
 
   private initializeWebSocketConnection(): void {
@@ -485,8 +455,7 @@ export class ChatService {
     ).subscribe();
   }
 
-  // MARK: - Public API Methods
-
+  // Public API Methods
   loadRooms(): void {
     if (!this.authService.isAuthenticated()) {
       console.warn('User not authenticated, skipping room load');
@@ -584,22 +553,9 @@ export class ChatService {
     );
   }
 
-  // MISSING METHOD: deleteMessage
   deleteMessage(messageId: number): Observable<ApiResponse> {
     if (!this.authService.isAuthenticated()) {
       return throwError(() => new Error('User not authenticated'));
-    }
-
-    // Try to notify via WebSocket first
-    if (this.stompClient && this.stompClient.connected) {
-      const deleteRequest = { messageId: messageId };
-      this.stompClient.publish({
-        destination: '/app/chat.deleteMessage',
-        body: JSON.stringify(deleteRequest),
-        headers: {
-          'Authorization': `Bearer ${this.authService.getToken()}`
-        }
-      });
     }
 
     return this.http.delete<ApiResponse>(`${this.apiUrl}/messages/${messageId}`, { 
@@ -617,183 +573,110 @@ export class ChatService {
     );
   }
 
-  // MISSING METHOD: deleteMultipleMessages
-  deleteMultipleMessages(messageIds: number[]): Observable<ApiResponse> {
-    if (!this.authService.isAuthenticated()) {
-      return throwError(() => new Error('User not authenticated'));
-    }
-
-    return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, messageIds, { 
-      headers: this.getHeaders() 
-    }).pipe(
-      timeout(10000),
-      tap(() => {
-        console.log('Messages deleted:', messageIds);
-        messageIds.forEach(messageId => this.removeMessage(messageId));
-      }),
-      catchError(error => {
-        console.error('Error deleting multiple messages:', error);
-        return this.handleApiError(error);
-      })
-    );
-  }
-
-  // MISSING METHOD: markMessageAsDelivered
-  markMessageAsDelivered(roomId: number, messageId: number): Observable<ApiResponse> {
-    if (!this.authService.isAuthenticated()) {
-      return throwError(() => new Error('User not authenticated'));
-    }
-
-    return this.http.post<ApiResponse>(
-      `${this.apiUrl}/rooms/${roomId}/mark-delivered`,
-      { messageId },
+  // Chat creation methods
+  createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`, 
+      {}, 
       { headers: this.getHeaders() }
     ).pipe(
       timeout(10000),
+      tap(response => {
+        if (response.success && response.data) {
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          this.roomsSubject.next([...currentRooms, newRoom]);
+        }
+      }),
       catchError(error => {
-        console.error('Error marking message as delivered:', error);
+        console.error('Error creating tenant-landlord chat:', error);
         return this.handleApiError(error);
       })
-    );
-  }
-
-  // Enhanced chat creation methods with pre-flight auth check
-  createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.withAuthCheck(() => 
-      this.http.post<ApiResponse<ChatRoom>>(
-        `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`, 
-        {}, 
-        { headers: this.getHeaders() }
-      ).pipe(
-        timeout(10000),
-        tap(response => {
-          if (response.success && response.data) {
-            const currentRooms = this.roomsSubject.value;
-            const newRoom = this.processRoomData(response.data);
-            this.roomsSubject.next([...currentRooms, newRoom]);
-          }
-        }),
-        catchError(error => {
-          console.error('Error creating tenant-landlord chat:', error);
-          return this.handleApiError(error);
-        })
-      )
     );
   }
 
   createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.withAuthCheck(() => 
-      this.http.post<ApiResponse<ChatRoom>>(
-        `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`, 
-        {}, 
-        { headers: this.getHeaders() }
-      ).pipe(
-        timeout(10000),
-        tap(response => {
-          if (response.success && response.data) {
-            const currentRooms = this.roomsSubject.value;
-            const newRoom = this.processRoomData(response.data);
-            this.roomsSubject.next([...currentRooms, newRoom]);
-          }
-        }),
-        catchError(error => {
-          console.error('Error creating tenant-caretaker chat:', error);
-          return this.handleApiError(error);
-        })
-      )
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`, 
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      timeout(10000),
+      tap(response => {
+        if (response.success && response.data) {
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          this.roomsSubject.next([...currentRooms, newRoom]);
+        }
+      }),
+      catchError(error => {
+        console.error('Error creating tenant-caretaker chat:', error);
+        return this.handleApiError(error);
+      })
     );
   }
 
   createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.withAuthCheck(() => 
-      this.http.post<ApiResponse<ChatRoom>>(
-        `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`, 
-        {}, 
-        { headers: this.getHeaders() }
-      ).pipe(
-        timeout(10000),
-        tap(response => {
-          if (response.success && response.data) {
-            const currentRooms = this.roomsSubject.value;
-            const newRoom = this.processRoomData(response.data);
-            this.roomsSubject.next([...currentRooms, newRoom]);
-          }
-        }),
-        catchError(error => {
-          console.error('Error creating landlord-caretaker chat:', error);
-          return this.handleApiError(error);
-        })
-      )
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`, 
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      timeout(10000),
+      tap(response => {
+        if (response.success && response.data) {
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          this.roomsSubject.next([...currentRooms, newRoom]);
+        }
+      }),
+      catchError(error => {
+        console.error('Error creating landlord-caretaker chat:', error);
+        return this.handleApiError(error);
+      })
     );
   }
 
   createLandlordTenantChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.withAuthCheck(() => 
-      this.http.post<ApiResponse<ChatRoom>>(
-        `${this.apiUrl}/rooms/landlord-tenant/${propertyId}`, 
-        {}, 
-        { headers: this.getHeaders() }
-      ).pipe(
-        timeout(10000),
-        tap(response => {
-          if (response.success && response.data) {
-            const currentRooms = this.roomsSubject.value;
-            const newRoom = this.processRoomData(response.data);
-            this.roomsSubject.next([...currentRooms, newRoom]);
-          }
-        }),
-        catchError(error => {
-          console.error('Error creating landlord-tenant chat:', error);
-          return this.handleApiError(error);
-        })
-      )
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/rooms/landlord-tenant/${propertyId}`, 
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      timeout(10000),
+      tap(response => {
+        if (response.success && response.data) {
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          this.roomsSubject.next([...currentRooms, newRoom]);
+        }
+      }),
+      catchError(error => {
+        console.error('Error creating landlord-tenant chat:', error);
+        return this.handleApiError(error);
+      })
     );
   }
 
   createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.withAuthCheck(() => 
-      this.http.post<ApiResponse<ChatRoom>>(
-        `${this.apiUrl}/caretaker/tenant/${unitId}`, 
-        {}, 
-        { headers: this.getHeaders() }
-      ).pipe(
-        timeout(10000),
-        tap(response => {
-          if (response.success && response.data) {
-            const currentRooms = this.roomsSubject.value;
-            const newRoom = this.processRoomData(response.data);
-            this.roomsSubject.next([...currentRooms, newRoom]);
-          }
-        }),
-        catchError(error => {
-          console.error('Error creating caretaker-tenant chat:', error);
-          return this.handleApiError(error);
-        })
-      )
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/caretaker/tenant/${unitId}`, 
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      timeout(10000),
+      tap(response => {
+        if (response.success && response.data) {
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          this.roomsSubject.next([...currentRooms, newRoom]);
+        }
+      }),
+      catchError(error => {
+        console.error('Error creating caretaker-tenant chat:', error);
+        return this.handleApiError(error);
+      })
     );
-  }
-
-  // Helper method to ensure authentication before making requests
-  private withAuthCheck<T>(requestFn: () => Observable<T>): Observable<T> {
-    if (!this.authService.isAuthenticated()) {
-      return throwError(() => new Error('User not authenticated'));
-    }
-
-    // Check if token is about to expire
-    if (this.authService.isTokenAboutToExpire()) {
-      console.log('Token about to expire, refreshing before request...');
-      return this.authService.refreshToken().pipe(
-        switchMap(success => {
-          if (success) {
-            return requestFn();
-          } else {
-            return throwError(() => new Error('Authentication failed'));
-          }
-        })
-      );
-    }
-
-    return requestFn();
   }
 
   selectRoom(room: ChatRoom | null): void {
