@@ -64,6 +64,7 @@ export class AuthService {
       tap(response => {
         if (response.token) {
           this.storeAuthDataDirectly(response, credentials.rememberMe || false);
+          
           if (credentials.rememberMe) {
             this.storeCredentialsSecurely(credentials.email, credentials.password);
           }
@@ -75,11 +76,22 @@ export class AuthService {
     );
   }
 
-  refreshToken(): Observable<boolean> {
+  silentReauth(): Observable<boolean> {
+    if (this.refreshTokenInProgress) {
+      return this.refreshTokenSubject.asObservable().pipe(
+        map(value => value !== null ? value : false)
+      );
+    }
+
+    this.refreshTokenInProgress = true;
+    this.refreshTokenSubject.next(null);
+
     const storedEmail = this.getStoredEmail();
     const storedPassword = this.getStoredPassword();
     
     if (!storedEmail || !storedPassword) {
+      this.refreshTokenInProgress = false;
+      this.refreshTokenSubject.next(false);
       return of(false);
     }
 
@@ -90,8 +102,14 @@ export class AuthService {
     };
 
     return this.login(loginRequest).pipe(
-      map(response => true),
+      map(response => {
+        this.refreshTokenInProgress = false;
+        this.refreshTokenSubject.next(true);
+        return true;
+      }),
       catchError(error => {
+        this.refreshTokenInProgress = false;
+        this.refreshTokenSubject.next(false);
         this.clearStoredCredentials();
         return of(false);
       })
@@ -100,6 +118,7 @@ export class AuthService {
 
   public storeCredentialsSecurely(email: string, password: string): void {
     if (!this.isBrowser) return;
+    
     try {
       localStorage.setItem('userEmail', email);
       const encodedPassword = btoa(password);
@@ -118,6 +137,7 @@ export class AuthService {
     if (!this.isBrowser) return null;
     const encodedPassword = localStorage.getItem('userPassword');
     if (!encodedPassword) return null;
+    
     try {
       return atob(encodedPassword);
     } catch {
@@ -157,6 +177,7 @@ export class AuthService {
             verified: false,
             emailVerified: false
           };
+          
           sessionStorage.setItem('pendingUser', JSON.stringify(tempUser));
           sessionStorage.setItem('pendingEmail', normalizedData.email);
           sessionStorage.setItem('pendingPhoneNumber', normalizedData.phoneNumber);
@@ -204,7 +225,9 @@ export class AuthService {
 
   logout(): Observable<ApiResponse> {
     const token = this.getToken();
+    
     this.performLocalLogout();
+    
     if (token) {
       return this.http.post<ApiResponse>(
         `${this.apiUrl}/logout`, 
@@ -214,12 +237,15 @@ export class AuthService {
         catchError(() => of({ success: true, message: 'Logged out locally' }))
       );
     }
+    
     return of({ success: true, message: 'Logged out locally' });
   }
 
   logoutSync(): void {
     const token = this.getToken();
+    
     this.performLocalLogout();
+    
     if (token) {
       this.http.post<ApiResponse>(
         `${this.apiUrl}/logout`,
@@ -307,6 +333,7 @@ export class AuthService {
               ...currentUser, 
               phoneNumber: newPhoneNumber 
             };
+            
             this.updateUserStorage(updatedUser);
             this.currentUserSubject.next(updatedUser);
           }
@@ -331,23 +358,32 @@ export class AuthService {
 
   getToken(): string | null {
     if (!this.isBrowser) return null;
+    
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    
     if (!token) return null;
+    
     let cleanToken = token.trim();
+
     if ((cleanToken.startsWith('"') && cleanToken.endsWith('"')) || 
         (cleanToken.startsWith("'") && cleanToken.endsWith("'"))) {
       cleanToken = cleanToken.slice(1, -1);
     }
+    
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
     }
+    
     return cleanToken;
   }
 
   getCurrentUser(): User | null {
     if (!this.isBrowser) return null;
+    
     const userData = localStorage.getItem('userData') || sessionStorage.getItem('userData');
+    
     if (!userData) return null;
+    
     try { 
       return JSON.parse(userData);
     } catch (error) { 
@@ -358,28 +394,12 @@ export class AuthService {
 
   isAuthenticated(): boolean { 
     const token = this.getToken();
+    
     if (!token) {
       return false;
     }
-    const isTokenValid = this.hasValidToken();
-    if (!isTokenValid) {
-      if (this.canRefreshToken()) {
-        this.refreshToken().subscribe(success => {
-          if (!success) {
-            this.clearAllStorage();
-            this.currentUserSubject.next(null);
-            this.isAuthenticatedSubject.next(false);
-          }
-        });
-        return true;
-      } else {
-        this.clearAllStorage();
-        this.currentUserSubject.next(null);
-        this.isAuthenticatedSubject.next(false);
-        return false;
-      }
-    }
-    return true;
+    
+    return this.hasValidToken();
   }
 
   isLoggedIn(): boolean {
@@ -389,23 +409,44 @@ export class AuthService {
   hasValidToken(): boolean {
     const token = this.getToken();
     if (!token) return false;
+    
     try {
       const tokenParts = token.split('.');
       if (tokenParts.length !== 3) {
         return false;
       }
+      
       const payload = tokenParts[1];
       const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
       const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
       const decodedPayload = atob(paddedBase64);
       const payloadObj = JSON.parse(decodedPayload);
-      if (!payloadObj.exp) {
-        return true;
+      
+      // Enhanced validation
+      if (!payloadObj.exp || !payloadObj.iat) {
+        console.warn('Token missing exp or iat claim');
+        return false;
       }
+      
       const currentTime = Math.floor(Date.now() / 1000);
-      const isExpired = payloadObj.exp <= currentTime;
-      return !isExpired;
+      
+      // Check if token is issued in the future (server time issue)
+      if (payloadObj.iat > currentTime) {
+        console.error('Token has future issue date - server time may be wrong');
+        console.log('Token iat:', payloadObj.iat, 'Current time:', currentTime);
+        return false;
+      }
+      
+      // Check if token is expired
+      if (payloadObj.exp <= currentTime) {
+        console.log('Token expired');
+        return false;
+      }
+      
+      return true;
+      
     } catch (error) {
+      console.error('Token validation error:', error);
       return false;
     }
   }
@@ -413,15 +454,21 @@ export class AuthService {
   isTokenAboutToExpire(): boolean {
     const token = this.getToken();
     if (!token) return false;
+    
     try {
       const tokenParts = token.split('.');
       const payload = JSON.parse(atob(tokenParts[1]));
       const currentTime = Math.floor(Date.now() / 1000);
       const timeUntilExpiry = payload.exp - currentTime;
+      
       return timeUntilExpiry < 300;
     } catch {
       return false;
     }
+  }
+
+  refreshToken(): Observable<boolean> {
+    return this.silentReauth();
   }
 
   getRefreshToken(): string | null {
@@ -438,13 +485,17 @@ export class AuthService {
 
   getAuthHeaders(includeContentType: boolean = true): HttpHeaders {
     const token = this.getToken();
+    
     let headersConfig: { [name: string]: string } = {};
+
     if (includeContentType) {
       headersConfig['Content-Type'] = 'application/json';
     }
+
     if (token) {
       headersConfig['Authorization'] = `Bearer ${token}`;
     }
+    
     return new HttpHeaders(headersConfig);
   }
 
@@ -487,41 +538,109 @@ export class AuthService {
     this.isAuthenticatedSubject.next(false);
   }
 
+  // NEW: Enhanced token debugging method
   debugToken(): void {
     const token = this.getToken();
+    
     if (!token) {
-      console.log('No token found in storage');
+      console.log('❌ No token found in storage');
       return;
     }
+    
     try {
       const parts = token.split('.');
       if (parts.length !== 3) {
-        console.error('Invalid token format');
+        console.error('❌ Invalid token format');
         return;
       }
+      
       const base64Payload = parts[1];
       const base64 = base64Payload.replace(/-/g, '+').replace(/_/g, '/');
       const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
       const decodedPayload = atob(paddedBase64);
       const payload = JSON.parse(decodedPayload);
-      console.log('Token Debug Information');
+      
+      const currentTime = Math.floor(Date.now() / 1000);
+      
+      console.log('🔐 Token Debug Information');
       console.log('User ID:', payload.userId || payload.sub || payload.id || 'NOT FOUND');
       console.log('Email:', payload.email || 'NOT FOUND');
       console.log('Role:', payload.role || 'NOT FOUND');
       console.log('Full Name:', payload.fullName || payload.name || 'NOT FOUND');
       console.log('Issued At:', payload.iat ? new Date(payload.iat * 1000).toISOString() : 'NOT FOUND');
       console.log('Expires At:', payload.exp ? new Date(payload.exp * 1000).toISOString() : 'NOT FOUND');
+      
       if (payload.exp) {
         const secondsUntilExpiry = Math.floor((payload.exp * 1000 - Date.now()) / 1000);
         const minutesUntilExpiry = Math.floor(secondsUntilExpiry / 60);
         console.log('Time Until Expiry:', `${secondsUntilExpiry}s (${minutesUntilExpiry} minutes)`);
+        
+        // Check for future dates issue
+        if (payload.iat > currentTime) {
+          console.error('🚨 TOKEN TIME ISSUE: Token was issued in the future!');
+          console.log('Token iat timestamp:', payload.iat);
+          console.log('Current timestamp:', currentTime);
+          console.log('Difference (future):', payload.iat - currentTime, 'seconds');
+        }
       }
+      
       const storedUser = this.getCurrentUser();
       if (storedUser && payload.role !== storedUser.role) {
-        console.error('Token role does not match stored user role!');
+        console.error('❌ Token role does not match stored user role!');
       }
+      
+      console.log('✅ Token validation result:', this.hasValidToken());
+      
     } catch (error) {
-      console.error('Token decode error:', error);
+      console.error('❌ Token decode error:', error);
+    }
+  }
+
+  // NEW: Test token validity with detailed output
+  testTokenValidity(): boolean {
+    const token = this.getToken();
+    console.log('=== TOKEN VALIDITY TEST ===');
+    
+    if (!token) {
+      console.log('❌ No token found');
+      return false;
+    }
+    
+    try {
+      const parts = token.split('.');
+      const payload = JSON.parse(atob(parts[1]));
+      
+      const currentTime = Math.floor(Date.now() / 1000);
+      const issuedAt = new Date(payload.iat * 1000);
+      const expiresAt = new Date(payload.exp * 1000);
+      const now = new Date();
+      
+      console.log('Token issued:', issuedAt);
+      console.log('Token expires:', expiresAt);
+      console.log('Current time:', now);
+      console.log('Token iat timestamp:', payload.iat);
+      console.log('Token exp timestamp:', payload.exp);
+      console.log('Current timestamp:', currentTime);
+      console.log('Is expired:', payload.exp <= currentTime);
+      console.log('Has future iat:', payload.iat > currentTime);
+      
+      if (payload.iat > currentTime) {
+        console.error('🚨 CRITICAL: Token has future issue date!');
+        console.log('This indicates server time is wrong.');
+        return false;
+      }
+      
+      if (payload.exp <= currentTime) {
+        console.log('Token is expired');
+        return false;
+      }
+      
+      console.log('✅ Token is valid');
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Token decode error:', error);
+      return false;
     }
   }
 
@@ -529,17 +648,23 @@ export class AuthService {
     try {
       const token = this.getToken();
       const storedUser = this.getCurrentUser();
+      
       if (!token || !storedUser) {
         return false;
       }
+      
       const parts = token.split('.');
       const payload = JSON.parse(atob(parts[1]));
+      
       const tokenRole = payload.role?.toUpperCase();
       const storedRole = storedUser.role?.toUpperCase();
+      
       if (tokenRole !== storedRole) {
         return false;
       }
+      
       return true;
+      
     } catch (error) {
       return false;
     }
@@ -574,6 +699,7 @@ export class AuthService {
 
   private storeAuthDataDirectly(authResponse: AuthResponse, rememberMe: boolean): void {
     if (!this.isBrowser) return;
+
     const user: User = {
       id: authResponse.userId.toString(),
       email: authResponse.email,
@@ -583,14 +709,18 @@ export class AuthService {
       verified: authResponse.verified,
       emailVerified: authResponse.verified
     };
+
     const token = authResponse.token;
+
     if (!user || !token) {
       return;
     }
+
     let cleanToken = token.trim();
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
     }
+
     if (rememberMe) {
       localStorage.setItem('authToken', cleanToken);
       localStorage.setItem('userData', JSON.stringify(user));
@@ -604,8 +734,10 @@ export class AuthService {
         sessionStorage.setItem('refreshToken', authResponse.refreshToken);
       }
     }
+
     this.currentUserSubject.next(user);
     this.isAuthenticatedSubject.next(true);
+    
     this.clearPendingVerification();
   }
 
@@ -618,11 +750,13 @@ export class AuthService {
     try {
       const tokenParts = token.split('.');
       if (tokenParts.length !== 3) return null;
+      
       const payload = tokenParts[1];
       const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
       const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
       const decodedPayload = atob(paddedBase64);
       const payloadObj = JSON.parse(decodedPayload);
+      
       return payloadObj.role || null;
     } catch (error) {
       return null;
@@ -632,30 +766,40 @@ export class AuthService {
   private initializeAuthState(): void {
     const user = this.getCurrentUser();
     const token = this.getToken();
+    
     let isAuthenticated = false;
+    
     if (user && token) {
       isAuthenticated = this.hasValidToken();
+      
       if (!isAuthenticated) {
+        console.log('🔄 Token invalid on initialization, clearing storage');
         this.clearAllStorage();
         this.currentUserSubject.next(null);
         this.isAuthenticatedSubject.next(false);
         return;
       }
     } else {
-      if (user && !token) this.clearAllStorage();
+      if (user && !token) {
+        console.log('🔄 User data found but no token, clearing storage');
+        this.clearAllStorage();
+      }
       isAuthenticated = false;
     }
+    
     this.currentUserSubject.next(user);
     this.isAuthenticatedSubject.next(isAuthenticated);
   }
 
   private updateUserStorage(userData: User): void {
     if (!this.isBrowser) return;
+    
     try {
       const localStorageUser = localStorage.getItem('userData');
       if (localStorageUser) {
         localStorage.setItem('userData', JSON.stringify(userData));
       }
+      
       const sessionStorageUser = sessionStorage.getItem('userData');
       if (sessionStorageUser) {
         sessionStorage.setItem('userData', JSON.stringify(userData));
@@ -674,6 +818,7 @@ export class AuthService {
 
   private handleError = (error: HttpErrorResponse): Observable<never> => {
     let message = 'An unexpected error occurred';
+    
     if (error.error instanceof ErrorEvent) {
       message = error.error.message;
     } else {
@@ -691,6 +836,7 @@ export class AuthService {
         message = 'Network error: Cannot connect to server.';
       }
     }
+    
     return throwError(() => new Error(message));
   };
 }
