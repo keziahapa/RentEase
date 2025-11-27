@@ -1,285 +1,306 @@
 <div class="chat-container">
-  <!-- Left Sidebar - Chat Rooms List -->
-  <div class="chat-sidebar" [class.mobile-hidden]="currentRoom">
+  <div class="chat-sidebar">
     <div class="sidebar-header">
       <h2>Messages</h2>
       <button 
         class="new-chat-btn" 
         (click)="openNewChatModal()"
-        [disabled]="loadingRooms">
+        [disabled]="loadingProperties">
         <mat-icon>add</mat-icon>
-        <span>New Chat</span>
+        New Chat
       </button>
     </div>
 
-    <!-- Connection Status -->
-    <div class="connection-status" [class.connected]="isConnected">
-      <div class="status-indicator"></div>
-      <span>{{ getConnectionStatus() }}</span>
-      <button *ngIf="!isConnected" (click)="reconnect()" class="reconnect-btn">
-        <mat-icon>refresh</mat-icon>
-      </button>
-    </div>
-
-    <!-- Loading State -->
-    <div *ngIf="loadingRooms" class="loading-container">
-      <div class="spinner"></div>
-      <p>Loading chats...</p>
-    </div>
-
-    <!-- Rooms List -->
-    <div class="rooms-list" *ngIf="!loadingRooms">
-      <div 
-        *ngFor="let room of rooms; trackBy: trackByRoomId"
-        class="room-item"
-        [class.active]="currentRoom?.id === room.id"
-        [class.unread]="getUnreadCount(room) > 0"
-        (click)="selectRoom(room)">
-        
-        <div class="room-avatar">
-          <mat-icon>chat_bubble</mat-icon>
-        </div>
-        
-        <div class="room-info">
-          <div class="room-header">
-            <h3 class="room-name">{{ getRoomDisplayName(room) }}</h3>
-            <span class="room-time">{{ getLastMessageTime(room) }}</span>
-          </div>
-          
-          <div class="room-footer">
-            <p class="room-subtitle">{{ getRoomSubtitle(room) }}</p>
-            <span *ngIf="getUnreadCount(room) > 0" class="unread-badge">
-              {{ getUnreadCount(room) }}
-            </span>
-          </div>
-          
-          <p *ngIf="room.lastMessage" class="last-message">
-            {{ room.lastMessage.content | slice:0:50 }}{{ room.lastMessage.content.length > 50 ? '...' : '' }}
-          </p>
-        </div>
+    <div class="rooms-list">
+      <div *ngIf="loadingRooms" class="empty-rooms">
+        <mat-icon class="empty-icon">schedule</mat-icon>
+        <p>Loading chats...</p>
       </div>
-
-      <!-- Empty State -->
-      <div *ngIf="rooms.length === 0" class="empty-state">
-        <mat-icon>chat_bubble_outline</mat-icon>
+      
+      <div *ngIf="!loadingRooms && rooms.length === 0" class="empty-rooms">
+        <mat-icon class="empty-icon">forum</mat-icon>
         <p>No chats yet</p>
-        <button class="start-chat-btn" (click)="openNewChatModal()">
-          Start a conversation
+        <p>Start a new conversation</p>
+        <button 
+          class="start-chat-btn" 
+          (click)="openNewChatModal()"
+          [disabled]="loadingProperties">
+          <mat-icon>chat</mat-icon>
+          Start Chat
         </button>
       </div>
+
+      <div *ngIf="!loadingRooms && rooms.length > 0">
+        <div 
+          *ngFor="let room of rooms; trackBy: trackByRoomId"
+          class="room-item" 
+          [class.active]="currentRoom?.id === room.id"
+          (click)="selectRoom(room)">
+          
+          <div class="room-avatar">
+            <mat-icon>person</mat-icon>
+          </div>
+          
+          <div class="room-info">
+            <div class="room-name">{{ formatChatName(room) }}</div>
+            <div class="last-message">
+              {{ room.lastMessage?.content || 'No messages yet' }}
+            </div>
+          </div>
+          
+          <div class="room-meta">
+            <div class="time">{{ getLastMessageTime(room) }}</div>
+            <div *ngIf="getUnreadCount(room) > 0" class="unread-badge">
+              {{ getUnreadCount(room) }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connection-status" [class.connected]="isConnected" [class.disconnected]="!isConnected">
+      <mat-icon class="status-dot">fiber_manual_record</mat-icon>
+      {{ getConnectionStatus() }}
+      <button *ngIf="!isConnected" class="reconnect-btn" (click)="reconnect()">
+        <mat-icon>refresh</mat-icon>
+        Reconnect
+      </button>
     </div>
   </div>
 
-  <!-- Right Side - Chat Messages -->
-  <div class="chat-main" [class.show]="currentRoom">
-    <div *ngIf="!currentRoom" class="no-chat-selected">
-      <mat-icon>chat</mat-icon>
-      <h2>Select a chat to start messaging</h2>
-      <p>Choose a conversation from the list or start a new one</p>
+  <div class="chat-area">
+    <div *ngIf="!currentRoom" class="empty-state">
+      <mat-icon class="empty-icon">forum</mat-icon>
+      <h3>Welcome to Chat</h3>
+      <p>Select a conversation from the sidebar or start a new one</p>
+      <button 
+        class="start-chat-btn" 
+        (click)="openNewChatModal()"
+        [disabled]="loadingProperties">
+        <mat-icon>chat</mat-icon>
+        Start New Chat
+      </button>
+      
+      <div *ngIf="!loadingProperties" class="property-info">
+        <strong>Available: {{ getCurrentPropertyName() }}</strong>
+      </div>
     </div>
 
-    <div *ngIf="currentRoom" class="chat-content">
-      <!-- Chat Header -->
+    <div *ngIf="currentRoom" class="chat-area-active">
       <div class="chat-header">
-        <button class="back-btn" (click)="goBack()">
+        <button class="back-button" (click)="goBack()">
           <mat-icon>arrow_back</mat-icon>
         </button>
         
-        <div class="chat-header-info">
-          <h3>{{ getChatHeaderInfo().title }}</h3>
-          <p>{{ getChatHeaderInfo().subtitle }}</p>
+        <div class="header-info">
+          <div class="chat-title">{{ getChatHeaderInfo().title }}</div>
+          <div class="chat-subtitle">{{ getChatHeaderInfo().subtitle }}</div>
+          <div *ngIf="getChatHeaderInfo().description" class="chat-description">
+            {{ getChatHeaderInfo().description }}
+          </div>
         </div>
-
-        <div class="chat-actions">
-          <button class="icon-btn">
-            <mat-icon>videocam</mat-icon>
-          </button>
-          <button class="icon-btn">
-            <mat-icon>phone</mat-icon>
-          </button>
-          <button class="icon-btn">
-            <mat-icon>more_vert</mat-icon>
-          </button>
+        
+        <div class="connection-indicator" [class.connected]="isConnected" [class.disconnected]="!isConnected">
+          <mat-icon class="status-dot">fiber_manual_record</mat-icon>
+          {{ getConnectionStatus() }}
         </div>
       </div>
 
-      <!-- Messages Container -->
-      <div class="messages-container" #messagesContainer>
-        <div 
-          *ngFor="let message of messages; trackBy: trackByMessageId"
-          class="message-wrapper"
-          [class.my-message]="isMyMessage(message)"
-          [class.other-message]="!isMyMessage(message)">
-          
-          <div class="message-bubble">
-            <div class="message-header" *ngIf="!isMyMessage(message)">
-              <span class="sender-name">{{ getMessageSenderInfo(message) }}</span>
+      <div #messagesContainer class="messages-container">
+        <div *ngIf="messages.length === 0" class="no-messages">
+          <mat-icon class="no-messages-icon">forum</mat-icon>
+          <p>No messages yet</p>
+          <p class="no-messages-hint">Send a message to start the conversation</p>
+        </div>
+
+        <div *ngFor="let message of messages; trackBy: trackByMessageId" class="message-wrapper">
+          <div 
+            class="message" 
+            [class.my-message]="isMyMessage(message)"
+            [class.other-message]="!isMyMessage(message)">
+            
+            <div *ngIf="!isMyMessage(message)" class="message-sender">
+              {{ getMessageSenderInfo(message) }}
             </div>
             
-            <div class="message-content">
-              <p>{{ message.content }}</p>
-            </div>
+            <div class="message-content">{{ message.content }}</div>
             
             <div class="message-footer">
               <span class="message-time">{{ formatMessageTime(message.sentAt) }}</span>
-              <mat-icon *ngIf="isMyMessage(message) && message.status === 'READ'" class="read-receipt">
-                done_all
-              </mat-icon>
-              <mat-icon *ngIf="isMyMessage(message) && message.status === 'DELIVERED'" class="delivered-receipt">
-                done_all
-              </mat-icon>
-              <mat-icon *ngIf="isMyMessage(message) && message.status === 'SENT'" class="sent-receipt">
-                done
-              </mat-icon>
+              <span *ngIf="isMyMessage(message)" class="message-status">
+                <mat-icon *ngIf="message.status === 'READ'">done_all</mat-icon>
+                <mat-icon *ngIf="message.status === 'DELIVERED'">done_all</mat-icon>
+                <mat-icon *ngIf="!message.status || message.status === 'SENT'">done</mat-icon>
+              </span>
+              <button 
+                *ngIf="canDelete(message)" 
+                class="delete-btn" 
+                (click)="deleteMessage(message.id)"
+                title="Delete message">
+                <mat-icon>delete</mat-icon>
+              </button>
             </div>
-
-            <button 
-              *ngIf="canDelete(message)"
-              class="delete-message-btn"
-              (click)="deleteMessage(message.id)"
-              title="Delete message">
-              <mat-icon>delete</mat-icon>
-            </button>
           </div>
-        </div>
-
-        <!-- Empty Messages State -->
-        <div *ngIf="messages.length === 0" class="no-messages">
-          <mat-icon>chat_bubble_outline</mat-icon>
-          <p>No messages yet. Start the conversation!</p>
-        </div>
-      </div>
-
-      <!-- Message Input -->
-      <div class="message-input-container">
-        <!-- Emoji Picker -->
-        <div *ngIf="showEmojiPicker" class="emoji-picker">
-          <div class="emoji-grid">
-            <button 
-              *ngFor="let emoji of emojis"
-              class="emoji-btn"
-              (click)="addEmoji(emoji)">
-              {{ emoji }}
-            </button>
-          </div>
-        </div>
-
-        <div class="message-input-wrapper">
-          <button class="input-action-btn" (click)="toggleEmojiPicker()">
-            <mat-icon>insert_emoticon</mat-icon>
-          </button>
-
-          <button class="input-action-btn" (click)="triggerFileInput()">
-            <mat-icon>attach_file</mat-icon>
-          </button>
-
-          <input 
-            type="file" 
-            #fileInput 
-            (change)="onFileSelected($event)" 
-            style="display: none"
-            multiple>
-
-          <textarea
-            [(ngModel)]="newMessage"
-            (keypress)="onKeyPress($event)"
-            placeholder="Type a message..."
-            rows="1"
-            [disabled]="uploadingFiles"></textarea>
-
-          <button 
-            class="send-btn" 
-            (click)="sendMessage()"
-            [disabled]="!newMessage.trim() || uploadingFiles">
-            <mat-icon>send</mat-icon>
-          </button>
         </div>
 
         <div *ngIf="uploadingFiles" class="uploading-indicator">
-          <div class="spinner-small"></div>
-          <span>Uploading files...</span>
+          <mat-icon>cloud_upload</mat-icon>
+          <div class="uploading-text">Uploading files...</div>
         </div>
+      </div>
+
+      <div class="message-input-container">
+        <button class="action-btn emoji-btn" (click)="toggleEmojiPicker()" title="Add emoji">
+          <mat-icon>mood</mat-icon>
+        </button>
+        
+        <div class="message-input-wrapper">
+          <textarea
+            class="message-input"
+            [(ngModel)]="newMessage"
+            (keydown)="onKeyPress($event)"
+            placeholder="Type a message..."
+            rows="1"></textarea>
+
+          <div *ngIf="showEmojiPicker" class="emoji-picker">
+            <div class="emoji-grid">
+              <button 
+                *ngFor="let emoji of emojis" 
+                class="emoji-item"
+                (click)="addEmoji(emoji)"
+                [title]="emoji">
+                {{ emoji }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button class="action-btn attach-btn" (click)="triggerFileInput()" title="Attach file">
+          <mat-icon>attach_file</mat-icon>
+        </button>
+        <input #fileInput type="file" hidden (change)="onFileSelected($event)" multiple>
+
+        <button 
+          class="send-btn" 
+          (click)="sendMessage()"
+          [disabled]="!newMessage.trim() || !currentRoom">
+          <mat-icon>send</mat-icon>
+        </button>
       </div>
     </div>
   </div>
-</div>
 
-<!-- New Chat Modal -->
-<div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>Start New Chat</h2>
-      <button class="close-btn" (click)="closeNewChatModal()">
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
-
-    <div class="modal-body">
-      <!-- Chat Type Selection -->
-      <div class="form-group">
-        <label>Chat Type</label>
-        <select 
-          [(ngModel)]="selectedChatType"
-          (change)="onChatTypeChange()"
-          class="form-control">
-          <option [ngValue]="null">Select chat type...</option>
-          <option 
-            *ngFor="let option of availableChatOptions"
-            [ngValue]="option.type">
-            {{ option.label }}
-          </option>
-        </select>
-        <p *ngIf="selectedChatType" class="help-text">
-          {{ getSelectedChatDescription() }}
-        </p>
+  <!-- New Chat Modal -->
+  <div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Start New Chat</h3>
+        <button class="close-btn" (click)="closeNewChatModal()">
+          <mat-icon>close</mat-icon>
+        </button>
       </div>
+      
+      <div class="modal-body">
+        <div *ngIf="loadingProperties" class="loading-properties">
+          <mat-icon>schedule</mat-icon>
+          Loading your data...
+        </div>
 
-      <!-- Resource Selection (Property or Unit) -->
-      <div class="form-group" *ngIf="selectedChatType && isResourceSelectionRequired()">
-        <label>
-          {{ getResourceTypeLabel() }}
-        </label>
-        <select 
-          [(ngModel)]="selectedResourceId"
-          class="form-control">
-          <option [ngValue]="null">Select...</option>
-          <option 
-            *ngFor="let resource of getAvailableResources()"
-            [ngValue]="getResourceId(resource)">
-            {{ getResourceLabel(resource) }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Auto-selected Resource Info -->
-      <div class="form-group" *ngIf="selectedChatType && !isResourceSelectionRequired() && getDefaultResourceId()">
-        <div class="info-box">
-          <mat-icon>info</mat-icon>
+        <div *ngIf="!loadingProperties" class="property-info">
+          <mat-icon>location_on</mat-icon>
           <div>
-            <strong>Auto-selected:</strong>
-            <p>{{ getAutoSelectedResourceLabel() }}</p>
+            <strong>Using: {{ getCurrentPropertyName() }}</strong>
+            <br>
+            <small>System will automatically use your available property/unit</small>
+          </div>
+        </div>
+
+        <div class="chat-options" *ngIf="!loadingProperties">
+          <h4>Who would you like to message?</h4>
+          
+          <!-- TENANT OPTIONS -->
+          <div *ngIf="userRole === 'TENANT'" class="option-buttons">
+            <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)">
+              <div class="option-icon">
+                <mat-icon>business</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Landlord</span>
+                <span class="option-subtitle">Property inquiries & requests</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+            </button>
+            
+            <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
+              <div class="option-icon">
+                <mat-icon>engineering</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Caretaker</span>
+                <span class="option-subtitle">Maintenance & support</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+            </button>
+          </div>
+
+          <!-- LANDLORD OPTIONS -->
+          <div *ngIf="userRole === 'LANDLORD'" class="option-buttons">
+            <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)">
+              <div class="option-icon">
+                <mat-icon>engineering</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Caretaker</span>
+                <span class="option-subtitle">Property management</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+            </button>
+            
+            <button class="option-btn tenant-btn" (click)="createChat(CHAT_TYPES.LANDLORD_TENANT)">
+              <div class="option-icon">
+                <mat-icon>people</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Tenants</span>
+                <span class="option-subtitle">Tenant communication</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+            </button>
+          </div>
+
+          <!-- CARETAKER OPTIONS -->
+          <div *ngIf="userRole === 'CARETAKER'" class="option-buttons">
+            <button class="option-btn tenant-btn" (click)="createChat(CHAT_TYPES.CARETAKER_TENANT)">
+              <div class="option-icon">
+                <mat-icon>people</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Tenants</span>
+                <span class="option-subtitle">Maintenance updates & support</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+            </button>
+            
+            <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)">
+              <div class="option-icon">
+                <mat-icon>business</mat-icon>
+              </div>
+              <div class="option-text">
+                <span class="option-title">Message Landlord</span>
+                <span class="option-subtitle">Reports & updates</span>
+              </div>
+              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+            </button>
           </div>
         </div>
       </div>
-
-      <!-- User Role Info -->
-      <div class="user-role-info">
-        <mat-icon>person</mat-icon>
-        <span>Creating chat as: <strong>{{ userRole }}</strong></span>
+      
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeNewChatModal()">
+          <mat-icon>cancel</mat-icon>
+          Cancel
+        </button>
       </div>
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="closeNewChatModal()">
-        Cancel
-      </button>
-      <button 
-        class="btn btn-primary" 
-        (click)="createChat()"
-        [disabled]="!canCreateChat()">
-        <span *ngIf="!loadingRooms">Create Chat</span>
-        <span *ngIf="loadingRooms">Creating...</span>
-      </button>
     </div>
   </div>
 </div>

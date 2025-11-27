@@ -38,11 +38,15 @@ export class ChatService {
   private eatTimeZone = 'Africa/Nairobi';
   private eatLocale = 'en-KE';
 
+ 
+  public http: HttpClient;
+
   constructor(
-    private http: HttpClient,
+    http: HttpClient,
     private authService: AuthService,
     private tenantService: TenantService
   ) {
+    this.http = http;
     this.initializeWebSocketConnection();
     this.loadRooms();
   }
@@ -76,7 +80,6 @@ export class ChatService {
       });
 
       this.stompClient.onConnect = (frame) => {
-        console.log('WebSocket connected:', frame);
         this.connectedSubject.next(true);
         
         const userMessagesSubscription = this.stompClient!.subscribe('/user/queue/messages', (message: IMessage) => {
@@ -97,24 +100,20 @@ export class ChatService {
       };
 
       this.stompClient.onStompError = (frame) => {
-        console.error('STOMP error:', frame);
         this.connectedSubject.next(false);
       };
 
       this.stompClient.onWebSocketError = (event) => {
-        console.error('WebSocket error:', event);
         this.connectedSubject.next(false);
       };
 
       this.stompClient.onDisconnect = (frame) => {
-        console.log('WebSocket disconnected:', frame);
         this.connectedSubject.next(false);
         this.roomSubscriptions.clear();
       };
 
       this.stompClient.activate();
     } catch (error) {
-      console.error('WebSocket initialization error:', error);
       this.connectedSubject.next(false);
     }
   }
@@ -122,7 +121,6 @@ export class ChatService {
   private handleIncomingMessage(messageData: any): void {
     try {
       if (!messageData.chatRoomId) {
-        console.warn('Message without chatRoomId:', messageData);
         return;
       }
       
@@ -209,7 +207,7 @@ export class ChatService {
       type: room.type || 'DIRECT',
       propertyId: Number(room.propertyId) || 0,
       propertyName: room.propertyName || '',
-      unitId: room.unitId ? Number(room.unitId) : undefined,
+      unitId: Number(room.unitId) || undefined,
       unitNumber: room.unitNumber || '',
       participants: this.processParticipants(room.participants || room.users || []),
       lastMessage: room.lastMessage ? this.processMessageData(room.lastMessage) : null,
@@ -288,14 +286,14 @@ export class ChatService {
           }
         },
         error: (error) => {
-          console.error('Error fetching tenant units:', error);
+          console.error('Error enriching tenant data:', error);
         }
       });
     }
   }
 
   private enrichRoomWithTenantData(room: ChatRoom): void {
-    if (room.type === 'landlord-tenant' || room.type === 'tenant-landlord') {
+    if (room.type === 'landlord-tenant' || room.type === 'tenant-landlord' || room.type === 'caretaker-tenant') {
       room.participants.forEach(participant => {
         if (participant.role === 'TENANT' && !participant.unitNumber) {
           this.enrichTenantWithUnitData(participant);
@@ -314,7 +312,6 @@ export class ChatService {
           this.handleIncomingMessage(JSON.parse(message.body));
         });
         this.roomSubscriptions.set(topic, subscription);
-        console.log('Subscribed to room:', roomId);
       } catch (error) {
         console.error('Error subscribing to room:', error);
       }
@@ -327,7 +324,6 @@ export class ChatService {
     if (subscription) {
       subscription.unsubscribe();
       this.roomSubscriptions.delete(topic);
-      console.log('Unsubscribed from room:', roomId);
     }
   }
 
@@ -337,9 +333,7 @@ export class ChatService {
       { messageId },
       { headers: this.getHeaders() }
     ).subscribe({
-      error: (error) => {
-        console.error('Error marking message as read:', error);
-      }
+      error: (error) => console.error('Error marking message as read:', error)
     });
   }
 
@@ -350,7 +344,6 @@ export class ChatService {
       { headers: this.getHeaders() }
     ).pipe(
       catchError(error => {
-        console.error('Error marking message as delivered:', error);
         return throwError(() => error);
       })
     );
@@ -415,7 +408,7 @@ export class ChatService {
           }
         });
       } catch (error) {
-        console.error('Error sending message via WebSocket:', error);
+        console.error('Error publishing message via WebSocket:', error);
       }
     }
 
@@ -428,7 +421,6 @@ export class ChatService {
         }
       }),
       catchError(error => {
-        console.error('Error sending message:', error);
         return throwError(() => error);
       })
     );
@@ -453,7 +445,6 @@ export class ChatService {
         this.removeMessage(messageId);
       }),
       catchError(error => {
-        console.error('Error deleting message:', error);
         return throwError(() => error);
       })
     );
@@ -467,20 +458,16 @@ export class ChatService {
         messageIds.forEach(messageId => this.removeMessage(messageId));
       }),
       catchError(error => {
-        console.error('Error deleting multiple messages:', error);
         return throwError(() => error);
       })
     );
   }
 
-  // TENANT ENDPOINTS
-  /**
-   * Tenant creates chat with Landlord
-   * POST /api/chat/tenant/landlord/{propertyId}
-   */
+
+
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/tenant/landlord/${propertyId}`, 
+      `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`, 
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -492,19 +479,14 @@ export class ChatService {
         }
       }),
       catchError(error => {
-        console.error('Error creating tenant-landlord chat:', error);
         return throwError(() => error);
       })
     );
   }
 
-  /**
-   * Tenant creates chat with Caretaker
-   * POST /api/chat/tenant/caretaker/{propertyId}
-   */
   createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/tenant/caretaker/${propertyId}`, 
+      `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`, 
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -516,44 +498,14 @@ export class ChatService {
         }
       }),
       catchError(error => {
-        console.error('Error creating tenant-caretaker chat:', error);
         return throwError(() => error);
       })
     );
   }
 
-  // LANDLORD ENDPOINTS
-  /**
-   * Landlord creates chat with Tenant
-   * POST /api/chat/landlord/tenant/{unitId}
-   */
-  createLandlordTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/landlord/tenant/${unitId}`, 
-      {}, 
-      { headers: this.getHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          this.roomsSubject.next([...currentRooms, newRoom]);
-        }
-      }),
-      catchError(error => {
-        console.error('Error creating landlord-tenant chat:', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  /**
-   * Landlord creates chat with Caretaker
-   * POST /api/chat/landlord/caretaker/{propertyId}
-   */
   createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/landlord/caretaker/${propertyId}`, 
+      `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`, 
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -565,17 +517,31 @@ export class ChatService {
         }
       }),
       catchError(error => {
-        console.error('Error creating landlord-caretaker chat:', error);
         return throwError(() => error);
       })
     );
   }
 
-  // CARETAKER ENDPOINTS
-  /**
-   * Caretaker creates chat with Tenant
-   * POST /api/chat/caretaker/tenant/{unitId}
-   */
+  createLandlordTenantChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/rooms/landlord-tenant/${propertyId}`, 
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(response => {
+        if (response.success && response.data) {
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          this.roomsSubject.next([...currentRooms, newRoom]);
+        }
+      }),
+      catchError(error => {
+        return throwError(() => error);
+      })
+    );
+  }
+
+  
   createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
       `${this.apiUrl}/caretaker/tenant/${unitId}`, 
@@ -636,69 +602,9 @@ export class ChatService {
     return 0;
   }
 
-  getCurrentUserRole(): string {
-    const user = this.authService.getCurrentUser();
-    return user?.role?.toUpperCase() || 'USER';
-  }
-
   isMyMessage(message: Message): boolean {
     const currentUserId = this.getCurrentUserId();
     return message.senderId === currentUserId;
-  }
-
-  /**
-   * Get room display name with unit/property info
-   */
-  getRoomDisplayName(room: ChatRoom): string {
-    const currentUserRole = this.getCurrentUserRole();
-    
-    // For tenant, show unit number if available
-    if (currentUserRole === 'TENANT' && room.unitNumber) {
-      return `${room.name} (Unit ${room.unitNumber})`;
-    }
-    
-    // For landlord/caretaker, show property ID or property name
-    if ((currentUserRole === 'LANDLORD' || currentUserRole === 'CARETAKER') && room.propertyId) {
-      if (room.propertyName) {
-        return `${room.name} (${room.propertyName})`;
-      }
-      return `${room.name} (Property #${room.propertyId})`;
-    }
-    
-    return room.name;
-  }
-
-  /**
-   * Get room subtitle with relevant info
-   */
-  getRoomSubtitle(room: ChatRoom): string {
-    const currentUserRole = this.getCurrentUserRole();
-    const parts: string[] = [];
-    
-    // Show unit number for tenants
-    if (currentUserRole === 'TENANT' && room.unitNumber) {
-      parts.push(`Unit ${room.unitNumber}`);
-    }
-    
-    // Show property info for landlord/caretaker
-    if ((currentUserRole === 'LANDLORD' || currentUserRole === 'CARETAKER')) {
-      if (room.propertyName) {
-        parts.push(room.propertyName);
-      } else if (room.propertyId) {
-        parts.push(`Property #${room.propertyId}`);
-      }
-      
-      if (room.unitNumber) {
-        parts.push(`Unit ${room.unitNumber}`);
-      }
-    }
-    
-    // Add participant count if group chat
-    if (room.isGroup && room.participants?.length > 0) {
-      parts.push(`${room.participants.length} participants`);
-    }
-    
-    return parts.join(' • ');
   }
 
   formatTime(timestamp: Date): string {
