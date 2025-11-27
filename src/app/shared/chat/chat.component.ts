@@ -8,7 +8,7 @@ import { PropertyService } from '../../services/property.service';
 import { CaretakerService } from '../../services/caretaker.service';
 import { TenantService } from '../../services/tenant.service';
 import { Message, ChatRoom, Property, Unit, ChatRoomType, ApiResponse, Participant } from '../../services/chat.interface';
-import { Observable, of } from 'rxjs';
+import { Observable, of, Subscription } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
@@ -50,6 +50,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentChatInfo: EnrichedChatInfo | null = null;
   participantDataCache = new Map<number, any>();
 
+  private authSubscription?: Subscription;
+  private isInitialized = false;
+
   readonly CHAT_TYPES = {
     TENANT_LANDLORD: 'tenant-landlord' as ChatRoomType,
     TENANT_CARETAKER: 'tenant-caretaker' as ChatRoomType,
@@ -88,19 +91,59 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   ) {}
 
   ngOnInit(): void {
+    this.setupAuthMonitoring();
+    this.initializeComponent();
+  }
+
+  private setupAuthMonitoring(): void {
+    // Monitor auth state changes
+    this.authSubscription = this.authService.isAuthenticated$.subscribe({
+      next: (isAuthenticated: boolean) => {
+        console.log('🔐 Auth state changed in chat:', isAuthenticated);
+        
+        if (!isAuthenticated && this.isInitialized) {
+          console.log('User logged out, cleaning up chat...');
+          this.cleanupOnLogout();
+        } else if (isAuthenticated && !this.isInitialized) {
+          this.initializeComponent();
+        }
+      },
+      error: (error: any) => {
+        console.error('Error in auth subscription:', error);
+      }
+    });
+  }
+
+  private initializeComponent(): void {
     if (!this.authService.isAuthenticated()) {
+      console.log('User not authenticated, redirecting to login...');
       this.redirectToLogin();
       return;
     }
 
-    this.userRole = this.authService.getCurrentUser()?.role?.toUpperCase() || '';
+    const currentUser = this.authService.getCurrentUser();
+    this.userRole = currentUser?.role?.toUpperCase() || '';
+    console.log('🚀 Initializing chat component for role:', this.userRole);
     
     this.loadUserDataAutomatically();
     this.initializeSubscriptions();
+    this.isInitialized = true;
+  }
+
+  private cleanupOnLogout(): void {
+    this.rooms = [];
+    this.currentRoom = null;
+    this.messages = [];
+    this.userProperties = [];
+    this.userUnits = [];
+    this.isInitialized = false;
+    this.chatService.disconnect();
   }
 
   ngOnDestroy(): void {
+    this.authSubscription?.unsubscribe();
     this.chatService.disconnect();
+    this.isInitialized = false;
   }
 
   private initializeSubscriptions(): void {
@@ -110,11 +153,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.loadingRooms = false;
         this.rooms.forEach(room => this.enrichRoomParticipants(room));
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error in rooms subscription:', error);
         this.loadingRooms = false;
-        if (error?.status === 401) {
-          this.handleAuthError();
+        if (this.shouldHandleAuthError(error)) {
+          this.handleAuthError(error);
         }
       }
     });
@@ -129,10 +172,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.currentChatInfo = null;
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error in currentRoom subscription:', error);
-        if (error?.status === 401) {
-          this.handleAuthError();
+        if (this.shouldHandleAuthError(error)) {
+          this.handleAuthError(error);
         }
       }
     });
@@ -145,10 +188,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.shouldScrollToBottom = true;
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error in messages subscription:', error);
-        if (error?.status === 401) {
-          this.handleAuthError();
+        if (this.shouldHandleAuthError(error)) {
+          this.handleAuthError(error);
         }
       }
     });
@@ -157,10 +200,39 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       next: (connected: boolean) => {
         this.isConnected = connected;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error in connected subscription:', error);
       }
     });
+  }
+
+  private shouldHandleAuthError(error: any): boolean {
+    // Only handle auth error if it's NOT a role-based access issue
+    return error?.status === 401 && !this.isRoleBasedUnauthorized(error);
+  }
+
+  private isRoleBasedUnauthorized(error: any): boolean {
+    // Check if it's a 401 but the token is still valid (role-based access issue)
+    if (error?.status === 401 && this.authService.isAuthenticated()) {
+      const url = error.url || '';
+      
+      // If it's a tenant endpoint but user is not a tenant
+      if (url.includes('/api/tenant/') && !this.authService.isTenant()) {
+        return true;
+      }
+      
+      // If it's a landlord endpoint but user is not a landlord
+      if (url.includes('/api/landlord/') && !this.authService.isLandlord()) {
+        return true;
+      }
+      
+      // If it's a caretaker endpoint but user is not a caretaker
+      if (url.includes('/api/caretaker/') && !this.authService.isCaretaker()) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   private loadUserDataAutomatically(): void {
@@ -175,31 +247,53 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     switch(this.userRole) {
       case 'TENANT':
-        dataObservable = this.tenantService.getTenantUnits();
+        dataObservable = this.tenantService.getTenantUnits().pipe(
+          catchError((error: any) => {
+            console.error('Error loading tenant units:', error);
+            // If user is not a tenant, this is expected to fail
+            if (error.status === 401 && !this.authService.isTenant()) {
+              console.log('User is not a tenant, skipping tenant units');
+              return of([]);
+            }
+            return of([]);
+          })
+        );
         break;
       case 'LANDLORD':
-        dataObservable = this.propertyService.getProperties();
+        dataObservable = this.propertyService.getProperties().pipe(
+          catchError((error: any) => {
+            console.error('Error loading properties:', error);
+            return of([]);
+          })
+        );
         break;
       case 'CARETAKER':
-        dataObservable = this.caretakerService.getProperties();
+        dataObservable = this.caretakerService.getProperties().pipe(
+          catchError((error: any) => {
+            console.error('Error loading caretaker properties:', error);
+            return of([]);
+          })
+        );
         break;
       default:
         this.loadingProperties = false;
         return;
     }
 
-    dataObservable.pipe(
-      catchError((error) => {
-        console.error('Error loading user data:', error);
-        if (error?.status === 401) {
-          this.handleAuthError();
-        }
-        return of([]);
-      })
-    ).subscribe((response: any) => {
+    dataObservable.subscribe((response: any) => {
       this.processUserData(response, this.userRole);
       this.loadingProperties = false;
+      
+      // After loading data, ensure chat service is connected
+      this.ensureChatConnection();
     });
+  }
+
+  private ensureChatConnection(): void {
+    if (!this.isConnected) {
+      console.log('🔄 Ensuring chat connection...');
+      this.chatService.reconnect();
+    }
   }
 
   private processUserData(response: any, userRole: string): void {
@@ -213,6 +307,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.userProperties = this.extractProperties(response);
         break;
     }
+    
+    console.log(`✅ Loaded data for ${userRole}:`, {
+      properties: this.userProperties.length,
+      units: this.userUnits.length
+    });
   }
 
   private enrichRoomParticipants(room: ChatRoom): void {
@@ -254,8 +353,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private fetchTenantData(tenantId: number): Observable<any> {
+    // Only fetch tenant data if current user is authorized
+    if (!this.authService.isTenant() && !this.authService.isLandlord()) {
+      return of({});
+    }
+    
     return this.tenantService.getTenantUnits().pipe(
-      map(response => {
+      map((response: any) => {
         const units = Array.isArray(response?.data) ? response.data : [];
         if (units.length > 0) {
           const primaryUnit = units[0];
@@ -275,7 +379,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private fetchLandlordData(landlordId: number): Observable<any> {
     return this.propertyService.getProperties().pipe(
-      map(properties => {
+      map((properties: any) => {
         if (properties && properties.length > 0) {
           const primaryProperty = properties[0];
           return {
@@ -292,7 +396,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private fetchCaretakerData(caretakerId: number): Observable<any> {
     return this.caretakerService.getProperties().pipe(
-      map(properties => {
+      map((properties: any) => {
         if (properties && properties.length > 0) {
           const primaryProperty = properties[0];
           return {
@@ -428,19 +532,20 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     };
   }
 
-  private handleAuthError(): void {
-    console.warn('Authentication error detected');
+  private handleAuthError(error: any): void {
+    console.warn('Authentication error detected:', error);
     
-    // Simple check - if not authenticated, redirect to login
+    // Only redirect if user is actually not authenticated
     if (!this.authService.isAuthenticated()) {
       this.redirectToLogin();
+    } else {
+      // If still authenticated but got 401, show user-friendly message
+      console.log('User is still authenticated, 401 might be temporary');
     }
-    // If still authenticated but got 401, it might be a token issue
-    // Let the user continue working and show error messages
   }
 
   private redirectToLogin(): void {
-    this.authService.logoutSync();
+    this.cleanupOnLogout();
     this.router.navigate(['/login']);
   }
 
@@ -464,6 +569,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   createChat(chatType: ChatRoomType): void {
+    // Check if user has permission to create this chat type
+    if (!this.canCreateChatType(chatType)) {
+      alert(`You don't have permission to create ${chatType} chats`);
+      return;
+    }
+
     let resourceId: number | null = null;
     let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
@@ -523,9 +634,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.loadingRooms = false;
         console.error('Chat creation error:', error);
         
-        // Only handle auth error if it's specifically 401
-        if (error?.status === 401) {
-          this.handleAuthError();
+        // Only handle auth error if it's specifically 401 and not role-based
+        if (this.shouldHandleAuthError(error)) {
+          this.handleAuthError(error);
         }
         
         alert('Failed to create chat: ' + (error.error?.message || error.message || 'Unknown error'));
@@ -533,14 +644,31 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
+  private canCreateChatType(chatType: ChatRoomType): boolean {    
+    switch(chatType) {
+      case this.CHAT_TYPES.TENANT_LANDLORD:
+      case this.CHAT_TYPES.TENANT_CARETAKER:
+        return this.userRole === 'TENANT';
+      
+      case this.CHAT_TYPES.LANDLORD_CARETAKER:
+      case this.CHAT_TYPES.LANDLORD_TENANT:
+        return this.userRole === 'LANDLORD';
+      
+      case this.CHAT_TYPES.CARETAKER_TENANT:
+        return this.userRole === 'CARETAKER';
+      
+      default:
+        return false;
+    }
+  }
+
   closeNewChatModal(): void {
     this.showNewChatModal = false;
   }
 
   selectRoom(room: ChatRoom): void {
-    // Simple authentication check
     if (!this.authService.isAuthenticated()) {
-      this.handleAuthError();
+      this.handleAuthError({ status: 401 });
       return;
     }
 
@@ -554,9 +682,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.newMessage = '';
       this.hideEmojiPicker();
       
-      // Check authentication before sending
       if (!this.authService.isAuthenticated()) {
-        this.handleAuthError();
+        this.handleAuthError({ status: 401 });
         this.newMessage = messageToSend;
         return;
       }
@@ -567,8 +694,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         },
         error: (error: any) => {
           console.error('Error sending message:', error);
-          if (error.status === 401) {
-            this.handleAuthError();
+          if (this.shouldHandleAuthError(error)) {
+            this.handleAuthError(error);
           } else {
             alert('Failed to send message. Please try again.');
           }
@@ -590,8 +717,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.chatService.deleteMessage(messageId).subscribe({
         error: (error: any) => {
           console.error('Error deleting message:', error);
-          if (error.status === 401) {
-            this.handleAuthError();
+          if (this.shouldHandleAuthError(error)) {
+            this.handleAuthError(error);
           } else {
             alert('Failed to delete message.');
           }
@@ -640,8 +767,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         },
         error: (error: any) => {
           console.error('Error sending file:', error);
-          if (error.status === 401) {
-            this.handleAuthError();
+          if (this.shouldHandleAuthError(error)) {
+            this.handleAuthError(error);
           } else {
             alert('Failed to send file. Please try again.');
           }
