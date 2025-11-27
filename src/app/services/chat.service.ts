@@ -403,8 +403,7 @@ export class ChatService {
   }
 
   private enrichRoomWithTenantData(room: ChatRoom): void {
-    // This will be handled by the component now
-    // Remove the automatic tenant service calls that might cause issues
+    
   }
 
   private subscribeToRoom(roomId: number): void {
@@ -447,7 +446,7 @@ export class ChatService {
     ).subscribe();
   }
 
-  // Public API Methods
+ 
   loadRooms(): void {
     if (!this.authService.isAuthenticated()) {
       console.warn('User not authenticated, skipping room load');
@@ -466,7 +465,7 @@ export class ChatService {
       }),
       catchError(error => {
         console.error('Error loading rooms:', error);
-        // Don't handle auth error here - let component handle it
+     
         return of([]);
       })
     ).subscribe(rooms => {
@@ -493,7 +492,7 @@ export class ChatService {
       }),
       catchError(error => {
         console.error('Error loading messages:', error);
-        // Don't handle auth error here - let component handle it
+  
         return of([]);
       })
     ).subscribe(messages => {
@@ -515,7 +514,7 @@ export class ChatService {
       chatRoomId: roomId
     };
 
-    // Try to send via WebSocket first if connected
+   
     if (this.stompClient && this.stompClient.connected) {
       try {
         this.stompClient.publish({
@@ -525,14 +524,13 @@ export class ChatService {
             'Authorization': `Bearer ${this.getWsToken()}`
           }
         });
-        // Return a success observable immediately for WebSocket
         return of({ success: true, message: 'Message sent' } as ApiResponse);
       } catch (error) {
         console.error('Error publishing message via WebSocket:', error);
       }
     }
 
-    // Fallback to HTTP
+  
     return this.http.post<ApiResponse>(`${this.apiUrl}/messages`, messageRequest, { 
       headers: this.getHeaders() 
     }).pipe(
@@ -549,7 +547,6 @@ export class ChatService {
     );
   }
 
-  // Keep the rest of your methods the same...
   deleteMessage(messageId: number): Observable<ApiResponse> {
     if (!this.authService.isAuthenticated()) {
       return throwError(() => new Error('User not authenticated'));
@@ -570,10 +567,10 @@ export class ChatService {
     );
   }
 
-  // Chat creation methods - simplified error handling
+ 
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`, 
+      `${this.apiUrl}/tenant/landlord/${propertyId}`, 
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -594,7 +591,7 @@ export class ChatService {
 
   createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`, 
+      `${this.apiUrl}/tenant/caretaker/${propertyId}`,  
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -615,7 +612,7 @@ export class ChatService {
 
   createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`, 
+      `${this.apiUrl}/landlord/caretaker/${propertyId}`,  
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -634,9 +631,9 @@ export class ChatService {
     );
   }
 
-  createLandlordTenantChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+  createLandlordTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/rooms/landlord-tenant/${propertyId}`, 
+      `${this.apiUrl}/landlord/tenant/${unitId}`,  
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -827,12 +824,12 @@ export class ChatService {
     }, 1000);
   }
 
-  // Utility method to check if user can access chat features
+ 
   canAccessChat(): boolean {
     return this.authService.isAuthenticated() && !!this.authService.getToken();
   }
 
-  // Method to clear all local data
+ 
   clearLocalData(): void {
     this.messagesSubject.next([]);
     this.roomsSubject.next([]);
