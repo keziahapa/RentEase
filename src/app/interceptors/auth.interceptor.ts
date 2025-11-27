@@ -12,58 +12,44 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     '/api/auth/send-otp',
     '/api/auth/verify-otp',
     '/api/auth/forgot-password',
-    '/api/auth/verify-reset-otp',
     '/api/auth/reset-password',
-    '/api/auth/resend-otp',
-    '/api/auth/refresh-token',
-    '/api/public/',
-    '/api/open/'
+    '/api/auth/resend-otp'
   ];
 
-  const isPublicEndpoint = publicEndpoints.some(endpoint => req.url.includes(endpoint));
-
-  if (isPublicEndpoint) {
-    const cleanRequest = req.clone({
-      headers: req.headers.delete('Authorization')
-    });
-    return next(cleanRequest);
-  }
-
-  const token = localStorage.getItem('authToken') || localStorage.getItem('token') || sessionStorage.getItem('authToken');
-  let finalRequest = req;
-
-  if (token) {
-    let cleanToken = token.trim();
-
-    if (cleanToken.startsWith('Bearer ')) {
-      cleanToken = cleanToken.substring(7).trim();
-    }
-
-    finalRequest = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${cleanToken}`
-      }
-    });
-  }
-
-  return next(finalRequest).pipe(
-    catchError((error: HttpErrorResponse) => {
-   
-      if (error.status === 401 && !isPublicEndpoint) {
-        console.log(' Authentication error - 401 detected:', {
-          url: req.url,
-          hasToken: !!token
-        });
-
-       
-        snackBar.open('Authentication failed. Please check your credentials.', 'Close', {
-          duration: 5000,
-          panelClass: ['snackbar-error']
-        });
-      }
-
-    
-      return throwError(() => error);
-    })
+  const isPublicEndpoint = publicEndpoints.some(endpoint => 
+    req.url === endpoint || req.url.endsWith(endpoint)
   );
+
+  if (!isPublicEndpoint) {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    
+    if (token) {
+      let cleanToken = token.trim();
+      
+      if (cleanToken.startsWith('Bearer ')) {
+        cleanToken = cleanToken.substring(7).trim();
+      }
+      
+      const authReq = req.clone({
+        setHeaders: {
+          Authorization: `Bearer ${cleanToken}`
+        }
+      });
+      
+      return next(authReq).pipe(
+        catchError((error: HttpErrorResponse) => {
+          if (error.status === 401) {
+            console.error('Authentication failed for:', req.url);
+            snackBar.open('Session expired. Please login again.', 'Close', {
+              duration: 5000,
+              panelClass: ['snackbar-error']
+            });
+          }
+          return throwError(() => error);
+        })
+      );
+    }
+  }
+
+  return next(req);
 };
