@@ -73,12 +73,6 @@
               </div>
             </div>
           </div>
-
-          <div class="notice-actions">
-            <button class="action-btn view-btn" (click)="viewNotice(notice)">
-              <mat-icon>visibility</mat-icon>
-              <span>View Details</span>
-            </button>
             <button *ngIf="canCancel(notice)" 
                     class="action-btn cancel-btn" 
                     (click)="cancelNotice(notice)">

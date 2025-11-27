@@ -9,7 +9,7 @@
     </button>
   </div>
 
- 
+  <!-- Statistics Grid -->
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-icon properties">
@@ -26,8 +26,29 @@
         <mat-icon>home</mat-icon>
       </div>
       <div class="stat-info">
+        <div class="stat-value">{{formatNumber(stats.totalUnits)}}</div>
+        <div class="stat-label">Total Units</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon occupied">
+        <mat-icon>person</mat-icon>
+      </div>
+      <div class="stat-info">
         <div class="stat-value">{{formatNumber(stats.occupiedUnits)}}</div>
         <div class="stat-label">Occupied Units</div>
+        <div class="stat-subtext">{{ occupancyRate }}% occupancy</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon vacant">
+        <mat-icon>meeting_room</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{formatNumber(stats.vacantUnits)}}</div>
+        <div class="stat-label">Vacant Units</div>
       </div>
     </div>
 
@@ -38,6 +59,16 @@
       <div class="stat-info">
         <div class="stat-value">{{formatNumber(stats.pendingMaintenance)}}</div>
         <div class="stat-label">Pending Maintenance</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon move-out">
+        <mat-icon>exit_to_app</mat-icon>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{formatNumber(stats.pendingMoveOutNotices)}}</div>
+        <div class="stat-label">Move-Out Notices</div>
       </div>
     </div>
 
@@ -75,9 +106,17 @@
   <div class="recent-activity">
     <!-- Maintenance Requests -->
     <div class="activity-section">
-      <h3>Recent Maintenance Requests</h3>
+      <div class="section-header">
+        <h3>Recent Maintenance Requests</h3>
+        <button class="view-all-btn" (click)="router.navigate(['/caretaker-dashboard/maintenance'])">
+          View All
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
       <div class="activity-list">
-        <div *ngFor="let request of maintenanceRequests.slice(0, 5)" class="activity-item">
+        <div *ngFor="let request of maintenanceRequests" 
+             class="activity-item" 
+             (click)="viewMaintenanceRequest(request.id)">
           <div class="activity-icon" [class]="getPriorityClass(request.priority)">
             <mat-icon>build</mat-icon>
           </div>
@@ -87,8 +126,10 @@
               <p class="activity-details">
                 <span class="tenant">{{request.tenantName}}</span> • 
                 <span class="property">{{request.propertyName}}</span>
+                <span *ngIf="request.unitNumber"> • Unit {{request.unitNumber}}</span>
               </p>
-              <div class="activity-status">
+              <div class="activity-meta">
+                <span class="category">{{request.category}}</span>
                 <span class="status-badge" [class]="getStatusClass(request.status)">
                   {{request.status}}
                 </span>
@@ -106,25 +147,34 @@
 
     <!-- Move Out Notices -->
     <div class="activity-section">
-      <h3>Move Out Notices</h3>
+      <div class="section-header">
+        <h3>Move Out Notices</h3>
+        <button class="view-all-btn" (click)="navigateToMoveOutNotices()">
+          View All
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
       <div class="activity-list">
-        <div *ngFor="let notice of moveOutNotices.slice(0, 5)" class="activity-item" (click)="viewMoveOutNotice(notice.id)">
+        <div *ngFor="let notice of moveOutNotices" 
+             class="activity-item" 
+             (click)="viewMoveOutNotice(notice.id)">
           <div class="activity-icon move-out">
             <mat-icon>exit_to_app</mat-icon>
           </div>
           <div class="activity-content">
             <div class="activity-main">
-              <h4 class="activity-title">{{notice.tenantName}} - {{notice.unitNumber}}</h4>
+              <h4 class="activity-title">{{notice.tenantName}} - Unit {{notice.unitNumber}}</h4>
               <p class="activity-details">
                 <span class="property">{{notice.propertyName}}</span>
               </p>
-              <div class="activity-status">
+              <div class="activity-meta">
+                <span class="move-out-date">Move-out: {{formatDate(notice.moveOutDate)}}</span>
                 <span class="status-badge" [class]="getMoveOutStatusClass(notice.status)">
                   {{notice.status}}
                 </span>
               </div>
             </div>
-            <div class="activity-time">Move-out: {{formatDate(notice.moveOutDate)}}</div>
+            <div class="activity-time">Submitted: {{formatDate(notice.submittedDate)}}</div>
           </div>
         </div>
         <div *ngIf="moveOutNotices.length === 0" class="empty-state">
@@ -136,9 +186,17 @@
 
     <!-- Recent Messages -->
     <div class="activity-section">
-      <h3>Recent Messages</h3>
+      <div class="section-header">
+        <h3>Recent Messages</h3>
+        <button class="view-all-btn" (click)="navigateToChat()">
+          View All
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
       <div class="activity-list">
-        <div *ngFor="let room of chatRooms.slice(0, 5)" class="activity-item" (click)="openChat(room.id)">
+        <div *ngFor="let room of chatRooms" 
+             class="activity-item" 
+             (click)="openChat(room.id)">
           <div class="activity-icon chat">
             <mat-icon>message</mat-icon>
             <span *ngIf="room.unreadCount > 0" class="unread-badge">{{room.unreadCount}}</span>
@@ -163,7 +221,7 @@
 
   <!-- Loading State -->
   <div *ngIf="isLoadingDashboard" class="loading-section">
-    <mat-icon class="spinner">refresh</mat-icon>
+    <mat-spinner diameter="50"></mat-spinner>
     <p>Loading dashboard data...</p>
   </div>
 
@@ -171,6 +229,7 @@
   <div *ngIf="loadError && !isLoadingDashboard" class="error-section">
     <div class="error-message">
       <mat-icon>error_outline</mat-icon>
+      <h3>Failed to load dashboard</h3>
       <p>{{loadError}}</p>
       <button class="retry-btn" (click)="loadDashboardData()">
         <mat-icon>refresh</mat-icon>

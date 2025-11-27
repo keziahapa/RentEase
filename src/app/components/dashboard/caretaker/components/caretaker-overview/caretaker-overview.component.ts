@@ -30,12 +30,16 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     totalProperties: 0,
     occupiedUnits: 0,
     pendingMaintenance: 0,
-    unreadMessages: 0
+    unreadMessages: 0,
+    pendingMoveOutNotices: 0, // NEW: Add move-out notices count to stats
+    totalUnits: 0, // NEW: Add total units count
+    vacantUnits: 0 // NEW: Add vacant units count
   };
 
   maintenanceRequests: any[] = [];
   moveOutNotices: any[] = [];
   chatRooms: any[] = [];
+  properties: any[] = []; // NEW: Store properties for better data handling
   
   loadError: string | null = null;
   isLoadingDashboard = true;
@@ -64,6 +68,14 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
       icon: 'message', 
       color: '#17a2b8', 
       action: () => this.navigateToChat() 
+    },
+    { 
+      id: 'moveOutNotices', 
+      title: 'Move-Out Notices', 
+      description: 'Manage pending move-out notices', 
+      icon: 'exit_to_app', 
+      color: '#ffc107', 
+      action: () => this.navigateToMoveOutNotices() 
     }
   ];
 
@@ -94,7 +106,7 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
           return of([]);
         })
       ),
-      moveOutNotices: this.caretakerService.getPendingMoveOutNotices(1, 10).pipe(
+      moveOutNotices: this.caretakerService.getPendingMoveOutNotices(1, 50).pipe( // Increased limit to get all notices
         map(response => this.normalizeArrayResponse(response)),
         catchError(error => {
           console.warn('Failed to load move-out notices:', error);
@@ -165,51 +177,95 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
   }
 
   private processDashboardData(results: any): void {
-    const properties = results.properties || [];
+    this.properties = results.properties || [];
     const maintenanceRequests = results.maintenanceRequests || [];
     const moveOutNotices = results.moveOutNotices || [];
     const chatRooms = results.chatRooms || [];
 
-    this.stats.totalProperties = properties.length;
+    // Calculate statistics
+    this.calculatePropertyStats(this.properties);
+    this.calculateMaintenanceStats(maintenanceRequests);
+    this.calculateMoveOutStats(moveOutNotices);
+    this.calculateChatStats(chatRooms);
 
-    this.stats.occupiedUnits = properties.reduce((total: number, property: any) => {
-      if (property.occupiedUnits !== undefined) {
-        return total + property.occupiedUnits;
+    // Process detailed data
+    this.maintenanceRequests = maintenanceRequests
+      .map((req: any) => this.mapMaintenanceRequest(req))
+      .slice(0, 5); // Show only latest 5
+
+    this.moveOutNotices = moveOutNotices
+      .map((notice: any) => this.mapMoveOutNotice(notice))
+      .slice(0, 5); // Show only latest 5
+
+    this.chatRooms = chatRooms;
+
+    console.log('Processed stats:', this.stats);
+    console.log('Properties:', this.properties);
+    console.log('Maintenance requests:', this.maintenanceRequests);
+    console.log('Move-out notices:', this.moveOutNotices);
+    console.log('Chat rooms:', this.chatRooms);
+  }
+
+  private calculatePropertyStats(properties: any[]): void {
+    this.stats.totalProperties = properties.length;
+    
+    let totalUnits = 0;
+    let occupiedUnits = 0;
+
+    properties.forEach((property: any) => {
+      // Handle total units
+      if (property.totalUnits !== undefined) {
+        totalUnits += property.totalUnits;
+      } else if (property.units && Array.isArray(property.units)) {
+        totalUnits += property.units.length;
       }
-      
-      if (property.units && Array.isArray(property.units)) {
+
+      // Handle occupied units
+      if (property.occupiedUnits !== undefined) {
+        occupiedUnits += property.occupiedUnits;
+      } else if (property.units && Array.isArray(property.units)) {
         const occupied = property.units.filter((unit: any) => 
           unit.isOccupied === true || unit.status === 'OCCUPIED' || unit.status === 'occupied'
         ).length;
-        return total + occupied;
+        occupiedUnits += occupied;
       }
-      
-      return total;
-    }, 0);
+    });
 
-    this.maintenanceRequests = maintenanceRequests.map((req: any) => this.mapMaintenanceRequest(req));
-    
-    this.stats.pendingMaintenance = this.maintenanceRequests.filter(
-      (req: any) => 
-        req.status === 'submitted' || 
-        req.status === 'in-progress' || 
-        req.status === 'SUBMITTED' || 
-        req.status === 'IN_PROGRESS' ||
-        req.status === 'PENDING'
+    this.stats.totalUnits = totalUnits;
+    this.stats.occupiedUnits = occupiedUnits;
+    this.stats.vacantUnits = totalUnits - occupiedUnits;
+  }
+
+  private calculateMaintenanceStats(maintenanceRequests: any[]): void {
+    this.stats.pendingMaintenance = maintenanceRequests.filter(
+      (req: any) => {
+        const status = req.status?.toLowerCase();
+        return status === 'submitted' || 
+               status === 'in-progress' || 
+               status === 'pending' ||
+               status === 'submitted' || 
+               status === 'in_progress';
+      }
     ).length;
+  }
 
-    this.moveOutNotices = moveOutNotices.map((notice: any) => this.mapMoveOutNotice(notice));
+  private calculateMoveOutStats(moveOutNotices: any[]): void {
+    // Count pending move-out notices
+    this.stats.pendingMoveOutNotices = moveOutNotices.filter(
+      (notice: any) => {
+        const status = notice.status?.toLowerCase();
+        return status === 'pending' || 
+               status === 'submitted' ||
+               status === 'under_review' ||
+               !status; // Assume pending if no status
+      }
+    ).length;
+  }
 
-    this.chatRooms = chatRooms;
-    
+  private calculateChatStats(chatRooms: any[]): void {
     this.stats.unreadMessages = chatRooms.reduce(
       (total: number, room: any) => total + (room.unreadCount || 0), 0
     );
-
-    console.log('Processed stats:', this.stats);
-    console.log('Properties:', properties);
-    console.log('Maintenance requests:', this.maintenanceRequests);
-    console.log('Chat rooms:', this.chatRooms);
   }
 
   private mapMaintenanceRequest(request: any): any {
@@ -233,7 +289,8 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
       unitNumber: notice.unitNumber || notice.unit?.unitNumber || '',
       propertyName: notice.propertyName || notice.property?.name || 'Property',
       moveOutDate: notice.moveOutDate || notice.intendedMoveOutDate || notice.expectedMoveOutDate,
-      status: notice.status || 'PENDING'
+      status: notice.status || 'PENDING',
+      submittedDate: notice.submittedDate || notice.createdAt || new Date().toISOString()
     };
   }
 
@@ -303,6 +360,14 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     this.router.navigate(['/caretaker-dashboard/move-out-notices', noticeId]);
   }
 
+  viewMaintenanceRequest(requestId: number): void {
+    this.router.navigate(['/caretaker-dashboard/maintenance', requestId]);
+  }
+
+  viewProperties(): void {
+    this.router.navigate(['/caretaker-dashboard/properties']);
+  }
+
   private showSnackbar(message: string | null): void {
     const displayMessage = message || 'An unknown error occurred';
     this.snackBar.open(displayMessage, 'Close', { duration: 5000 });
@@ -334,7 +399,8 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
       'APPROVED': 'status-approved',
       'REJECTED': 'status-rejected',
       'CANCELLED': 'status-cancelled',
-      'COMPLETED': 'status-completed'
+      'COMPLETED': 'status-completed',
+      'UNDER_REVIEW': 'status-progress'
     };
     return statusMap[status] || 'status-pending';
   }
@@ -344,11 +410,23 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
   }
 
   formatDate(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-KE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateString) return 'Not set';
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-KE', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid date';
+    }
+  }
+
+  // NEW: Calculate occupancy rate for display
+  get occupancyRate(): number {
+    if (this.stats.totalUnits === 0) return 0;
+    return Math.round((this.stats.occupiedUnits / this.stats.totalUnits) * 100);
   }
 }
