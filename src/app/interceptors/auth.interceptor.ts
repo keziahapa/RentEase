@@ -2,11 +2,9 @@ import { inject } from '@angular/core';
 import { HttpInterceptorFn, HttpErrorResponse, HttpRequest, HttpHandlerFn } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
 
 export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: HttpHandlerFn) => {
   const snackBar = inject(MatSnackBar);
-  const router = inject(Router);
 
   const publicEndpoints = [
     '/api/auth/login',
@@ -19,7 +17,7 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   ];
 
   const isPublicEndpoint = publicEndpoints.some(endpoint => 
-    req.url === endpoint || req.url.endsWith(endpoint)
+    req.url.includes(endpoint)
   );
 
   if (isPublicEndpoint) {
@@ -29,11 +27,6 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
   
   if (!token) {
-    snackBar.open('Please login to continue.', 'Close', {
-      duration: 5000,
-      panelClass: ['snackbar-error']
-    });
-    router.navigate(['/login']);
     return throwError(() => new Error('No authentication token'));
   }
 
@@ -51,17 +44,12 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-        sessionStorage.removeItem('authToken');
-        sessionStorage.removeItem('userData');
-        
-        snackBar.open('Session expired. Please login again.', 'Close', {
+        // Never logout on 401 - just show error message
+        console.warn('Access denied for:', req.url);
+        snackBar.open('Access denied: You may not have permission for this action', 'Close', {
           duration: 5000,
-          panelClass: ['snackbar-error']
+          panelClass: ['snackbar-warning']
         });
-        
-        router.navigate(['/login']);
       }
       return throwError(() => error);
     })
