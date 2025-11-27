@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router'; // Add this import
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -54,10 +55,11 @@ interface LeaseInfo {
 }
 
 @Component({
-  selector: 'app-tenant-rental',
+  selector: 'app-rental',
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule, // Add this import
     MatCardModule,
     MatIconModule,
     MatButtonModule,
@@ -263,5 +265,15 @@ export class RentalComponent implements OnInit, OnDestroy {
   getBathroomText(): string {
     if (!this.rentalUnit) return '';
     return this.rentalUnit.bathrooms === 1 ? '1 bathroom' : `${this.rentalUnit.bathrooms} bathrooms`;
+  }
+
+  getOrdinalSuffix(day: number): string {
+    if (day > 3 && day < 21) return 'th';
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
   }
 }
