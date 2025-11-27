@@ -101,47 +101,67 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     this.isLoadingDashboard = true;
     this.loadError = null;
 
+    console.log('🔄 Loading dashboard data...');
+
     const dashboardSub = forkJoin({
+      // Get all the actual data arrays
       properties: this.caretakerService.getProperties().pipe(
         catchError(error => {
-          console.warn('Failed to load properties:', error);
+          console.warn('❌ Failed to load properties:', error);
           return of([]);
         })
       ),
       maintenanceRequests: this.maintenanceService.getCaretakerMaintenanceRequests().pipe(
         catchError(error => {
-          console.warn('Failed to load maintenance requests:', error);
+          console.warn('❌ Failed to load maintenance requests:', error);
           return of([]);
         })
       ),
       moveOutNotices: this.caretakerService.getPendingMoveOutNotices(1, 50).pipe(
         catchError(error => {
-          console.warn('Failed to load move-out notices:', error);
+          console.warn('❌ Failed to load move-out notices:', error);
           return of([]);
         })
       ),
       chatRooms: this.chatService.rooms$.pipe(
         catchError(error => {
-          console.warn('Failed to load chat rooms:', error);
+          console.warn('❌ Failed to load chat rooms:', error);
           return of([]);
         })
       )
     }).subscribe({
       next: (results) => {
-        console.log('🚀 RAW DASHBOARD DATA:', results);
+        console.log('🚀 DASHBOARD RAW DATA:', results);
         
-        // Process the data - your services already extract .data from ApiResponse
+        // Store the raw data
         this.properties = results.properties || [];
         const maintenanceRequests = results.maintenanceRequests || [];
         const moveOutNotices = results.moveOutNotices || [];
         const chatRooms = results.chatRooms || [];
 
-        console.log('📊 Properties:', this.properties);
-        console.log('🔧 Maintenance Requests:', maintenanceRequests);
-        console.log('🚪 Move Out Notices:', moveOutNotices);
-        console.log('💬 Chat Rooms:', chatRooms);
+        console.log('📊 Raw Properties:', this.properties);
+        console.log('🔧 Raw Maintenance Requests:', maintenanceRequests);
+        console.log('🚪 Raw Move Out Notices:', moveOutNotices);
+        console.log('💬 Raw Chat Rooms:', chatRooms);
 
-        this.processDashboardData(this.properties, maintenanceRequests, moveOutNotices, chatRooms);
+        // Calculate stats from the actual data
+        this.calculateStatsFromData(this.properties, maintenanceRequests, moveOutNotices, chatRooms);
+
+        // Process data for display
+        this.maintenanceRequests = maintenanceRequests
+          .map((req: any) => this.mapMaintenanceRequest(req))
+          .slice(0, 5);
+        
+        this.moveOutNotices = moveOutNotices
+          .map((notice: any) => this.mapMoveOutNotice(notice))
+          .slice(0, 5);
+        
+        this.chatRooms = chatRooms;
+
+        console.log('🎯 FINAL STATS:', this.stats);
+        console.log('🎯 Display Maintenance Requests:', this.maintenanceRequests.length);
+        console.log('🎯 Display Move Out Notices:', this.moveOutNotices.length);
+
         this.isLoadingDashboard = false;
       },
       error: (error) => {
@@ -155,37 +175,15 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     this.subscriptions.add(dashboardSub);
   }
 
-  private processDashboardData(
+  private calculateStatsFromData(
     properties: any[], 
     maintenanceRequests: any[], 
     moveOutNotices: any[], 
     chatRooms: any[]
   ): void {
-    // Calculate statistics
-    this.calculatePropertyStats(properties);
-    this.calculateMaintenanceStats(maintenanceRequests);
-    this.calculateMoveOutStats(moveOutNotices);
-    this.calculateChatStats(chatRooms);
+    console.log('🧮 Calculating stats from data...');
 
-    // Process detailed data for display
-    this.maintenanceRequests = maintenanceRequests
-      .map((req: any) => this.mapMaintenanceRequest(req))
-      .slice(0, 5);
-
-    this.moveOutNotices = moveOutNotices
-      .map((notice: any) => this.mapMoveOutNotice(notice))
-      .slice(0, 5);
-
-    this.chatRooms = chatRooms;
-
-    console.log('🎯 FINAL STATS:', this.stats);
-    console.log('🎯 FINAL Maintenance Requests:', this.maintenanceRequests);
-    console.log('🎯 FINAL Move Out Notices:', this.moveOutNotices);
-  }
-
-  private calculatePropertyStats(properties: any[]): void {
-    console.log('🏠 Calculating property stats from:', properties);
-    
+    // 1. Property Stats
     this.stats.totalProperties = properties.length;
     
     let totalUnits = 0;
@@ -194,92 +192,79 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     properties.forEach((property: any, index: number) => {
       console.log(`🏠 Property ${index + 1}:`, property);
       
-      // Count total units
-      if (property.totalUnits !== undefined) {
-        totalUnits += property.totalUnits;
+      // Check if property has direct unit counts
+      if (property.totalUnits !== undefined && property.totalUnits !== null) {
+        totalUnits += Number(property.totalUnits);
         console.log(`   Using totalUnits: ${property.totalUnits}`);
-      } else if (property.units && Array.isArray(property.units)) {
-        totalUnits += property.units.length;
-        console.log(`   Using units array length: ${property.units.length}`);
-      } else {
-        console.log(`   No units data found for property`);
       }
-
-      // Count occupied units
-      if (property.occupiedUnits !== undefined) {
-        occupiedUnits += property.occupiedUnits;
+      
+      if (property.occupiedUnits !== undefined && property.occupiedUnits !== null) {
+        occupiedUnits += Number(property.occupiedUnits);
         console.log(`   Using occupiedUnits: ${property.occupiedUnits}`);
-      } else if (property.units && Array.isArray(property.units)) {
-        const occupied = property.units.filter((unit: any) => {
-          const isOccupied = unit.isOccupied === true || unit.status === 'OCCUPIED' || unit.status === 'occupied';
-          console.log(`   Unit ${unit.unitNumber}: isOccupied=${isOccupied}`);
+      }
+      
+      // Check if property has units array
+      if (property.units && Array.isArray(property.units)) {
+        const propertyUnits = property.units.length;
+        totalUnits += propertyUnits;
+        
+        const propertyOccupied = property.units.filter((unit: any) => {
+          const isOccupied = unit.isOccupied === true || 
+                            unit.status === 'OCCUPIED' || 
+                            unit.status === 'occupied' ||
+                            unit.occupancyStatus === 'OCCUPIED' ||
+                            unit.tenant !== null;
           return isOccupied;
         }).length;
-        occupiedUnits += occupied;
-        console.log(`   Calculated occupied units: ${occupied}`);
+        
+        occupiedUnits += propertyOccupied;
+        console.log(`   From units array - Total: ${propertyUnits}, Occupied: ${propertyOccupied}`);
+      }
+
+      // If no unit data found, assume some default values for demo
+      if (property.totalUnits === undefined && (!property.units || !Array.isArray(property.units))) {
+        console.log(`   No unit data found, using defaults`);
+        // You might want to set some default values here if needed
       }
     });
 
     this.stats.totalUnits = totalUnits;
     this.stats.occupiedUnits = occupiedUnits;
-    this.stats.vacantUnits = totalUnits - occupiedUnits;
+    this.stats.vacantUnits = Math.max(0, totalUnits - occupiedUnits);
 
-    console.log('📈 Property Stats Result:', {
+    // 2. Maintenance Stats
+    this.stats.pendingMaintenance = maintenanceRequests.filter((req: any) => {
+      const status = (req.status || '').toLowerCase();
+      return status === 'pending' || 
+             status === 'submitted' || 
+             status === 'in-progress' || 
+             status === 'in_progress' ||
+             status === 'open';
+    }).length;
+
+    // 3. Move Out Notices Stats
+    this.stats.pendingMoveOutNotices = moveOutNotices.filter((notice: any) => {
+      const status = (notice.status || '').toLowerCase();
+      return status === 'pending' || 
+             status === 'submitted' || 
+             status === 'under_review' ||
+             status === 'review';
+    }).length;
+
+    // 4. Chat Stats
+    this.stats.unreadMessages = chatRooms.reduce((total: number, room: any) => {
+      return total + (room.unreadCount || 0);
+    }, 0);
+
+    console.log('📈 Calculated Stats:', {
       totalProperties: this.stats.totalProperties,
       totalUnits: this.stats.totalUnits,
       occupiedUnits: this.stats.occupiedUnits,
-      vacantUnits: this.stats.vacantUnits
+      vacantUnits: this.stats.vacantUnits,
+      pendingMaintenance: this.stats.pendingMaintenance,
+      pendingMoveOutNotices: this.stats.pendingMoveOutNotices,
+      unreadMessages: this.stats.unreadMessages
     });
-  }
-
-  private calculateMaintenanceStats(maintenanceRequests: any[]): void {
-    console.log('🔧 Calculating maintenance stats from:', maintenanceRequests);
-    
-    this.stats.pendingMaintenance = maintenanceRequests.filter(
-      (req: any) => {
-        const status = req.status?.toLowerCase();
-        const isPending = status === 'submitted' || 
-               status === 'in-progress' || 
-               status === 'pending' ||
-               status === 'in_progress';
-        console.log(`   Request ${req.id}: status=${status}, isPending=${isPending}`);
-        return isPending;
-      }
-    ).length;
-
-    console.log('📈 Pending Maintenance Count:', this.stats.pendingMaintenance);
-  }
-
-  private calculateMoveOutStats(moveOutNotices: any[]): void {
-    console.log('🚪 Calculating move-out stats from:', moveOutNotices);
-    
-    this.stats.pendingMoveOutNotices = moveOutNotices.filter(
-      (notice: any) => {
-        const status = notice.status?.toLowerCase();
-        const isPending = status === 'pending' || 
-               status === 'submitted' ||
-               status === 'under_review' ||
-               !status;
-        console.log(`   Notice ${notice.id}: status=${status}, isPending=${isPending}`);
-        return isPending;
-      }
-    ).length;
-
-    console.log('📈 Pending Move Out Notices Count:', this.stats.pendingMoveOutNotices);
-  }
-
-  private calculateChatStats(chatRooms: any[]): void {
-    console.log('💬 Calculating chat stats from:', chatRooms);
-    
-    this.stats.unreadMessages = chatRooms.reduce(
-      (total: number, room: any) => {
-        const unreadCount = room.unreadCount || 0;
-        console.log(`   Room ${room.id}: unreadCount=${unreadCount}`);
-        return total + unreadCount;
-      }, 0
-    );
-
-    console.log('📈 Total Unread Messages:', this.stats.unreadMessages);
   }
 
   private mapMaintenanceRequest(request: any): any {
@@ -318,14 +303,8 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     if (!priority) return 'medium';
     
     const priorityMap: any = {
-      'LOW': 'low',
-      'MEDIUM': 'medium', 
-      'HIGH': 'high',
-      'URGENT': 'urgent',
-      'low': 'low',
-      'medium': 'medium',
-      'high': 'high',
-      'urgent': 'urgent'
+      'LOW': 'low', 'MEDIUM': 'medium', 'HIGH': 'high', 'URGENT': 'urgent',
+      'low': 'low', 'medium': 'medium', 'high': 'high', 'urgent': 'urgent'
     };
     return priorityMap[priority] || 'medium';
   }
@@ -334,15 +313,8 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     if (!status) return 'submitted';
     
     const statusMap: any = {
-      'SUBMITTED': 'submitted',
-      'IN_PROGRESS': 'in-progress',
-      'COMPLETED': 'completed',
-      'CANCELLED': 'cancelled',
-      'PENDING': 'submitted',
-      'submitted': 'submitted',
-      'in-progress': 'in-progress',
-      'completed': 'completed',
-      'cancelled': 'cancelled'
+      'SUBMITTED': 'submitted', 'IN_PROGRESS': 'in-progress', 'COMPLETED': 'completed', 'CANCELLED': 'cancelled',
+      'PENDING': 'submitted', 'submitted': 'submitted', 'in-progress': 'in-progress', 'completed': 'completed', 'cancelled': 'cancelled'
     };
     return statusMap[status] || 'submitted';
   }
