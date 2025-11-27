@@ -8,8 +8,8 @@ import { PropertyService } from '../../services/property.service';
 import { CaretakerService } from '../../services/caretaker.service';
 import { TenantService } from '../../services/tenant.service';
 import { Message, ChatRoom, Property, Unit, ChatRoomType, ApiResponse, Participant } from '../../services/chat.interface';
-import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { Observable, of, timer } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
 interface EnrichedChatInfo {
@@ -78,6 +78,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.userRole = this.authService.getCurrentUser()?.role?.toUpperCase() || '';
     
+    // Monitor authentication state
+    this.authService.isAuthenticated$.subscribe(isAuthenticated => {
+      if (!isAuthenticated) {
+        console.warn('Authentication state changed: logged out');
+        this.redirectToLogin();
+      } else {
+        console.log('Authentication state changed: logged in');
+        // Reinitialize chat service
+        this.chatService.reconnect();
+      }
+    });
+    
     this.loadUserDataAutomatically();
     this.initializeSubscriptions();
   }
@@ -87,32 +99,62 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private initializeSubscriptions(): void {
-    this.chatService.rooms$.subscribe((rooms: ChatRoom[]) => {
-      this.rooms = rooms ?? [];
-      this.loadingRooms = false;
-      this.rooms.forEach(room => this.enrichRoomParticipants(room));
-    });
-
-    this.chatService.currentRoom$.subscribe((room: ChatRoom | null) => {
-      this.currentRoom = room;
-      if (room) {
-        this.enrichRoomParticipants(room);
-        this.updateCurrentChatInfo();
-      } else {
-        this.currentChatInfo = null;
+    this.chatService.rooms$.subscribe({
+      next: (rooms: ChatRoom[]) => {
+        this.rooms = rooms ?? [];
+        this.loadingRooms = false;
+        this.rooms.forEach(room => this.enrichRoomParticipants(room));
+      },
+      error: (error) => {
+        console.error('Error in rooms subscription:', error);
+        this.loadingRooms = false;
+        if (error?.status === 401) {
+          this.handleAuthError(error);
+        }
       }
     });
 
-    this.chatService.messages$.subscribe((messages: Message[]) => {
-      const oldLength = this.messages.length;
-      this.messages = messages ?? [];
-      if (this.messages.length > oldLength) {
-        this.shouldScrollToBottom = true;
+    this.chatService.currentRoom$.subscribe({
+      next: (room: ChatRoom | null) => {
+        this.currentRoom = room;
+        if (room) {
+          this.enrichRoomParticipants(room);
+          this.updateCurrentChatInfo();
+        } else {
+          this.currentChatInfo = null;
+        }
+      },
+      error: (error) => {
+        console.error('Error in currentRoom subscription:', error);
+        if (error?.status === 401) {
+          this.handleAuthError(error);
+        }
       }
     });
 
-    this.chatService.connected$.subscribe((connected: boolean) => {
-      this.isConnected = connected;
+    this.chatService.messages$.subscribe({
+      next: (messages: Message[]) => {
+        const oldLength = this.messages.length;
+        this.messages = messages ?? [];
+        if (this.messages.length > oldLength) {
+          this.shouldScrollToBottom = true;
+        }
+      },
+      error: (error) => {
+        console.error('Error in messages subscription:', error);
+        if (error?.status === 401) {
+          this.handleAuthError(error);
+        }
+      }
+    });
+
+    this.chatService.connected$.subscribe({
+      next: (connected: boolean) => {
+        this.isConnected = connected;
+      },
+      error: (error) => {
+        console.error('Error in connected subscription:', error);
+      }
     });
   }
 
@@ -143,7 +185,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     dataObservable.pipe(
       catchError((error) => {
-        this.handleAuthError();
+        this.handleAuthError(error);
         return of([]);
       })
     ).subscribe((response: any) => {
@@ -378,17 +420,32 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     };
   }
 
-  private handleAuthError(): void {
-    this.authService.refreshToken().subscribe({
-      next: (success) => {
-        if (!success) {
+  private handleAuthError(error?: any): void {
+    console.log('Handling auth error...', error);
+    
+    // Check if we're already authenticated
+    if (this.authService.isAuthenticated()) {
+      console.log('User is authenticated but got error, attempting token refresh...');
+      this.authService.refreshToken().subscribe({
+        next: (success) => {
+          if (success) {
+            console.log('Token refreshed successfully');
+            // Reconnect chat service to use new token
+            this.chatService.reconnect();
+          } else {
+            console.error('Token refresh failed, logging out');
+            this.redirectToLogin();
+          }
+        },
+        error: (refreshError) => {
+          console.error('Token refresh error:', refreshError);
           this.redirectToLogin();
         }
-      },
-      error: () => {
-        this.redirectToLogin();
-      }
-    });
+      });
+    } else {
+      console.log('User not authenticated, redirecting to login');
+      this.redirectToLogin();
+    }
   }
 
   private redirectToLogin(): void {
@@ -474,7 +531,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       },
       error: (error: any) => {
         this.loadingRooms = false;
-        this.handleAuthError();
+        this.handleAuthError(error);
         alert('Failed to create chat: ' + (error.error?.message || error.message));
       }
     });
@@ -485,6 +542,43 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   selectRoom(room: ChatRoom): void {
+    // Add authentication check
+    if (!this.authService.isAuthenticated()) {
+      console.warn('User not authenticated, attempting token refresh...');
+      this.authService.refreshToken().subscribe({
+        next: (success) => {
+          if (success) {
+            console.log('Token refreshed, selecting room...');
+            this.chatService.selectRoom(room);
+            this.shouldScrollToBottom = true;
+          } else {
+            this.redirectToLogin();
+          }
+        },
+        error: () => {
+          this.redirectToLogin();
+        }
+      });
+      return;
+    }
+
+    // Check if token is about to expire
+    if (this.authService.isTokenAboutToExpire()) {
+      console.log('Token about to expire, refreshing before room selection...');
+      this.authService.refreshToken().subscribe({
+        next: (success) => {
+          if (success) {
+            this.chatService.selectRoom(room);
+            this.shouldScrollToBottom = true;
+          } else {
+            this.redirectToLogin();
+          }
+        }
+      });
+      return;
+    }
+
+    // Token is valid, proceed normally
     this.chatService.selectRoom(room);
     this.shouldScrollToBottom = true;
   }
@@ -495,13 +589,24 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.newMessage = '';
       this.hideEmojiPicker();
       
+      // Check authentication before sending
+      if (!this.authService.isAuthenticated()) {
+        this.handleAuthError();
+        this.newMessage = messageToSend;
+        return;
+      }
+      
       this.chatService.sendMessage(messageToSend, this.currentRoom.id).subscribe({
         next: () => {
           this.shouldScrollToBottom = true;
         },
         error: (error: any) => {
-          this.handleAuthError();
-          alert('Failed to send message. Please try again.');
+          console.error('Error sending message:', error);
+          if (error.status === 401) {
+            this.handleAuthError(error);
+          } else {
+            alert('Failed to send message. Please try again.');
+          }
           this.newMessage = messageToSend;
         }
       });
@@ -519,8 +624,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (confirm('Are you sure you want to delete this message?')) {
       this.chatService.deleteMessage(messageId).subscribe({
         error: (error: any) => {
-          this.handleAuthError();
-          alert('Failed to delete message.');
+          console.error('Error deleting message:', error);
+          if (error.status === 401) {
+            this.handleAuthError(error);
+          } else {
+            alert('Failed to delete message.');
+          }
         }
       });
     }
@@ -565,8 +674,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.shouldScrollToBottom = true;
         },
         error: (error: any) => {
-          this.handleAuthError();
-          alert('Failed to send file. Please try again.');
+          console.error('Error sending file:', error);
+          if (error.status === 401) {
+            this.handleAuthError(error);
+          } else {
+            alert('Failed to send file. Please try again.');
+          }
         },
         complete: () => {
           this.uploadingFiles = false;
