@@ -264,6 +264,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       rememberMe: this.rememberMe
     };
     
+    console.log('🔄 LoginComponent: Starting login process...');
+    
     this.authService.login(loginRequest).subscribe({
       next: (response: AuthResponse) => {
         this.handleSuccessfulLogin(response);
@@ -278,6 +280,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   private async handleSuccessfulLogin(response: AuthResponse): Promise<void> {
     this.isLoading = false;
     
+    console.log('✅ LoginComponent: Login successful, storing credentials...');
+    
     if (this.rememberMe) {
       this.authService.storeCredentialsSecurely(
         this.loginData.email.trim().toLowerCase(),
@@ -285,13 +289,26 @@ export class LoginComponent implements OnInit, OnDestroy {
       );
     }
     
-    this.loginData.password = '';
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     const token = this.authService.getToken();
+    console.log('🔐 LoginComponent: Token after login:', token ? 'Present' : 'Missing');
+    
     if (!token) {
+      console.error('❌ LoginComponent: No token found after login');
       this.showSnackbar('Login failed: Authentication token missing', 'error');
       return;
     }
+    
+    const isValid = this.authService.hasValidToken();
+    console.log('✅ LoginComponent: Token valid:', isValid);
+    
+    if (!isValid) {
+      this.showSnackbar('Login failed: Invalid token', 'error');
+      return;
+    }
+    
+    this.loginData.password = '';
     
     const pendingToken = sessionStorage.getItem('pendingInvitationToken');
     const hasPendingInvitation = this.route.snapshot.queryParams['hasPendingInvitation'];
@@ -438,8 +455,10 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (hasPendingInvitation && returnUrl) {
       this.router.navigateByUrl(returnUrl);
     } else {
+      console.log('🚀 LoginComponent: Redirecting to:', dashboardRoute);
       this.router.navigate([dashboardRoute]).then(success => {
         if (!success) {
+          console.log('🔄 LoginComponent: Fallback to /dashboard');
           this.router.navigate(['/dashboard']);
         }
       });
