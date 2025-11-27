@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+// chat.service.ts
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject, of, timer } from 'rxjs';
-import { catchError, tap, map, retryWhen, delayWhen, take, switchMap } from 'rxjs/operators';
+import { catchError, tap, map, retryWhen, delayWhen, take, switchMap, timeout } from 'rxjs/operators';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { 
@@ -22,6 +23,7 @@ export class ChatService {
   private wsUrl = 'https://rentease-4.onrender.com/ws';
   private stompClient: Client | null = null;
   private roomSubscriptions: Map<string, any> = new Map();
+  private authService = inject(AuthService);
 
   private messagesSubject = new BehaviorSubject<Message[]>([]);
   public messages$ = this.messagesSubject.asObservable();
@@ -36,7 +38,7 @@ export class ChatService {
   public connected$ = this.connectedSubject.asObservable();
 
   private connectionAttempts = 0;
-  private readonly MAX_CONNECTION_ATTEMPTS = 5;
+  private readonly MAX_CONNECTION_ATTEMPTS = 3;
   private readonly RECONNECT_DELAY = 2000;
 
   private eatTimeZone = 'Africa/Nairobi';
@@ -44,17 +46,31 @@ export class ChatService {
 
   constructor(
     private http: HttpClient,
-    private authService: AuthService,
     private tenantService: TenantService
   ) {
-    this.initializeWebSocketConnection();
-    this.loadRooms();
+    // Initialize only if authenticated
+    if (this.authService.isAuthenticated()) {
+      this.initializeWebSocketConnection();
+      this.loadRooms();
+    }
+
+    // Listen for authentication changes
+    this.authService.isAuthenticated$.subscribe(isAuthenticated => {
+      if (isAuthenticated) {
+        this.reconnect();
+      } else {
+        this.disconnect();
+      }
+    });
   }
 
   private getHeaders(): HttpHeaders {
+    if (!this.authService.isAuthenticated()) {
+      throw new Error('User not authenticated');
+    }
+
     const token = this.authService.getToken();
     if (!token) {
-      console.warn('No authentication token available');
       throw new Error('No authentication token available');
     }
     
@@ -70,19 +86,27 @@ export class ChatService {
   }
 
   private handleApiError(error: any): Observable<never> {
+    console.error('API Error:', error);
+
     if (error instanceof HttpErrorResponse) {
       switch (error.status) {
         case 401:
-          console.error('Authentication failed - Token may be expired');
+          console.error('Authentication failed - Token expired or invalid');
+          // Attempt token refresh
           this.authService.refreshToken().subscribe({
             next: (refreshed) => {
               if (refreshed) {
-                console.log('Token refreshed, retrying operation');
+                console.log('Token refreshed successfully, retrying operation');
+                // Retry the original operation after refresh
                 this.reconnect();
               } else {
                 console.error('Token refresh failed, redirecting to login');
-                this.authService.logout();
+                this.authService.logoutSync();
               }
+            },
+            error: (refreshError) => {
+              console.error('Token refresh error:', refreshError);
+              this.authService.logoutSync();
             }
           });
           return throwError(() => new Error('Authentication failed. Please login again.'));
@@ -100,7 +124,7 @@ export class ChatService {
           return throwError(() => new Error('Server error. Please try again later.'));
 
         default:
-          console.error('HTTP error:', error);
+          console.error('HTTP error:', error.status, error.message);
           return throwError(() => new Error('An unexpected error occurred. Please try again.'));
       }
     }
@@ -118,7 +142,9 @@ export class ChatService {
               if (retryCount >= maxRetries) {
                 throw error;
               }
-              return timer(delay * Math.pow(2, retryCount));
+              const backoffDelay = delay * Math.pow(2, retryCount);
+              console.log(`Retry ${retryCount + 1}/${maxRetries} after ${backoffDelay}ms`);
+              return timer(backoffDelay);
             }),
             take(maxRetries)
           )
@@ -155,23 +181,24 @@ export class ChatService {
           'Authorization': `Bearer ${token}`
         },
         debug: (str) => {
-          console.log('STOMP Debug:', str);
+          // Only log important debug messages
+          if (str.includes('ERROR') || str.includes('CONNECT') || str.includes('DISCONNECT')) {
+            console.log('STOMP:', str);
+          }
         }
       });
 
       this.stompClient.onConnect = (frame) => {
-        console.log('WebSocket connected successfully', frame);
+        console.log('✅ WebSocket connected successfully');
         this.connectedSubject.next(true);
         this.connectionAttempts = 0;
         
         // Subscribe to user-specific queues
         const userMessagesSubscription = this.stompClient!.subscribe('/user/queue/messages', (message: IMessage) => {
-          console.log('Received message via user queue:', message.body);
           this.handleIncomingMessage(JSON.parse(message.body));
         });
 
         const userDeletedSubscription = this.stompClient!.subscribe('/user/queue/messages/deleted', (message: IMessage) => {
-          console.log('Received deletion notification:', message.body);
           this.handleMessageDeleted(JSON.parse(message.body));
         });
 
@@ -189,26 +216,26 @@ export class ChatService {
       };
 
       this.stompClient.onStompError = (frame) => {
-        console.error('STOMP error:', frame);
+        console.error('❌ STOMP error:', frame);
         this.connectedSubject.next(false);
         this.attemptReconnection();
       };
 
       this.stompClient.onWebSocketError = (event) => {
-        console.error('WebSocket error:', event);
+        console.error('❌ WebSocket error:', event);
         this.connectedSubject.next(false);
         this.attemptReconnection();
       };
 
       this.stompClient.onDisconnect = (frame) => {
-        console.log('WebSocket disconnected', frame);
+        console.log('🔌 WebSocket disconnected');
         this.connectedSubject.next(false);
         this.roomSubscriptions.clear();
       };
 
       this.stompClient.activate();
     } catch (error) {
-      console.error('Error initializing WebSocket:', error);
+      console.error('❌ Error initializing WebSocket:', error);
       this.connectedSubject.next(false);
       this.attemptReconnection();
     }
@@ -217,13 +244,15 @@ export class ChatService {
   private attemptReconnection(): void {
     if (this.connectionAttempts < this.MAX_CONNECTION_ATTEMPTS) {
       this.connectionAttempts++;
-      console.log(`Attempting reconnection (${this.connectionAttempts}/${this.MAX_CONNECTION_ATTEMPTS})...`);
+      console.log(`🔄 Attempting reconnection (${this.connectionAttempts}/${this.MAX_CONNECTION_ATTEMPTS})...`);
       
       setTimeout(() => {
-        this.initializeWebSocketConnection();
+        if (this.authService.isAuthenticated()) {
+          this.initializeWebSocketConnection();
+        }
       }, this.RECONNECT_DELAY * this.connectionAttempts);
     } else {
-      console.error('Max reconnection attempts reached');
+      console.error('❌ Max reconnection attempts reached');
     }
   }
 
@@ -251,7 +280,6 @@ export class ChatService {
         canDelete: messageData.canDelete || false
       };
       
-      console.log('Processing incoming message:', message);
       this.addMessage(message);
       
       if (this.currentRoomSubject.value?.id === message.chatRoomId) {
@@ -265,11 +293,9 @@ export class ChatService {
   private handleMessageDeleted(deletionData: any): void {
     try {
       if (deletionData.messageId) {
-        console.log('Removing message:', deletionData.messageId);
         this.removeMessage(Number(deletionData.messageId));
       } else if (deletionData.messageIds) {
         deletionData.messageIds.forEach((messageId: number) => {
-          console.log('Removing message:', messageId);
           this.removeMessage(Number(messageId));
         });
       }
@@ -426,11 +452,9 @@ export class ChatService {
       const topic = `/topic/chat/${roomId}`;
       try {
         const subscription = this.stompClient!.subscribe(topic, (message: IMessage) => {
-          console.log('Received room message:', message.body);
           this.handleIncomingMessage(JSON.parse(message.body));
         });
         this.roomSubscriptions.set(topic, subscription);
-        console.log(`Subscribed to room: ${topic}`);
       } catch (error) {
         console.error('Error subscribing to room:', error);
       }
@@ -443,11 +467,12 @@ export class ChatService {
     if (subscription) {
       subscription.unsubscribe();
       this.roomSubscriptions.delete(topic);
-      console.log(`Unsubscribed from room: ${topic}`);
     }
   }
 
   private markMessageAsRead(roomId: number, messageId: number): void {
+    if (!this.authService.isAuthenticated()) return;
+
     this.http.post<ApiResponse>(
       `${this.apiUrl}/rooms/${roomId}/mark-read`,
       { messageId },
@@ -460,17 +485,7 @@ export class ChatService {
     ).subscribe();
   }
 
-  markMessageAsDelivered(roomId: number, messageId: number): Observable<ApiResponse> {
-    return this.http.post<ApiResponse>(
-      `${this.apiUrl}/rooms/${roomId}/mark-delivered`,
-      { messageId },
-      { headers: this.getHeaders() }
-    ).pipe(
-      catchError(error => {
-        return this.handleApiError(error);
-      })
-    );
-  }
+  // MARK: - Public API Methods
 
   loadRooms(): void {
     if (!this.authService.isAuthenticated()) {
@@ -481,6 +496,7 @@ export class ChatService {
     this.http.get<ApiResponse<ChatRoom[]>>(`${this.apiUrl}/rooms`, { 
       headers: this.getHeaders() 
     }).pipe(
+      timeout(10000),
       map(response => {
         if (response && response.success && response.data && Array.isArray(response.data)) {
           return response.data;
@@ -494,7 +510,6 @@ export class ChatService {
     ).subscribe(rooms => {
       const processedRooms = rooms.map(room => this.processRoomData(room));
       this.roomsSubject.next(processedRooms);
-      console.log(`Loaded ${processedRooms.length} chat rooms`);
     });
   }
 
@@ -507,6 +522,7 @@ export class ChatService {
     this.http.get<ApiResponse<Message[]>>(`${this.apiUrl}/rooms/${roomId}/messages`, { 
       headers: this.getHeaders() 
     }).pipe(
+      timeout(10000),
       map(response => {
         if (response && response.success && response.data && Array.isArray(response.data)) {
           return response.data;
@@ -523,7 +539,6 @@ export class ChatService {
       this.messagesSubject.next(processedMessages);
       
       this.subscribeToRoom(roomId);
-      console.log(`Loaded ${processedMessages.length} messages for room ${roomId}`);
     });
   }
 
@@ -547,21 +562,18 @@ export class ChatService {
             'Authorization': `Bearer ${this.authService.getToken()}`
           }
         });
-        console.log('Message sent via WebSocket:', content);
       } catch (error) {
         console.error('Error publishing message via WebSocket:', error);
       }
-    } else {
-      console.warn('WebSocket not connected, sending via HTTP only');
     }
 
     // Always send via HTTP as fallback
     return this.http.post<ApiResponse>(`${this.apiUrl}/messages`, messageRequest, { 
       headers: this.getHeaders() 
     }).pipe(
+      timeout(10000),
       tap(response => {
         if (response.success && response.data) {
-          console.log('Message sent successfully via HTTP');
           this.handleIncomingMessage(response.data);
         }
       }),
@@ -572,6 +584,7 @@ export class ChatService {
     );
   }
 
+  // MISSING METHOD: deleteMessage
   deleteMessage(messageId: number): Observable<ApiResponse> {
     if (!this.authService.isAuthenticated()) {
       return throwError(() => new Error('User not authenticated'));
@@ -592,6 +605,7 @@ export class ChatService {
     return this.http.delete<ApiResponse>(`${this.apiUrl}/messages/${messageId}`, { 
       headers: this.getHeaders() 
     }).pipe(
+      timeout(10000),
       tap(() => {
         console.log('Message deleted:', messageId);
         this.removeMessage(messageId);
@@ -603,6 +617,7 @@ export class ChatService {
     );
   }
 
+  // MISSING METHOD: deleteMultipleMessages
   deleteMultipleMessages(messageIds: number[]): Observable<ApiResponse> {
     if (!this.authService.isAuthenticated()) {
       return throwError(() => new Error('User not authenticated'));
@@ -611,6 +626,7 @@ export class ChatService {
     return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, messageIds, { 
       headers: this.getHeaders() 
     }).pipe(
+      timeout(10000),
       tap(() => {
         console.log('Messages deleted:', messageIds);
         messageIds.forEach(messageId => this.removeMessage(messageId));
@@ -622,109 +638,162 @@ export class ChatService {
     );
   }
 
-  createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`, 
-      {}, 
+  // MISSING METHOD: markMessageAsDelivered
+  markMessageAsDelivered(roomId: number, messageId: number): Observable<ApiResponse> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    return this.http.post<ApiResponse>(
+      `${this.apiUrl}/rooms/${roomId}/mark-delivered`,
+      { messageId },
       { headers: this.getHeaders() }
     ).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          this.roomsSubject.next([...currentRooms, newRoom]);
-          console.log('Created tenant-landlord chat room:', newRoom);
-        }
-      }),
+      timeout(10000),
       catchError(error => {
-        console.error('Error creating tenant-landlord chat:', error);
+        console.error('Error marking message as delivered:', error);
         return this.handleApiError(error);
       })
+    );
+  }
+
+  // Enhanced chat creation methods with pre-flight auth check
+  createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    return this.withAuthCheck(() => 
+      this.http.post<ApiResponse<ChatRoom>>(
+        `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`, 
+        {}, 
+        { headers: this.getHeaders() }
+      ).pipe(
+        timeout(10000),
+        tap(response => {
+          if (response.success && response.data) {
+            const currentRooms = this.roomsSubject.value;
+            const newRoom = this.processRoomData(response.data);
+            this.roomsSubject.next([...currentRooms, newRoom]);
+          }
+        }),
+        catchError(error => {
+          console.error('Error creating tenant-landlord chat:', error);
+          return this.handleApiError(error);
+        })
+      )
     );
   }
 
   createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`, 
-      {}, 
-      { headers: this.getHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          this.roomsSubject.next([...currentRooms, newRoom]);
-          console.log('Created tenant-caretaker chat room:', newRoom);
-        }
-      }),
-      catchError(error => {
-        console.error('Error creating tenant-caretaker chat:', error);
-        return this.handleApiError(error);
-      })
+    return this.withAuthCheck(() => 
+      this.http.post<ApiResponse<ChatRoom>>(
+        `${this.apiUrl}/rooms/tenant-caretaker/${propertyId}`, 
+        {}, 
+        { headers: this.getHeaders() }
+      ).pipe(
+        timeout(10000),
+        tap(response => {
+          if (response.success && response.data) {
+            const currentRooms = this.roomsSubject.value;
+            const newRoom = this.processRoomData(response.data);
+            this.roomsSubject.next([...currentRooms, newRoom]);
+          }
+        }),
+        catchError(error => {
+          console.error('Error creating tenant-caretaker chat:', error);
+          return this.handleApiError(error);
+        })
+      )
     );
   }
 
   createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`, 
-      {}, 
-      { headers: this.getHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          this.roomsSubject.next([...currentRooms, newRoom]);
-          console.log('Created landlord-caretaker chat room:', newRoom);
-        }
-      }),
-      catchError(error => {
-        console.error('Error creating landlord-caretaker chat:', error);
-        return this.handleApiError(error);
-      })
+    return this.withAuthCheck(() => 
+      this.http.post<ApiResponse<ChatRoom>>(
+        `${this.apiUrl}/rooms/landlord-caretaker/${propertyId}`, 
+        {}, 
+        { headers: this.getHeaders() }
+      ).pipe(
+        timeout(10000),
+        tap(response => {
+          if (response.success && response.data) {
+            const currentRooms = this.roomsSubject.value;
+            const newRoom = this.processRoomData(response.data);
+            this.roomsSubject.next([...currentRooms, newRoom]);
+          }
+        }),
+        catchError(error => {
+          console.error('Error creating landlord-caretaker chat:', error);
+          return this.handleApiError(error);
+        })
+      )
     );
   }
 
   createLandlordTenantChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/rooms/landlord-tenant/${propertyId}`, 
-      {}, 
-      { headers: this.getHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          this.roomsSubject.next([...currentRooms, newRoom]);
-          console.log('Created landlord-tenant chat room:', newRoom);
-        }
-      }),
-      catchError(error => {
-        console.error('Error creating landlord-tenant chat:', error);
-        return this.handleApiError(error);
-      })
+    return this.withAuthCheck(() => 
+      this.http.post<ApiResponse<ChatRoom>>(
+        `${this.apiUrl}/rooms/landlord-tenant/${propertyId}`, 
+        {}, 
+        { headers: this.getHeaders() }
+      ).pipe(
+        timeout(10000),
+        tap(response => {
+          if (response.success && response.data) {
+            const currentRooms = this.roomsSubject.value;
+            const newRoom = this.processRoomData(response.data);
+            this.roomsSubject.next([...currentRooms, newRoom]);
+          }
+        }),
+        catchError(error => {
+          console.error('Error creating landlord-tenant chat:', error);
+          return this.handleApiError(error);
+        })
+      )
     );
   }
 
   createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/caretaker/tenant/${unitId}`, 
-      {}, 
-      { headers: this.getHeaders() }
-    ).pipe(
-      tap(response => {
-        if (response.success && response.data) {
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          this.roomsSubject.next([...currentRooms, newRoom]);
-          console.log('Created caretaker-tenant chat room:', newRoom);
-        }
-      }),
-      catchError(error => {
-        console.error('Error creating caretaker-tenant chat:', error);
-        return this.handleApiError(error);
-      })
+    return this.withAuthCheck(() => 
+      this.http.post<ApiResponse<ChatRoom>>(
+        `${this.apiUrl}/caretaker/tenant/${unitId}`, 
+        {}, 
+        { headers: this.getHeaders() }
+      ).pipe(
+        timeout(10000),
+        tap(response => {
+          if (response.success && response.data) {
+            const currentRooms = this.roomsSubject.value;
+            const newRoom = this.processRoomData(response.data);
+            this.roomsSubject.next([...currentRooms, newRoom]);
+          }
+        }),
+        catchError(error => {
+          console.error('Error creating caretaker-tenant chat:', error);
+          return this.handleApiError(error);
+        })
+      )
     );
+  }
+
+  // Helper method to ensure authentication before making requests
+  private withAuthCheck<T>(requestFn: () => Observable<T>): Observable<T> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    // Check if token is about to expire
+    if (this.authService.isTokenAboutToExpire()) {
+      console.log('Token about to expire, refreshing before request...');
+      return this.authService.refreshToken().pipe(
+        switchMap(success => {
+          if (success) {
+            return requestFn();
+          } else {
+            return throwError(() => new Error('Authentication failed'));
+          }
+        })
+      );
+    }
+
+    return requestFn();
   }
 
   selectRoom(room: ChatRoom | null): void {
@@ -732,11 +801,8 @@ export class ChatService {
     this.messagesSubject.next([]);
     
     if (room?.id) {
-      console.log('Selected room:', room.id);
       this.getMessages(room.id);
       this.markRoomAsRead(room.id);
-    } else {
-      console.log('Deselected room');
     }
   }
 
@@ -755,7 +821,6 @@ export class ChatService {
     const user = this.authService.getCurrentUser();
     
     if (!user?.id) {
-      console.warn('No user ID found in current user');
       return 0;
     }
     
@@ -783,8 +848,6 @@ export class ChatService {
     
     try {
       const date = new Date(timestamp);
-      date.setHours(date.getHours() + 3);
-      
       return date.toLocaleTimeString(this.eatLocale, { 
         timeZone: this.eatTimeZone,
         hour: '2-digit', 
@@ -793,8 +856,6 @@ export class ChatService {
       });
     } catch (error) {
       const date = new Date(timestamp);
-      date.setHours(date.getHours() + 3);
-      
       return date.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
         minute: '2-digit',
@@ -811,7 +872,6 @@ export class ChatService {
     try {
       const now = new Date();
       const messageTime = new Date(timestamp);
-      messageTime.setHours(messageTime.getHours() + 3);
       
       const diffInHours = (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);
       
@@ -843,7 +903,6 @@ export class ChatService {
     } catch (error) {
       const now = new Date();
       const messageTime = new Date(timestamp);
-      messageTime.setHours(messageTime.getHours() + 3);
       
       const diffInHours = (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);
       
@@ -866,12 +925,12 @@ export class ChatService {
   }
 
   disconnect(): void {
-    console.log('Disconnecting chat service...');
     if (this.stompClient) {
       this.stompClient.deactivate();
       this.roomSubscriptions.clear();
     }
     this.connectedSubject.next(false);
+    this.connectionAttempts = 0;
   }
 
   getConnectionStatus(): boolean {
@@ -879,20 +938,21 @@ export class ChatService {
   }
 
   reconnect(): void {
-    console.log('Reconnecting chat service...');
     this.disconnect();
     setTimeout(() => {
-      this.initializeWebSocketConnection();
-      this.loadRooms();
+      if (this.authService.isAuthenticated()) {
+        this.initializeWebSocketConnection();
+        this.loadRooms();
+      }
     }, 1000);
   }
 
- 
+  // Utility method to check if user can access chat features
   canAccessChat(): boolean {
     return this.authService.isAuthenticated() && !!this.authService.getToken();
   }
 
-
+  // Method to clear all local data
   clearLocalData(): void {
     this.messagesSubject.next([]);
     this.roomsSubject.next([]);
