@@ -1,4 +1,3 @@
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -53,7 +52,6 @@ export class MoveOutNoticeListComponent implements OnInit {
         if (response.success) {
           let notices = Array.isArray(response.data) ? response.data : [response.data];
           
-          
           this.moveOutNotices = notices.map(notice => this.transformNoticeData(notice));
           
           this.currentPage = response.pagination?.currentPage || 1;
@@ -61,7 +59,7 @@ export class MoveOutNoticeListComponent implements OnInit {
           this.hasNext = response.pagination?.hasNext || false;
           this.hasPrev = response.pagination?.hasPrev || false;
           
-          console.log(' Transformed notices:', this.moveOutNotices);
+          console.log('Transformed notices:', this.moveOutNotices);
         } else {
           this.snackBar.open(response.message || 'Failed to load move-out notices', 'Close', { duration: 5000 });
         }
@@ -75,7 +73,6 @@ export class MoveOutNoticeListComponent implements OnInit {
     });
   }
 
- 
   private transformNoticeData(notice: any): TenantMoveOutNotice {
     return {
       ...notice,
@@ -95,7 +92,8 @@ export class MoveOutNoticeListComponent implements OnInit {
       reason: notice.reason || 'OTHER',
       notes: notice.notes || '',
       submittedAt: notice.submittedAt || new Date().toISOString(),
-      status: notice.status || 'PENDING'
+      status: notice.status || 'PENDING',
+      landlordNotes: notice.landlordNotes || ''
     };
   }
 
@@ -131,19 +129,17 @@ export class MoveOutNoticeListComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      console.log('🔍 Dialog closed with result:', result);
+      console.log('Dialog closed with result:', result);
       
       if (result && result.success === true) {
-        
         this.submitMoveOutNotice(result.data);
       }
-     
     });
   }
 
   private submitMoveOutNotice(noticeData: MoveOutNoticeRequest): void {
-    console.log(' Submitting move-out notice from list:', noticeData);
-    console.log(' Property data in submission:', {
+    console.log('Submitting move-out notice from list:', noticeData);
+    console.log('Property data in submission:', {
       propertyId: noticeData.propertyId,
       propertyName: noticeData.propertyName,
       unitNumber: noticeData.unitNumber,
@@ -152,7 +148,7 @@ export class MoveOutNoticeListComponent implements OnInit {
     
     this.propertyService.submitMoveOutNotice(noticeData).subscribe({
       next: (response: TenantMoveOutNoticeResponse) => {
-        console.log(' Backend response:', response);
+        console.log('Backend response:', response);
         if (response.success) {
           this.snackBar.open('Move-out notice submitted successfully', 'Close', { 
             duration: 3000 
@@ -208,7 +204,15 @@ export class MoveOutNoticeListComponent implements OnInit {
 
   formatDate(dateString: string): string {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
+    try {
+      return new Date(dateString).toLocaleDateString('en-KE', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Invalid date';
+    }
   }
 
   nextPage(): void {

@@ -1,14 +1,9 @@
-
 <div class="move-out-notices-container">
   <div class="header-section">
     <div class="header-content">
       <h1 class="page-title">Move Out Notices</h1>
       <p class="page-subtitle">Manage your move-out requests and track their status</p>
     </div>
-    <button class="create-notice-btn" (click)="createNewNotice()">
-      <mat-icon>add</mat-icon>
-      <span>New Move Out Notice</span>
-    </button>
   </div>
 
   <div class="content-section">
@@ -73,11 +68,18 @@
               </div>
             </div>
           </div>
+
+          <div class="notice-actions">
             <button *ngIf="canCancel(notice)" 
                     class="action-btn cancel-btn" 
                     (click)="cancelNotice(notice)">
               <mat-icon>cancel</mat-icon>
               <span>Cancel</span>
+            </button>
+            <button class="action-btn view-btn" 
+                    (click)="viewNotice(notice)">
+              <mat-icon>visibility</mat-icon>
+              <span>View Details</span>
             </button>
           </div>
         </div>
