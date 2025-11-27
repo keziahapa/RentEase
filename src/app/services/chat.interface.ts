@@ -20,6 +20,7 @@ export type MessageType =
   | 'DOCUMENT';  
 
 export type MessageStatus = 
+  | 'SENDING'     // ADD THIS LINE
   | 'SENT'       
   | 'DELIVERED'  
   | 'READ'       
@@ -48,7 +49,7 @@ export interface Message {
   sentAt: Date;
   timestamp: Date;
   messageType: MessageType;
-  status: MessageStatus;
+  status: MessageStatus; // Now includes 'SENDING'
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;
@@ -482,6 +483,7 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export const MESSAGE_STATUS_COLORS: Record<MessageStatus, string> = {
+  'SENDING': '#8a8d91',  // ADD THIS LINE
   'SENT': '#8a8d91',
   'DELIVERED': '#31a24c',
   'READ': '#1e3a8a',
