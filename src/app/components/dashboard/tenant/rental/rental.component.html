@@ -1,0 +1,230 @@
+<div class="rental-container">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Loading your rental information...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !isLoading" class="error-state">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <h3>Unable to Load Rental Information</h3>
+    <p>{{ error }}</p>
+    <button mat-flat-button color="primary" (click)="refreshData()" class="retry-btn">
+      <mat-icon>refresh</mat-icon>
+      Try Again
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!isLoading && !error && rentalUnit && property && leaseInfo" class="rental-content">
+    <!-- Header Section -->
+    <div class="rental-header">
+      <div class="header-content">
+        <h1>My Rental Unit</h1>
+        <p>Your current rental information and lease details</p>
+      </div>
+      <button mat-flat-button color="primary" (click)="refreshData()" class="refresh-btn">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Property & Unit Information -->
+    <div class="info-grid">
+      <!-- Property Card -->
+      <mat-card class="property-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">apartment</mat-icon>
+            Property Information
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="property-details">
+            <h2>{{ property.name }}</h2>
+            <p class="property-address">
+              <mat-icon>location_on</mat-icon>
+              {{ property.address }}
+            </p>
+            <p class="property-type">{{ property.propertyType }} • {{ property.totalUnits }} units</p>
+            
+            <div class="property-owner">
+              <h4>Landlord Information</h4>
+              <p><strong>Name:</strong> {{ property.ownerName }}</p>
+              <p *ngIf="property.ownerEmail">
+                <strong>Email:</strong> 
+                <a [href]="'mailto:' + property.ownerEmail" class="contact-link">{{ property.ownerEmail }}</a>
+              </p>
+              <p *ngIf="property.ownerPhone">
+                <strong>Phone:</strong> 
+                <a [href]="'tel:' + property.ownerPhone" class="contact-link">{{ property.ownerPhone }}</a>
+              </p>
+            </div>
+
+            <div class="property-amenities">
+              <h4>Property Amenities</h4>
+              <div class="amenities-list">
+                <span *ngFor="let amenity of property.amenities" class="amenity-tag">
+                  {{ amenity }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+        <mat-card-actions>
+          <button mat-button color="primary" (click)="contactLandlord()">
+            <mat-icon>email</mat-icon>
+            Contact Landlord
+          </button>
+        </mat-card-actions>
+      </mat-card>
+
+      <!-- Unit Card -->
+      <mat-card class="unit-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">home</mat-icon>
+            My Unit - {{ rentalUnit.unitNumber }}
+          </mat-card-title>
+          <mat-card-subtitle>{{ rentalUnit.unitType }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="unit-details">
+            <div class="unit-specs">
+              <div class="spec-item">
+                <mat-icon>hotel</mat-icon>
+                <span>{{ getBedroomText() }}</span>
+              </div>
+              <div class="spec-item">
+                <mat-icon>bathtub</mat-icon>
+                <span>{{ getBathroomText() }}</span>
+              </div>
+              <div class="spec-item">
+                <mat-icon>square_foot</mat-icon>
+                <span>{{ rentalUnit.squareFeet }} sq ft</span>
+              </div>
+            </div>
+
+            <div class="unit-amenities">
+              <h4>Unit Amenities</h4>
+              <div class="amenities-list">
+                <span *ngFor="let amenity of rentalUnit.amenities" class="amenity-tag">
+                  {{ amenity }}
+                </span>
+              </div>
+            </div>
+
+            <div class="unit-status">
+              <div class="status-badge" [style.background-color]="getLeaseStatusColor()">
+                {{ getLeaseStatusText() }}
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Financial Card -->
+      <mat-card class="financial-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">payments</mat-icon>
+            Financial Information
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="financial-details">
+            <div class="amount-item">
+              <span class="amount-label">Monthly Rent</span>
+              <span class="amount-value">{{ formatCurrency(rentalUnit.rentAmount) }}</span>
+            </div>
+            <div class="amount-item">
+              <span class="amount-label">Security Deposit</span>
+              <span class="amount-value">{{ formatCurrency(rentalUnit.depositAmount) }}</span>
+            </div>
+            <div class="amount-item">
+              <span class="amount-label">Payment Due Date</span>
+              <span class="amount-value">{{ leaseInfo.paymentDueDate }}{{ getOrdinalSuffix(leaseInfo.paymentDueDate) }} of month</span>
+            </div>
+            <div class="amount-item">
+              <span class="amount-label">Late Fee</span>
+              <span class="amount-value">{{ formatCurrency(leaseInfo.lateFee) }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+        <mat-card-actions>
+          <button mat-button color="primary" [routerLink]="['/tenant-dashboard/payments']">
+            <mat-icon>payment</mat-icon>
+            View Payments
+          </button>
+        </mat-card-actions>
+      </mat-card>
+
+      <!-- Lease Card -->
+      <mat-card class="lease-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon class="card-icon">description</mat-icon>
+            Lease Agreement
+          </mat-card-title>
+          <mat-card-subtitle>
+            {{ formatDate(leaseInfo.startDate) }} - {{ formatDate(leaseInfo.endDate) }}
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="lease-details">
+            <div class="lease-progress">
+              <div class="progress-header">
+                <span>Lease Progress</span>
+                <span>{{ getDaysUntilLeaseEnd() }} days remaining</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="getLeaseProgress()"></div>
+              </div>
+              <div class="progress-dates">
+                <span>{{ formatDate(leaseInfo.startDate) }}</span>
+                <span>{{ formatDate(leaseInfo.endDate) }}</span>
+              </div>
+            </div>
+
+            <div class="lease-terms">
+              <h4>Key Terms</h4>
+              <ul>
+                <li *ngFor="let term of leaseInfo.terms">{{ term }}</li>
+              </ul>
+            </div>
+          </div>
+        </mat-card-content>
+        <mat-card-actions>
+          <button mat-button color="primary" (click)="viewLeaseDocument()">
+            <mat-icon>visibility</mat-icon>
+            View Lease
+          </button>
+          <button *ngIf="isLeaseExpiringSoon()" mat-button color="accent" (click)="requestLeaseRenewal()">
+            <mat-icon>autorenew</mat-icon>
+            Renew Lease
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <h3>Quick Actions</h3>
+      <div class="action-buttons">
+        <button mat-stroked-button (click)="reportIssue()" class="action-btn">
+          <mat-icon>report_problem</mat-icon>
+          Report Maintenance Issue
+        </button>
+        <button mat-stroked-button (click)="contactLandlord()" class="action-btn">
+          <mat-icon>contact_mail</mat-icon>
+          Contact Landlord
+        </button>
+        <button mat-stroked-button [routerLink]="['/tenant-dashboard/documents']" class="action-btn">
+          <mat-icon>folder_open</mat-icon>
+          View Documents
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

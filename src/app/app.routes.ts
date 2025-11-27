@@ -10,6 +10,7 @@ import { PrivacyComponent } from '../pages/privacy/privacy';
 import { AboutComponent } from '../pages/about/about';
 import { TenantDashboardComponent } from './components/dashboard/tenant/tenant-dashboard/tenant-dashboard.component';
 import { DepositComponent } from './components/dashboard/tenant/deposit/deposit.component';
+import { RentalComponent } from './components/dashboard/tenant/rental/rental.component';
 import { PaymentsComponent } from './components/dashboard/tenant/payments/payments.component';
 import { MaintenanceComponent } from './components/dashboard/tenant/maintenance/maintenance.component';
 import { DocumentsComponent } from './components/dashboard/tenant/documents/documents.component';
@@ -114,6 +115,7 @@ export const routes: Routes = [
       { path: 'dashboard', redirectTo: 'overview', pathMatch: 'full' }, 
       { path: 'deposit', component: DepositComponent },
       { path: 'payments', component: PaymentsComponent },
+       { path: 'rental', component: RentalComponent },
       { path: 'maintenance', component: MaintenanceComponent },
       { path: 'documents', component: DocumentsComponent },
       { path: 'chat', component: ChatComponent },

@@ -14,6 +14,7 @@ import { CommunicationService } from '../../../../services/communication.service
 import { InvitationService } from '../../../../services/invitation.service';
 import { DashboardOverviewComponent } from '../dashboard-overview/dashboard-overview.component';
 import { ChatComponent } from '../../../../shared/chat/chat.component';
+import { RentalComponent } from '../rental/rental.component';
 
 @Component({
   selector: 'app-tenant-dashboard',
@@ -27,7 +28,8 @@ import { ChatComponent } from '../../../../shared/chat/chat.component';
     MatSnackBarModule,
     RouterOutlet,
     DashboardOverviewComponent,
-    ChatComponent
+    ChatComponent,
+    RentalComponent
   ],
   templateUrl: './tenant-dashboard.component.html',
   styleUrls: ['./tenant-dashboard.component.scss']
@@ -49,7 +51,6 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
   unreadNotificationsCount: number = 0;
   unreadMessagesCount: number = 0;
   isLoadingNotifications: boolean = false;
-
 
   pendingInvitation: any = null;
   isProcessingInvitation = false;
@@ -97,7 +98,6 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     this.communicationSubscriptions.unsubscribe();
   }
 
- 
   getGreetingMessage(): string {
     const now = new Date();
     const hours = now.getHours();
@@ -115,7 +115,6 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     return `${greeting}, ${firstName}! `;
   }
 
-  
   private checkPendingInvitations(): void {
     try {
       const pendingInvitationStr = localStorage.getItem('pendingInvitation');
@@ -182,7 +181,6 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
               panelClass: ['warning-snackbar']
             });
             
-            
             this.scheduleNextRetry();
           }
         }
@@ -211,7 +209,6 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     }, retryDelay);
   }
 
- 
   retryPendingInvitation(): void {
     if (this.pendingInvitation && !this.isProcessingInvitation) {
       this.processPendingInvitation();
@@ -360,6 +357,12 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     this.closeProfileMenu();
     this.closeMobileMenu();
     this.router.navigate(['/tenant-dashboard/move-out-notices']);
+  }
+
+  navigateToRental(): void {
+    this.closeProfileMenu();
+    this.closeMobileMenu();
+    this.router.navigate(['/tenant-dashboard/rental']);
   }
 
   private loadProfileImage(): void {
@@ -540,7 +543,6 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     console.error('Logo failed to load:', event);
   }
 
- 
   getInvitationStatus(): string {
     if (!this.pendingInvitation) return '';
     
