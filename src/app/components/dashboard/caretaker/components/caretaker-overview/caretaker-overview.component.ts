@@ -5,6 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Subscription, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { CaretakerService } from '../../../../../services/caretaker.service';
@@ -14,7 +16,15 @@ import { ChatService } from '../../../../../services/chat.service';
 @Component({
   selector: 'app-caretaker-overview',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatCardModule, MatButtonModule, MatSnackBarModule],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatCardModule,
+    MatButtonModule,
+    MatSnackBarModule,
+    MatTooltipModule,
+    MatProgressSpinnerModule
+  ],
   templateUrl: './caretaker-overview.component.html',
   styleUrls: ['./caretaker-overview.component.scss']
 })
@@ -22,24 +32,24 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
   private caretakerService = inject(CaretakerService);
   private maintenanceService = inject(MaintenanceService);
   private chatService = inject(ChatService);
-  private router = inject(Router);
+  public router = inject(Router);
   private snackBar = inject(MatSnackBar);
   private subscriptions = new Subscription();
 
   stats = {
     totalProperties: 0,
+    totalUnits: 0,
     occupiedUnits: 0,
+    vacantUnits: 0,
     pendingMaintenance: 0,
-    unreadMessages: 0,
-    pendingMoveOutNotices: 0, // NEW: Add move-out notices count to stats
-    totalUnits: 0, // NEW: Add total units count
-    vacantUnits: 0 // NEW: Add vacant units count
+    pendingMoveOutNotices: 0,
+    unreadMessages: 0
   };
 
   maintenanceRequests: any[] = [];
   moveOutNotices: any[] = [];
   chatRooms: any[] = [];
-  properties: any[] = []; // NEW: Store properties for better data handling
+  properties: any[] = [];
   
   loadError: string | null = null;
   isLoadingDashboard = true;
@@ -106,7 +116,7 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
           return of([]);
         })
       ),
-      moveOutNotices: this.caretakerService.getPendingMoveOutNotices(1, 50).pipe( // Increased limit to get all notices
+      moveOutNotices: this.caretakerService.getPendingMoveOutNotices(1, 50).pipe(
         map(response => this.normalizeArrayResponse(response)),
         catchError(error => {
           console.warn('Failed to load move-out notices:', error);
@@ -182,28 +192,20 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     const moveOutNotices = results.moveOutNotices || [];
     const chatRooms = results.chatRooms || [];
 
-    // Calculate statistics
     this.calculatePropertyStats(this.properties);
     this.calculateMaintenanceStats(maintenanceRequests);
     this.calculateMoveOutStats(moveOutNotices);
     this.calculateChatStats(chatRooms);
 
-    // Process detailed data
     this.maintenanceRequests = maintenanceRequests
       .map((req: any) => this.mapMaintenanceRequest(req))
-      .slice(0, 5); // Show only latest 5
+      .slice(0, 5);
 
     this.moveOutNotices = moveOutNotices
       .map((notice: any) => this.mapMoveOutNotice(notice))
-      .slice(0, 5); // Show only latest 5
+      .slice(0, 5);
 
     this.chatRooms = chatRooms;
-
-    console.log('Processed stats:', this.stats);
-    console.log('Properties:', this.properties);
-    console.log('Maintenance requests:', this.maintenanceRequests);
-    console.log('Move-out notices:', this.moveOutNotices);
-    console.log('Chat rooms:', this.chatRooms);
   }
 
   private calculatePropertyStats(properties: any[]): void {
@@ -213,14 +215,12 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     let occupiedUnits = 0;
 
     properties.forEach((property: any) => {
-      // Handle total units
       if (property.totalUnits !== undefined) {
         totalUnits += property.totalUnits;
       } else if (property.units && Array.isArray(property.units)) {
         totalUnits += property.units.length;
       }
 
-      // Handle occupied units
       if (property.occupiedUnits !== undefined) {
         occupiedUnits += property.occupiedUnits;
       } else if (property.units && Array.isArray(property.units)) {
@@ -250,14 +250,13 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
   }
 
   private calculateMoveOutStats(moveOutNotices: any[]): void {
-    // Count pending move-out notices
     this.stats.pendingMoveOutNotices = moveOutNotices.filter(
       (notice: any) => {
         const status = notice.status?.toLowerCase();
         return status === 'pending' || 
                status === 'submitted' ||
                status === 'under_review' ||
-               !status; // Assume pending if no status
+               !status;
       }
     ).length;
   }
@@ -335,8 +334,8 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     this.router.navigate(['/caretaker-dashboard/inspections/schedule']);
   }
 
-  processDeposit(): void {
-    this.router.navigate(['/caretaker-dashboard/deposits']);
+  navigateToMaintenance(): void {
+    this.router.navigate(['/caretaker-dashboard/maintenance']);
   }
 
   navigateToMoveOutNotices(): void {
@@ -362,10 +361,6 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
 
   viewMaintenanceRequest(requestId: number): void {
     this.router.navigate(['/caretaker-dashboard/maintenance', requestId]);
-  }
-
-  viewProperties(): void {
-    this.router.navigate(['/caretaker-dashboard/properties']);
   }
 
   private showSnackbar(message: string | null): void {
@@ -424,7 +419,6 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     }
   }
 
-  // NEW: Calculate occupancy rate for display
   get occupancyRate(): number {
     if (this.stats.totalUnits === 0) return 0;
     return Math.round((this.stats.occupiedUnits / this.stats.totalUnits) * 100);
