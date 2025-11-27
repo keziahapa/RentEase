@@ -38,15 +38,11 @@ export class ChatService {
   private eatTimeZone = 'Africa/Nairobi';
   private eatLocale = 'en-KE';
 
- 
-  public http: HttpClient;
-
   constructor(
-    http: HttpClient,
+    private http: HttpClient,
     private authService: AuthService,
     private tenantService: TenantService
   ) {
-    this.http = http;
     this.initializeWebSocketConnection();
     this.loadRooms();
   }
@@ -56,8 +52,14 @@ export class ChatService {
     if (!token) {
       throw new Error('No authentication token available');
     }
+    
+    let authHeader = token;
+    if (!token.startsWith('Bearer ')) {
+      authHeader = `Bearer ${token}`;
+    }
+    
     return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
+      'Authorization': authHeader,
       'Content-Type': 'application/json'
     });
   }
@@ -463,8 +465,6 @@ export class ChatService {
     );
   }
 
-
-
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
       `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`, 
@@ -541,7 +541,6 @@ export class ChatService {
     );
   }
 
-  
   createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
       `${this.apiUrl}/caretaker/tenant/${unitId}`, 

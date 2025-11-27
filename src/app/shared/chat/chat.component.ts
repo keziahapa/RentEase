@@ -46,7 +46,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   loadingRooms = false;
   shouldScrollToBottom = false;
 
-  // Enhanced chat context
   currentChatInfo: EnrichedChatInfo | null = null;
   participantDataCache = new Map<number, any>();
 
@@ -95,7 +94,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.rooms = rooms ?? [];
       this.loadingRooms = false;
       
-      // Enrich rooms with participant data
       this.rooms.forEach(room => this.enrichRoomParticipants(room));
     });
 
@@ -173,8 +171,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  // ========== PARTICIPANT DATA ENRICHMENT ==========
-  
   private enrichRoomParticipants(room: ChatRoom): void {
     if (!room.participants || room.participants.length === 0) return;
 
@@ -184,13 +180,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.participantDataCache.set(participant.id, enrichedData);
           Object.assign(participant, enrichedData);
           
-          // Update chat info if this is the current room
           if (this.currentRoom?.id === room.id) {
             this.updateCurrentChatInfo();
           }
         });
       } else {
-        // Use cached data
         Object.assign(participant, this.participantDataCache.get(participant.id));
       }
     });
@@ -200,7 +194,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     const role = participant.role?.toUpperCase();
     const currentUserId = this.chatService.getCurrentUserId();
 
-    // Skip current user
     if (participant.id === currentUserId) {
       return of({});
     }
@@ -221,7 +214,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private fetchTenantData(tenantId: number): Observable<any> {
-    // Try to get tenant units data
     return this.tenantService.getTenantUnits().pipe(
       map(response => {
         const units = Array.isArray(response?.data) ? response.data : [];
@@ -274,8 +266,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       catchError(() => of({}))
     );
   }
-
-  // ========== ENHANCED CHAT DISPLAY ==========
 
   private updateCurrentChatInfo(): void {
     if (!this.currentRoom) {
@@ -475,8 +465,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return `${name} (${this.formatRole(role)})`;
   }
 
-  // ========== CHAT CREATION WITH NEW ENDPOINT ==========
-
   openNewChatModal(): void {
     if (this.userRole === 'TENANT' && this.userUnits.length === 0) {
       alert('No units assigned to you. Please contact your landlord.');
@@ -500,10 +488,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     let resourceId: number | null = null;
     let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
-    // Determine resource ID based on chat type and user role
     if (chatType === this.CHAT_TYPES.CARETAKER_TENANT) {
-      // For caretaker-tenant, we need a unit ID
-      // You might want to show a unit selector here
       if (this.userUnits.length > 0) {
         resourceId = this.userUnits[0].id;
       } else {
@@ -511,7 +496,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         return;
       }
       
-      createObservable = this.createCaretakerTenantChat(resourceId);
+      createObservable = this.chatService.createCaretakerTenantChat(resourceId);
     } else if (this.userRole === 'TENANT') {
       resourceId = this.userUnits.length > 0 ? this.userUnits[0].id : null;
     } else {
@@ -560,98 +545,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         alert('Failed to create chat: ' + (error.error?.message || error.message));
       }
     });
-  }
-
-  private createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
-    // New endpoint for caretaker-tenant chat
-    return this.chatService.http.post<ApiResponse<ChatRoom>>(
-      `${this.chatService['apiUrl']}/caretaker/tenant/${unitId}`,
-      {},
-      { headers: this.chatService['getHeaders']() }
-    ).pipe(
-      catchError(error => {
-        console.error('Error creating caretaker-tenant chat:', error);
-        throw error;
-      })
-    );
-  }
-
-  // ========== UTILITY METHODS ==========
-
-  private extractProperties(response: any): Property[] {
-    if (!response) return [];
-
-    if (Array.isArray(response)) {
-      return response.map((item: any) => ({
-        id: item.property?.id || item.id,
-        name: item.property?.name || item.name || 'Unnamed Property',
-        address: item.property?.address || item.location || item.address || 'No address'
-      })).filter((property: Property) => property.id);
-    }
-
-    if (response?.data && Array.isArray(response.data)) {
-      return response.data.map((item: any) => ({
-        id: item.property?.id || item.id,
-        name: item.property?.name || item.name || 'Unnamed Property',
-        address: item.property?.address || item.location || item.address || 'No address'
-      })).filter((property: Property) => property.id);
-    }
-
-    return [];
-  }
-
-  private extractPropertiesFromUnits(response: any): Property[] {
-    const units = this.extractUnits(response);
-    const propertyMap = new Map<number, Property>();
-    
-    units.forEach(unit => {
-      if (unit.propertyId && !propertyMap.has(unit.propertyId)) {
-        propertyMap.set(unit.propertyId, {
-          id: unit.propertyId,
-          name: unit['propertyName'] || `Property ${unit.propertyId}`,
-          address: 'Address not available'
-        });
-      }
-    });
-    
-    return Array.from(propertyMap.values());
-  }
-
-  private extractUnits(response: any): Unit[] {
-    if (!response) return [];
-
-    if (Array.isArray(response)) {
-      return response.map((item: any) => ({
-        id: item.unit?.id || item.id,
-        unitNumber: item.unit?.unitNumber || item.unitNumber || 'N/A',
-        unitType: item.unit?.unitType || item.unitType || 'UNKNOWN',
-        rentAmount: item.unit?.rentAmount || item.rentAmount || 0,
-        propertyId: item.property?.id || item.propertyId,
-        propertyName: item.property?.name || item.propertyName
-      } as any)).filter((unit: Unit) => unit.id);
-    }
-
-    if (response?.data && Array.isArray(response.data)) {
-      return response.data.map((item: any) => ({
-        id: item.unit?.id || item.id,
-        unitNumber: item.unit?.unitNumber || item.unitNumber || 'N/A',
-        unitType: item.unit?.unitType || item.unitType || 'UNKNOWN',
-        rentAmount: item.unit?.rentAmount || item.rentAmount || 0,
-        propertyId: item.property?.id || item.propertyId,
-        propertyName: item.property?.name || item.propertyName
-      } as any)).filter((unit: Unit) => unit.id);
-    }
-
-    return [];
-  }
-
-  private formatRole(role: string): string {
-    const roleMap: { [key: string]: string } = {
-      'TENANT': 'Tenant',
-      'LANDLORD': 'Landlord',
-      'CARETAKER': 'Caretaker'
-    };
-    return roleMap[role] || role;
   }
 
   closeNewChatModal(): void {
@@ -813,9 +706,84 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return 'No Property/Unit';
   }
 
-  // Helper method to check if caretaker can create tenant chat
   canCreateCaretakerTenantChat(): boolean {
     return this.userRole === 'CARETAKER' && this.userUnits.length > 0;
+  }
+
+  private extractProperties(response: any): Property[] {
+    if (!response) return [];
+
+    if (Array.isArray(response)) {
+      return response.map((item: any) => ({
+        id: item.property?.id || item.id,
+        name: item.property?.name || item.name || 'Unnamed Property',
+        address: item.property?.address || item.location || item.address || 'No address'
+      })).filter((property: Property) => property.id);
+    }
+
+    if (response?.data && Array.isArray(response.data)) {
+      return response.data.map((item: any) => ({
+        id: item.property?.id || item.id,
+        name: item.property?.name || item.name || 'Unnamed Property',
+        address: item.property?.address || item.location || item.address || 'No address'
+      })).filter((property: Property) => property.id);
+    }
+
+    return [];
+  }
+
+  private extractPropertiesFromUnits(response: any): Property[] {
+    const units = this.extractUnits(response);
+    const propertyMap = new Map<number, Property>();
+    
+    units.forEach(unit => {
+      if (unit.propertyId && !propertyMap.has(unit.propertyId)) {
+        propertyMap.set(unit.propertyId, {
+          id: unit.propertyId,
+          name: unit['propertyName'] || `Property ${unit.propertyId}`,
+          address: 'Address not available'
+        });
+      }
+    });
+    
+    return Array.from(propertyMap.values());
+  }
+
+  private extractUnits(response: any): Unit[] {
+    if (!response) return [];
+
+    if (Array.isArray(response)) {
+      return response.map((item: any) => ({
+        id: item.unit?.id || item.id,
+        unitNumber: item.unit?.unitNumber || item.unitNumber || 'N/A',
+        unitType: item.unit?.unitType || item.unitType || 'UNKNOWN',
+        rentAmount: item.unit?.rentAmount || item.rentAmount || 0,
+        propertyId: item.property?.id || item.propertyId,
+        propertyName: item.property?.name || item.propertyName
+      } as any)).filter((unit: Unit) => unit.id);
+    }
+
+    if (response?.data && Array.isArray(response.data)) {
+      return response.data.map((item: any) => ({
+        id: item.unit?.id || item.id,
+        unitNumber: item.unit?.unitNumber || item.unitNumber || 'N/A',
+        unitType: item.unit?.unitType || item.unitType || 'UNKNOWN',
+        rentAmount: item.unit?.rentAmount || item.rentAmount || 0,
+        propertyId: item.property?.id || item.propertyId,
+        propertyName: item.property?.name || item.propertyName
+      } as any)).filter((unit: Unit) => unit.id);
+    }
+
+    return [];
+  }
+
+  private formatRole(role: string): string {
+    const roleMap: { [key: string]: string } = {
+      'TENANT': 'Tenant',
+      'LANDLORD': 'Landlord',
+      'CARETAKER': 'Caretaker'
+    };
+    return roleMap[role] || role;
   }
 
   private scrollToBottom(): void {
