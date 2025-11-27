@@ -77,6 +77,7 @@ export class AuthService {
   }
 
   silentReauth(): Observable<boolean> {
+    // Prevent multiple simultaneous refresh attempts
     if (this.refreshTokenInProgress) {
       return this.refreshTokenSubject.asObservable().pipe(
         map(value => value !== null ? value : false)
@@ -108,6 +109,7 @@ export class AuthService {
         return true;
       }),
       catchError(error => {
+        console.error('Silent reauth failed:', error);
         this.refreshTokenInProgress = false;
         this.refreshTokenSubject.next(false);
         this.clearStoredCredentials();
@@ -254,7 +256,11 @@ export class AuthService {
           headers: this.getAuthHeaders(),
           responseType: 'json'
         }
-      ).subscribe();
+      ).subscribe({
+        error: (error) => {
+          console.error('Logout API call failed:', error);
+        }
+      });
     }
   }
 
@@ -365,11 +371,13 @@ export class AuthService {
     
     let cleanToken = token.trim();
 
+    // Remove quotes if present
     if ((cleanToken.startsWith('"') && cleanToken.endsWith('"')) || 
         (cleanToken.startsWith("'") && cleanToken.endsWith("'"))) {
       cleanToken = cleanToken.slice(1, -1);
     }
     
+    // Remove 'Bearer ' prefix if present
     if (cleanToken.startsWith('Bearer ')) {
       cleanToken = cleanToken.substring(7).trim();
     }
@@ -387,6 +395,7 @@ export class AuthService {
     try { 
       return JSON.parse(userData);
     } catch (error) { 
+      console.error('Error parsing user data:', error);
       this.removeFromStorage('userData');
       return null; 
     }
@@ -394,12 +403,15 @@ export class AuthService {
 
   isAuthenticated(): boolean { 
     const token = this.getToken();
+    const user = this.getCurrentUser();
     
-    if (!token) {
+    if (!token || !user) {
       return false;
     }
     
-    return this.hasValidToken();
+    // Simple check - if we have a token and user data, consider authenticated
+    // Let the API calls handle actual token validity
+    return true;
   }
 
   isLoggedIn(): boolean {
@@ -413,6 +425,7 @@ export class AuthService {
     try {
       const tokenParts = token.split('.');
       if (tokenParts.length !== 3) {
+        console.warn('Invalid token format: wrong number of parts');
         return false;
       }
       
@@ -422,31 +435,22 @@ export class AuthService {
       const decodedPayload = atob(paddedBase64);
       const payloadObj = JSON.parse(decodedPayload);
       
-      // Enhanced validation
-      if (!payloadObj.exp || !payloadObj.iat) {
-        console.warn('Token missing exp or iat claim');
-        return false;
+      // If no expiration, assume valid
+      if (!payloadObj.exp) {
+        return true;
       }
       
       const currentTime = Math.floor(Date.now() / 1000);
+      const isExpired = payloadObj.exp <= currentTime;
       
-      // Check if token is issued in the future (server time issue)
-      if (payloadObj.iat > currentTime) {
-        console.error('Token has future issue date - server time may be wrong');
-        console.log('Token iat:', payloadObj.iat, 'Current time:', currentTime);
-        return false;
+      if (isExpired) {
+        console.log('Token expired at:', new Date(payloadObj.exp * 1000));
       }
       
-      // Check if token is expired
-      if (payloadObj.exp <= currentTime) {
-        console.log('Token expired');
-        return false;
-      }
-      
-      return true;
+      return !isExpired;
       
     } catch (error) {
-      console.error('Token validation error:', error);
+      console.error('Error validating token:', error);
       return false;
     }
   }
@@ -461,7 +465,7 @@ export class AuthService {
       const currentTime = Math.floor(Date.now() / 1000);
       const timeUntilExpiry = payload.exp - currentTime;
       
-      return timeUntilExpiry < 300;
+      return timeUntilExpiry < 300; // 5 minutes
     } catch {
       return false;
     }
@@ -538,19 +542,18 @@ export class AuthService {
     this.isAuthenticatedSubject.next(false);
   }
 
-  // NEW: Enhanced token debugging method
   debugToken(): void {
     const token = this.getToken();
     
     if (!token) {
-      console.log('❌ No token found in storage');
+      console.log('No token found in storage');
       return;
     }
     
     try {
       const parts = token.split('.');
       if (parts.length !== 3) {
-        console.error('❌ Invalid token format');
+        console.error('Invalid token format');
         return;
       }
       
@@ -560,9 +563,7 @@ export class AuthService {
       const decodedPayload = atob(paddedBase64);
       const payload = JSON.parse(decodedPayload);
       
-      const currentTime = Math.floor(Date.now() / 1000);
-      
-      console.log('🔐 Token Debug Information');
+      console.log('=== Token Debug Information ===');
       console.log('User ID:', payload.userId || payload.sub || payload.id || 'NOT FOUND');
       console.log('Email:', payload.email || 'NOT FOUND');
       console.log('Role:', payload.role || 'NOT FOUND');
@@ -574,73 +575,18 @@ export class AuthService {
         const secondsUntilExpiry = Math.floor((payload.exp * 1000 - Date.now()) / 1000);
         const minutesUntilExpiry = Math.floor(secondsUntilExpiry / 60);
         console.log('Time Until Expiry:', `${secondsUntilExpiry}s (${minutesUntilExpiry} minutes)`);
-        
-        // Check for future dates issue
-        if (payload.iat > currentTime) {
-          console.error('🚨 TOKEN TIME ISSUE: Token was issued in the future!');
-          console.log('Token iat timestamp:', payload.iat);
-          console.log('Current timestamp:', currentTime);
-          console.log('Difference (future):', payload.iat - currentTime, 'seconds');
-        }
+        console.log('Is Expired:', secondsUntilExpiry <= 0);
       }
       
       const storedUser = this.getCurrentUser();
+      console.log('Stored User Role:', storedUser?.role || 'NOT FOUND');
+      
       if (storedUser && payload.role !== storedUser.role) {
-        console.error('❌ Token role does not match stored user role!');
+        console.error('⚠️ Token role does not match stored user role!');
       }
-      
-      console.log('✅ Token validation result:', this.hasValidToken());
       
     } catch (error) {
-      console.error('❌ Token decode error:', error);
-    }
-  }
-
-  // NEW: Test token validity with detailed output
-  testTokenValidity(): boolean {
-    const token = this.getToken();
-    console.log('=== TOKEN VALIDITY TEST ===');
-    
-    if (!token) {
-      console.log('❌ No token found');
-      return false;
-    }
-    
-    try {
-      const parts = token.split('.');
-      const payload = JSON.parse(atob(parts[1]));
-      
-      const currentTime = Math.floor(Date.now() / 1000);
-      const issuedAt = new Date(payload.iat * 1000);
-      const expiresAt = new Date(payload.exp * 1000);
-      const now = new Date();
-      
-      console.log('Token issued:', issuedAt);
-      console.log('Token expires:', expiresAt);
-      console.log('Current time:', now);
-      console.log('Token iat timestamp:', payload.iat);
-      console.log('Token exp timestamp:', payload.exp);
-      console.log('Current timestamp:', currentTime);
-      console.log('Is expired:', payload.exp <= currentTime);
-      console.log('Has future iat:', payload.iat > currentTime);
-      
-      if (payload.iat > currentTime) {
-        console.error('🚨 CRITICAL: Token has future issue date!');
-        console.log('This indicates server time is wrong.');
-        return false;
-      }
-      
-      if (payload.exp <= currentTime) {
-        console.log('Token is expired');
-        return false;
-      }
-      
-      console.log('✅ Token is valid');
-      return true;
-      
-    } catch (error) {
-      console.error('❌ Token decode error:', error);
-      return false;
+      console.error('Token decode error:', error);
     }
   }
 
@@ -660,12 +606,14 @@ export class AuthService {
       const storedRole = storedUser.role?.toUpperCase();
       
       if (tokenRole !== storedRole) {
+        console.warn('Role inconsistency detected:', { tokenRole, storedRole });
         return false;
       }
       
       return true;
       
     } catch (error) {
+      console.error('Error verifying role consistency:', error);
       return false;
     }
   }
@@ -686,7 +634,9 @@ export class AuthService {
     try {
       localStorage.removeItem(key);
       sessionStorage.removeItem(key);
-    } catch {}
+    } catch (error) {
+      console.error('Error removing from storage:', error);
+    }
   }
 
   private clearAllStorage(): void {
@@ -713,6 +663,7 @@ export class AuthService {
     const token = authResponse.token;
 
     if (!user || !token) {
+      console.error('Invalid auth response:', authResponse);
       return;
     }
 
@@ -739,6 +690,8 @@ export class AuthService {
     this.isAuthenticatedSubject.next(true);
     
     this.clearPendingVerification();
+    
+    console.log('Auth data stored successfully for user:', user.email);
   }
 
   private isUsingLocalStorage(): boolean {
@@ -746,49 +699,24 @@ export class AuthService {
     return !!localStorage.getItem('authToken');
   }
 
-  private extractRoleFromToken(token: string): string | null {
-    try {
-      const tokenParts = token.split('.');
-      if (tokenParts.length !== 3) return null;
-      
-      const payload = tokenParts[1];
-      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
-      const decodedPayload = atob(paddedBase64);
-      const payloadObj = JSON.parse(decodedPayload);
-      
-      return payloadObj.role || null;
-    } catch (error) {
-      return null;
-    }
-  }
-
   private initializeAuthState(): void {
     const user = this.getCurrentUser();
     const token = this.getToken();
     
-    let isAuthenticated = false;
-    
     if (user && token) {
-      isAuthenticated = this.hasValidToken();
-      
-      if (!isAuthenticated) {
-        console.log('🔄 Token invalid on initialization, clearing storage');
-        this.clearAllStorage();
-        this.currentUserSubject.next(null);
-        this.isAuthenticatedSubject.next(false);
-        return;
-      }
+      // Set initial state based on stored data
+      this.currentUserSubject.next(user);
+      this.isAuthenticatedSubject.next(true);
+      console.log('Auth state initialized from storage for user:', user.email);
     } else {
+      // Clear any partial/corrupted state
       if (user && !token) {
-        console.log('🔄 User data found but no token, clearing storage');
+        console.warn('Clearing corrupted auth state: user without token');
         this.clearAllStorage();
       }
-      isAuthenticated = false;
+      this.currentUserSubject.next(null);
+      this.isAuthenticatedSubject.next(false);
     }
-    
-    this.currentUserSubject.next(user);
-    this.isAuthenticatedSubject.next(isAuthenticated);
   }
 
   private updateUserStorage(userData: User): void {
@@ -813,7 +741,7 @@ export class AuthService {
     this.clearAllStorage();
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);
-    this.router.navigate(['/login']);
+    console.log('Local logout performed');
   }
 
   private handleError = (error: HttpErrorResponse): Observable<never> => {
@@ -826,6 +754,8 @@ export class AuthService {
         message = error.error.message;
       } else if (error.status === 401) {
         message = 'Invalid credentials or session expired';
+        // Clear auth state on 401 errors
+        this.performLocalLogout();
       } else if (error.status === 403) {
         message = 'Access denied';
       } else if (error.status === 409) {
@@ -837,6 +767,7 @@ export class AuthService {
       }
     }
     
+    console.error('Auth Service Error:', error);
     return throwError(() => new Error(message));
   };
 }

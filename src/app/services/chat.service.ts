@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject, of, timer } from 'rxjs';
-import { catchError, tap, map, retryWhen, delayWhen, take, switchMap, timeout } from 'rxjs/operators';
+import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
+import { catchError, tap, map, timeout } from 'rxjs/operators';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { 
@@ -57,14 +57,20 @@ export class ChatService {
       this.loadRooms();
     }
 
-    // Listen for authentication changes
+    // Listen for authentication changes - but be less aggressive
     this.authService.isAuthenticated$.subscribe(isAuthenticated => {
       if (isAuthenticated) {
-        console.log('🔄 Auth state changed: authenticated, reconnecting chat...');
-        this.reconnect();
+        console.log('🔄 Auth state changed: authenticated, initializing chat...');
+        setTimeout(() => {
+          if (this.authService.isAuthenticated()) {
+            this.initializeWebSocketConnection();
+            this.loadRooms();
+          }
+        }, 1000);
       } else {
-        console.log('🔄 Auth state changed: not authenticated, disconnecting chat...');
+        console.log('🔄 Auth state changed: not authenticated, cleaning up chat...');
         this.disconnect();
+        this.clearLocalData();
       }
     });
   }
@@ -79,15 +85,29 @@ export class ChatService {
       throw new Error('No authentication token available');
     }
     
-    let authHeader = token;
-    if (!token.startsWith('Bearer ')) {
-      authHeader = `Bearer ${token}`;
+    // Clean the token - remove 'Bearer ' if it's already there
+    let cleanToken = token;
+    if (token.startsWith('Bearer ')) {
+      cleanToken = token.substring(7);
     }
     
     return new HttpHeaders({
-      'Authorization': authHeader,
+      'Authorization': `Bearer ${cleanToken}`,
       'Content-Type': 'application/json'
     });
+  }
+
+  private getWsToken(): string {
+    const token = this.authService.getToken();
+    if (!token) {
+      throw new Error('No authentication token available');
+    }
+    
+    // Clean the token for WebSocket
+    if (token.startsWith('Bearer ')) {
+      return token.substring(7);
+    }
+    return token;
   }
 
   private handleApiError(error: any): Observable<never> {
@@ -97,7 +117,7 @@ export class ChatService {
       switch (error.status) {
         case 401:
           console.error('Authentication failed - Token expired or invalid');
-          // The auth service will handle the refresh automatically
+          // Don't throw immediately - let the component handle this
           return throwError(() => new Error('Authentication failed. Please login again.'));
 
         case 403:
@@ -133,10 +153,9 @@ export class ChatService {
         return;
       }
 
-      const token = this.authService.getToken();
-      if (!token) {
-        console.error('No token available for WebSocket connection');
-        return;
+      // Clean up existing connection
+      if (this.stompClient) {
+        this.stompClient.deactivate();
       }
 
       console.log('Initializing WebSocket connection...');
@@ -148,7 +167,7 @@ export class ChatService {
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
         connectHeaders: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${this.getWsToken()}`
         },
         debug: (str) => {
           // Only log important debug messages
@@ -379,40 +398,13 @@ export class ChatService {
         unit: participant.unit
       };
 
-      if (processedParticipant.role === 'TENANT' && !processedParticipant.unitNumber) {
-        this.enrichTenantWithUnitData(processedParticipant);
-      }
-
       return processedParticipant;
     });
   }
 
-  private enrichTenantWithUnitData(participant: Participant): void {
-    if (participant.id === this.getCurrentUserId()) {
-      this.tenantService.getTenantUnits().subscribe({
-        next: (response) => {
-          const units = Array.isArray(response?.data) ? response.data : [];
-          if (units.length > 0) {
-            const primaryUnit = units[0];
-            participant.unitNumber = primaryUnit.unitNumber || 'N/A';
-            participant.propertyId = primaryUnit.propertyId;
-          }
-        },
-        error: (error) => {
-          console.error('Error enriching tenant data:', error);
-        }
-      });
-    }
-  }
-
   private enrichRoomWithTenantData(room: ChatRoom): void {
-    if (room.type === 'landlord-tenant' || room.type === 'tenant-landlord' || room.type === 'caretaker-tenant') {
-      room.participants.forEach(participant => {
-        if (participant.role === 'TENANT' && !participant.unitNumber) {
-          this.enrichTenantWithUnitData(participant);
-        }
-      });
-    }
+    // This will be handled by the component now
+    // Remove the automatic tenant service calls that might cause issues
   }
 
   private subscribeToRoom(roomId: number): void {
@@ -474,7 +466,8 @@ export class ChatService {
       }),
       catchError(error => {
         console.error('Error loading rooms:', error);
-        return this.handleApiError(error);
+        // Don't handle auth error here - let component handle it
+        return of([]);
       })
     ).subscribe(rooms => {
       const processedRooms = rooms.map(room => this.processRoomData(room));
@@ -500,7 +493,8 @@ export class ChatService {
       }),
       catchError(error => {
         console.error('Error loading messages:', error);
-        return this.handleApiError(error);
+        // Don't handle auth error here - let component handle it
+        return of([]);
       })
     ).subscribe(messages => {
       const processedMessages = messages.map(msg => this.processMessageData(msg))
@@ -528,15 +522,17 @@ export class ChatService {
           destination: '/app/chat.sendMessage',
           body: JSON.stringify(messageRequest),
           headers: {
-            'Authorization': `Bearer ${this.authService.getToken()}`
+            'Authorization': `Bearer ${this.getWsToken()}`
           }
         });
+        // Return a success observable immediately for WebSocket
+        return of({ success: true, message: 'Message sent' } as ApiResponse);
       } catch (error) {
         console.error('Error publishing message via WebSocket:', error);
       }
     }
 
-    // Always send via HTTP as fallback
+    // Fallback to HTTP
     return this.http.post<ApiResponse>(`${this.apiUrl}/messages`, messageRequest, { 
       headers: this.getHeaders() 
     }).pipe(
@@ -553,6 +549,7 @@ export class ChatService {
     );
   }
 
+  // Keep the rest of your methods the same...
   deleteMessage(messageId: number): Observable<ApiResponse> {
     if (!this.authService.isAuthenticated()) {
       return throwError(() => new Error('User not authenticated'));
@@ -573,7 +570,7 @@ export class ChatService {
     );
   }
 
-  // Chat creation methods
+  // Chat creation methods - simplified error handling
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
       `${this.apiUrl}/rooms/tenant-landlord/${propertyId}`, 

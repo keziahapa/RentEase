@@ -58,7 +58,24 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     CARETAKER_TENANT: 'caretaker-tenant' as ChatRoomType
   };
 
-  emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃'];
+  emojis = [
+    '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
+    '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
+    '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
+    '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥',
+    '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮',
+    '🤧', '🥵', '🥶', '😶‍🌫️', '🥴', '😵', '🤯', '🤠', '🥳', '😎',
+    '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳',
+    '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖',
+    '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬',
+    '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉',
+    '👆', '👇', '☝️', '✋', '🤚', '🖐️', '🖖', '👋', '🤝', '💪',
+    '🙏', '✍️', '💅', '🤳', '💃', '🕺', '👯', '🧘', '🛀', '🛌',
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
+    '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️',
+    '✨', '💫', '⭐', '🌟', '✴️', '🎊', '🎉', '🎈', '🎁', '🏆',
+    '🥇', '🥈', '🥉', '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉'
+  ];
 
   private router = inject(Router);
 
@@ -77,18 +94,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
 
     this.userRole = this.authService.getCurrentUser()?.role?.toUpperCase() || '';
-    
-    // Monitor authentication state
-    this.authService.isAuthenticated$.subscribe(isAuthenticated => {
-      if (!isAuthenticated) {
-        console.warn('Authentication state changed: logged out');
-        this.redirectToLogin();
-      } else {
-        console.log('Authentication state changed: logged in');
-        // Reinitialize chat service
-        this.chatService.reconnect();
-      }
-    });
     
     this.loadUserDataAutomatically();
     this.initializeSubscriptions();
@@ -109,7 +114,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         console.error('Error in rooms subscription:', error);
         this.loadingRooms = false;
         if (error?.status === 401) {
-          this.handleAuthError(error);
+          this.handleAuthError();
         }
       }
     });
@@ -127,7 +132,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (error) => {
         console.error('Error in currentRoom subscription:', error);
         if (error?.status === 401) {
-          this.handleAuthError(error);
+          this.handleAuthError();
         }
       }
     });
@@ -143,7 +148,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (error) => {
         console.error('Error in messages subscription:', error);
         if (error?.status === 401) {
-          this.handleAuthError(error);
+          this.handleAuthError();
         }
       }
     });
@@ -185,7 +190,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     dataObservable.pipe(
       catchError((error) => {
-        this.handleAuthError(error);
+        console.error('Error loading user data:', error);
+        if (error?.status === 401) {
+          this.handleAuthError();
+        }
         return of([]);
       })
     ).subscribe((response: any) => {
@@ -420,31 +428,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     };
   }
 
-  private handleAuthError(error?: any): void {
-    console.log('Handling auth error...', error);
+  private handleAuthError(): void {
+    console.warn('Authentication error detected');
     
-    // Check if we can refresh the token
-    if (this.authService.canRefreshToken()) {
-      console.log('Attempting token refresh...');
-      this.authService.refreshToken().subscribe({
-        next: (success) => {
-          if (success) {
-            console.log('Token refreshed successfully, reconnecting chat...');
-            this.chatService.reconnect();
-          } else {
-            console.error('Token refresh failed, logging out');
-            this.redirectToLogin();
-          }
-        },
-        error: (refreshError) => {
-          console.error('Token refresh error:', refreshError);
-          this.redirectToLogin();
-        }
-      });
-    } else {
-      console.log('Cannot refresh token, redirecting to login');
+    // Simple check - if not authenticated, redirect to login
+    if (!this.authService.isAuthenticated()) {
       this.redirectToLogin();
     }
+    // If still authenticated but got 401, it might be a token issue
+    // Let the user continue working and show error messages
   }
 
   private redirectToLogin(): void {
@@ -529,8 +521,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       },
       error: (error: any) => {
         this.loadingRooms = false;
-        this.handleAuthError(error);
-        alert('Failed to create chat: ' + (error.error?.message || error.message));
+        console.error('Chat creation error:', error);
+        
+        // Only handle auth error if it's specifically 401
+        if (error?.status === 401) {
+          this.handleAuthError();
+        }
+        
+        alert('Failed to create chat: ' + (error.error?.message || error.message || 'Unknown error'));
       }
     });
   }
@@ -570,7 +568,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         error: (error: any) => {
           console.error('Error sending message:', error);
           if (error.status === 401) {
-            this.handleAuthError(error);
+            this.handleAuthError();
           } else {
             alert('Failed to send message. Please try again.');
           }
@@ -593,7 +591,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         error: (error: any) => {
           console.error('Error deleting message:', error);
           if (error.status === 401) {
-            this.handleAuthError(error);
+            this.handleAuthError();
           } else {
             alert('Failed to delete message.');
           }
@@ -643,7 +641,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         error: (error: any) => {
           console.error('Error sending file:', error);
           if (error.status === 401) {
-            this.handleAuthError(error);
+            this.handleAuthError();
           } else {
             alert('Failed to send file. Please try again.');
           }
