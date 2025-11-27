@@ -20,11 +20,12 @@ export type MessageType =
   | 'DOCUMENT';  
 
 export type MessageStatus = 
-  | 'SENDING'     // ADD THIS LINE
+  | 'SENDING'     // ADDED
   | 'SENT'       
   | 'DELIVERED'  
   | 'READ'       
-  | 'DELETED';   
+  | 'DELETED'
+  | 'FAILED';     // ADDED
 
 export type UserRole = 
   | 'TENANT'     
@@ -49,7 +50,7 @@ export interface Message {
   sentAt: Date;
   timestamp: Date;
   messageType: MessageType;
-  status: MessageStatus; // Now includes 'SENDING'
+  status: MessageStatus; // Now includes 'SENDING' and 'FAILED'
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;
@@ -483,11 +484,12 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export const MESSAGE_STATUS_COLORS: Record<MessageStatus, string> = {
-  'SENDING': '#8a8d91',  // ADD THIS LINE
+  'SENDING': '#8a8d91',  // ADDED
   'SENT': '#8a8d91',
   'DELIVERED': '#31a24c',
   'READ': '#1e3a8a',
-  'DELETED': '#fa383e'
+  'DELETED': '#fa383e',
+  'FAILED': '#ff4444'    // ADDED
 };
 
 export function isTextMessage(message: Message): boolean {
