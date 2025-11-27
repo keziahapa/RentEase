@@ -149,12 +149,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private initializeSubscriptions(): void {
     this.chatService.rooms$.subscribe({
       next: (rooms: ChatRoom[]) => {
+        console.log('📥 Rooms subscription received:', rooms?.length || 0, 'rooms');
         this.rooms = rooms ?? [];
         this.loadingRooms = false;
         this.rooms.forEach(room => this.enrichRoomParticipants(room));
       },
       error: (error: any) => {
-        console.error('Error in rooms subscription:', error);
+        console.error('❌ Error in rooms subscription:', error);
         this.loadingRooms = false;
         if (this.shouldHandleAuthError(error)) {
           this.handleAuthError(error);
@@ -164,8 +165,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.chatService.currentRoom$.subscribe({
       next: (room: ChatRoom | null) => {
+        console.log('📥 CurrentRoom subscription received:', room);
         this.currentRoom = room;
         if (room) {
+          console.log('🔄 Enriching room participants for room:', room.id);
           this.enrichRoomParticipants(room);
           this.updateCurrentChatInfo();
         } else {
@@ -173,7 +176,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
       },
       error: (error: any) => {
-        console.error('Error in currentRoom subscription:', error);
+        console.error('❌ Error in currentRoom subscription:', error);
         if (this.shouldHandleAuthError(error)) {
           this.handleAuthError(error);
         }
@@ -182,14 +185,23 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.chatService.messages$.subscribe({
       next: (messages: Message[]) => {
+        console.log('📥 Messages subscription received:', messages?.length || 0, 'messages');
         const oldLength = this.messages.length;
         this.messages = messages ?? [];
+        
         if (this.messages.length > oldLength) {
+          console.log('🆕 New messages detected, will scroll to bottom');
           this.shouldScrollToBottom = true;
+        }
+        
+        // Log message details for debugging
+        if (messages.length > 0) {
+          console.log('📝 First message:', messages[0]);
+          console.log('📝 Last message:', messages[messages.length - 1]);
         }
       },
       error: (error: any) => {
-        console.error('Error in messages subscription:', error);
+        console.error('❌ Error in messages subscription:', error);
         if (this.shouldHandleAuthError(error)) {
           this.handleAuthError(error);
         }
@@ -198,10 +210,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.chatService.connected$.subscribe({
       next: (connected: boolean) => {
+        console.log('🔌 Connection status:', connected);
         this.isConnected = connected;
       },
       error: (error: any) => {
-        console.error('Error in connected subscription:', error);
+        console.error('❌ Error in connected subscription:', error);
       }
     });
   }
@@ -667,13 +680,39 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   selectRoom(room: ChatRoom): void {
+    console.log('🎯 SELECT ROOM CLICKED:', room);
+    
     if (!this.authService.isAuthenticated()) {
+      console.error('❌ User not authenticated');
       this.handleAuthError({ status: 401 });
       return;
     }
 
+    if (!room || !room.id) {
+      console.error('❌ Invalid room selected');
+      return;
+    }
+
+    console.log('📥 Selecting room with ID:', room.id);
+    console.log('📝 Room details:', {
+      name: room.name,
+      participants: room.participants?.length,
+      lastMessage: room.lastMessage?.content
+    });
+
+    // Update current room immediately for UI feedback
+    this.currentRoom = room;
+    this.messages = []; // Clear previous messages
+    
+    // Call the service to load messages
     this.chatService.selectRoom(room);
     this.shouldScrollToBottom = true;
+
+    // Force refresh messages after a short delay
+    setTimeout(() => {
+      console.log('🔄 Force refreshing messages for room:', room.id);
+      this.chatService.getMessages(room.id);
+    }, 100);
   }
 
   sendMessage(): void {
@@ -991,6 +1030,50 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       'CARETAKER': 'Caretaker'
     };
     return roleMap[role] || role;
+  }
+
+  // Debug methods
+  checkRoomState(): void {
+    console.log('=== ROOM STATE CHECK ===');
+    console.log('Current Room:', this.currentRoom);
+    console.log('Rooms List:', this.rooms);
+    console.log('Messages:', this.messages);
+    console.log('Is Connected:', this.isConnected);
+    
+    // Check if service has the same current room
+    this.chatService.currentRoom$.subscribe(room => {
+      console.log('Service Current Room:', room);
+    }).unsubscribe();
+    
+    this.chatService.messages$.subscribe(messages => {
+      console.log('Service Messages Count:', messages.length);
+    }).unsubscribe();
+  }
+
+ testConnection(): void {
+  console.log('=== CONNECTION TEST ===');
+ 
+  if (this.currentRoom) {
+    const testMessage = `Test message ${new Date().toLocaleTimeString()}`;
+    console.log('Sending test message:', testMessage);
+    this.chatService.sendMessage(testMessage, this.currentRoom.id).subscribe({
+      next: (response) => console.log('Test send success:', response),
+      error: (error) => console.error('Test send error:', error)
+    });
+  } else {
+    console.log('No room selected for test');
+  }
+}
+  refreshChatData(): void {
+    console.log('🔄 Manually refreshing chat data...');
+    if (this.authService.isAuthenticated()) {
+      this.chatService.loadRooms();
+      if (this.currentRoom) {
+        this.chatService.getMessages(this.currentRoom.id);
+      }
+    } else {
+      console.log('Cannot refresh: User not authenticated');
+    }
   }
 
   private scrollToBottom(): void {
