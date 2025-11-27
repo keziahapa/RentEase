@@ -40,8 +40,6 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
             duration: 5000,
             panelClass: ['snackbar-error']
           });
-          // Clear any corrupted auth state
-          authService.clearCorruptedStorage();
         }
         return throwError(() => error);
       })
@@ -61,23 +59,13 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
             duration: 5000,
             panelClass: ['snackbar-error']
           });
-          authService.clearCorruptedStorage();
         }
         return throwError(() => error);
       })
     );
   }
 
-  // Validate token before sending (optional but recommended)
-  if (!authService.hasValidToken()) {
-    console.warn('⚠️ Token appears invalid for endpoint:', req.url);
-    
-    // Don't block the request, but log the warning
-    // The server will reject it if it's truly invalid
-  }
-
   // Clone the request and add the Authorization header
-  // Use the token as-is - AuthService.getToken() already cleans it
   const authReq = req.clone({
     setHeaders: {
       Authorization: `Bearer ${token}`
@@ -85,7 +73,6 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
   });
 
   console.log('✅ Added Authorization header to:', req.url);
-  console.log('🔐 Token length:', token.length);
   
   // Forward the request and handle errors
   return next(authReq).pipe(
@@ -101,25 +88,44 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
         case 401:
           console.warn('🔴 401 Unauthorized for:', req.url);
           
-          // Debug token state
-          console.log('🔍 Debugging token state on 401:');
-          console.log('- isAuthenticated():', authService.isAuthenticated());
-          console.log('- hasValidToken():', authService.hasValidToken());
-          console.log('- Token exists:', !!authService.getToken());
+          // Check if this is a role-based access issue vs actual auth failure
+          const isRoleBasedUnauthorized = isRoleBasedAccessIssue(req.url, authService);
           
-          // Show appropriate message
-          if (authService.isAuthenticated()) {
-            snackBar.open('Session expired. Please login again.', 'Close', {
+          if (isRoleBasedUnauthorized) {
+            console.log('🎯 Role-based access issue - not logging out');
+            // Show specific message for role-based access
+            snackBar.open('Access denied: You don\'t have permission for this action', 'Close', {
               duration: 5000,
               panelClass: ['snackbar-warning']
             });
-            // Clear auth state on 401 when we thought we were authenticated
-            authService.clearCorruptedStorage();
           } else {
-            snackBar.open('Authentication required. Please login.', 'Close', {
-              duration: 5000,
-              panelClass: ['snackbar-error']
-            });
+            console.warn('🔐 Actual authentication failure');
+            
+            // Debug token state
+            console.log('🔍 Debugging token state on 401:');
+            console.log('- isAuthenticated():', authService.isAuthenticated());
+            console.log('- hasValidToken():', authService.hasValidToken());
+            console.log('- Token exists:', !!authService.getToken());
+            
+            // Only logout if this is an actual authentication failure
+            if (authService.isAuthenticated()) {
+              snackBar.open('Session expired. Please login again.', 'Close', {
+                duration: 5000,
+                panelClass: ['snackbar-warning']
+              });
+              // Only clear storage if token is actually invalid
+              if (!authService.hasValidToken()) {
+                console.log('🔄 Token is invalid, performing logout...');
+                authService.logoutSync();
+              } else {
+                console.log('🔐 Token is still valid, might be server issue');
+              }
+            } else {
+              snackBar.open('Authentication required. Please login.', 'Close', {
+                duration: 5000,
+                panelClass: ['snackbar-error']
+              });
+            }
           }
           break;
 
@@ -156,3 +162,23 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
     })
   );
 };
+
+// Helper function to detect role-based access issues
+function isRoleBasedAccessIssue(url: string, authService: AuthService): boolean {
+  // Check if it's a tenant endpoint but user is not a tenant
+  if (url.includes('/api/tenant/') && !authService.isTenant()) {
+    return true;
+  }
+  
+  // Check if it's a landlord endpoint but user is not a landlord
+  if (url.includes('/api/landlord/') && !authService.isLandlord()) {
+    return true;
+  }
+  
+  // Check if it's a caretaker endpoint but user is not a caretaker
+  if (url.includes('/api/caretaker/') && !authService.isCaretaker()) {
+    return true;
+  }
+  
+  return false;
+}
