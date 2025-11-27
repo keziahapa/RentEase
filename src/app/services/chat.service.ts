@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
-import { catchError, tap, map, timeout } from 'rxjs/operators';
+import { catchError, tap, map, timeout, finalize } from 'rxjs/operators';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { 
@@ -51,16 +51,13 @@ export class ChatService {
   }
 
   private initializeService(): void {
-    // Initialize only if authenticated
     if (this.authService.isAuthenticated()) {
       this.initializeWebSocketConnection();
       this.loadRooms();
     }
 
-    // Listen for authentication changes - but be less aggressive
     this.authService.isAuthenticated$.subscribe(isAuthenticated => {
       if (isAuthenticated) {
-        console.log('🔄 Auth state changed: authenticated, initializing chat...');
         setTimeout(() => {
           if (this.authService.isAuthenticated()) {
             this.initializeWebSocketConnection();
@@ -68,7 +65,6 @@ export class ChatService {
           }
         }, 1000);
       } else {
-        console.log('🔄 Auth state changed: not authenticated, cleaning up chat...');
         this.disconnect();
         this.clearLocalData();
       }
@@ -85,7 +81,6 @@ export class ChatService {
       throw new Error('No authentication token available');
     }
     
-    // Clean the token - remove 'Bearer ' if it's already there
     let cleanToken = token;
     if (token.startsWith('Bearer ')) {
       cleanToken = token.substring(7);
@@ -103,7 +98,6 @@ export class ChatService {
       throw new Error('No authentication token available');
     }
     
-    // Clean the token for WebSocket
     if (token.startsWith('Bearer ')) {
       return token.substring(7);
     }
@@ -112,34 +106,7 @@ export class ChatService {
 
   private handleApiError(error: any): Observable<never> {
     console.error('API Error:', error);
-
-    if (error instanceof HttpErrorResponse) {
-      switch (error.status) {
-        case 401:
-          console.error('Authentication failed - Token expired or invalid');
-          // Don't throw immediately - let the component handle this
-          return throwError(() => new Error('Authentication failed. Please login again.'));
-
-        case 403:
-          console.error('Access forbidden');
-          return throwError(() => new Error('You do not have permission to perform this action.'));
-
-        case 404:
-          console.error('Resource not found');
-          return throwError(() => new Error('The requested resource was not found.'));
-
-        case 500:
-          console.error('Server error');
-          return throwError(() => new Error('Server error. Please try again later.'));
-
-        default:
-          console.error('HTTP error:', error.status, error.message);
-          return throwError(() => new Error('An unexpected error occurred. Please try again.'));
-      }
-    }
-    
-    console.error('Network error:', error);
-    return throwError(() => new Error('Network error. Please check your connection.'));
+    return throwError(() => new Error('An error occurred. Please try again.'));
   }
 
   private initializeWebSocketConnection(): void {
@@ -149,16 +116,12 @@ export class ChatService {
       }
 
       if (!this.authService.isAuthenticated()) {
-        console.warn('User not authenticated, skipping WebSocket connection');
         return;
       }
 
-      // Clean up existing connection
       if (this.stompClient) {
         this.stompClient.deactivate();
       }
-
-      console.log('Initializing WebSocket connection...');
       
       const socket = new SockJS(this.wsUrl);
       this.stompClient = new Client({
@@ -170,7 +133,6 @@ export class ChatService {
           'Authorization': `Bearer ${this.getWsToken()}`
         },
         debug: (str) => {
-          // Only log important debug messages
           if (str.includes('ERROR') || str.includes('CONNECT') || str.includes('DISCONNECT')) {
             console.log('STOMP:', str);
           }
@@ -178,11 +140,9 @@ export class ChatService {
       });
 
       this.stompClient.onConnect = (frame) => {
-        console.log('✅ WebSocket connected successfully');
         this.connectedSubject.next(true);
         this.connectionAttempts = 0;
         
-        // Subscribe to user-specific queues
         const userMessagesSubscription = this.stompClient!.subscribe('/user/queue/messages', (message: IMessage) => {
           this.handleIncomingMessage(JSON.parse(message.body));
         });
@@ -194,37 +154,31 @@ export class ChatService {
         this.roomSubscriptions.set('/user/queue/messages', userMessagesSubscription);
         this.roomSubscriptions.set('/user/queue/messages/deleted', userDeletedSubscription);
 
-        // Subscribe to current room if available
         const currentRoom = this.currentRoomSubject.value;
         if (currentRoom?.id) {
           this.subscribeToRoom(currentRoom.id);
         }
 
-        // Reload rooms to ensure data is fresh
         this.loadRooms();
       };
 
       this.stompClient.onStompError = (frame) => {
-        console.error('❌ STOMP error:', frame);
         this.connectedSubject.next(false);
         this.attemptReconnection();
       };
 
       this.stompClient.onWebSocketError = (event) => {
-        console.error('❌ WebSocket error:', event);
         this.connectedSubject.next(false);
         this.attemptReconnection();
       };
 
       this.stompClient.onDisconnect = (frame) => {
-        console.log('🔌 WebSocket disconnected');
         this.connectedSubject.next(false);
         this.roomSubscriptions.clear();
       };
 
       this.stompClient.activate();
     } catch (error) {
-      console.error('❌ Error initializing WebSocket:', error);
       this.connectedSubject.next(false);
       this.attemptReconnection();
     }
@@ -233,34 +187,30 @@ export class ChatService {
   private attemptReconnection(): void {
     if (this.connectionAttempts < this.MAX_CONNECTION_ATTEMPTS) {
       this.connectionAttempts++;
-      console.log(`🔄 Attempting reconnection (${this.connectionAttempts}/${this.MAX_CONNECTION_ATTEMPTS})...`);
       
       setTimeout(() => {
         if (this.authService.isAuthenticated()) {
           this.initializeWebSocketConnection();
         }
       }, this.RECONNECT_DELAY * this.connectionAttempts);
-    } else {
-      console.error('❌ Max reconnection attempts reached');
     }
   }
 
   private handleIncomingMessage(messageData: any): void {
     try {
       if (!messageData.chatRoomId) {
-        console.warn('Received message without chatRoomId:', messageData);
         return;
       }
       
       const message: Message = {
-        id: Number(messageData.id),
-        content: messageData.content || '',
-        senderId: Number(messageData.senderId),
-        senderName: messageData.senderName || messageData.sender?.name || 'Unknown User',
+        id: Number(messageData.id || messageData.messageId || Date.now()),
+        content: messageData.content || messageData.message || '',
+        senderId: Number(messageData.senderId || messageData.sender?.id || this.getCurrentUserId()),
+        senderName: messageData.senderName || messageData.sender?.name || messageData.sender?.fullName || 'Unknown User',
         senderEmail: messageData.senderEmail || messageData.sender?.email || '',
-        chatRoomId: Number(messageData.chatRoomId),
-        sentAt: new Date(messageData.sentAt || messageData.timestamp),
-        timestamp: new Date(messageData.sentAt || messageData.timestamp),
+        chatRoomId: Number(messageData.chatRoomId || messageData.roomId),
+        sentAt: new Date(messageData.sentAt || messageData.timestamp || messageData.createdAt || Date.now()),
+        timestamp: new Date(messageData.sentAt || messageData.timestamp || messageData.createdAt || Date.now()),
         messageType: messageData.messageType || 'TEXT',
         status: messageData.status || 'SENT',
         fileUrl: messageData.fileUrl,
@@ -349,8 +299,6 @@ export class ChatService {
       updatedAt: room.updatedAt ? new Date(room.updatedAt) : new Date()
     };
 
-    this.enrichRoomWithTenantData(processedRoom);
-    
     return processedRoom;
   }
 
@@ -402,10 +350,6 @@ export class ChatService {
     });
   }
 
-  private enrichRoomWithTenantData(room: ChatRoom): void {
-    
-  }
-
   private subscribeToRoom(roomId: number): void {
     if (this.stompClient && this.stompClient.connected) {
       this.unsubscribeFromRoom(roomId);
@@ -446,10 +390,8 @@ export class ChatService {
     ).subscribe();
   }
 
- 
   loadRooms(): void {
     if (!this.authService.isAuthenticated()) {
-      console.warn('User not authenticated, skipping room load');
       return;
     }
 
@@ -465,7 +407,6 @@ export class ChatService {
       }),
       catchError(error => {
         console.error('Error loading rooms:', error);
-     
         return of([]);
       })
     ).subscribe(rooms => {
@@ -476,7 +417,6 @@ export class ChatService {
 
   getMessages(roomId: number): void {
     if (!this.authService.isAuthenticated()) {
-      console.warn('User not authenticated, skipping message load');
       return;
     }
 
@@ -492,7 +432,6 @@ export class ChatService {
       }),
       catchError(error => {
         console.error('Error loading messages:', error);
-  
         return of([]);
       })
     ).subscribe(messages => {
@@ -505,6 +444,8 @@ export class ChatService {
   }
 
   sendMessage(content: string, roomId: number): Observable<ApiResponse> {
+    console.log('SEND MESSAGE:', content, 'to room:', roomId);
+
     if (!this.authService.isAuthenticated()) {
       return throwError(() => new Error('User not authenticated'));
     }
@@ -514,7 +455,6 @@ export class ChatService {
       chatRoomId: roomId
     };
 
-   
     if (this.stompClient && this.stompClient.connected) {
       try {
         this.stompClient.publish({
@@ -530,12 +470,12 @@ export class ChatService {
       }
     }
 
-  
     return this.http.post<ApiResponse>(`${this.apiUrl}/messages`, messageRequest, { 
       headers: this.getHeaders() 
     }).pipe(
       timeout(10000),
       tap(response => {
+        console.log('MESSAGE SEND RESPONSE:', response);
         if (response.success && response.data) {
           this.handleIncomingMessage(response.data);
         }
@@ -557,7 +497,6 @@ export class ChatService {
     }).pipe(
       timeout(10000),
       tap(() => {
-        console.log('Message deleted:', messageId);
         this.removeMessage(messageId);
       }),
       catchError(error => {
@@ -567,10 +506,9 @@ export class ChatService {
     );
   }
 
- 
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/tenant/landlord/${propertyId}`, 
+      `${this.apiUrl}/tenant/landlord/${propertyId}`,
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -591,7 +529,7 @@ export class ChatService {
 
   createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/tenant/caretaker/${propertyId}`,  
+      `${this.apiUrl}/tenant/caretaker/${propertyId}`,
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -612,7 +550,7 @@ export class ChatService {
 
   createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/landlord/caretaker/${propertyId}`,  
+      `${this.apiUrl}/landlord/caretaker/${propertyId}`,
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -633,7 +571,7 @@ export class ChatService {
 
   createLandlordTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/landlord/tenant/${unitId}`,  
+      `${this.apiUrl}/landlord/tenant/${unitId}`,
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -654,7 +592,7 @@ export class ChatService {
 
   createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/caretaker/tenant/${unitId}`, 
+      `${this.apiUrl}/caretaker/tenant/${unitId}`,
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -824,12 +762,10 @@ export class ChatService {
     }, 1000);
   }
 
- 
   canAccessChat(): boolean {
     return this.authService.isAuthenticated() && !!this.authService.getToken();
   }
 
- 
   clearLocalData(): void {
     this.messagesSubject.next([]);
     this.roomsSubject.next([]);
