@@ -103,21 +103,18 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
 
     const dashboardSub = forkJoin({
       properties: this.caretakerService.getProperties().pipe(
-        map(response => this.normalizePropertiesResponse(response)),
         catchError(error => {
           console.warn('Failed to load properties:', error);
           return of([]);
         })
       ),
       maintenanceRequests: this.maintenanceService.getCaretakerMaintenanceRequests().pipe(
-        map(response => this.normalizeArrayResponse(response)),
         catchError(error => {
           console.warn('Failed to load maintenance requests:', error);
           return of([]);
         })
       ),
       moveOutNotices: this.caretakerService.getPendingMoveOutNotices(1, 50).pipe(
-        map(response => this.normalizeArrayResponse(response)),
         catchError(error => {
           console.warn('Failed to load move-out notices:', error);
           return of([]);
@@ -131,12 +128,24 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
       )
     }).subscribe({
       next: (results) => {
-        console.log('Dashboard data loaded:', results);
-        this.processDashboardData(results);
+        console.log('🚀 RAW DASHBOARD DATA:', results);
+        
+        // Process the data - your services already extract .data from ApiResponse
+        this.properties = results.properties || [];
+        const maintenanceRequests = results.maintenanceRequests || [];
+        const moveOutNotices = results.moveOutNotices || [];
+        const chatRooms = results.chatRooms || [];
+
+        console.log('📊 Properties:', this.properties);
+        console.log('🔧 Maintenance Requests:', maintenanceRequests);
+        console.log('🚪 Move Out Notices:', moveOutNotices);
+        console.log('💬 Chat Rooms:', chatRooms);
+
+        this.processDashboardData(this.properties, maintenanceRequests, moveOutNotices, chatRooms);
         this.isLoadingDashboard = false;
       },
       error: (error) => {
-        console.error('Error loading dashboard data:', error);
+        console.error('❌ Error loading dashboard data:', error);
         this.loadError = error?.message || 'Failed to load dashboard data';
         this.isLoadingDashboard = false;
         this.showSnackbar(this.loadError);
@@ -146,57 +155,19 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     this.subscriptions.add(dashboardSub);
   }
 
-  private normalizePropertiesResponse(response: any): any[] {
-    if (!response) return [];
-    
-    if (Array.isArray(response)) {
-      return response;
-    }
-    
-    if (response.data && Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    if (response.content && Array.isArray(response.content)) {
-      return response.content;
-    }
-    
-    return [];
-  }
-
-  private normalizeArrayResponse(response: any): any[] {
-    if (!response) return [];
-    
-    if (Array.isArray(response)) {
-      return response;
-    }
-    
-    if (response.data && Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    if (response.content && Array.isArray(response.content)) {
-      return response.content;
-    }
-    
-    if (response.success && response.data && Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    return [];
-  }
-
-  private processDashboardData(results: any): void {
-    this.properties = results.properties || [];
-    const maintenanceRequests = results.maintenanceRequests || [];
-    const moveOutNotices = results.moveOutNotices || [];
-    const chatRooms = results.chatRooms || [];
-
-    this.calculatePropertyStats(this.properties);
+  private processDashboardData(
+    properties: any[], 
+    maintenanceRequests: any[], 
+    moveOutNotices: any[], 
+    chatRooms: any[]
+  ): void {
+    // Calculate statistics
+    this.calculatePropertyStats(properties);
     this.calculateMaintenanceStats(maintenanceRequests);
     this.calculateMoveOutStats(moveOutNotices);
     this.calculateChatStats(chatRooms);
 
+    // Process detailed data for display
     this.maintenanceRequests = maintenanceRequests
       .map((req: any) => this.mapMaintenanceRequest(req))
       .slice(0, 5);
@@ -206,69 +177,113 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
       .slice(0, 5);
 
     this.chatRooms = chatRooms;
+
+    console.log('🎯 FINAL STATS:', this.stats);
+    console.log('🎯 FINAL Maintenance Requests:', this.maintenanceRequests);
+    console.log('🎯 FINAL Move Out Notices:', this.moveOutNotices);
   }
 
   private calculatePropertyStats(properties: any[]): void {
+    console.log('🏠 Calculating property stats from:', properties);
+    
     this.stats.totalProperties = properties.length;
     
     let totalUnits = 0;
     let occupiedUnits = 0;
 
-    properties.forEach((property: any) => {
+    properties.forEach((property: any, index: number) => {
+      console.log(`🏠 Property ${index + 1}:`, property);
+      
+      // Count total units
       if (property.totalUnits !== undefined) {
         totalUnits += property.totalUnits;
+        console.log(`   Using totalUnits: ${property.totalUnits}`);
       } else if (property.units && Array.isArray(property.units)) {
         totalUnits += property.units.length;
+        console.log(`   Using units array length: ${property.units.length}`);
+      } else {
+        console.log(`   No units data found for property`);
       }
 
+      // Count occupied units
       if (property.occupiedUnits !== undefined) {
         occupiedUnits += property.occupiedUnits;
+        console.log(`   Using occupiedUnits: ${property.occupiedUnits}`);
       } else if (property.units && Array.isArray(property.units)) {
-        const occupied = property.units.filter((unit: any) => 
-          unit.isOccupied === true || unit.status === 'OCCUPIED' || unit.status === 'occupied'
-        ).length;
+        const occupied = property.units.filter((unit: any) => {
+          const isOccupied = unit.isOccupied === true || unit.status === 'OCCUPIED' || unit.status === 'occupied';
+          console.log(`   Unit ${unit.unitNumber}: isOccupied=${isOccupied}`);
+          return isOccupied;
+        }).length;
         occupiedUnits += occupied;
+        console.log(`   Calculated occupied units: ${occupied}`);
       }
     });
 
     this.stats.totalUnits = totalUnits;
     this.stats.occupiedUnits = occupiedUnits;
     this.stats.vacantUnits = totalUnits - occupiedUnits;
+
+    console.log('📈 Property Stats Result:', {
+      totalProperties: this.stats.totalProperties,
+      totalUnits: this.stats.totalUnits,
+      occupiedUnits: this.stats.occupiedUnits,
+      vacantUnits: this.stats.vacantUnits
+    });
   }
 
   private calculateMaintenanceStats(maintenanceRequests: any[]): void {
+    console.log('🔧 Calculating maintenance stats from:', maintenanceRequests);
+    
     this.stats.pendingMaintenance = maintenanceRequests.filter(
       (req: any) => {
         const status = req.status?.toLowerCase();
-        return status === 'submitted' || 
+        const isPending = status === 'submitted' || 
                status === 'in-progress' || 
                status === 'pending' ||
-               status === 'submitted' || 
                status === 'in_progress';
+        console.log(`   Request ${req.id}: status=${status}, isPending=${isPending}`);
+        return isPending;
       }
     ).length;
+
+    console.log('📈 Pending Maintenance Count:', this.stats.pendingMaintenance);
   }
 
   private calculateMoveOutStats(moveOutNotices: any[]): void {
+    console.log('🚪 Calculating move-out stats from:', moveOutNotices);
+    
     this.stats.pendingMoveOutNotices = moveOutNotices.filter(
       (notice: any) => {
         const status = notice.status?.toLowerCase();
-        return status === 'pending' || 
+        const isPending = status === 'pending' || 
                status === 'submitted' ||
                status === 'under_review' ||
                !status;
+        console.log(`   Notice ${notice.id}: status=${status}, isPending=${isPending}`);
+        return isPending;
       }
     ).length;
+
+    console.log('📈 Pending Move Out Notices Count:', this.stats.pendingMoveOutNotices);
   }
 
   private calculateChatStats(chatRooms: any[]): void {
+    console.log('💬 Calculating chat stats from:', chatRooms);
+    
     this.stats.unreadMessages = chatRooms.reduce(
-      (total: number, room: any) => total + (room.unreadCount || 0), 0
+      (total: number, room: any) => {
+        const unreadCount = room.unreadCount || 0;
+        console.log(`   Room ${room.id}: unreadCount=${unreadCount}`);
+        return total + unreadCount;
+      }, 0
     );
+
+    console.log('📈 Total Unread Messages:', this.stats.unreadMessages);
   }
 
   private mapMaintenanceRequest(request: any): any {
-    return {
+    const mapped = {
       id: request.id,
       title: request.title || request.description || 'Maintenance Request',
       category: request.category || request.type || 'General',
@@ -279,10 +294,13 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
       propertyName: request.propertyName || request.property?.name || 'Property',
       unitNumber: request.unitNumber || request.unit?.unitNumber || ''
     };
+    
+    console.log('🔧 Mapped Maintenance Request:', mapped);
+    return mapped;
   }
 
   private mapMoveOutNotice(notice: any): any {
-    return {
+    const mapped = {
       id: notice.id,
       tenantName: notice.tenantName || notice.tenant?.name || notice.tenant?.fullName || 'Tenant',
       unitNumber: notice.unitNumber || notice.unit?.unitNumber || '',
@@ -291,6 +309,9 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
       status: notice.status || 'PENDING',
       submittedDate: notice.submittedDate || notice.createdAt || new Date().toISOString()
     };
+    
+    console.log('🚪 Mapped Move Out Notice:', mapped);
+    return mapped;
   }
 
   private mapPriority(priority: string): string {
