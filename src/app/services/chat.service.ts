@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
-import { catchError, tap, map } from 'rxjs/operators';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError, BehaviorSubject, of, timer } from 'rxjs';
+import { catchError, tap, map, retryWhen, delayWhen, take, switchMap } from 'rxjs/operators';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { 
@@ -35,6 +35,10 @@ export class ChatService {
   private connectedSubject = new BehaviorSubject<boolean>(false);
   public connected$ = this.connectedSubject.asObservable();
 
+  private connectionAttempts = 0;
+  private readonly MAX_CONNECTION_ATTEMPTS = 5;
+  private readonly RECONNECT_DELAY = 2000;
+
   private eatTimeZone = 'Africa/Nairobi';
   private eatLocale = 'en-KE';
 
@@ -50,6 +54,7 @@ export class ChatService {
   private getHeaders(): HttpHeaders {
     const token = this.authService.getToken();
     if (!token) {
+      console.warn('No authentication token available');
       throw new Error('No authentication token available');
     }
     
@@ -64,12 +69,82 @@ export class ChatService {
     });
   }
 
+  private handleApiError(error: any): Observable<never> {
+    if (error instanceof HttpErrorResponse) {
+      switch (error.status) {
+        case 401:
+          console.error('Authentication failed - Token may be expired');
+          this.authService.refreshToken().subscribe({
+            next: (refreshed) => {
+              if (refreshed) {
+                console.log('Token refreshed, retrying operation');
+                this.reconnect();
+              } else {
+                console.error('Token refresh failed, redirecting to login');
+                this.authService.logout();
+              }
+            }
+          });
+          return throwError(() => new Error('Authentication failed. Please login again.'));
+
+        case 403:
+          console.error('Access forbidden');
+          return throwError(() => new Error('You do not have permission to perform this action.'));
+
+        case 404:
+          console.error('Resource not found');
+          return throwError(() => new Error('The requested resource was not found.'));
+
+        case 500:
+          console.error('Server error');
+          return throwError(() => new Error('Server error. Please try again later.'));
+
+        default:
+          console.error('HTTP error:', error);
+          return throwError(() => new Error('An unexpected error occurred. Please try again.'));
+      }
+    }
+    
+    console.error('Network error:', error);
+    return throwError(() => new Error('Network error. Please check your connection.'));
+  }
+
+  private retryWithBackoff(maxRetries: number, delay: number) {
+    return (source: Observable<any>) =>
+      source.pipe(
+        retryWhen(errors =>
+          errors.pipe(
+            delayWhen((error, retryCount) => {
+              if (retryCount >= maxRetries) {
+                throw error;
+              }
+              return timer(delay * Math.pow(2, retryCount));
+            }),
+            take(maxRetries)
+          )
+        )
+      );
+  }
+
   private initializeWebSocketConnection(): void {
     try {
       if (typeof window === 'undefined') {
         return;
       }
 
+      if (!this.authService.isAuthenticated()) {
+        console.warn('User not authenticated, skipping WebSocket connection');
+        return;
+      }
+
+      const token = this.authService.getToken();
+      if (!token) {
+        console.error('No token available for WebSocket connection');
+        return;
+      }
+
+      console.log('Initializing WebSocket connection...');
+      
       const socket = new SockJS(this.wsUrl);
       this.stompClient = new Client({
         webSocketFactory: () => socket,
@@ -77,52 +152,85 @@ export class ChatService {
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
         connectHeaders: {
-          'Authorization': `Bearer ${this.authService.getToken()}`
+          'Authorization': `Bearer ${token}`
+        },
+        debug: (str) => {
+          console.log('STOMP Debug:', str);
         }
       });
 
       this.stompClient.onConnect = (frame) => {
+        console.log('WebSocket connected successfully', frame);
         this.connectedSubject.next(true);
+        this.connectionAttempts = 0;
         
+        // Subscribe to user-specific queues
         const userMessagesSubscription = this.stompClient!.subscribe('/user/queue/messages', (message: IMessage) => {
+          console.log('Received message via user queue:', message.body);
           this.handleIncomingMessage(JSON.parse(message.body));
         });
 
         const userDeletedSubscription = this.stompClient!.subscribe('/user/queue/messages/deleted', (message: IMessage) => {
+          console.log('Received deletion notification:', message.body);
           this.handleMessageDeleted(JSON.parse(message.body));
         });
 
         this.roomSubscriptions.set('/user/queue/messages', userMessagesSubscription);
         this.roomSubscriptions.set('/user/queue/messages/deleted', userDeletedSubscription);
 
+        // Subscribe to current room if available
         const currentRoom = this.currentRoomSubject.value;
         if (currentRoom?.id) {
           this.subscribeToRoom(currentRoom.id);
         }
+
+        // Reload rooms to ensure data is fresh
+        this.loadRooms();
       };
 
       this.stompClient.onStompError = (frame) => {
+        console.error('STOMP error:', frame);
         this.connectedSubject.next(false);
+        this.attemptReconnection();
       };
 
       this.stompClient.onWebSocketError = (event) => {
+        console.error('WebSocket error:', event);
         this.connectedSubject.next(false);
+        this.attemptReconnection();
       };
 
       this.stompClient.onDisconnect = (frame) => {
+        console.log('WebSocket disconnected', frame);
         this.connectedSubject.next(false);
         this.roomSubscriptions.clear();
       };
 
       this.stompClient.activate();
     } catch (error) {
+      console.error('Error initializing WebSocket:', error);
       this.connectedSubject.next(false);
+      this.attemptReconnection();
+    }
+  }
+
+  private attemptReconnection(): void {
+    if (this.connectionAttempts < this.MAX_CONNECTION_ATTEMPTS) {
+      this.connectionAttempts++;
+      console.log(`Attempting reconnection (${this.connectionAttempts}/${this.MAX_CONNECTION_ATTEMPTS})...`);
+      
+      setTimeout(() => {
+        this.initializeWebSocketConnection();
+      }, this.RECONNECT_DELAY * this.connectionAttempts);
+    } else {
+      console.error('Max reconnection attempts reached');
     }
   }
 
   private handleIncomingMessage(messageData: any): void {
     try {
       if (!messageData.chatRoomId) {
+        console.warn('Received message without chatRoomId:', messageData);
         return;
       }
       
@@ -143,23 +251,30 @@ export class ChatService {
         canDelete: messageData.canDelete || false
       };
       
+      console.log('Processing incoming message:', message);
       this.addMessage(message);
       
       if (this.currentRoomSubject.value?.id === message.chatRoomId) {
         this.markMessageAsRead(message.chatRoomId, message.id);
       }
     } catch (error) {
-      console.error('Error handling incoming message:', error);
+      console.error('Error handling incoming message:', error, messageData);
     }
   }
 
   private handleMessageDeleted(deletionData: any): void {
-    if (deletionData.messageId) {
-      this.removeMessage(Number(deletionData.messageId));
-    } else if (deletionData.messageIds) {
-      deletionData.messageIds.forEach((messageId: number) => {
-        this.removeMessage(Number(messageId));
-      });
+    try {
+      if (deletionData.messageId) {
+        console.log('Removing message:', deletionData.messageId);
+        this.removeMessage(Number(deletionData.messageId));
+      } else if (deletionData.messageIds) {
+        deletionData.messageIds.forEach((messageId: number) => {
+          console.log('Removing message:', messageId);
+          this.removeMessage(Number(messageId));
+        });
+      }
+    } catch (error) {
+      console.error('Error handling message deletion:', error, deletionData);
     }
   }
 
@@ -311,9 +426,11 @@ export class ChatService {
       const topic = `/topic/chat/${roomId}`;
       try {
         const subscription = this.stompClient!.subscribe(topic, (message: IMessage) => {
+          console.log('Received room message:', message.body);
           this.handleIncomingMessage(JSON.parse(message.body));
         });
         this.roomSubscriptions.set(topic, subscription);
+        console.log(`Subscribed to room: ${topic}`);
       } catch (error) {
         console.error('Error subscribing to room:', error);
       }
@@ -326,6 +443,7 @@ export class ChatService {
     if (subscription) {
       subscription.unsubscribe();
       this.roomSubscriptions.delete(topic);
+      console.log(`Unsubscribed from room: ${topic}`);
     }
   }
 
@@ -334,9 +452,12 @@ export class ChatService {
       `${this.apiUrl}/rooms/${roomId}/mark-read`,
       { messageId },
       { headers: this.getHeaders() }
-    ).subscribe({
-      error: (error) => console.error('Error marking message as read:', error)
-    });
+    ).pipe(
+      catchError(error => {
+        console.error('Error marking message as read:', error);
+        return of(null);
+      })
+    ).subscribe();
   }
 
   markMessageAsDelivered(roomId: number, messageId: number): Observable<ApiResponse> {
@@ -346,12 +467,17 @@ export class ChatService {
       { headers: this.getHeaders() }
     ).pipe(
       catchError(error => {
-        return throwError(() => error);
+        return this.handleApiError(error);
       })
     );
   }
 
   loadRooms(): void {
+    if (!this.authService.isAuthenticated()) {
+      console.warn('User not authenticated, skipping room load');
+      return;
+    }
+
     this.http.get<ApiResponse<ChatRoom[]>>(`${this.apiUrl}/rooms`, { 
       headers: this.getHeaders() 
     }).pipe(
@@ -363,15 +489,21 @@ export class ChatService {
       }),
       catchError(error => {
         console.error('Error loading rooms:', error);
-        return of([]);
+        return this.handleApiError(error);
       })
     ).subscribe(rooms => {
       const processedRooms = rooms.map(room => this.processRoomData(room));
       this.roomsSubject.next(processedRooms);
+      console.log(`Loaded ${processedRooms.length} chat rooms`);
     });
   }
 
   getMessages(roomId: number): void {
+    if (!this.authService.isAuthenticated()) {
+      console.warn('User not authenticated, skipping message load');
+      return;
+    }
+
     this.http.get<ApiResponse<Message[]>>(`${this.apiUrl}/rooms/${roomId}/messages`, { 
       headers: this.getHeaders() 
     }).pipe(
@@ -383,7 +515,7 @@ export class ChatService {
       }),
       catchError(error => {
         console.error('Error loading messages:', error);
-        return of([]);
+        return this.handleApiError(error);
       })
     ).subscribe(messages => {
       const processedMessages = messages.map(msg => this.processMessageData(msg))
@@ -391,15 +523,21 @@ export class ChatService {
       this.messagesSubject.next(processedMessages);
       
       this.subscribeToRoom(roomId);
+      console.log(`Loaded ${processedMessages.length} messages for room ${roomId}`);
     });
   }
 
   sendMessage(content: string, roomId: number): Observable<ApiResponse> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
     const messageRequest: SendMessageRequest = {
       content: content,
       chatRoomId: roomId
     };
 
+    // Try to send via WebSocket first if connected
     if (this.stompClient && this.stompClient.connected) {
       try {
         this.stompClient.publish({
@@ -409,26 +547,37 @@ export class ChatService {
             'Authorization': `Bearer ${this.authService.getToken()}`
           }
         });
+        console.log('Message sent via WebSocket:', content);
       } catch (error) {
         console.error('Error publishing message via WebSocket:', error);
       }
+    } else {
+      console.warn('WebSocket not connected, sending via HTTP only');
     }
 
+    // Always send via HTTP as fallback
     return this.http.post<ApiResponse>(`${this.apiUrl}/messages`, messageRequest, { 
       headers: this.getHeaders() 
     }).pipe(
       tap(response => {
         if (response.success && response.data) {
+          console.log('Message sent successfully via HTTP');
           this.handleIncomingMessage(response.data);
         }
       }),
       catchError(error => {
-        return throwError(() => error);
+        console.error('Error sending message:', error);
+        return this.handleApiError(error);
       })
     );
   }
 
   deleteMessage(messageId: number): Observable<ApiResponse> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    // Try to notify via WebSocket first
     if (this.stompClient && this.stompClient.connected) {
       const deleteRequest = { messageId: messageId };
       this.stompClient.publish({
@@ -444,23 +593,31 @@ export class ChatService {
       headers: this.getHeaders() 
     }).pipe(
       tap(() => {
+        console.log('Message deleted:', messageId);
         this.removeMessage(messageId);
       }),
       catchError(error => {
-        return throwError(() => error);
+        console.error('Error deleting message:', error);
+        return this.handleApiError(error);
       })
     );
   }
 
   deleteMultipleMessages(messageIds: number[]): Observable<ApiResponse> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
     return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, messageIds, { 
       headers: this.getHeaders() 
     }).pipe(
       tap(() => {
+        console.log('Messages deleted:', messageIds);
         messageIds.forEach(messageId => this.removeMessage(messageId));
       }),
       catchError(error => {
-        return throwError(() => error);
+        console.error('Error deleting multiple messages:', error);
+        return this.handleApiError(error);
       })
     );
   }
@@ -476,10 +633,12 @@ export class ChatService {
           const currentRooms = this.roomsSubject.value;
           const newRoom = this.processRoomData(response.data);
           this.roomsSubject.next([...currentRooms, newRoom]);
+          console.log('Created tenant-landlord chat room:', newRoom);
         }
       }),
       catchError(error => {
-        return throwError(() => error);
+        console.error('Error creating tenant-landlord chat:', error);
+        return this.handleApiError(error);
       })
     );
   }
@@ -495,10 +654,12 @@ export class ChatService {
           const currentRooms = this.roomsSubject.value;
           const newRoom = this.processRoomData(response.data);
           this.roomsSubject.next([...currentRooms, newRoom]);
+          console.log('Created tenant-caretaker chat room:', newRoom);
         }
       }),
       catchError(error => {
-        return throwError(() => error);
+        console.error('Error creating tenant-caretaker chat:', error);
+        return this.handleApiError(error);
       })
     );
   }
@@ -514,10 +675,12 @@ export class ChatService {
           const currentRooms = this.roomsSubject.value;
           const newRoom = this.processRoomData(response.data);
           this.roomsSubject.next([...currentRooms, newRoom]);
+          console.log('Created landlord-caretaker chat room:', newRoom);
         }
       }),
       catchError(error => {
-        return throwError(() => error);
+        console.error('Error creating landlord-caretaker chat:', error);
+        return this.handleApiError(error);
       })
     );
   }
@@ -533,10 +696,12 @@ export class ChatService {
           const currentRooms = this.roomsSubject.value;
           const newRoom = this.processRoomData(response.data);
           this.roomsSubject.next([...currentRooms, newRoom]);
+          console.log('Created landlord-tenant chat room:', newRoom);
         }
       }),
       catchError(error => {
-        return throwError(() => error);
+        console.error('Error creating landlord-tenant chat:', error);
+        return this.handleApiError(error);
       })
     );
   }
@@ -552,11 +717,12 @@ export class ChatService {
           const currentRooms = this.roomsSubject.value;
           const newRoom = this.processRoomData(response.data);
           this.roomsSubject.next([...currentRooms, newRoom]);
+          console.log('Created caretaker-tenant chat room:', newRoom);
         }
       }),
       catchError(error => {
         console.error('Error creating caretaker-tenant chat:', error);
-        return throwError(() => error);
+        return this.handleApiError(error);
       })
     );
   }
@@ -566,8 +732,11 @@ export class ChatService {
     this.messagesSubject.next([]);
     
     if (room?.id) {
+      console.log('Selected room:', room.id);
       this.getMessages(room.id);
       this.markRoomAsRead(room.id);
+    } else {
+      console.log('Deselected room');
     }
   }
 
@@ -586,6 +755,7 @@ export class ChatService {
     const user = this.authService.getCurrentUser();
     
     if (!user?.id) {
+      console.warn('No user ID found in current user');
       return 0;
     }
     
@@ -696,10 +866,12 @@ export class ChatService {
   }
 
   disconnect(): void {
+    console.log('Disconnecting chat service...');
     if (this.stompClient) {
       this.stompClient.deactivate();
       this.roomSubscriptions.clear();
     }
+    this.connectedSubject.next(false);
   }
 
   getConnectionStatus(): boolean {
@@ -707,10 +879,24 @@ export class ChatService {
   }
 
   reconnect(): void {
+    console.log('Reconnecting chat service...');
     this.disconnect();
     setTimeout(() => {
       this.initializeWebSocketConnection();
       this.loadRooms();
     }, 1000);
+  }
+
+ 
+  canAccessChat(): boolean {
+    return this.authService.isAuthenticated() && !!this.authService.getToken();
+  }
+
+
+  clearLocalData(): void {
+    this.messagesSubject.next([]);
+    this.roomsSubject.next([]);
+    this.currentRoomSubject.next(null);
+    this.roomSubscriptions.clear();
   }
 }
