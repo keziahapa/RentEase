@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,8 +8,9 @@ import { PropertyService } from '../../services/property.service';
 import { CaretakerService } from '../../services/caretaker.service';
 import { TenantService } from '../../services/tenant.service';
 import { Message, ChatRoom, Property, Unit, ChatRoomType, ApiResponse, Participant } from '../../services/chat.interface';
-import { Observable, of, forkJoin } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
 interface EnrichedChatInfo {
   title: string;
@@ -57,14 +58,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     CARETAKER_TENANT: 'caretaker-tenant' as ChatRoomType
   };
 
-  emojis = [
-    '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
-    '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
-    '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
-    '👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉',
-    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
-    '✨', '💫', '⭐', '🌟', '✴️', '🎊', '🎉', '🎈', '🎁', '🏆'
-  ];
+  emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃'];
+
+  private router = inject(Router);
 
   constructor(
     private chatService: ChatService,
@@ -76,6 +72,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngOnInit(): void {
     if (!this.authService.isAuthenticated()) {
+      this.redirectToLogin();
       return;
     }
 
@@ -93,7 +90,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.rooms$.subscribe((rooms: ChatRoom[]) => {
       this.rooms = rooms ?? [];
       this.loadingRooms = false;
-      
       this.rooms.forEach(room => this.enrichRoomParticipants(room));
     });
 
@@ -110,7 +106,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.messages$.subscribe((messages: Message[]) => {
       const oldLength = this.messages.length;
       this.messages = messages ?? [];
-      
       if (this.messages.length > oldLength) {
         this.shouldScrollToBottom = true;
       }
@@ -148,7 +143,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     dataObservable.pipe(
       catchError((error) => {
-        console.error('Error loading user data:', error);
+        this.handleAuthError();
         return of([]);
       })
     ).subscribe((response: any) => {
@@ -163,7 +158,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.userUnits = this.extractUnits(response);
         this.userProperties = this.extractPropertiesFromUnits(response);
         break;
-
       case 'LANDLORD':
       case 'CARETAKER':
         this.userProperties = this.extractProperties(response);
@@ -179,7 +173,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.fetchParticipantData(participant).subscribe(enrichedData => {
           this.participantDataCache.set(participant.id, enrichedData);
           Object.assign(participant, enrichedData);
-          
           if (this.currentRoom?.id === room.id) {
             this.updateCurrentChatInfo();
           }
@@ -201,13 +194,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     switch(role) {
       case 'TENANT':
         return this.fetchTenantData(participant.id);
-      
       case 'LANDLORD':
         return this.fetchLandlordData(participant.id);
-      
       case 'CARETAKER':
         return this.fetchCaretakerData(participant.id);
-      
       default:
         return of({});
     }
@@ -311,7 +301,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           description = `${badge} • ${description}`;
         }
         break;
-
       case 'LANDLORD':
         subtitle = 'Property Owner';
         if (cachedData.propertyName) {
@@ -319,7 +308,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           badge = 'Owner';
         }
         break;
-
       case 'CARETAKER':
         title = 'Property Caretaker';
         subtitle = 'Maintenance & Support';
@@ -390,79 +378,23 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     };
   }
 
-  getChatHeaderInfo(): { title: string, subtitle: string, description: string } {
-    if (!this.currentChatInfo) {
-      return { title: 'Chat', subtitle: '', description: '' };
-    }
-
-    return {
-      title: this.currentChatInfo.title,
-      subtitle: this.currentChatInfo.subtitle,
-      description: this.currentChatInfo.description
-    };
-  }
-
-  formatChatName(room: ChatRoom): string {
-    if (!room) return 'Chat';
-    
-    const currentUser = this.authService.getCurrentUser();
-    const otherParticipants = room.participants?.filter(p => p.id !== currentUser?.id) || [];
-    
-    if (otherParticipants.length === 1) {
-      const participant = otherParticipants[0];
-      const cachedData = this.participantDataCache.get(participant.id) || {};
-      const role = participant.role?.toUpperCase();
-      
-      let name = participant.name || participant.fullName || 'User';
-      
-      if (role === 'TENANT' && cachedData.unitNumber) {
-        return `${name} • Unit ${cachedData.unitNumber}`;
-      } else if (role === 'CARETAKER') {
-        return 'Caretaker';
-      } else if (role === 'LANDLORD' && cachedData.propertyName) {
-        return `${name} • ${cachedData.propertyName}`;
+  private handleAuthError(): void {
+    this.authService.refreshToken().subscribe({
+      next: (success) => {
+        if (!success) {
+          this.redirectToLogin();
+        }
+      },
+      error: () => {
+        this.redirectToLogin();
       }
-      
-      return name;
-    } else if (otherParticipants.length > 1) {
-      const names = otherParticipants.map(p => p.name || 'User').join(', ');
-      return names.length > 30 ? names.substring(0, 30) + '...' : names;
-    }
-    
-    const roleBasedNames: { [key: string]: string } = {
-      'tenant-landlord': 'Landlord',
-      'tenant-caretaker': 'Caretaker',
-      'landlord-caretaker': 'Caretaker',
-      'landlord-tenant': 'Tenants',
-      'caretaker-tenant': 'Tenant'
-    };
-    
-    return roleBasedNames[room.type] || 'Chat';
+    });
   }
 
-  getMessageSenderInfo(message: Message): string {
-    if (this.isMyMessage(message)) {
-      return 'You';
-    }
-    
-    if (!this.currentRoom) return message.senderName || 'Unknown';
-    
-    const participant = this.currentRoom.participants.find(p => p.id === message.senderId);
-    if (!participant) return message.senderName || 'Unknown';
-    
-    const cachedData = this.participantDataCache.get(participant.id) || {};
-    const role = participant.role?.toUpperCase();
-    const name = participant.name || participant.fullName || message.senderName || 'User';
-    
-    if (role === 'TENANT' && cachedData.unitNumber) {
-      return `${name} (Unit ${cachedData.unitNumber})`;
-    } else if (role === 'CARETAKER') {
-      return 'Caretaker';
-    } else if (role === 'LANDLORD' && cachedData.propertyName) {
-      return `${name} (${cachedData.propertyName})`;
-    }
-    
-    return `${name} (${this.formatRole(role)})`;
+  private redirectToLogin(): void {
+    localStorage.clear();
+    sessionStorage.clear();
+    this.router.navigate(['/login']);
   }
 
   openNewChatModal(): void {
@@ -542,6 +474,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       },
       error: (error: any) => {
         this.loadingRooms = false;
+        this.handleAuthError();
         alert('Failed to create chat: ' + (error.error?.message || error.message));
       }
     });
@@ -567,6 +500,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.shouldScrollToBottom = true;
         },
         error: (error: any) => {
+          this.handleAuthError();
           alert('Failed to send message. Please try again.');
           this.newMessage = messageToSend;
         }
@@ -585,6 +519,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (confirm('Are you sure you want to delete this message?')) {
       this.chatService.deleteMessage(messageId).subscribe({
         error: (error: any) => {
+          this.handleAuthError();
           alert('Failed to delete message.');
         }
       });
@@ -630,6 +565,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.shouldScrollToBottom = true;
         },
         error: (error: any) => {
+          this.handleAuthError();
           alert('Failed to send file. Please try again.');
         },
         complete: () => {
@@ -710,9 +646,82 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return this.userRole === 'CARETAKER' && this.userUnits.length > 0;
   }
 
+  getChatHeaderInfo(): { title: string, subtitle: string, description: string } {
+    if (!this.currentChatInfo) {
+      return { title: 'Chat', subtitle: '', description: '' };
+    }
+    return {
+      title: this.currentChatInfo.title,
+      subtitle: this.currentChatInfo.subtitle,
+      description: this.currentChatInfo.description
+    };
+  }
+
+  formatChatName(room: ChatRoom): string {
+    if (!room) return 'Chat';
+    
+    const currentUser = this.authService.getCurrentUser();
+    const otherParticipants = room.participants?.filter(p => p.id !== currentUser?.id) || [];
+    
+    if (otherParticipants.length === 1) {
+      const participant = otherParticipants[0];
+      const cachedData = this.participantDataCache.get(participant.id) || {};
+      const role = participant.role?.toUpperCase();
+      
+      let name = participant.name || participant.fullName || 'User';
+      
+      if (role === 'TENANT' && cachedData.unitNumber) {
+        return `${name} • Unit ${cachedData.unitNumber}`;
+      } else if (role === 'CARETAKER') {
+        return 'Caretaker';
+      } else if (role === 'LANDLORD' && cachedData.propertyName) {
+        return `${name} • ${cachedData.propertyName}`;
+      }
+      
+      return name;
+    } else if (otherParticipants.length > 1) {
+      const names = otherParticipants.map(p => p.name || 'User').join(', ');
+      return names.length > 30 ? names.substring(0, 30) + '...' : names;
+    }
+    
+    const roleBasedNames: { [key: string]: string } = {
+      'tenant-landlord': 'Landlord',
+      'tenant-caretaker': 'Caretaker',
+      'landlord-caretaker': 'Caretaker',
+      'landlord-tenant': 'Tenants',
+      'caretaker-tenant': 'Tenant'
+    };
+    
+    return roleBasedNames[room.type] || 'Chat';
+  }
+
+  getMessageSenderInfo(message: Message): string {
+    if (this.isMyMessage(message)) {
+      return 'You';
+    }
+    
+    if (!this.currentRoom) return message.senderName || 'Unknown';
+    
+    const participant = this.currentRoom.participants.find(p => p.id === message.senderId);
+    if (!participant) return message.senderName || 'Unknown';
+    
+    const cachedData = this.participantDataCache.get(participant.id) || {};
+    const role = participant.role?.toUpperCase();
+    const name = participant.name || participant.fullName || message.senderName || 'User';
+    
+    if (role === 'TENANT' && cachedData.unitNumber) {
+      return `${name} (Unit ${cachedData.unitNumber})`;
+    } else if (role === 'CARETAKER') {
+      return 'Caretaker';
+    } else if (role === 'LANDLORD' && cachedData.propertyName) {
+      return `${name} (${cachedData.propertyName})`;
+    }
+    
+    return `${name} (${this.formatRole(role)})`;
+  }
+
   private extractProperties(response: any): Property[] {
     if (!response) return [];
-
     if (Array.isArray(response)) {
       return response.map((item: any) => ({
         id: item.property?.id || item.id,
@@ -720,7 +729,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         address: item.property?.address || item.location || item.address || 'No address'
       })).filter((property: Property) => property.id);
     }
-
     if (response?.data && Array.isArray(response.data)) {
       return response.data.map((item: any) => ({
         id: item.property?.id || item.id,
@@ -728,14 +736,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         address: item.property?.address || item.location || item.address || 'No address'
       })).filter((property: Property) => property.id);
     }
-
     return [];
   }
 
   private extractPropertiesFromUnits(response: any): Property[] {
     const units = this.extractUnits(response);
     const propertyMap = new Map<number, Property>();
-    
     units.forEach(unit => {
       if (unit.propertyId && !propertyMap.has(unit.propertyId)) {
         propertyMap.set(unit.propertyId, {
@@ -745,13 +751,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         });
       }
     });
-    
     return Array.from(propertyMap.values());
   }
 
   private extractUnits(response: any): Unit[] {
     if (!response) return [];
-
     if (Array.isArray(response)) {
       return response.map((item: any) => ({
         id: item.unit?.id || item.id,
@@ -762,7 +766,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         propertyName: item.property?.name || item.propertyName
       } as any)).filter((unit: Unit) => unit.id);
     }
-
     if (response?.data && Array.isArray(response.data)) {
       return response.data.map((item: any) => ({
         id: item.unit?.id || item.id,
@@ -773,7 +776,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         propertyName: item.property?.name || item.propertyName
       } as any)).filter((unit: Unit) => unit.id);
     }
-
     return [];
   }
 
@@ -788,7 +790,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private scrollToBottom(): void {
     if (!this.shouldScrollToBottom) return;
-    
     try {
       if (this.messagesContainer?.nativeElement) {
         const container = this.messagesContainer.nativeElement;
