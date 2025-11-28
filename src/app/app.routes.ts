@@ -63,7 +63,7 @@ import { BusinessRegistrationStatusComponent } from '../app/components/auth/busi
 import { UsersViewComponent } from './components/dashboard/admin/admin-dashboard/components/users-view/users-view.component';
 import { TenantPendingDashboardComponent } from './components/dashboard/tenant/tenant-pending-dashboard/tenant-pending-dashboard.component';
 import { CaretakerPendingDashboardComponent } from './components/dashboard/caretaker/components/caretaker-pending-dashboard/caretaker-pending-dashboard.component';
-
+import { WaitingRoomComponent } from './shared/waiting-room/waiting-room.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent, pathMatch: 'full' },
@@ -80,6 +80,7 @@ export const routes: Routes = [
   { path: 'privacy', component: PrivacyComponent },
   { path: 'accept-invitation', component: AcceptInvitationComponent },
   { path: 'waiting-landlord', component: WaitingLandlordComponent },
+ { path: 'waiting-room', component: WaitingRoomComponent, canActivate: [authGuard] },
   { path: 'tenant-pending-dashboard', component: TenantPendingDashboardComponent, canActivate: [authGuard] },
   { path: 'caretaker-pending-dashboard', component: CaretakerPendingDashboardComponent, canActivate: [authGuard] },
 
