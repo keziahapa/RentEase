@@ -41,7 +41,7 @@ export interface MoveOutNoticeRequest {
     MatIconModule,
     MatProgressSpinnerModule,
     MatCheckboxModule,
-    MatSnackBarModule // ✅ FIXED: Added missing import
+    MatSnackBarModule
   ],
   providers: [
     { provide: MAT_DATE_LOCALE, useValue: 'en-US' }
@@ -152,7 +152,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     });
   }
 
-  // ✅ SIMPLIFIED Date filter function
+  // Date filter function
   dateFilter = (date: Date | null): boolean => {
     if (!date) return false;
     const time = date.getTime();

@@ -36,7 +36,7 @@
         </div>
       </div>
 
-      <!-- Move-Out Date - FIXED WORKING VERSION -->
+      <!-- Move-Out Date -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Intended Move-Out Date</mat-label>
         <input matInput 
@@ -56,7 +56,7 @@
                         [startAt]="minDate"
                         (opened)="onCalendarOpened()">
         </mat-datepicker>
-        <mat-hint>Select a date between {{minDate | date:'mediumDate'}} and {{maxDate | date:'mediumDate'}}</mat-hint>
+        <mat-hint>Select a date between {{minDate | date:'MMM d, y'}} and {{maxDate | date:'MMM d, y'}}</mat-hint>
         <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('required') && noticeForm.get('moveOutDate')?.touched">
           Move-out date is required
         </mat-error>
@@ -96,7 +96,7 @@
                   formControlName="notes"
                   rows="4"
                   maxlength="1000"
-                  placeholder="Please provide any additional information that might be helpful for your landlord..."></textarea>
+                  placeholder=""></textarea>
         <mat-icon matPrefix>notes</mat-icon>
         <mat-hint align="end">
           {{ getNotesLength() }}/1000 characters
