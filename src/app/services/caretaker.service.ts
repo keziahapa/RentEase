@@ -56,6 +56,22 @@ export class CaretakerService {
     }));
   }
 
+  // ADD THIS MISSING METHOD
+  getCaretakerProperties(): Observable<any[]> {
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/caretaker/properties`, {
+      headers: this.createHeaders()
+    }).pipe(
+      map(response => {
+        console.log('🔍 Caretaker properties API response:', response);
+        return response.data || [];
+      }),
+      catchError(error => {
+        console.error('Error fetching caretaker properties:', error);
+        return of([]);
+      })
+    );
+  }
+
   getCaretakerDashboardData(): Observable<any> {
     return this.getProperties().pipe(
       map(properties => {

@@ -2,11 +2,16 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { BusinessService } from '../services/business.service';
+import { TenantService } from '../services/tenant.service';
+import { CaretakerService } from '../services/caretaker.service';
+import { map, catchError, of } from 'rxjs';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   const businessService = inject(BusinessService);
+  const tenantService = inject(TenantService);
+  const caretakerService = inject(CaretakerService);
   
   const isAuthenticated = authService.isAuthenticated();
   const user = authService.getCurrentUser();
@@ -33,7 +38,8 @@ export const authGuard: CanActivateFn = (route, state) => {
     '/caretaker-login',
     '/register',
     '/forgot-password',
-    '/reset-password'
+    '/reset-password',
+    '/waiting-room'
   ];
 
   const isPublicRoute = publicRoutes.some(publicRoute => 
@@ -61,6 +67,61 @@ export const authGuard: CanActivateFn = (route, state) => {
       router.navigate(['/login'], { queryParams });
     }
     return false;
+  }
+
+  // Check if user is trying to access tenant routes without property access
+  if (userRole === 'tenant' && currentPath.startsWith('/tenant-dashboard')) {
+    console.log('Tenant accessing tenant dashboard - checking property access');
+    
+    // Return observable that checks property access
+    return tenantService.getTenantUnits().pipe(
+      map(response => {
+        // Tenant service returns { data: [] } format
+        const hasUnits = response.data && response.data.length > 0;
+        console.log('🏠 Tenant property access check:', hasUnits ? 'Has units' : 'No units');
+        
+        if (!hasUnits) {
+          console.log('🚫 Tenant has no property access, redirecting to waiting room');
+          router.navigate(['/waiting-room']);
+          return false;
+        }
+        
+        console.log('✅ Tenant has property access, allowing dashboard access');
+        return true;
+      }),
+      catchError(error => {
+        console.error('Error checking tenant property access:', error);
+        router.navigate(['/waiting-room']);
+        return of(false);
+      })
+    );
+  }
+
+  // Check if user is trying to access caretaker routes without property access
+  if (userRole === 'caretaker' && currentPath.startsWith('/caretaker-dashboard')) {
+    console.log('Caretaker accessing caretaker dashboard - checking property access');
+    
+    return caretakerService.getCaretakerProperties().pipe(
+      map(properties => {
+        // getCaretakerProperties() already returns the array directly (no .data needed)
+        const hasProperties = properties && properties.length > 0;
+        console.log('🔍 Caretaker property access check:', hasProperties ? 'Has properties' : 'No properties');
+        
+        if (!hasProperties) {
+          console.log('🚫 Caretaker has no property access, redirecting to waiting room');
+          router.navigate(['/waiting-room']);
+          return false;
+        }
+        
+        console.log('✅ Caretaker has property access, allowing dashboard access');
+        return true;
+      }),
+      catchError(error => {
+        console.error('Error checking caretaker property access:', error);
+        router.navigate(['/waiting-room']);
+        return of(false);
+      })
+    );
   }
 
   const isAdminRoute = currentPath.startsWith('/admin-dashboard') || currentPath.startsWith('/admin/');
@@ -108,9 +169,48 @@ export const authGuard: CanActivateFn = (route, state) => {
   }
 
   if (currentPath === '/' || currentPath === '/dashboard') {
-    console.log('Root/dashboard path - Redirecting to user dashboard');
-    redirectToUserDashboard(userRole, router);
-    return false;
+    console.log('Root/dashboard path - Redirecting based on property access');
+    
+    // For tenants and caretakers, check property access before redirecting
+    if (userRole === 'tenant') {
+      return tenantService.getTenantUnits().pipe(
+        map(response => {
+          const hasUnits = response.data && response.data.length > 0;
+          if (hasUnits) {
+            router.navigate(['/tenant-dashboard/overview']);
+          } else {
+            router.navigate(['/waiting-room']);
+          }
+          return false;
+        }),
+        catchError(error => {
+          console.error('Error checking tenant units:', error);
+          router.navigate(['/waiting-room']);
+          return of(false);
+        })
+      );
+    } else if (userRole === 'caretaker') {
+      return caretakerService.getCaretakerProperties().pipe(
+        map(properties => {
+          const hasProperties = properties && properties.length > 0;
+          if (hasProperties) {
+            router.navigate(['/caretaker-dashboard/overview']);
+          } else {
+            router.navigate(['/waiting-room']);
+          }
+          return false;
+        }),
+        catchError(error => {
+          console.error('Error checking caretaker properties:', error);
+          router.navigate(['/waiting-room']);
+          return of(false);
+        })
+      );
+    } else {
+      // For other roles, use normal redirect
+      redirectToUserDashboard(userRole, router);
+      return false;
+    }
   }
 
   console.log('Access granted for:', currentPath);
