@@ -77,7 +77,7 @@ export class AuthService {
   }
 
   silentReauth(): Observable<boolean> {
-    // Prevent multiple simultaneous refresh attempts
+   
     if (this.refreshTokenInProgress) {
       return this.refreshTokenSubject.asObservable().pipe(
         map(value => value !== null ? value : false)

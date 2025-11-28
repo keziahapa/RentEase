@@ -43,18 +43,20 @@ import { MoveOutActionDialogComponent } from '../move-out-action-dialog/move-out
 export class LandlordMoveOutNoticeListComponent implements OnInit {
   moveOutNotices: LandlordMoveOutNotice[] = [];
   filteredNotices: LandlordMoveOutNotice[] = [];
-  isLoading: boolean = true;
-  currentPage: number = 1;
-  totalPages: number = 1;
-  totalItems: number = 0;
-  pageSize: number = 10;
-  hasNext: boolean = false;
-  hasPrev: boolean = false;
+  isLoading = true;
+  currentPage = 1;
+  totalPages = 1;
+  totalItems = 0;
+  pageSize = 10;
+  hasNext = false;
+  hasPrev = false;
 
+  
   filterStatus: string = '';
   searchTerm: string = '';
   propertyFilter: string = '';
 
+  
   stats = {
     pending: 0,
     approved: 0,
@@ -90,23 +92,27 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
           this.currentPage = response.pagination?.currentPage || 1;
           this.totalPages = response.pagination?.totalPages || 1;
           this.totalItems = response.pagination?.totalItems || 0;
-          this.hasNext = !!response.pagination?.hasNext;
-          this.hasPrev = !!response.pagination?.hasPrev;
+          this.hasNext = response.pagination?.hasNext || false;
+          this.hasPrev = response.pagination?.hasPrev || false;
           this.calculateStats();
+          
+          console.log(' Loaded notices:', this.moveOutNotices);
         } else {
           this.snackBar.open(response.message || 'Failed to load move-out notices', 'Close', { duration: 5000 });
         }
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading notices:', error);
+        console.error(' Error loading notices:', error);
         this.snackBar.open('Failed to load move-out notices', 'Close', { duration: 5000 });
         this.isLoading = false;
       }
     });
   }
 
+ 
   private transformNoticeData(notice: any): LandlordMoveOutNotice {
+    
     let normalizedStatus = notice.status || 'PENDING';
     if (normalizedStatus === 'PENDING_APPROVAL') {
       normalizedStatus = 'PENDING';
@@ -114,11 +120,13 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
 
     return {
       ...notice,
+   
       tenant: notice.tenant || {
         fullName: notice.tenantName || notice.tenantFullName || 'Unknown Tenant',
         email: notice.tenantEmail || 'N/A',
         phone: notice.tenantPhone || 'N/A'
       },
+     
       property: notice.property || {
         name: notice.propertyName || 'Unknown Property',
         address: notice.propertyAddress || 'Address not available',
@@ -128,10 +136,12 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
         unitNumber: notice.unitNumber || 'Unknown Unit',
         id: notice.unitId
       },
+     
       moveOutDate: notice.moveOutDate || '',
       reason: notice.reason || 'OTHER',
       notes: notice.notes || '',
       submittedAt: notice.submittedAt || notice.createdAt || new Date().toISOString(),
+    
       status: normalizedStatus
     };
   }
@@ -203,6 +213,7 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
     }
   }
 
+
   approveNotice(notice: LandlordMoveOutNotice): void {
     if (!notice.id) return;
 
@@ -227,7 +238,7 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('Approve error:', error);
+            console.error(' Approve error:', error);
             this.snackBar.open('Failed to approve move-out notice', 'Close', { duration: 5000 });
           }
         });
@@ -235,6 +246,7 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
     });
   }
 
+ 
   rejectNotice(notice: LandlordMoveOutNotice): void {
     if (!notice.id) return;
 
@@ -261,7 +273,7 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('Reject error:', error);
+            console.error(' Reject error:', error);
             this.snackBar.open('Failed to reject move-out notice', 'Close', { duration: 5000 });
           }
         });
@@ -275,75 +287,6 @@ export class LandlordMoveOutNoticeListComponent implements OnInit {
 
   canReject(notice: LandlordMoveOutNotice): boolean {
     return notice.status === 'PENDING';
-  }
-
-  canModifyDecision(notice: LandlordMoveOutNotice): boolean {
-    return (notice.status === 'APPROVED' || notice.status === 'REJECTED') && !!notice.id;
-  }
-
-  getModifyActionText(notice: LandlordMoveOutNotice): string {
-    if (notice.status === 'APPROVED') {
-      return 'Change to Reject';
-    } else if (notice.status === 'REJECTED') {
-      return 'Change to Approve';
-    }
-    return '';
-  }
-
-  modifyDecision(notice: LandlordMoveOutNotice): void {
-    if (!notice.id) return;
-
-    const newAction = notice.status === 'APPROVED' ? 'reject' : 'approve';
-    const dialogTitle = notice.status === 'APPROVED' 
-      ? 'Change Approval to Rejection' 
-      : 'Change Rejection to Approval';
-
-    const dialogRef = this.dialog.open(MoveOutActionDialogComponent, {
-      width: '500px',
-      data: {
-        title: dialogTitle,
-        action: newAction,
-        notice: notice,
-        isModification: true
-      }
-    });
-
-    dialogRef.afterClosed().subscribe((result: { notes?: string } | undefined) => {
-      if (result !== undefined) {
-        if (newAction === 'approve') {
-          this.propertyService.approveMoveOutNotice(Number(notice.id)).subscribe({
-            next: (response: LandlordMoveOutNoticeResponse) => {
-              if (response.success) {
-                this.snackBar.open('Move-out notice approved successfully', 'Close', { duration: 3000 });
-                this.loadMoveOutNotices(this.currentPage);
-              } else {
-                this.snackBar.open(response.message || 'Failed to approve notice', 'Close', { duration: 5000 });
-              }
-            },
-            error: (error) => {
-              console.error('Approve error:', error);
-              this.snackBar.open('Failed to approve move-out notice', 'Close', { duration: 5000 });
-            }
-          });
-        } else {
-          const reason = result?.notes || 'Decision reversed by landlord';
-          this.propertyService.rejectMoveOutNotice(Number(notice.id), reason).subscribe({
-            next: (response: LandlordMoveOutNoticeResponse) => {
-              if (response.success) {
-                this.snackBar.open('Move-out notice rejected successfully', 'Close', { duration: 3000 });
-                this.loadMoveOutNotices(this.currentPage);
-              } else {
-                this.snackBar.open(response.message || 'Failed to reject notice', 'Close', { duration: 5000 });
-              }
-            },
-            error: (error) => {
-              console.error('Reject error:', error);
-              this.snackBar.open('Failed to reject move-out notice', 'Close', { duration: 5000 });
-            }
-          });
-        }
-      }
-    });
   }
 
   formatDate(dateString: string): string {
