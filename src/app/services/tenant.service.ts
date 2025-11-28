@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 import { 
   TenantData, 
   MoveOutNoticeRequest, 
@@ -15,7 +16,7 @@ import {
   providedIn: 'root'
 })
 export class TenantService {
-  private readonly apiUrl = 'https://rentease-4.onrender.com/api';
+  private readonly apiUrl = environment.apiUrl;
 
   constructor(
     private http: HttpClient,
@@ -25,7 +26,6 @@ export class TenantService {
   getTenantUnits(): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
-      console.log('No token available, returning empty units');
       return of({ success: true, data: [] });
     }
 
@@ -33,12 +33,8 @@ export class TenantService {
       `${this.apiUrl}/tenant/units`,
       { headers: this.createHeaders() }
     ).pipe(
-      map(response => {
-        console.log('📊 Tenant units API response:', response);
-        return response;
-      }),
+      map(response => response),
       catchError((error) => {
-        console.error('Error fetching tenant units:', error);
         return of({ success: false, data: [] });
       })
     );
@@ -62,25 +58,18 @@ export class TenantService {
       }
     ).pipe(
       catchError((error) => {
-        console.error('Error fetching move-out notices:', error);
         return of(this.getMockMoveOutNotices());
       })
     );
   }
 
   submitMoveOutNotice(request: MoveOutNoticeRequest): Observable<any> {
-    console.log('Submitting move-out notice with data:', request);
-
     return this.http.post<any>(
       `${this.apiUrl}/tenant/move-out-notices`,
       request,
-      {
-        headers: this.createHeaders()
-
-      }
+      { headers: this.createHeaders() }
     ).pipe(
       map(response => {
-        console.log('Move-out notice submitted successfully:', response);
         return {
           success: true,
           message: 'Move-out notice submitted successfully!',
@@ -88,11 +77,7 @@ export class TenantService {
         };
       }),
       catchError(error => {
-        console.error('Error submitting move-out notice:', error);
-
-       
         if (error.status === 401) {
-          console.warn('Token expired during submission');
           return of({
             success: false,
             message: 'Session expired. Please login again.',
@@ -121,8 +106,6 @@ export class TenantService {
       { headers: this.createHeaders() }
     ).pipe(
       catchError(error => {
-        console.error('Error cancelling move-out notice:', error);
-        
         if (error.status === 401) {
           this.authService.logoutSync();
         }
@@ -146,8 +129,6 @@ export class TenantService {
       { headers: this.createHeaders() }
     ).pipe(
       catchError(error => {
-        console.error('Error fetching move-out notice:', error);
-        
         if (error.status === 401) {
           this.authService.logoutSync();
         }
@@ -166,8 +147,6 @@ export class TenantService {
       { headers: this.createHeaders() }
     ).pipe(
       catchError(error => {
-        console.error('Error fetching move-out notice details:', error);
-        
         if (error.status === 401) {
           this.authService.logoutSync();
         }
@@ -187,8 +166,6 @@ export class TenantService {
       { headers: this.createHeaders() }
     ).pipe(
       catchError(error => {
-        console.error('Error updating move-out notice:', error);
-        
         if (error.status === 401) {
           this.authService.logoutSync();
         }

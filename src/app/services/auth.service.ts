@@ -409,8 +409,7 @@ export class AuthService {
       return false;
     }
     
-    // Simple check - if we have a token and user data, consider authenticated
-    // Let the API calls handle actual token validity
+    
     return true;
   }
 
@@ -704,12 +703,12 @@ export class AuthService {
     const token = this.getToken();
     
     if (user && token) {
-      // Set initial state based on stored data
+     
       this.currentUserSubject.next(user);
       this.isAuthenticatedSubject.next(true);
       console.log('Auth state initialized from storage for user:', user.email);
     } else {
-      // Clear any partial/corrupted state
+     
       if (user && !token) {
         console.warn('Clearing corrupted auth state: user without token');
         this.clearAllStorage();

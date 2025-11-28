@@ -69,24 +69,24 @@ export const authGuard: CanActivateFn = (route, state) => {
     return false;
   }
 
-  // Check if user is trying to access tenant routes without property access
+  
   if (userRole === 'tenant' && currentPath.startsWith('/tenant-dashboard')) {
     console.log('Tenant accessing tenant dashboard - checking property access');
     
-    // Return observable that checks property access
+   
     return tenantService.getTenantUnits().pipe(
       map(response => {
-        // Tenant service returns { data: [] } format
+        
         const hasUnits = response.data && response.data.length > 0;
-        console.log('🏠 Tenant property access check:', hasUnits ? 'Has units' : 'No units');
+        console.log(' Tenant property access check:', hasUnits ? 'Has units' : 'No units');
         
         if (!hasUnits) {
-          console.log('🚫 Tenant has no property access, redirecting to waiting room');
+          console.log(' Tenant has no property access, redirecting to waiting room');
           router.navigate(['/waiting-room']);
           return false;
         }
         
-        console.log('✅ Tenant has property access, allowing dashboard access');
+        console.log(' Tenant has property access, allowing dashboard access');
         return true;
       }),
       catchError(error => {
@@ -97,23 +97,23 @@ export const authGuard: CanActivateFn = (route, state) => {
     );
   }
 
-  // Check if user is trying to access caretaker routes without property access
+  
   if (userRole === 'caretaker' && currentPath.startsWith('/caretaker-dashboard')) {
     console.log('Caretaker accessing caretaker dashboard - checking property access');
     
     return caretakerService.getCaretakerProperties().pipe(
       map(properties => {
-        // getCaretakerProperties() already returns the array directly (no .data needed)
+       
         const hasProperties = properties && properties.length > 0;
-        console.log('🔍 Caretaker property access check:', hasProperties ? 'Has properties' : 'No properties');
+        console.log(' Caretaker property access check:', hasProperties ? 'Has properties' : 'No properties');
         
         if (!hasProperties) {
-          console.log('🚫 Caretaker has no property access, redirecting to waiting room');
+          console.log(' Caretaker has no property access, redirecting to waiting room');
           router.navigate(['/waiting-room']);
           return false;
         }
         
-        console.log('✅ Caretaker has property access, allowing dashboard access');
+        console.log(' Caretaker has property access, allowing dashboard access');
         return true;
       }),
       catchError(error => {
@@ -171,7 +171,7 @@ export const authGuard: CanActivateFn = (route, state) => {
   if (currentPath === '/' || currentPath === '/dashboard') {
     console.log('Root/dashboard path - Redirecting based on property access');
     
-    // For tenants and caretakers, check property access before redirecting
+  
     if (userRole === 'tenant') {
       return tenantService.getTenantUnits().pipe(
         map(response => {
@@ -207,7 +207,7 @@ export const authGuard: CanActivateFn = (route, state) => {
         })
       );
     } else {
-      // For other roles, use normal redirect
+    
       redirectToUserDashboard(userRole, router);
       return false;
     }

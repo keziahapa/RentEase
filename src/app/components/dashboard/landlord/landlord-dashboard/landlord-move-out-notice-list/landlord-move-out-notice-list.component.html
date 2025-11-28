@@ -10,7 +10,6 @@
     </button>
   </div>
 
-  <!-- Stats Cards -->
   <div class="stats-section">
     <div class="stat-card pending">
       <div class="stat-content">
@@ -50,7 +49,6 @@
     </div>
   </div>
 
-
   <div class="filters-section">
     <div class="filter-group">
       <mat-form-field appearance="outline" class="filter-field">
@@ -78,15 +76,12 @@
   </div>
 
   <div class="content-section">
-    <!-- Loading State -->
     <div *ngIf="isLoading" class="loading-state">
       <mat-spinner diameter="50"></mat-spinner>
       <p>Loading move-out notices...</p>
     </div>
 
-    <!-- Content when not loading -->
     <div *ngIf="!isLoading">
-      <!-- Empty State -->
       <div *ngIf="filteredNotices.length === 0" class="empty-state">
         <mat-icon>exit_to_app</mat-icon>
         <h3>No Move Out Notices</h3>
@@ -97,18 +92,15 @@
         </button>
       </div>
 
-      <!-- Notices Grid -->
       <div *ngIf="filteredNotices.length > 0" class="notices-grid">
         <div *ngFor="let notice of filteredNotices" class="notice-card">
           <div class="notice-header">
             <div class="notice-info">
-              <!-- Property and Unit Info -->
               <div class="property-unit-info">
                 <h3 class="property-name">{{ notice.property?.name || 'Unknown Property' }}</h3>
                 <p class="unit-number">Unit: {{ notice.unit?.unitNumber || 'N/A' }}</p>
               </div>
               
-              <!-- Tenant Info -->
               <div class="tenant-info">
                 <h4 class="tenant-name">{{ notice.tenant?.fullName || 'Unknown Tenant' }}</h4>
                 <p class="tenant-contact" *ngIf="notice.tenant?.email || notice.tenant?.phone">
@@ -141,7 +133,6 @@
               </div>
             </div>
 
-            <!-- Urgency Indicator for Pending Notices -->
             <div class="urgency-indicator" *ngIf="notice.status === 'PENDING'">
               <div class="urgency-badge" [class]="getMoveOutUrgency(notice.moveOutDate)">
                 <mat-icon>schedule</mat-icon>
@@ -150,30 +141,33 @@
             </div>
           </div>
 
-          <!-- ACTION BUTTONS -->
           <div class="notice-actions">
-          
-            <div class="action-buttons-group" *ngIf="notice.status === 'PENDING'">
-              <button class="action-btn approve-btn" (click)="approveNotice(notice)">
+            <div class="action-buttons-group" *ngIf="canApprove(notice) || canReject(notice)">
+              <button class="action-btn approve-btn" (click)="approveNotice(notice)" *ngIf="canApprove(notice)">
                 <mat-icon>check_circle</mat-icon>
                 <span>Approve Move Out</span>
               </button>
               
-              <button class="action-btn reject-btn" (click)="rejectNotice(notice)">
+              <button class="action-btn reject-btn" (click)="rejectNotice(notice)" *ngIf="canReject(notice)">
                 <mat-icon>cancel</mat-icon>
                 <span>Reject Move Out</span>
               </button>
             </div>
 
-            <!-- Status Display for non-pending notices -->
-            <div class="status-display" *ngIf="notice.status !== 'PENDING'">
+            <div class="modify-actions" *ngIf="canModifyDecision(notice)">
+              <button class="action-btn modify-btn" (click)="modifyDecision(notice)">
+                <mat-icon>swap_horiz</mat-icon>
+                <span>{{ getModifyActionText(notice) }}</span>
+              </button>
+            </div>
+
+            <div class="status-display" *ngIf="notice.status !== 'PENDING' && !canModifyDecision(notice)">
               <span class="status-text">Decision Made</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Pagination -->
       <div *ngIf="filteredNotices.length > 0" class="pagination-section">
         <button class="pagination-btn" 
                 (click)="prevPage()" 
