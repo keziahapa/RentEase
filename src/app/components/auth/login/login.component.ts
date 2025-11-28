@@ -12,6 +12,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../services/auth.service';
 import { InvitationService } from '../../../services/invitation.service';
 import { BusinessService } from '../../../services/business.service';
+import { TenantService } from '../../../services/tenant.service';
+import { CaretakerService } from '../../../services/caretaker.service';
 import { LoginRequest, AuthResponse } from '../../../services/auth-interfaces';
 
 @Component({
@@ -37,6 +39,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   private authService: AuthService = inject(AuthService);
   private invitationService: InvitationService = inject(InvitationService);
   private businessService = inject(BusinessService);
+  private tenantService = inject(TenantService);
+  private caretakerService = inject(CaretakerService);
   private snackBar: MatSnackBar = inject(MatSnackBar);
 
   loginData = { email: '', password: '' };
@@ -326,8 +330,62 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (this.isBusinessRole(normalizedRole)) {
       await this.checkBusinessRegistrationStatus(userRole);
     } else {
+      await this.checkPropertyAccessAndRedirect(userRole);
+    }
+  }
+
+  private async checkPropertyAccessAndRedirect(userRole?: string): Promise<void> {
+    const normalizedRole = (userRole || '').toUpperCase().trim();
+    
+    if (normalizedRole === 'TENANT' || normalizedRole === 'CARETAKER') {
+      try {
+        const hasPropertyAccess = await this.checkUserPropertyAccess(normalizedRole);
+        
+        if (!hasPropertyAccess) {
+          this.router.navigate(['/waiting-room']);
+          return;
+        }
+        
+        this.redirectToDashboard(userRole);
+        
+      } catch (error) {
+        console.error('Error checking property access:', error);
+        this.router.navigate(['/waiting-room']);
+      }
+    } else {
       this.redirectToDashboard(userRole);
     }
+  }
+
+  private checkUserPropertyAccess(role: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (role === 'TENANT') {
+        this.tenantService.getTenantUnits().subscribe({
+          next: (unitsResponse) => {
+            const units = Array.isArray(unitsResponse?.data) ? unitsResponse.data : [];
+            const hasAccess = units.length > 0;
+            resolve(hasAccess);
+          },
+          error: (error) => {
+            console.log('No property access for tenant:', error.message);
+            resolve(false);
+          }
+        });
+      } else if (role === 'CARETAKER') {
+        this.caretakerService.getProperties().subscribe({
+          next: (properties) => {
+            const hasAccess = !!properties && properties.length > 0;
+            resolve(hasAccess);
+          },
+          error: (error) => {
+            console.log('No property access for caretaker:', error.message);
+            resolve(false);
+          }
+        });
+      } else {
+        resolve(true);
+      }
+    });
   }
 
   private acceptPendingInvitation(token: string, userRole: string): void {
@@ -340,12 +398,12 @@ export class LoginComponent implements OnInit, OnDestroy {
         const dashboardName = this.getDashboardDisplayName(invitationType);
         this.showSnackbar(`Invitation accepted! Redirecting to your ${dashboardName}...`, 'success');
         
-        this.redirectToDashboard(userRole);
+        this.checkPropertyAccessAndRedirect(userRole);
       },
       error: (error: any) => {
         sessionStorage.removeItem('pendingInvitationToken');
         this.showSnackbar('Invitation could not be accepted, but you are logged in.', 'info');
-        this.redirectToDashboard(userRole);
+        this.checkPropertyAccessAndRedirect(userRole);
       }
     });
   }

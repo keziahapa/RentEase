@@ -1,4 +1,3 @@
-
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
@@ -57,7 +56,39 @@ export class CaretakerService {
     }));
   }
 
-  // ===== PROPERTY METHODS =====
+  getCaretakerDashboardData(): Observable<any> {
+    return this.getProperties().pipe(
+      map(properties => {
+        const totalProperties = properties.length;
+        const totalUnits = properties.reduce((sum, property) => sum + (property.totalUnits || 0), 0);
+        const occupiedUnits = properties.reduce((sum, property) => sum + (property.occupiedUnits || 0), 0);
+        const vacantUnits = totalUnits - occupiedUnits;
+        
+        return {
+          hasProperties: totalProperties > 0,
+          totalProperties,
+          totalUnits,
+          occupiedUnits,
+          vacantUnits,
+          occupancyRate: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0,
+          properties: properties
+        };
+      }),
+      catchError(error => {
+        console.log('Error calculating caretaker dashboard data:', error);
+        return of({
+          hasProperties: false,
+          totalProperties: 0,
+          totalUnits: 0,
+          occupiedUnits: 0,
+          vacantUnits: 0,
+          occupancyRate: 0,
+          properties: []
+        });
+      })
+    );
+  }
+
   getProperties(): Observable<Property[]> {
     return this.http.get<ApiResponse<Property[]>>(`${this.apiUrl}/caretaker/properties`, {
       headers: this.createHeaders()
@@ -76,7 +107,6 @@ export class CaretakerService {
     );
   }
 
-  // ===== UNIT METHODS =====
   getPropertyUnits(propertyId: number): Observable<Unit[]> {
     return this.http.get<ApiResponse<Unit[]>>(`${this.apiUrl}/caretaker/properties/${propertyId}/units`, {
       headers: this.createHeaders()
@@ -121,7 +151,6 @@ export class CaretakerService {
     );
   }
 
-  // ===== TENANT METHODS =====
   inviteTenant(tenantEmail: string, unitId: number): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/caretaker/invite-tenant`, { 
       tenantEmail, 
@@ -134,7 +163,6 @@ export class CaretakerService {
     );
   }
 
- 
   getMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<MoveOutNotice[]> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -190,7 +218,6 @@ export class CaretakerService {
     );
   }
 
-  // ===== MOVE-OUT ACTIONS =====
   approveMoveOutNotice(noticeId: number, notes?: string): Observable<any> {
     const requestBody: any = {};
     if (notes) {
@@ -246,7 +273,6 @@ export class CaretakerService {
     );
   }
 
-  // ===== DASHBOARD & STATS =====
   getDashboardStats(): Observable<DashboardStats> {
     return this.http.get<ApiResponse<DashboardStats>>(`${this.apiUrl}/caretaker/dashboard/stats`, {
       headers: this.createHeaders()
@@ -265,7 +291,6 @@ export class CaretakerService {
     );
   }
 
-  // ===== MAINTENANCE METHODS =====
   getMaintenanceRequests(propertyId?: number, status?: string): Observable<any[]> {
     let params = new HttpParams();
     
@@ -295,7 +320,6 @@ export class CaretakerService {
     );
   }
 
-
   logout(): Observable<any> {
     return this.http.post(`${this.apiUrl}/auth/logout`, {}, {
       headers: this.createHeaders()
@@ -303,13 +327,11 @@ export class CaretakerService {
   }
 
   getCurrentUserId(): number {
-  const currentUser = this.authService.getCurrentUser();
- 
-  const userId = currentUser?.id?.toString();
-  return userId ? parseInt(userId, 10) : 0;
-}
+    const currentUser = this.authService.getCurrentUser();
+    const userId = currentUser?.id?.toString();
+    return userId ? parseInt(userId, 10) : 0;
+  }
 
- 
   getCurrentUserRole(): string {
     try {
       const currentUser = this.authService.getCurrentUser();
@@ -320,7 +342,6 @@ export class CaretakerService {
     }
   }
 
-  // Helper method to format currency
   formatCurrency(amount: number): string {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
@@ -328,7 +349,6 @@ export class CaretakerService {
     }).format(amount);
   }
 
-  // Helper method to format date
   formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',

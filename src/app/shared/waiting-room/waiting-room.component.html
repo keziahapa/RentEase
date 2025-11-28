@@ -1,0 +1,90 @@
+<div class="waiting-room-container">
+  <div class="waiting-content">
+    <div class="illustration">
+      <mat-icon>hourglass_empty</mat-icon>
+    </div>
+    
+    <h1>Almost Ready, {{ userName }}!</h1>
+    
+    <div *ngIf="userRole === 'tenant'" class="role-specific">
+      <p class="subtitle">
+        Your tenant account is verified and ready. 
+        Waiting for your landlord to assign you to a property.
+      </p>
+      
+      <div class="status-info">
+        <div class="info-item">
+          <mat-icon>apartment</mat-icon>
+          <div class="info-text">
+            <h3>Property Assignment</h3>
+            <p>Your landlord will assign you to a specific property and unit</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="userRole === 'caretaker'" class="role-specific">
+      <p class="subtitle">
+        Your caretaker account is verified and ready. 
+        Waiting for your landlord to assign you properties to manage.
+      </p>
+      
+      <div class="status-info">
+        <div class="info-item">
+          <mat-icon>manage_accounts</mat-icon>
+          <div class="info-text">
+            <h3>Property Management</h3>
+            <p>Your landlord will assign properties for you to manage</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="common-info">
+      <div class="info-item">
+        <mat-icon>email</mat-icon>
+        <div class="info-text">
+          <h3>Check Your Email</h3>
+          <p>You'll receive an invitation email from your landlord</p>
+        </div>
+      </div>
+      
+      <div class="info-item">
+        <mat-icon>link</mat-icon>
+        <div class="info-text">
+          <h3>Accept Invitation</h3>
+          <p>Click the invitation link to get access to your dashboard</p>
+        </div>
+      </div>
+      
+      <div class="info-item">
+        <mat-icon>refresh</mat-icon>
+        <div class="info-text">
+          <h3>Auto-Redirect</h3>
+          <p>We'll automatically redirect you once you're assigned</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button class="check-btn" (click)="manualCheck()" [disabled]="isLoading">
+        <mat-icon>refresh</mat-icon>
+        {{ isLoading ? 'Checking...' : 'Check Access Now' }}
+      </button>
+      
+      <button class="logout-btn" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        Logout
+      </button>
+    </div>
+
+    <div class="help-section">
+      <p *ngIf="userRole === 'tenant'">
+        Waiting too long? <strong>Contact your landlord directly</strong> to send your tenant invitation.
+      </p>
+      <p *ngIf="userRole === 'caretaker'">
+        Waiting too long? <strong>Contact your employer</strong> to send your caretaker assignment.
+      </p>
+    </div>
+  </div>
+</div>
