@@ -340,19 +340,24 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (normalizedRole === 'TENANT' || normalizedRole === 'CARETAKER') {
       try {
         const hasPropertyAccess = await this.checkUserPropertyAccess(normalizedRole);
+        console.log(`🔍 Property access check for ${normalizedRole}:`, hasPropertyAccess);
         
         if (!hasPropertyAccess) {
+          console.log(`🚫 No property access for ${normalizedRole}, redirecting to waiting room`);
           this.router.navigate(['/waiting-room']);
           return;
         }
         
+        console.log(`✅ Property access granted for ${normalizedRole}, redirecting to dashboard`);
         this.redirectToDashboard(userRole);
         
       } catch (error) {
         console.error('Error checking property access:', error);
+        console.log(`❌ Error checking property access for ${normalizedRole}, redirecting to waiting room`);
         this.router.navigate(['/waiting-room']);
       }
     } else {
+      console.log(`🚀 ${normalizedRole} has direct dashboard access`);
       this.redirectToDashboard(userRole);
     }
   }
@@ -362,27 +367,34 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (role === 'TENANT') {
         this.tenantService.getTenantUnits().subscribe({
           next: (unitsResponse) => {
+            console.log('📊 Tenant units response:', unitsResponse);
             const units = Array.isArray(unitsResponse?.data) ? unitsResponse.data : [];
             const hasAccess = units.length > 0;
+            console.log(`🏠 Tenant has ${units.length} units, access: ${hasAccess}`);
+            console.log('Tenant units details:', units);
             resolve(hasAccess);
           },
           error: (error) => {
-            console.log('No property access for tenant:', error.message);
+            console.log('❌ No property access for tenant - API error:', error.message);
             resolve(false);
           }
         });
       } else if (role === 'CARETAKER') {
         this.caretakerService.getProperties().subscribe({
           next: (properties) => {
+            console.log('📊 Caretaker properties response:', properties);
             const hasAccess = !!properties && properties.length > 0;
+            console.log(`🏢 Caretaker has ${properties?.length || 0} properties, access: ${hasAccess}`);
+            console.log('Caretaker properties details:', properties);
             resolve(hasAccess);
           },
           error: (error) => {
-            console.log('No property access for caretaker:', error.message);
+            console.log('❌ No property access for caretaker - API error:', error.message);
             resolve(false);
           }
         });
       } else {
+        console.log(`✅ ${role} has automatic property access`);
         resolve(true);
       }
     });

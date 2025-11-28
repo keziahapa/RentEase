@@ -128,7 +128,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
         }
       }
     } catch (error) {
-      console.error(' Error checking pending invitations:', error);
+      console.error('Error checking pending invitations:', error);
     }
   }
 
@@ -137,7 +137,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
 
     this.isProcessingInvitation = true;
     
-    this.snackBar.open(' Processing pending invitation...', 'Close', { 
+    this.snackBar.open('Processing pending invitation...', 'Close', { 
       duration: 3000,
       panelClass: ['info-snackbar']
     });
@@ -146,11 +146,11 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         this.isProcessingInvitation = false;
         this.hasPendingInvitationAlert = false;
-        console.log(' Pending invitation accepted successfully:', response);
+        console.log('Pending invitation accepted successfully:', response);
         
         this.clearPendingInvitation();
         
-        this.snackBar.open(' Invitation accepted successfully!', 'Close', { 
+        this.snackBar.open('Invitation accepted successfully!', 'Close', { 
           duration: 5000,
           panelClass: ['success-snackbar']
         });
@@ -161,7 +161,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         this.isProcessingInvitation = false;
-        console.error(' Failed to process pending invitation:', error);
+        console.error('Failed to process pending invitation:', error);
         
         if (this.pendingInvitation) {
           this.pendingInvitation.attemptCount++;
@@ -169,14 +169,14 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
           this.pendingInvitation.lastError = error.message;
           
           if (this.pendingInvitation.attemptCount >= this.pendingInvitation.maxRetries) {
-            this.snackBar.open(' Invitation failed after multiple attempts. Please contact support.', 'Close', { 
+            this.snackBar.open('Invitation failed after multiple attempts. Please contact support.', 'Close', { 
               duration: 7000,
               panelClass: ['error-snackbar']
             });
             this.clearPendingInvitation();
           } else {
             localStorage.setItem('pendingInvitation', JSON.stringify(this.pendingInvitation));
-            this.snackBar.open(' Invitation will retry later', 'Close', { 
+            this.snackBar.open('Invitation will retry later', 'Close', { 
               duration: 3000,
               panelClass: ['warning-snackbar']
             });
@@ -200,7 +200,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
 
     const retryDelay = Math.min(30000, 2000 * Math.pow(2, this.pendingInvitation.attemptCount));
     
-    console.log(` Scheduling next retry in ${retryDelay}ms`);
+    console.log(`Scheduling next retry in ${retryDelay}ms`);
     
     setTimeout(() => {
       if (this.pendingInvitation && this.pendingInvitation.status === 'queued') {
@@ -277,34 +277,50 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
     this.isLoadingDashboard = true;
     this.dashboardError = null;
 
-    this.tenantService.getTenantDashboardData().subscribe({
-      next: (tenantData: any) => {
-        if (tenantData.success && tenantData.data) {
-          this.processDashboardData(tenantData.data);
+    // FIXED: Use getTenantUnits() instead of getTenantDashboardData()
+    this.tenantService.getTenantUnits().subscribe({
+      next: (response: any) => {
+        if (response.success && response.data) {
+          this.processDashboardData(response.data);
         } else {
           this.dashboardError = 'Failed to load tenant data';
+          this.processDashboardData([]); // Process empty data
         }
         this.isLoadingDashboard = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         this.dashboardError = error.message || 'Failed to load dashboard data';
         this.isLoadingDashboard = false;
         console.error('Dashboard data error:', error);
+        this.processDashboardData([]); // Process empty data on error
       }
     });
   }
 
-  private processDashboardData(tenantData: any): void {
+  private processDashboardData(tenantUnits: any[]): void {
+    // Use the tenant units data to populate dashboard
+    const firstUnit = tenantUnits && tenantUnits.length > 0 ? tenantUnits[0] : null;
+    
     this.dashboardData = {
-      currentRent: tenantData.currentRent || 25000,
-      paymentStatus: tenantData.paymentStatus || 'Current',
-      daysUntilDue: tenantData.daysUntilDue || 15,
-      openMaintenance: tenantData.openMaintenance || 0,
-      leaseEndDays: tenantData.leaseEndDays || 120,
-      propertyAddress: tenantData.propertyAddress || '123 Main Street, Nairobi',
-      landlordName: tenantData.landlordName || 'John Doe',
-      depositAmount: tenantData.depositAmount || 50000
+      currentRent: firstUnit?.rentAmount || 0,
+      paymentStatus: 'Current', // Default status
+      daysUntilDue: 15, // Default value
+      openMaintenance: 0, // Default value
+      leaseEndDays: firstUnit ? this.calculateLeaseEndDays(firstUnit.leaseEndDate) : 0,
+      propertyAddress: firstUnit?.propertyAddress || 'No property assigned',
+      landlordName: firstUnit?.landlordName || 'Not assigned',
+      depositAmount: firstUnit?.depositAmount || 0,
+      units: tenantUnits || [] // Store the actual units data
     };
+  }
+
+  private calculateLeaseEndDays(leaseEndDate: string): number {
+    if (!leaseEndDate) return 0;
+    
+    const endDate = new Date(leaseEndDate);
+    const today = new Date();
+    const diffTime = endDate.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
   private loadNotifications(): void {
@@ -317,10 +333,11 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
         this.unreadMessagesCount = summary.unreadMessages;
         this.isLoadingNotifications = false;
       },
-      error: () => {
+      error: (error: any) => {
         this.unreadNotificationsCount = 0;
         this.unreadMessagesCount = 0;
         this.isLoadingNotifications = false;
+        console.error('Error loading notifications:', error);
       }
     });
 
@@ -515,7 +532,7 @@ export class TenantDashboardComponent implements OnInit, OnDestroy {
         
         this.router.navigate(['/login']);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Logout error:', error);
         this.isLoggingOut = false;
         

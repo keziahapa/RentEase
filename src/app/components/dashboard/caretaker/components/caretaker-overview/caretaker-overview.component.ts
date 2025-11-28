@@ -104,7 +104,6 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     console.log('🔄 Loading dashboard data...');
 
     const dashboardSub = forkJoin({
-      // Get all the actual data arrays
       properties: this.caretakerService.getProperties().pipe(
         catchError(error => {
           console.warn('❌ Failed to load properties:', error);
@@ -133,7 +132,6 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
       next: (results) => {
         console.log('🚀 DASHBOARD RAW DATA:', results);
         
-        // Store the raw data
         this.properties = results.properties || [];
         const maintenanceRequests = results.maintenanceRequests || [];
         const moveOutNotices = results.moveOutNotices || [];
@@ -183,55 +181,147 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
   ): void {
     console.log('🧮 Calculating stats from data...');
 
+    // Reset stats
+    this.stats = {
+      totalProperties: 0,
+      totalUnits: 0,
+      occupiedUnits: 0,
+      vacantUnits: 0,
+      pendingMaintenance: 0,
+      pendingMoveOutNotices: 0,
+      unreadMessages: 0
+    };
+
     // 1. Property Stats
     this.stats.totalProperties = properties.length;
     
     let totalUnits = 0;
     let occupiedUnits = 0;
 
+    // Load units for each property to get accurate counts
+    if (properties.length > 0) {
+      const unitRequests = properties.map(property => 
+        this.caretakerService.getPropertyUnits(property.id).pipe(
+          catchError(error => {
+            console.warn(`❌ Failed to load units for property ${property.id}:`, error);
+            return of([]);
+          })
+        )
+      );
+
+      forkJoin(unitRequests).subscribe({
+        next: (allUnits) => {
+          allUnits.forEach((units: any[], propertyIndex) => {
+            const property = properties[propertyIndex];
+            console.log(`🏠 Property ${propertyIndex + 1} (${property.name}):`, property);
+            console.log(`   Units for property:`, units);
+
+            // Count from actual units array
+            const propertyUnits = units.length;
+            totalUnits += propertyUnits;
+            
+            const propertyOccupied = units.filter((unit: any) => {
+              const isOccupied = unit.isOccupied === true || 
+                                unit.status === 'OCCUPIED' || 
+                                unit.status === 'occupied' ||
+                                unit.occupancyStatus === 'OCCUPIED' ||
+                                (unit.tenant !== null && unit.tenant !== undefined) ||
+                                unit.tenantId !== null;
+              console.log(`   Unit ${unit.unitNumber}: isOccupied=${isOccupied}`, unit);
+              return isOccupied;
+            }).length;
+            
+            occupiedUnits += propertyOccupied;
+            console.log(`   From units array - Total: ${propertyUnits}, Occupied: ${propertyOccupied}`);
+          });
+
+          // Update stats after all units are loaded
+          this.stats.totalUnits = totalUnits;
+          this.stats.occupiedUnits = occupiedUnits;
+          this.stats.vacantUnits = Math.max(0, totalUnits - occupiedUnits);
+
+          // Calculate other stats
+          this.calculateOtherStats(maintenanceRequests, moveOutNotices, chatRooms);
+        },
+        error: (error) => {
+          console.error('❌ Error loading units:', error);
+          // Fallback to basic property data if units fail to load
+          this.fallbackToPropertyData(properties, maintenanceRequests, moveOutNotices, chatRooms);
+        }
+      });
+    } else {
+      // No properties, just calculate other stats
+      this.calculateOtherStats(maintenanceRequests, moveOutNotices, chatRooms);
+    }
+  }
+
+  private fallbackToPropertyData(
+    properties: any[], 
+    maintenanceRequests: any[], 
+    moveOutNotices: any[], 
+    chatRooms: any[]
+  ): void {
+    console.log('🔄 Falling back to property data for unit counts...');
+
+    let totalUnits = 0;
+    let occupiedUnits = 0;
+
     properties.forEach((property: any, index: number) => {
       console.log(`🏠 Property ${index + 1}:`, property);
       
-      // Check if property has direct unit counts
-      if (property.totalUnits !== undefined && property.totalUnits !== null) {
-        totalUnits += Number(property.totalUnits);
-        console.log(`   Using totalUnits: ${property.totalUnits}`);
-      }
-      
-      if (property.occupiedUnits !== undefined && property.occupiedUnits !== null) {
-        occupiedUnits += Number(property.occupiedUnits);
-        console.log(`   Using occupiedUnits: ${property.occupiedUnits}`);
-      }
-      
-      // Check if property has units array
-      if (property.units && Array.isArray(property.units)) {
-        const propertyUnits = property.units.length;
-        totalUnits += propertyUnits;
-        
-        const propertyOccupied = property.units.filter((unit: any) => {
-          const isOccupied = unit.isOccupied === true || 
-                            unit.status === 'OCCUPIED' || 
-                            unit.status === 'occupied' ||
-                            unit.occupancyStatus === 'OCCUPIED' ||
-                            unit.tenant !== null;
-          return isOccupied;
-        }).length;
-        
-        occupiedUnits += propertyOccupied;
-        console.log(`   From units array - Total: ${propertyUnits}, Occupied: ${propertyOccupied}`);
+      // Try different possible field names for unit counts
+      const possibleTotalUnitFields = ['totalUnits', 'unitsCount', 'numberOfUnits', 'unitCount'];
+      const possibleOccupiedUnitFields = ['occupiedUnits', 'occupiedUnitsCount', 'occupiedCount'];
+
+      let propertyTotalUnits = 0;
+      let propertyOccupiedUnits = 0;
+
+      // Find total units
+      for (const field of possibleTotalUnitFields) {
+        if (property[field] !== undefined && property[field] !== null) {
+          propertyTotalUnits = Number(property[field]);
+          console.log(`   Using ${field} for total: ${propertyTotalUnits}`);
+          break;
+        }
       }
 
-      // If no unit data found, assume some default values for demo
-      if (property.totalUnits === undefined && (!property.units || !Array.isArray(property.units))) {
-        console.log(`   No unit data found, using defaults`);
-        // You might want to set some default values here if needed
+      // Find occupied units
+      for (const field of possibleOccupiedUnitFields) {
+        if (property[field] !== undefined && property[field] !== null) {
+          propertyOccupiedUnits = Number(property[field]);
+          console.log(`   Using ${field} for occupied: ${propertyOccupiedUnits}`);
+          break;
+        }
       }
+
+      // If no specific fields found, check for units array
+      if (propertyTotalUnits === 0 && property.units && Array.isArray(property.units)) {
+        propertyTotalUnits = property.units.length;
+        propertyOccupiedUnits = property.units.filter((unit: any) => 
+          unit.isOccupied === true || 
+          unit.status === 'OCCUPIED' || 
+          unit.occupancyStatus === 'OCCUPIED' ||
+          unit.tenant !== null
+        ).length;
+        console.log(`   From units array - Total: ${propertyTotalUnits}, Occupied: ${propertyOccupiedUnits}`);
+      }
+
+      totalUnits += propertyTotalUnits;
+      occupiedUnits += propertyOccupiedUnits;
     });
 
     this.stats.totalUnits = totalUnits;
     this.stats.occupiedUnits = occupiedUnits;
     this.stats.vacantUnits = Math.max(0, totalUnits - occupiedUnits);
 
+    this.calculateOtherStats(maintenanceRequests, moveOutNotices, chatRooms);
+  }
+
+  private calculateOtherStats(
+    maintenanceRequests: any[], 
+    moveOutNotices: any[], 
+    chatRooms: any[]
+  ): void {
     // 2. Maintenance Stats
     this.stats.pendingMaintenance = maintenanceRequests.filter((req: any) => {
       const status = (req.status || '').toLowerCase();
@@ -239,8 +329,15 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
              status === 'submitted' || 
              status === 'in-progress' || 
              status === 'in_progress' ||
-             status === 'open';
+             status === 'open' ||
+             status === 'new';
     }).length;
+
+    console.log('🔧 Maintenance requests analysis:', {
+      total: maintenanceRequests.length,
+      pending: this.stats.pendingMaintenance,
+      requests: maintenanceRequests.map(r => ({ id: r.id, status: r.status }))
+    });
 
     // 3. Move Out Notices Stats
     this.stats.pendingMoveOutNotices = moveOutNotices.filter((notice: any) => {
@@ -248,23 +345,22 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
       return status === 'pending' || 
              status === 'submitted' || 
              status === 'under_review' ||
-             status === 'review';
+             status === 'review' ||
+             status === 'awaiting_approval';
     }).length;
+
+    console.log('🚪 Move out notices analysis:', {
+      total: moveOutNotices.length,
+      pending: this.stats.pendingMoveOutNotices,
+      notices: moveOutNotices.map(n => ({ id: n.id, status: n.status }))
+    });
 
     // 4. Chat Stats
     this.stats.unreadMessages = chatRooms.reduce((total: number, room: any) => {
       return total + (room.unreadCount || 0);
     }, 0);
 
-    console.log('📈 Calculated Stats:', {
-      totalProperties: this.stats.totalProperties,
-      totalUnits: this.stats.totalUnits,
-      occupiedUnits: this.stats.occupiedUnits,
-      vacantUnits: this.stats.vacantUnits,
-      pendingMaintenance: this.stats.pendingMaintenance,
-      pendingMoveOutNotices: this.stats.pendingMoveOutNotices,
-      unreadMessages: this.stats.unreadMessages
-    });
+    console.log('📈 Final Calculated Stats:', this.stats);
   }
 
   private mapMaintenanceRequest(request: any): any {
@@ -314,7 +410,8 @@ export class CaretakerOverviewComponent implements OnInit, OnDestroy {
     
     const statusMap: any = {
       'SUBMITTED': 'submitted', 'IN_PROGRESS': 'in-progress', 'COMPLETED': 'completed', 'CANCELLED': 'cancelled',
-      'PENDING': 'submitted', 'submitted': 'submitted', 'in-progress': 'in-progress', 'completed': 'completed', 'cancelled': 'cancelled'
+      'PENDING': 'submitted', 'submitted': 'submitted', 'in-progress': 'in-progress', 'completed': 'completed', 'cancelled': 'cancelled',
+      'NEW': 'submitted', 'OPEN': 'submitted'
     };
     return statusMap[status] || 'submitted';
   }

@@ -25,23 +25,22 @@ export class TenantService {
   getTenantUnits(): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
-      return of(this.getMockUnitsData());
+      console.log('No token available, returning empty units');
+      return of({ success: true, data: [] });
     }
 
     return this.http.get<any>(
       `${this.apiUrl}/tenant/units`,
       { headers: this.createHeaders() }
     ).pipe(
+      map(response => {
+        console.log('📊 Tenant units API response:', response);
+        return response;
+      }),
       catchError((error) => {
         console.error('Error fetching tenant units:', error);
-        return of(this.getMockUnitsData());
+        return of({ success: false, data: [] });
       })
-    );
-  }
-
-  getTenantDashboardData(): Observable<TenantData> {
-    return this.getTenantUnits().pipe(
-      map(response => this.processDashboardData(response))
     );
   }
 
@@ -202,86 +201,12 @@ export class TenantService {
     );
   }
 
-  private processDashboardData(unitsResponse: any): TenantData {
-    const units = Array.isArray(unitsResponse?.data) ? unitsResponse.data : [];
-    
-    if (units.length === 0) {
-      return this.getDefaultTenantData();
-    }
-
-    const primaryUnit = units[0];
-    const leaseEndDays = this.calculateDaysUntilDate(primaryUnit.leaseEndDate);
-
-    return {
-      currentRent: primaryUnit.rentAmount || 0,
-      paymentStatus: primaryUnit.paymentStatus || 'Current',
-      daysUntilDue: primaryUnit.daysUntilDue || 0,
-      openMaintenance: primaryUnit.openMaintenanceRequests || 0,
-      leaseEndDays: leaseEndDays,
-      propertyAddress: primaryUnit.propertyAddress || '',
-      landlordName: primaryUnit.landlordName || '',
-      depositAmount: primaryUnit.depositAmount || 0,
-      unitNumber: primaryUnit.unitNumber || '',
-      propertyName: primaryUnit.propertyName || '',
-      nextPaymentDate: primaryUnit.nextPaymentDate,
-      pendingMoveOutNotices: 0,
-      hasActiveMoveOut: false
-    };
-  }
-
-  private calculateDaysUntilDate(endDate: string): number {
-    if (!endDate) return 0;
-    const today = new Date();
-    const targetDate = new Date(endDate);
-    const timeDiff = targetDate.getTime() - today.getTime();
-    return Math.ceil(timeDiff / (1000 * 3600 * 24));
-  }
-
-  private getMockUnitsData(): any {
-    return {
-      success: true,
-      data: [
-        {
-          id: 1,
-          unitNumber: 'A101',
-          propertyName: 'Sunrise Apartments',
-          propertyAddress: '123 Main Street, Nairobi',
-          landlordName: 'John Doe',
-          rentAmount: 25000,
-          depositAmount: 50000,
-          leaseStartDate: '2024-01-01',
-          leaseEndDate: '2024-12-31',
-          occupancyStatus: 'occupied',
-          openMaintenanceRequests: 1,
-          paymentStatus: 'Current',
-          daysUntilDue: 12,
-          nextPaymentDate: '2024-03-01'
-        }
-      ]
-    };
-  }
-
   private getMockMoveOutNotices(): MoveOutNoticeResponse {
     return {
       data: [],
       total: 0,
       page: 1,
       limit: 10
-    };
-  }
-
-  private getDefaultTenantData(): TenantData {
-    return {
-      currentRent: 0,
-      paymentStatus: 'No Data',
-      daysUntilDue: 0,
-      openMaintenance: 0,
-      leaseEndDays: 0,
-      propertyAddress: 'No property assigned',
-      landlordName: '',
-      depositAmount: 0,
-      unitNumber: '',
-      propertyName: ''
     };
   }
 
