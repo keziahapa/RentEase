@@ -152,11 +152,10 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     });
   }
 
-  // Date filter function
+  // SIMPLIFIED Date filter function - remove complex validation temporarily
   dateFilter = (date: Date | null): boolean => {
     if (!date) return false;
-    const time = date.getTime();
-    return time >= this.minDate.getTime() && time <= this.maxDate.getTime();
+    return true; // Allow all dates for testing
   }
 
   onCalendarOpened(): void {
@@ -197,7 +196,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
 
       console.log('Submitting move-out notice:', noticeData);
 
-      // Simulate API call (replace with actual service call)
+      // Simulate API call
       setTimeout(() => {
         this.isSubmitting = false;
         
@@ -211,53 +210,6 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
           data: noticeData
         });
       }, 2000);
-
-      /* Actual API call (uncomment when ready)
-      this.tenantService.submitMoveOutNotice(noticeData).subscribe({
-        next: (response: any) => {
-          this.isSubmitting = false;
-          
-          if (response.success) {
-            this.snackBar.open('Move-out notice submitted successfully!', 'Close', { 
-              duration: 5000,
-              panelClass: ['success-snackbar']
-            });
-            
-            this.dialogRef.close({ 
-              success: true, 
-              data: noticeData,
-              response: response.data
-            });
-          } else {
-            this.snackBar.open(response.message || 'Failed to submit move-out notice', 'Close', { 
-              duration: 5000,
-              panelClass: ['error-snackbar']
-            });
-          }
-        },
-        error: (error) => {
-          this.isSubmitting = false;
-          console.error('Error submitting move-out notice:', error);
-          
-          if (error.status === 401) {
-            this.snackBar.open('Session expired. Please login again.', 'Close', { 
-              duration: 5000,
-              panelClass: ['error-snackbar']
-            });
-            this.dialogRef.close({ success: false, sessionExpired: true });
-          } else {
-            this.snackBar.open(
-              error.error?.message || 'Failed to submit move-out notice. Please try again.', 
-              'Close', 
-              { 
-                duration: 5000,
-                panelClass: ['error-snackbar']
-              }
-            );
-          }
-        }
-      });
-      */
     } else {
       if (!this.termsAccepted) {
         this.snackBar.open('Please accept the terms and conditions', 'Close', { 

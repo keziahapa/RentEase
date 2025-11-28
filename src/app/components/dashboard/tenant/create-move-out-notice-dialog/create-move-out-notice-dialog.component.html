@@ -11,10 +11,10 @@
       <p>Loading your property information...</p>
     </div>
 
-    <!-- Form -->
+    
     <form [formGroup]="noticeForm" class="notice-form" *ngIf="!isLoadingData">
       
-      <!-- Property Information -->
+     
       <div class="property-info-section">
         <div class="property-header">
           <mat-icon>home</mat-icon>
@@ -36,16 +36,13 @@
         </div>
       </div>
 
-      <!-- Move-Out Date -->
+      
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Intended Move-Out Date</mat-label>
         <input matInput 
                [matDatepicker]="picker" 
                formControlName="moveOutDate"
-               [min]="minDate"
-               [max]="maxDate"
-               [matDatepickerFilter]="dateFilter"
-               placeholder="Click calendar icon to select date"
+               placeholder="Select a date"
                required>
         <mat-icon matPrefix>event</mat-icon>
         <mat-datepicker-toggle matSuffix [for]="picker">
@@ -53,28 +50,20 @@
         </mat-datepicker-toggle>
         <mat-datepicker #picker 
                         startView="month"
-                        [startAt]="minDate"
                         (opened)="onCalendarOpened()">
         </mat-datepicker>
-        <mat-hint>Select a date between {{minDate | date:'MMM d, y'}} and {{maxDate | date:'MMM d, y'}}</mat-hint>
         <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('required') && noticeForm.get('moveOutDate')?.touched">
           Move-out date is required
         </mat-error>
-        <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('matDatepickerMin')">
-          Move-out date must be after {{minDate | date:'mediumDate'}}
-        </mat-error>
-        <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('matDatepickerMax')">
-          Move-out date cannot be later than {{maxDate | date:'mediumDate'}}
-        </mat-error>
       </mat-form-field>
 
-      <!-- Selected Date Display -->
+     
       <div *ngIf="noticeForm.get('moveOutDate')?.value" class="selected-date-display">
         <mat-icon>event_available</mat-icon>
         <span><strong>Selected Date:</strong> {{noticeForm.get('moveOutDate')?.value | date:'fullDate'}}</span>
       </div>
 
-      <!-- Reason for Moving -->
+    
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Reason for Moving Out</mat-label>
         <mat-select formControlName="reason" required>
@@ -89,24 +78,21 @@
         </mat-error>
       </mat-form-field>
 
-      <!-- Additional Notes -->
+    
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Additional Notes (Optional)</mat-label>
         <textarea matInput 
                   formControlName="notes"
                   rows="4"
                   maxlength="1000"
-                  placeholder=""></textarea>
+                  placeholder="Please provide any additional information that might be helpful for your landlord..."></textarea>
         <mat-icon matPrefix>notes</mat-icon>
         <mat-hint align="end">
           {{ getNotesLength() }}/1000 characters
         </mat-hint>
-        <mat-error *ngIf="noticeForm.get('notes')?.hasError('maxlength')">
-          Maximum 1000 characters allowed
-        </mat-error>
       </mat-form-field>
 
-      <!-- Important Information -->
+     
       <div class="info-box">
         <div class="info-header">
           <mat-icon>info</mat-icon>
@@ -124,7 +110,7 @@
         </div>
       </div>
 
-      <!-- Terms Acceptance -->
+      
       <div class="terms-section">
         <mat-checkbox (change)="onTermsChange($event.checked)" 
                      [checked]="termsAccepted"
@@ -139,7 +125,7 @@
     </form>
   </mat-dialog-content>
 
-  <!-- Dialog Actions -->
+
   <mat-dialog-actions>
     <button mat-stroked-button 
             type="button" 

@@ -36,9 +36,9 @@
     border-radius: 0;
   }
 
-  // Dialog Title
+  // Dialog Title - USING YOUR EXACT COLORS
   h2[mat-dialog-title] {
-    background: #1e40af;
+    background: #1e40af; // YOUR color
     color: white;
     margin: 0;
     padding: 24px;
@@ -91,7 +91,7 @@
     overflow-y: auto;
     padding: 24px;
     margin: 0;
-    background: #fafbfc;
+    background: #fafbfc; // YOUR color
 
     @media (max-width: 768px) {
       padding: 20px;
@@ -105,7 +105,7 @@
       padding: 12px;
     }
 
-    // Loading State
+    // Loading State - USING YOUR EXACT COLORS
     .loading-state {
       display: flex;
       flex-direction: column;
@@ -122,13 +122,13 @@
         margin-bottom: 16px;
         
         ::ng-deep circle {
-          stroke: #667eea;
+          stroke: #667eea; // YOUR color
         }
       }
       
       p {
         margin: 0;
-        color: #6b7280;
+        color: #6b7280; // YOUR color
         font-size: 1rem;
         font-weight: 500;
 
@@ -138,13 +138,13 @@
       }
     }
 
-    // Property Info Section
+    // Property Info Section - USING YOUR EXACT COLORS
     .property-info-section {
       background: white;
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 24px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid #e5e7eb; // YOUR color
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
       @media (max-width: 768px) {
@@ -165,7 +165,7 @@
         gap: 8px;
         margin-bottom: 16px;
         padding-bottom: 12px;
-        border-bottom: 2px solid #f3f4f6;
+        border-bottom: 2px solid #f3f4f6; // YOUR color
 
         @media (max-width: 480px) {
           margin-bottom: 12px;
@@ -174,7 +174,7 @@
         }
         
         mat-icon {
-          color: #667eea;
+          color: #667eea; // YOUR color
           font-size: 24px;
           width: 24px;
           height: 24px;
@@ -188,7 +188,7 @@
         
         h3 {
           margin: 0;
-          color: #1f2937;
+          color: #1f2937; // YOUR color
           font-size: 1.2rem;
           font-weight: 600;
 
@@ -208,7 +208,7 @@
           justify-content: space-between;
           align-items: center;
           padding: 8px 0;
-          border-bottom: 1px solid #f9fafb;
+          border-bottom: 1px solid #f9fafb; // YOUR color
 
           @media (max-width: 768px) {
             flex-direction: column;
@@ -227,7 +227,7 @@
           }
           
           .label {
-            color: #6b7280;
+            color: #6b7280; // YOUR color
             font-weight: 500;
             font-size: 0.9rem;
 
@@ -237,7 +237,7 @@
           }
           
           .value {
-            color: #1f2937;
+            color: #1f2937; // YOUR color
             font-weight: 600;
             text-align: right;
 
@@ -254,7 +254,7 @@
       }
     }
 
-    // Form Styles
+    // Form Styles - USING YOUR EXACT COLORS
     .notice-form {
       .full-width {
         width: 100%;
@@ -280,25 +280,25 @@
         
         ::ng-deep .mat-form-field-label {
           font-weight: 500;
-          color: #6b7280;
+          color: #6b7280; // YOUR color
         }
         
         ::ng-deep .mat-input-element {
-          color: #1f2937;
+          color: #1f2937; // YOUR color
           font-weight: 500;
           padding: 4px 0;
           
           &::placeholder {
-            color: #9ca3af;
+            color: #9ca3af; // YOUR color
           }
 
           @media (max-width: 480px) {
-            font-size: 16px; // Prevents zoom on iOS
+            font-size: 16px;
           }
         }
         
         mat-icon[matPrefix] {
-          color: #667eea;
+          color: #667eea; // YOUR color
           margin-right: 8px;
 
           @media (max-width: 480px) {
@@ -309,20 +309,20 @@
         // Date picker enhancements
         &.mat-form-field-appearance-outline.mat-form-field-focused {
           ::ng-deep .mat-form-field-outline-thick {
-            color: #667eea;
+            color: #667eea; // YOUR color
           }
         }
         
         // Error states
         &.mat-form-field-invalid {
           ::ng-deep .mat-form-field-outline-thick {
-            color: #ef4444;
+            color: #ef4444; // YOUR color
           }
         }
         
         // Hint and error styling
         ::ng-deep .mat-hint {
-          color: #6b7280;
+          color: #6b7280; // YOUR color
           font-size: 0.8rem;
           margin-top: 4px;
         }
@@ -334,6 +334,7 @@
           font-size: 0.85rem;
           font-weight: 500;
           margin-top: 4px;
+          color: #ef4444; // YOUR color
 
           @media (max-width: 480px) {
             font-size: 0.8rem;
@@ -353,7 +354,7 @@
       
       // Reason select specific styling
       ::ng-deep .mat-select-value {
-        color: #1f2937;
+        color: #1f2937; // YOUR color
         font-weight: 500;
       }
       
@@ -369,10 +370,10 @@
       }
     }
 
-    // Information Box
+    // Information Box - USING YOUR EXACT COLORS
     .info-box {
-      background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
-      border: 1px solid #c7d2fe;
+      background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%); // YOUR colors
+      border: 1px solid #c7d2fe; // YOUR color
       border-radius: 12px;
       padding: 20px;
       margin: 24px 0;
@@ -401,7 +402,7 @@
         }
         
         mat-icon {
-          color: #4f46e5;
+          color: #4f46e5; // YOUR color
           font-size: 20px;
           width: 20px;
           height: 20px;
@@ -414,7 +415,7 @@
         }
         
         span {
-          color: #3730a3;
+          color: #3730a3; // YOUR color
           font-weight: 600;
           font-size: 1rem;
 
@@ -427,7 +428,7 @@
       .info-content {
         p {
           margin: 0 0 12px 0;
-          color: #3730a3;
+          color: #3730a3; // YOUR color
           font-weight: 500;
 
           @media (max-width: 480px) {
@@ -439,7 +440,7 @@
         ul {
           margin: 0;
           padding-left: 20px;
-          color: #4f46e5;
+          color: #4f46e5; // YOUR color
 
           @media (max-width: 480px) {
             padding-left: 16px;
@@ -459,20 +460,20 @@
             }
             
             strong {
-              color: #3730a3;
+              color: #3730a3; // YOUR color
             }
           }
         }
       }
     }
 
-    // Terms Section
+    // Terms Section - USING YOUR EXACT COLORS
     .terms-section {
       background: white;
       border-radius: 12px;
       padding: 20px;
       margin: 24px 0 8px 0;
-      border: 2px solid #f3f4f6;
+      border: 2px solid #f3f4f6; // YOUR color
       transition: all 0.3s ease;
 
       @media (max-width: 768px) {
@@ -488,14 +489,14 @@
       }
       
       &:hover {
-        border-color: #e5e7eb;
+        border-color: #e5e7eb; // YOUR color
       }
       
       .terms-checkbox {
         width: 100%;
         
         ::ng-deep .mat-checkbox-label {
-          color: #1f2937;
+          color: #1f2937; // YOUR color
           font-weight: 500;
           line-height: 1.5;
           white-space: normal;
@@ -507,12 +508,12 @@
         }
         
         ::ng-deep .mat-checkbox-frame {
-          border-color: #d1d5db;
+          border-color: #d1d5db; // YOUR color
           border-width: 2px;
         }
         
         ::ng-deep .mat-checkbox-checked.mat-accent .mat-checkbox-background {
-          background-color: #10b981;
+          background-color: #10b981; // YOUR color
         }
       }
       
@@ -520,7 +521,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        color: #ef4444;
+        color: #ef4444; // YOUR color
         font-size: 0.85rem;
         font-weight: 500;
         margin-top: 8px;
@@ -543,12 +544,12 @@
     }
   }
 
-  // Dialog Actions
+  // Dialog Actions - USING YOUR EXACT COLORS
   mat-dialog-actions {
     background: white;
     padding: 20px 24px;
     margin: 0;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #e5e7eb; // YOUR color
     display: flex;
     justify-content: flex-end;
     gap: 12px;
@@ -577,8 +578,8 @@
       letter-spacing: normal;
       padding: 0 24px;
       height: 44px;
-      border: 2px solid #d1d5db;
-      color: #6b7280;
+      border: 2px solid #d1d5db; // YOUR color
+      color: #6b7280; // YOUR color
       background: white;
       transition: all 0.3s ease;
 
@@ -599,15 +600,15 @@
       }
       
       &:hover:not([disabled]) {
-        border-color: #9ca3af;
-        color: #374151;
-        background: #f9fafb;
+        border-color: #9ca3af; // YOUR color
+        color: #374151; // YOUR color
+        background: #f9fafb; // YOUR color
         transform: translateY(-1px);
       }
       
       &:disabled {
-        border-color: #e5e7eb;
-        color: #d1d5db;
+        border-color: #e5e7eb; // YOUR color
+        color: #d1d5db; // YOUR color
         cursor: not-allowed;
         transform: none;
       }
@@ -635,7 +636,7 @@
       letter-spacing: normal;
       padding: 0 24px;
       height: 44px;
-      background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+      background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); // YOUR colors
       color: white;
       transition: all 0.3s ease;
       box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
@@ -666,7 +667,7 @@
       }
       
       &:disabled {
-        background: #d1d5db;
+        background: #d1d5db; // YOUR color
         box-shadow: none;
         cursor: not-allowed;
         transform: none;
@@ -701,7 +702,54 @@
   }
 }
 
-// Global Material Overrides for Better Styling
+// Selected Date Display - USING YOUR EXACT COLORS
+.selected-date-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); // YOUR colors
+  border: 2px solid #bae6fd; // YOUR color
+  border-radius: 8px;
+  color: #0369a1; // YOUR color
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+
+  @media (max-width: 480px) {
+    padding: 10px 12px;
+    gap: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+  }
+  
+  mat-icon {
+    color: #0ea5e9; // YOUR color
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+
+    @media (max-width: 480px) {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+  
+  span {
+    strong {
+      color: #075985; // YOUR color
+    }
+  }
+}
+
+// Global Material Overrides
 ::ng-deep {
   // Date picker styling
   .mat-datepicker-content {
@@ -722,7 +770,7 @@
     }
     
     .mat-calendar-body-selected {
-      background: #667eea;
+      background: #667eea; // YOUR color
     }
   }
   
@@ -745,12 +793,12 @@
       }
       
       &.mat-selected:not(.mat-option-multiple) {
-        background: rgba(102, 126, 234, 0.1);
-        color: #667eea;
+        background: rgba(102, 126, 234, 0.1); // YOUR color with opacity
+        color: #667eea; // YOUR color
       }
       
       &:hover:not(.mat-option-disabled) {
-        background: rgba(102, 126, 234, 0.05);
+        background: rgba(102, 126, 234, 0.05); // YOUR color with opacity
       }
     }
   }
@@ -759,74 +807,25 @@
   .mat-checkbox {
     &.mat-checkbox-checked {
       .mat-checkbox-background {
-        background-color: #10b981;
+        background-color: #10b981; // YOUR color
       }
     }
   }
 
-  // Backdrop styling with blur effect
+  // Backdrop styling
   .cdk-overlay-dark-backdrop {
     background: rgba(0, 0, 0, 0.5) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    animation: backdropFadeIn 0.3s ease-out;
-    
-    @media (max-width: 768px) {
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-    
-    @media (max-width: 480px) {
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-    }
-  }
-
-  // Backdrop styling for dialog container
-  .mat-dialog-container {
-    backdrop-filter: blur(0); // Ensure dialog content isn't blurred
-    
-    @media (max-width: 360px) {
-      padding: 0 !important;
-    }
   }
 }
 
-// Animation for dialog container
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+// Focus states for accessibility
+button:focus-visible,
+mat-checkbox:focus-visible ::ng-deep .mat-checkbox-inner-container {
+  outline: 2px solid #667eea; // YOUR color
+  outline-offset: 2px;
 }
 
-// Animation for backdrop blur
-@keyframes backdropFadeIn {
-  from {
-    opacity: 0;
-    backdrop-filter: blur(0) saturate(100%);
-  }
-  to {
-    opacity: 1;
-    backdrop-filter: blur(12px) saturate(180%);
-  }
-}
-
-.dialog-container {
-  animation: slideInUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-}
-
-// Scrollbar Styling
+// Scrollbar Styling - USING YOUR EXACT COLORS
 mat-dialog-content {
   &::-webkit-scrollbar {
     width: 6px;
@@ -837,293 +836,16 @@ mat-dialog-content {
   }
   
   &::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: #f1f5f9; // YOUR color
     border-radius: 3px;
   }
   
   &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: #cbd5e1; // YOUR color
     border-radius: 3px;
   }
   
   &::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-}
-
-// Focus states for accessibility
-button:focus-visible,
-mat-checkbox:focus-visible ::ng-deep .mat-checkbox-inner-container {
-  outline: 2px solid #667eea;
-  outline-offset: 2px;
-}
-
-// Touch device optimizations
-@media (hover: none) and (pointer: coarse) {
-  .cancel-btn:hover:not([disabled]),
-  .submit-btn:hover:not([disabled]) {
-    transform: none;
-  }
-  
-  .cancel-btn:active:not([disabled]),
-  .submit-btn:active:not([disabled]) {
-    transform: scale(0.98);
-  }
-}
-
-// Landscape mode optimizations
-@media (max-height: 500px) and (orientation: landscape) {
-  .dialog-container {
-    max-height: 98vh;
-    
-    mat-dialog-content {
-      padding: 16px;
-      
-      .property-info-section,
-      .info-box,
-      .terms-section {
-        padding: 12px;
-        margin-bottom: 16px;
-      }
-    }
-    
-    mat-dialog-actions {
-      padding: 12px 16px;
-    }
-  }
-}
-
-// High contrast mode support
-@media (prefers-contrast: high) {
-  .dialog-container {
-    border: 2px solid #000000;
-  }
-  
-  .property-info-section,
-  .info-box,
-  .terms-section {
-    border: 2px solid #000000;
-  }
-  
-  .cancel-btn {
-    border: 2px solid #000000;
-  }
-}
-
-// Print styles
-@media print {
-  .dialog-container {
-    box-shadow: none;
-    border: 1px solid #000000;
-    max-height: none;
-    max-width: none;
-    width: auto;
-  }
-  
-  .cancel-btn,
-  .submit-btn .button-spinner {
-    display: none;
-  }
-}
-
-// Fallback for browsers that don't support backdrop-filter
-@supports not ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
-  ::ng-deep .cdk-overlay-dark-backdrop {
-    background: rgba(0, 0, 0, 0.7) !important;
-    animation: backdropFadeInFallback 0.3s ease-out;
-  }
-  
-  @keyframes backdropFadeInFallback {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-}
-
-// For reduced motion preferences
-@media (prefers-reduced-motion: reduce) {
-  ::ng-deep .cdk-overlay-dark-backdrop {
-    animation: none;
-  }
-  
-  @keyframes backdropFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-}
-
-// Selected Date Display
-.selected-date-display {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border: 2px solid #bae6fd;
-  border-radius: 8px;
-  color: #0369a1;
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-bottom: 16px;
-  transition: all 0.3s ease;
-
-  @media (max-width: 480px) {
-    padding: 10px 12px;
-    gap: 6px;
-    font-size: 0.85rem;
-    margin-bottom: 12px;
-  }
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
-  }
-  
-  mat-icon {
-    color: #0ea5e9;
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-
-    @media (max-width: 480px) {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
-  }
-  
-  span {
-    strong {
-      color: #075985;
-    }
-  }
-}
-
-// Success snackbar styling
-::ng-deep .success-snackbar {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  border-radius: 8px;
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
-  
-  .mat-simple-snackbar-action {
-    color: white;
-    font-weight: 600;
-  }
-}
-
-// Error snackbar styling
-::ng-deep .error-snackbar {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: white;
-  border-radius: 8px;
-  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
-  
-  .mat-simple-snackbar-action {
-    color: white;
-    font-weight: 600;
-  }
-}
-
-// Warning snackbar styling
-::ng-deep .warning-snackbar {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-  border-radius: 8px;
-  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
-  
-  .mat-simple-snackbar-action {
-    color: white;
-    font-weight: 600;
-  }
-}
-
-// Enhanced form field focus states
-::ng-deep .mat-form-field-appearance-outline.mat-focused {
-  .mat-form-field-outline-thick {
-    color: #667eea;
-  }
-  
-  .mat-form-field-label {
-    color: #667eea;
-  }
-}
-
-// Enhanced invalid state
-::ng-deep .mat-form-field.mat-form-field-invalid {
-  .mat-form-field-outline-thick {
-    color: #ef4444;
-  }
-  
-  .mat-form-field-label {
-    color: #ef4444;
-  }
-}
-
-// Mobile-specific optimizations for better touch experience
-@media (max-width: 480px) {
-  ::ng-deep {
-    .mat-form-field {
-      font-size: 16px; // Prevents zoom on iOS
-    }
-    
-    .mat-option {
-      min-height: 48px; // Better touch targets
-    }
-    
-    .mat-checkbox-inner-container {
-      width: 20px;
-      height: 20px;
-    }
-  }
-}
-
-// Dark mode support (optional)
-@media (prefers-color-scheme: dark) {
-  .dialog-container {
-    background: #1f2937;
-    color: #f9fafb;
-    
-    h2[mat-dialog-title] {
-      background: #374151;
-    }
-    
-    mat-dialog-content {
-      background: #111827;
-    }
-    
-    .property-info-section {
-      background: #374151;
-      border-color: #4b5563;
-      
-      .property-header h3 {
-        color: #f9fafb;
-      }
-      
-      .property-item .value {
-        color: #f9fafb;
-      }
-    }
-    
-    .info-box {
-      background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
-      border-color: #4338ca;
-      
-      .info-content {
-        color: #e0e7ff;
-        
-        strong {
-          color: #c7d2fe;
-        }
-      }
-    }
-    
-    .terms-section {
-      background: #374151;
-      border-color: #4b5563;
-      
-      ::ng-deep .mat-checkbox-label {
-        color: #f9fafb;
-      }
-    }
+    background: #94a3b8; // YOUR color
   }
 }
