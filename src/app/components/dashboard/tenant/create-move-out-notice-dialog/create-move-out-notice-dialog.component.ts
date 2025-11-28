@@ -6,7 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -42,6 +42,9 @@ export interface MoveOutNoticeRequest {
     MatProgressSpinnerModule,
     MatCheckboxModule
   ],
+  providers: [
+    { provide: MAT_DATE_LOCALE, useValue: 'en-US' }
+  ],
   templateUrl: './create-move-out-notice-dialog.component.html',
   styleUrls: ['./create-move-out-notice-dialog.component.scss']
 })
@@ -74,17 +77,19 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     private tenantService: TenantService,
     private snackBar: MatSnackBar
   ) {
-  
+    // Set minimum date to tomorrow
     this.minDate = new Date();
     this.minDate.setDate(this.minDate.getDate() + 1);
+    this.minDate.setHours(0, 0, 0, 0);
     
-  
+    // Set maximum date to 1 year from now
     this.maxDate = new Date();
     this.maxDate.setFullYear(this.maxDate.getFullYear() + 1);
+    this.maxDate.setHours(23, 59, 59, 999);
   }
 
   ngOnInit(): void {
-    console.log(' MoveOut Dialog Initialized');
+    console.log('MoveOut Dialog Initialized');
     this.loadCurrentPropertyData();
   }
 
@@ -139,9 +144,56 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
       notes: ['', [Validators.maxLength(1000)]]
     });
 
-    console.log(' Form initialized with values:', this.noticeForm.value);
-    console.log(' Form valid after init:', this.noticeForm.valid);
-    console.log(' Current property data:', this.currentProperty);
+    console.log('Form initialized with values:', this.noticeForm.value);
+    console.log('Form valid after init:', this.noticeForm.valid);
+    console.log('Current property data:', this.currentProperty);
+  }
+
+  // Date filter function to disable past dates and dates beyond 1 year
+  dateFilter = (date: Date | null): boolean => {
+    if (!date) return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    // Disable past dates and dates more than 1 year in future
+    return selectedDate >= today && selectedDate <= this.maxDate;
+  }
+
+  // Handle calendar opening event
+  onCalendarOpened(): void {
+    console.log('Calendar opened - available dates from', this.minDate, 'to', this.maxDate);
+    
+    // Optional: You can add additional logic here when calendar opens
+    // For example, pre-select today's date or show additional info
+  }
+
+  // Handle date selection changes
+  onDateChange(): void {
+    const selectedDate = this.noticeForm.get('moveOutDate')?.value;
+    if (selectedDate) {
+      console.log('Date selected:', selectedDate);
+      
+      // Calculate days until move-out
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const moveOutDate = new Date(selectedDate);
+      moveOutDate.setHours(0, 0, 0, 0);
+      
+      const timeDiff = moveOutDate.getTime() - today.getTime();
+      const daysUntilMoveOut = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      
+      console.log(`Days until move-out: ${daysUntilMoveOut}`);
+      
+      // You could add logic here to show warnings for insufficient notice periods
+      if (daysUntilMoveOut < 30) {
+        console.warn('Less than 30 days notice provided');
+        // Optionally show a warning to the user
+      }
+    }
   }
 
   onCancel(): void {
@@ -149,15 +201,15 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
   }
 
   onSubmit(): void {
-    console.log(' Submit clicked - Form valid:', this.noticeForm.valid, 'Terms accepted:', this.termsAccepted);
+    console.log('Submit clicked - Form valid:', this.noticeForm.valid, 'Terms accepted:', this.termsAccepted);
     
-    
+    // Prevent multiple submissions
     if (this.isSubmitting) {
-      console.warn(' Submission already in progress, ignoring duplicate click');
+      console.warn('Submission already in progress, ignoring duplicate click');
       return;
     }
     
-  
+    // Mark all fields as touched to trigger validation messages
     this.markFormGroupTouched();
     
     if (this.noticeForm.valid && this.termsAccepted) {
@@ -165,26 +217,26 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
       
       const formValue = this.noticeForm.value;
       
-     
+      // Prepare the notice data
       const noticeData: MoveOutNoticeRequest = {
         ...formValue,
         moveOutDate: this.formatDate(formValue.moveOutDate),
-      
+        // Ensure we're using the correct property/unit IDs
         propertyId: this.currentProperty.propertyId,
         unitId: this.currentProperty.unitId,
-    
+        // Include display information
         propertyName: this.currentProperty.name,
         unitNumber: this.currentProperty.unitNumber,
         propertyAddress: this.currentProperty.address
       };
 
-      console.log(' Submitting move-out notice with complete data:', noticeData);
-      console.log(' Current property info:', this.currentProperty);
+      console.log('Submitting move-out notice with complete data:', noticeData);
+      console.log('Current property info:', this.currentProperty);
 
       this.tenantService.submitMoveOutNotice(noticeData).subscribe({
         next: (response: any) => {
           this.isSubmitting = false;
-          console.log(' Move-out notice response:', response);
+          console.log('Move-out notice response:', response);
           
           if (response.success) {
             this.snackBar.open('Move-out notice submitted successfully!', 'Close', { 
@@ -192,7 +244,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
               panelClass: ['success-snackbar']
             });
             
-            
+            // Close dialog with success result
             this.dialogRef.close({ 
               success: true, 
               data: noticeData,
@@ -207,7 +259,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
         },
         error: (error) => {
           this.isSubmitting = false;
-          console.error(' Error submitting move-out notice:', error);
+          console.error('Error submitting move-out notice:', error);
           
           if (error.status === 401 || error.sessionExpired) {
             this.snackBar.open('Session expired. Please login again.', 'Close', { 
@@ -224,9 +276,9 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
         }
       });
     } else {
-      console.log(' Form validation failed');
-      console.log(' Form valid:', this.noticeForm.valid);
-      console.log(' Terms accepted:', this.termsAccepted);
+      console.log('Form validation failed');
+      console.log('Form valid:', this.noticeForm.valid);
+      console.log('Terms accepted:', this.termsAccepted);
       
       if (!this.termsAccepted) {
         this.snackBar.open('Please accept the terms and conditions', 'Close', { 
@@ -252,11 +304,20 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     return `${year}-${month}-${day}`;
   }
 
- 
+  // Validation error methods
   getMoveOutDateError(): string {
     const control = this.noticeForm.get('moveOutDate');
     if (control?.hasError('required') && control.touched) {
       return 'Move-out date is required';
+    }
+    if (control?.hasError('matDatepickerMin')) {
+      return 'Move-out date must be in the future';
+    }
+    if (control?.hasError('matDatepickerMax')) {
+      return 'Move-out date cannot be more than 1 year from now';
+    }
+    if (control?.hasError('matDatepickerFilter')) {
+      return 'Please select a valid date between tomorrow and 1 year from now';
     }
     return '';
   }
@@ -279,14 +340,13 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
 
   onTermsChange(checked: boolean): void {
     this.termsAccepted = checked;
-    console.log(' Terms accepted:', checked);
+    console.log('Terms accepted:', checked);
   }
 
   getReasonDisplayName(reasonValue: string): string {
     const reason = this.moveOutReasons.find(r => r.value === reasonValue);
     return reason ? reason.label : reasonValue;
   }
-
 
   getPropertyDisplay(): string {
     if (!this.currentProperty) return 'Loading...';
@@ -297,7 +357,17 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     return this.currentProperty?.address || 'Address not available';
   }
 
+  // Helper method to get formatted date range for display
+  getFormattedDateRange(): string {
+    return `${this.minDate.toLocaleDateString()} to ${this.maxDate.toLocaleDateString()}`;
+  }
+
+  // Method to clear selected date
+  clearSelectedDate(): void {
+    this.noticeForm.patchValue({ moveOutDate: null });
+  }
+
   ngOnDestroy(): void {
-    console.log(' MoveOut Dialog Destroyed');
+    console.log('MoveOut Dialog Destroyed');
   }
 }

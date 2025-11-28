@@ -44,12 +44,24 @@
                formControlName="moveOutDate"
                [min]="minDate"
                [max]="maxDate"
-               placeholder="Select your move-out date"
+               [matDatepickerFilter]="dateFilter"
+               placeholder="Click to open calendar"
+               readonly
                required>
         <mat-icon matPrefix>event</mat-icon>
-        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-        <mat-datepicker #picker></mat-datepicker>
-        <mat-hint>Select a date at least 1 day in advance</mat-hint>
+        <mat-datepicker-toggle matSuffix [for]="picker">
+          <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
+        </mat-datepicker-toggle>
+        <mat-datepicker #picker 
+                        startView="month"
+                        [startAt]="minDate"
+                        (opened)="onCalendarOpened()">
+          <mat-datepicker-actions>
+            <button mat-button (click)="picker.close()">Cancel</button>
+            <button mat-raised-button color="primary" (click)="picker.close()">Select Date</button>
+          </mat-datepicker-actions>
+        </mat-datepicker>
+        <mat-hint>Click the calendar icon to select a date between {{minDate | date:'mediumDate'}} and {{maxDate | date:'mediumDate'}}</mat-hint>
         <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('required') && noticeForm.get('moveOutDate')?.touched">
           Move-out date is required
         </mat-error>
@@ -59,7 +71,16 @@
         <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('matDatepickerMax')">
           Move-out date cannot be more than 1 year from now
         </mat-error>
+        <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('matDatepickerFilter')">
+          Please select a valid date between tomorrow and 1 year from now
+        </mat-error>
       </mat-form-field>
+
+      <!-- Selected Date Display -->
+      <div *ngIf="noticeForm.get('moveOutDate')?.value" class="selected-date-display">
+        <mat-icon>event_available</mat-icon>
+        <span><strong>Selected Date:</strong> {{noticeForm.get('moveOutDate')?.value | date:'fullDate'}}</span>
+      </div>
 
 
       <mat-form-field appearance="outline" class="full-width">
