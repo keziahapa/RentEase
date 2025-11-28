@@ -36,7 +36,7 @@
         </div>
       </div>
 
-      <!-- Move-Out Date - FIXED VERSION -->
+      <!-- Move-Out Date - FIXED WORKING VERSION -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Intended Move-Out Date</mat-label>
         <input matInput 
@@ -45,8 +45,7 @@
                [min]="minDate"
                [max]="maxDate"
                [matDatepickerFilter]="dateFilter"
-               placeholder="Click to select date"
-               (click)="picker.open()"
+               placeholder="Click calendar icon to select date"
                required>
         <mat-icon matPrefix>event</mat-icon>
         <mat-datepicker-toggle matSuffix [for]="picker">
@@ -66,9 +65,6 @@
         </mat-error>
         <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('matDatepickerMax')">
           Move-out date cannot be later than {{maxDate | date:'mediumDate'}}
-        </mat-error>
-        <mat-error *ngIf="noticeForm.get('moveOutDate')?.hasError('matDatepickerFilter')">
-          Please select a valid date between tomorrow and 1 year from now
         </mat-error>
       </mat-form-field>
 

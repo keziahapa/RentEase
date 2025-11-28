@@ -1,6 +1,6 @@
-import { Component, OnInit, inject,PLATFORM_ID  } from '@angular/core';
+import { Component, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
-import { CommonModule, isPlatformBrowser} from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -71,7 +71,6 @@ export class PropertyUnitsComponent implements OnInit {
 
   displayedColumns: string[] = ['unitNumber', 'type', 'rent', 'status', 'tenant', 'actions'];
 
-
   showAddUnitDialog = false;
   unitForm: FormGroup;
   isSubmittingUnit = false;
@@ -87,7 +86,6 @@ export class PropertyUnitsComponent implements OnInit {
     { value: 'RETAIL', label: 'Retail Shop' }
   ];
 
-  
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private propertyService = inject(PropertyService);
@@ -175,7 +173,66 @@ export class PropertyUnitsComponent implements OnInit {
     });
   }
 
+  // Enhanced Currency Formatting Functions
+  formatCurrency(amount: number | undefined | null): string {
+    if (amount == null || isNaN(amount)) return 'KES 0';
+    
+    try {
+      return new Intl.NumberFormat('en-KE', {
+        style: 'currency',
+        currency: 'KES',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(amount);
+    } catch (error) {
+      return `KES ${amount?.toLocaleString('en-KE') || '0'}`;
+    }
+  }
 
+  formatCompactCurrency(amount: number | undefined | null): string {
+    if (amount == null || isNaN(amount)) return 'KES 0';
+    
+    try {
+      if (amount >= 1000000) {
+        return `KES ${(amount / 1000000).toFixed(1)}M`;
+      }
+      if (amount >= 1000) {
+        return `KES ${(amount / 1000).toFixed(0)}K`;
+      }
+      return `KES ${amount.toLocaleString('en-KE')}`;
+    } catch (error) {
+      return `KES ${amount || '0'}`;
+    }
+  }
+
+  formatKES(amount: number | undefined | null): string {
+    if (amount == null || isNaN(amount)) return 'KES 0';
+    return `KES ${amount.toLocaleString('en-KE')}`;
+  }
+
+  private calculateStats() {
+    this.totalUnits = this.units.length;
+    this.occupiedUnits = this.units.filter(unit => unit.status === 'occupied').length;
+    this.vacantUnits = this.units.filter(unit => unit.status !== 'occupied').length;
+    this.maintenanceUnits = this.units.filter(unit => unit.status === 'maintenance').length;
+
+    this.occupancyRate = this.totalUnits > 0 ? Math.round((this.occupiedUnits / this.totalUnits) * 100) : 0;
+
+    // Ensure rentAmount is treated as number
+    this.monthlyRevenue = this.units
+      .filter(unit => unit.status === 'occupied')
+      .reduce((sum, unit) => sum + (Number(unit.rentAmount) || 0), 0);
+
+    this.annualRevenue = this.monthlyRevenue * 12;
+    
+    console.log('💰 Currency Debug - Monthly Revenue:', {
+      raw: this.monthlyRevenue,
+      formatted: this.formatCurrency(this.monthlyRevenue),
+      compact: this.formatCompactCurrency(this.monthlyRevenue)
+    });
+  }
+
+  // ... rest of your existing methods remain the same ...
   openAddUnitDialog(): void {
     this.showAddUnitDialog = true;
     this.unitForm.reset({
@@ -207,7 +264,6 @@ export class PropertyUnitsComponent implements OnInit {
       description: this.unitForm.value.description?.trim() || ''
     };
 
-   
     const duplicateUnit = this.units.find(unit => 
       unit.unitNumber?.toLowerCase() === unitData.unitNumber.toLowerCase()
     );
@@ -251,22 +307,6 @@ export class PropertyUnitsComponent implements OnInit {
     }
   }
 
-  private calculateStats() {
-    this.totalUnits = this.units.length;
-    this.occupiedUnits = this.units.filter(unit => unit.status === 'occupied').length;
-    this.vacantUnits = this.units.filter(unit => unit.status !== 'occupied').length;
-    this.maintenanceUnits = this.units.filter(unit => unit.status === 'maintenance').length;
-
-    this.occupancyRate = this.totalUnits > 0 ? Math.round((this.occupiedUnits / this.totalUnits) * 100) : 0;
-
-    this.monthlyRevenue = this.units
-      .filter(unit => unit.status === 'occupied')
-      .reduce((sum, unit) => sum + (unit.rentAmount || 0), 0);
-
-    this.annualRevenue = this.monthlyRevenue * 12;
-  }
-
- 
   inviteTenantToProperty(event: Event) {
     event.preventDefault();
     event.stopPropagation();
@@ -477,22 +517,6 @@ export class PropertyUnitsComponent implements OnInit {
     }
   }
 
-  formatCurrency(amount: number | undefined | null): string {
-    if (amount == null) return 'KES 0';
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      maximumFractionDigits: 0
-    }).format(amount);
-  }
-
-  formatCompactCurrency(amount: number | undefined | null): string {
-    if (amount == null) return 'KES 0';
-    if (amount >= 1000000) return `KES ${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `KES ${(amount / 1000).toFixed(0)}K`;
-    return `KES ${amount.toLocaleString()}`;
-  }
-
   getTenantDisplay(unit: Unit): string {
     return unit.tenant?.name || unit.tenant?.email || 'No tenant';
   }
@@ -536,7 +560,6 @@ export class PropertyUnitsComponent implements OnInit {
     return typeMap[this.property?.propertyType || ''] || this.property?.propertyType || 'Property';
   }
 
-  
   testAuth() {
     const token = this.authService.getToken();
     console.log(' Token exists:', !!token);
