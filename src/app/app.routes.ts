@@ -47,7 +47,6 @@ import { MyAdvertisementsComponent } from './components/dashboard/bussiness/comp
 import { BusinessOverviewComponent } from './components/dashboard/bussiness/components/business-overview/business-overview.component';
 import { AdminOverviewComponent } from './components/dashboard/admin/admin-dashboard/components/admin-overview/admin-overview.component';
 import { AcceptInvitationComponent } from './components/dashboard/landlord/landlord-dashboard/invite-dialog/accept-invitation/accept-invitation.component';
-import { WaitingLandlordComponent } from './components/auth/waiting-landlord/waiting-landlord.component';
 import { ChatComponent } from './shared/chat/chat.component';
 import { AdminLoginComponent } from './components/auth/admin-login/admin-login.component';
 import { BusinessManagementComponent } from './components/dashboard/admin/admin-dashboard/components/business-management/business-management.component';
@@ -79,7 +78,6 @@ export const routes: Routes = [
   { path: 'about', component: AboutComponent },
   { path: 'privacy', component: PrivacyComponent },
   { path: 'accept-invitation', component: AcceptInvitationComponent },
-  { path: 'waiting-landlord', component: WaitingLandlordComponent },
  { path: 'waiting-room', component: WaitingRoomComponent, canActivate: [authGuard] },
   { path: 'tenant-pending-dashboard', component: TenantPendingDashboardComponent, canActivate: [authGuard] },
   { path: 'caretaker-pending-dashboard', component: CaretakerPendingDashboardComponent, canActivate: [authGuard] },
