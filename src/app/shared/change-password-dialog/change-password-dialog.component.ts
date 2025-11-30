@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { ProfilePictureService } from '../../services/profile-picture.service';
+import { ProfilePictureService } from '../../services/profile-picture.service'; // CHANGED THIS
 
 @Component({
   selector: 'app-change-password-dialog',
@@ -36,7 +36,7 @@ export class ChangePasswordDialogComponent {
 
   constructor(
     private fb: FormBuilder,
-    private profilePictureService: ProfilePictureService,
+    private profilePictureService: ProfilePictureService, // CHANGED THIS
     private snackBar: MatSnackBar,
     public dialogRef: MatDialogRef<ChangePasswordDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
@@ -68,10 +68,16 @@ export class ChangePasswordDialogComponent {
       return;
     }
 
-    this.isSubmitting = true;
+    // Additional validation - new password should be different from current
     const formValue = this.passwordForm.value;
+    if (formValue.currentPassword === formValue.newPassword) {
+      this.snackBar.open('New password must be different from current password', 'Close', { duration: 3000 });
+      return;
+    }
 
-    this.profilePictureService.updatePassword(
+    this.isSubmitting = true;
+
+    this.profilePictureService.updatePassword( // CHANGED THIS
       formValue.currentPassword,
       formValue.newPassword,
       formValue.confirmNewPassword
@@ -82,13 +88,37 @@ export class ChangePasswordDialogComponent {
           this.snackBar.open('Password updated successfully!', 'Close', { duration: 3000 });
           this.dialogRef.close('success');
         } else {
-          this.snackBar.open(response.message || 'Failed to update password', 'Close', { duration: 5000 });
+          const errorMessage = response.message || 'Failed to update password';
+          this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
+          
+          // Mark current password as incorrect if the error indicates it
+          if (errorMessage.toLowerCase().includes('current password') || 
+              errorMessage.toLowerCase().includes('incorrect password')) {
+            this.passwordForm.get('currentPassword')?.setErrors({ incorrect: true });
+          }
         }
       },
-      error: (error) => {
+      error: (error: any) => { // CHANGED ERROR TYPE
         this.isSubmitting = false;
         console.error('Password update error:', error);
-        this.snackBar.open(error.message || 'Failed to update password. Please try again.', 'Close', { duration: 5000 });
+        
+        let errorMessage = error.message || 'Failed to update password. Please try again.';
+        
+        // Handle specific error cases
+        if (error.status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (error.error?.message) {
+          errorMessage = error.error.message;
+        }
+        
+        this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
+        
+        // Mark current password as incorrect if the error indicates it
+        if (errorMessage.toLowerCase().includes('current password') || 
+            errorMessage.toLowerCase().includes('incorrect password') ||
+            error.status === 401) {
+          this.passwordForm.get('currentPassword')?.setErrors({ incorrect: true });
+        }
       }
     });
   }
