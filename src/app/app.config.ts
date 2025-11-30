@@ -1,12 +1,14 @@
 import { ApplicationConfig } from '@angular/core';
 import { provideRouter, withHashLocation } from '@angular/router'; 
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations'; // ← ADD THIS
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes, withHashLocation()),
-    provideHttpClient(withInterceptors([authInterceptor]))
+    provideHttpClient(withInterceptors([authInterceptor])),
+    provideAnimations() // ← ADD THIS - Required for Material components!
   ]
 };

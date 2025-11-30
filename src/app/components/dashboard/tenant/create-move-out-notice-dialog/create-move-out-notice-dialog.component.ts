@@ -6,7 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule, MAT_DATE_LOCALE } from '@angular/material/core';
+import { MatNativeDateModule, MAT_DATE_LOCALE, NativeDateAdapter, DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -24,6 +24,19 @@ export interface MoveOutNoticeRequest {
   unitNumber?: string;
   propertyAddress?: string;
 }
+
+
+export const MY_DATE_FORMATS = {
+  parse: {
+    dateInput: 'MM/DD/YYYY',
+  },
+  display: {
+    dateInput: 'MM/DD/YYYY',
+    monthYearLabel: 'MMM YYYY',
+    dateA11yLabel: 'LL',
+    monthYearA11yLabel: 'MMMM YYYY',
+  },
+};
 
 @Component({
   selector: 'app-create-move-out-notice-dialog',
@@ -44,7 +57,9 @@ export interface MoveOutNoticeRequest {
     MatSnackBarModule
   ],
   providers: [
-    { provide: MAT_DATE_LOCALE, useValue: 'en-US' }
+    { provide: MAT_DATE_LOCALE, useValue: 'en-US' },
+    { provide: DateAdapter, useClass: NativeDateAdapter },
+    { provide: MAT_DATE_FORMATS, useValue: MY_DATE_FORMATS }
   ],
   templateUrl: './create-move-out-notice-dialog.component.html',
   styleUrls: ['./create-move-out-notice-dialog.component.scss']
@@ -82,14 +97,14 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     const today = new Date();
     
     this.minDate = new Date(today);
-    this.minDate.setDate(today.getDate() + 1); // Tomorrow
+    this.minDate.setDate(today.getDate() + 1); 
     this.minDate.setHours(0, 0, 0, 0);
     
     this.maxDate = new Date(today);
-    this.maxDate.setFullYear(today.getFullYear() + 1); // One year from now
+    this.maxDate.setFullYear(today.getFullYear() + 1); 
     this.maxDate.setHours(23, 59, 59, 999);
 
-    // Initialize form immediately
+   
     this.initializeForm();
   }
 
@@ -115,7 +130,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
             unitId: primaryUnit.unitId || primaryUnit.id || null
           };
           
-          // Update form with actual data
+        
           this.noticeForm.patchValue({
             propertyId: this.currentProperty.propertyId,
             unitId: this.currentProperty.unitId
@@ -152,14 +167,20 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
     });
   }
 
-  // SIMPLIFIED Date filter function - remove complex validation temporarily
+  // Date filter to disable dates outside range
   dateFilter = (date: Date | null): boolean => {
     if (!date) return false;
-    return true; // Allow all dates for testing
+    
+    const time = date.getTime();
+    return time >= this.minDate.getTime() && time <= this.maxDate.getTime();
   }
 
   onCalendarOpened(): void {
     console.log('Calendar opened for date selection');
+  }
+
+  onDateChange(event: any): void {
+    console.log('Date selected:', event.value);
   }
 
   onCancel(): void {
@@ -196,7 +217,7 @@ export class CreateMoveOutNoticeDialogComponent implements OnInit {
 
       console.log('Submitting move-out notice:', noticeData);
 
-      // Simulate API call
+    
       setTimeout(() => {
         this.isSubmitting = false;
         

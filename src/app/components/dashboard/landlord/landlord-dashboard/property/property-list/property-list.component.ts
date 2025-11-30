@@ -86,12 +86,15 @@ export class PropertyListComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result === 'success') {
-      
+        // Property created successfully - reload properties and show success message
         this.loadProperties();
         this.snackBar.open('Property created successfully!', 'Close', { 
           duration: 3000,
           panelClass: ['success-snackbar']
         });
+        
+        // Navigate to property list (current page)
+        this.navigateToPropertyList();
       } else if (result === 'cancelled') {
         console.log('Property creation cancelled by user');
       }
@@ -103,7 +106,6 @@ export class PropertyListComponent implements OnInit {
     this.router.navigate(['/landlord-dashboard/property', propertyId, 'edit']);
   }
 
- 
   inviteCaretaker(property: Property, event: Event) {
     event.stopPropagation();
     this.openInviteDialog('caretaker', property);
@@ -121,21 +123,19 @@ export class PropertyListComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      console.log(' Dialog closed with result:', result);
+      console.log('Dialog closed with result:', result);
       
       if (result && result.cancelled) {
-        console.log(' Invitation cancelled by user');
+        console.log('Invitation cancelled by user');
         return;
       }
       
       if (result && result.success) {
-        console.log(' Dialog returned success, showing success message');
-     
+        console.log('Dialog returned success, showing success message');
         const successMessage = result.message || `${type} invitation sent successfully!`;
         this.snackBar.open(successMessage, 'Close', { duration: 4000 });
       } else if (result && !result.success) {
-        console.log(' Dialog returned error:', result.error);
-       
+        console.log('Dialog returned error:', result.error);
         const errorMessage = result.error || `Failed to send ${type} invitation`;
         this.snackBar.open(errorMessage, 'Close', { duration: 5000 });
       }
@@ -197,6 +197,13 @@ export class PropertyListComponent implements OnInit {
     return typeMap[type ?? ''] ?? type ?? 'Property';
   }
 
+  private navigateToPropertyList() {
+    // Since we're already on the property list page, we just reload the data
+    // If you need to navigate to a different route, use:
+    // this.router.navigate(['/landlord-dashboard/properties']);
+    console.log('Navigating to property list');
+  }
+
   private normalizePropertiesResponse(response: any): Property[] {
     if (Array.isArray(response)) {
       return response as Property[];
@@ -222,12 +229,11 @@ export class PropertyListComponent implements OnInit {
     console.error('Error loading properties:', error);
   }
 
-
   testAuth() {
     const token = this.authService.getToken();
-    console.log(' Token exists:', !!token);
-    console.log(' Token value:', token);
-    console.log(' User role:', this.authService.getCurrentUser()?.role);
-    console.log(' Is authenticated:', this.authService.isAuthenticated());
+    console.log('Token exists:', !!token);
+    console.log('Token value:', token);
+    console.log('User role:', this.authService.getCurrentUser()?.role);
+    console.log('Is authenticated:', this.authService.isAuthenticated());
   }
 }

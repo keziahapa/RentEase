@@ -36,27 +36,32 @@
         </div>
       </div>
 
-      <!-- FIXED DATE PICKER -->
+      <!-- FIXED DATE PICKER - Key changes here -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Intended Move-Out Date</mat-label>
 
-        <!-- Prefix icon must be BEFORE the input -->
+        <!-- Prefix icon -->
         <mat-icon matPrefix>event</mat-icon>
 
         <input 
           matInput
           [matDatepicker]="picker"
           formControlName="moveOutDate"
-          placeholder="Select a date"
+          placeholder="MM/DD/YYYY"
           [min]="minDate"
           [max]="maxDate"
+          [matDatepickerFilter]="dateFilter"
+          (dateChange)="onDateChange($event)"
+          readonly
           required
         >
 
+        <!-- Suffix toggle button -->
         <mat-datepicker-toggle matSuffix [for]="picker">
           <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
         </mat-datepicker-toggle>
 
+        <!-- The datepicker reference -->
         <mat-datepicker 
           #picker
           startView="month"
@@ -139,7 +144,7 @@
     </form>
   </mat-dialog-content>
 
-  <!-- Buttons -->
+
   <mat-dialog-actions>
     <button mat-stroked-button 
             type="button" 
