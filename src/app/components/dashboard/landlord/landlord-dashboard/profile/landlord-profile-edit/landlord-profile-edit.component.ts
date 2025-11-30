@@ -14,7 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTabsModule } from '@angular/material/tabs';
-import { PropertyService } from '../../../../../../services/property.service';
+import { ProfilePictureService } from '../../../../../../services/profile-picture.service';
 import { AuthService } from '../../../../../../services/auth.service';
 
 @Component({
@@ -40,7 +40,7 @@ import { AuthService } from '../../../../../../services/auth.service';
   styleUrls: ['./landlord-profile-edit.component.scss']
 })
 export class LandlordProfileEditComponent implements OnInit, OnDestroy {
-  private propertyService = inject(PropertyService);
+  private profileService = inject(ProfilePictureService);
   private authService = inject(AuthService);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -210,7 +210,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
   private loadProfilePictureFromApi(): void {
     console.log('Attempting to load profile picture from API');
-    this.propertyService.getProfilePicture().subscribe({
+    this.profileService.getProfilePicture().subscribe({
       next: (response: any) => {
         console.log('Profile picture API response:', response);
         
@@ -351,8 +351,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     this.isUploadingPhoto = true;
 
     const uploadMethod = this.isDefaultAvatar() 
-      ? this.propertyService.uploadProfilePicture(file)
-      : this.propertyService.updateProfilePicture(file);
+      ? this.profileService.uploadProfilePicture(file)
+      : this.profileService.updateProfilePicture(file);
 
     uploadMethod.subscribe({
       next: (response: any) => {
@@ -374,7 +374,15 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         this.isUploadingPhoto = false;
         console.error('Upload error:', error);
-        this.snackBar.open('Failed to upload profile photo', 'Close', { duration: 3000 });
+        
+        let errorMessage = 'Failed to upload profile photo';
+        if (error.status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.snackBar.open(errorMessage, 'Close', { duration: 3000 });
       }
     });
   }
@@ -390,7 +398,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
     this.isDeletingPhoto = true;
 
-    this.propertyService.deleteProfilePicture().subscribe({
+    this.profileService.deleteProfilePicture().subscribe({
       next: (response: any) => {
         this.isDeletingPhoto = false;
         if (response.success) {
@@ -407,7 +415,15 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         this.isDeletingPhoto = false;
         console.error('Delete error:', error);
-        this.snackBar.open('Failed to remove profile photo', 'Close', { duration: 3000 });
+        
+        let errorMessage = 'Failed to remove profile photo';
+        if (error.status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.snackBar.open(errorMessage, 'Close', { duration: 3000 });
       }
     });
   }
@@ -429,7 +445,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
     this.isChangingPassword = true;
 
-    this.authService.updatePassword(currentPassword, newPassword, confirmNewPassword).subscribe({
+    this.profileService.updatePassword(currentPassword, newPassword, confirmNewPassword).subscribe({
       next: (response: any) => {
         this.isChangingPassword = false;
         
@@ -520,7 +536,7 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       bio: this.profileForm.value.bio
     };
 
-    this.propertyService.updateUserProfile(updatedUserData).subscribe({
+    this.profileService.updateProfile(updatedUserData).subscribe({
       next: (response: any) => {
         this.isSubmitting = false;
         
@@ -539,7 +555,15 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       error: (error: any) => {
         this.isSubmitting = false;
         console.error('Profile update error:', error);
-        this.snackBar.open('Failed to update profile', 'Close', { duration: 3000 });
+        
+        let errorMessage = 'Failed to update profile';
+        if (error.status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.snackBar.open(errorMessage, 'Close', { duration: 3000 });
       }
     });
   }
