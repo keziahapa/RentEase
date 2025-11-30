@@ -2,7 +2,6 @@
   <div class="chat-sidebar">
     <div class="sidebar-header">
       <h2>Messages</h2>
-      <!-- ONLY ONE NEW CHAT BUTTON -->
       <button 
         class="new-chat-btn" 
         (click)="openNewChatModal()"
@@ -18,7 +17,6 @@
         <p>Loading chats...</p>
       </div>
       
-      <!-- NO DUPLICATE START CHAT BUTTON HERE -->
       <div *ngIf="!loadingRooms && rooms.length === 0" class="empty-rooms">
         <mat-icon class="empty-icon">forum</mat-icon>
         <p>No chats yet</p>
@@ -68,7 +66,6 @@
       <mat-icon class="empty-icon">forum</mat-icon>
       <h3>Welcome to Chat</h3>
       <p>Select a conversation from the sidebar or start a new one</p>
-      <!-- NO DUPLICATE BUTTON HERE -->
     </div>
 
     <div *ngIf="currentRoom" class="chat-area-active">
@@ -191,144 +188,187 @@
           Loading your data...
         </div>
 
-        <!-- PROPERTY/SELECTION SECTION -->
-        <div *ngIf="!loadingProperties" class="selection-section">
-          <h4>Select Property/Unit</h4>
+        <!-- LANDLORD: SELECT PROPERTY -->
+        <div *ngIf="!loadingProperties && userRole === 'LANDLORD' && currentStep === 'SELECT_PROPERTY'" class="flow-section">
+          <div class="flow-header">
+            <h4>Select Property</h4>
+          </div>
           
-          <!-- LANDLORD: Property Selection -->
-          <div *ngIf="userRole === 'LANDLORD'" class="selection-group">
-            <label>Choose Property:</label>
+          <div class="selection-group">
+            <label>Choose a Property</label>
             <select 
               class="property-select"
               [(ngModel)]="selectedPropertyId"
-              (change)="onPropertyChange()">
+              (change)="onPropertySelected($event)">
               <option value="">-- Select a Property --</option>
               <option 
                 *ngFor="let property of userProperties" 
-                [value]="property.id"
-                [disabled]="!hasAvailableUnits(property.id)">
+                [value]="property.id">
                 {{ property.name }} 
-                <span *ngIf="!hasAvailableUnits(property.id)">(No available units)</span>
+                <span *ngIf="property.totalUnits">({{ property.totalUnits }} units)</span>
               </option>
             </select>
-            
-            <!-- Unit Selection for Landlord-Tenant Chat -->
-            <div *ngIf="selectedPropertyId && selectedChatType === CHAT_TYPES.LANDLORD_TENANT" class="unit-selection">
-              <label>Choose Unit:</label>
-              <select 
-                class="unit-select"
-                [(ngModel)]="selectedUnitId">
-                <option value="">-- Select a Unit --</option>
-                <option 
-                  *ngFor="let unit of getAvailableUnits(selectedPropertyId)" 
-                  [value]="unit.id">
-                  Unit {{ unit.unitNumber }} - {{ unit.unitType }}
-                  <span *ngIf="unit.tenantName">({{ unit.tenantName }})</span>
-                  <span *ngIf="!unit.tenantName">(Vacant)</span>
-                </option>
-              </select>
+          </div>
+
+          <div class="flow-actions">
+            <button 
+              class="btn-primary" 
+              [disabled]="!selectedPropertyId"
+              (click)="currentStep = 'SELECT_RECIPIENT'">
+              Continue
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- LANDLORD: SELECT RECIPIENT -->
+        <div *ngIf="!loadingProperties && userRole === 'LANDLORD' && currentStep === 'SELECT_RECIPIENT'" class="flow-section">
+          <div class="flow-header">
+            <button class="back-btn" (click)="currentStep = 'SELECT_PROPERTY'">
+              <mat-icon>arrow_back</mat-icon>
+              Back
+            </button>
+            <h4>Choose Who to Message</h4>
+          </div>
+
+          <div class="selected-context">
+            <mat-icon>location_on</mat-icon>
+            <span>{{ getPropertyName(selectedPropertyId!) }}</span>
+          </div>
+
+          <div class="chat-options">
+            <div class="option-buttons">
+              <button 
+                class="option-btn caretaker-btn" 
+                (click)="onRecipientTypeSelected(CHAT_TYPES.LANDLORD_CARETAKER)">
+                <div class="option-icon">
+                  <mat-icon>engineering</mat-icon>
+                </div>
+                <div class="option-text">
+                  <span class="option-title">Message Caretaker</span>
+                  <span class="option-subtitle">Property management & coordination</span>
+                </div>
+                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+              </button>
+              
+              <button 
+                class="option-btn tenant-btn" 
+                (click)="onRecipientTypeSelected(CHAT_TYPES.LANDLORD_TENANT)">
+                <div class="option-icon">
+                  <mat-icon>people</mat-icon>
+                </div>
+                <div class="option-text">
+                  <span class="option-title">Message Tenant</span>
+                  <span class="option-subtitle">Communicate with specific tenant</span>
+                </div>
+                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+              </button>
             </div>
           </div>
+        </div>
 
-          <!-- Display selected resource info -->
-          <div *ngIf="getSelectedResourceInfo()" class="selected-resource-info">
-            <mat-icon>info</mat-icon>
-            <span>{{ getSelectedResourceInfo() }}</span>
+        <!-- LANDLORD: SELECT UNIT -->
+        <div *ngIf="!loadingProperties && userRole === 'LANDLORD' && currentStep === 'SELECT_UNIT'" class="flow-section">
+          <div class="flow-header">
+            <button class="back-btn" (click)="currentStep = 'SELECT_RECIPIENT'">
+              <mat-icon>arrow_back</mat-icon>
+              Back
+            </button>
+            <h4>Select Unit</h4>
+          </div>
+
+          <div class="selected-context">
+            <mat-icon>location_on</mat-icon>
+            <span>{{ getPropertyName(selectedPropertyId!) }}</span>
+          </div>
+
+          <div *ngIf="loadingUnits" class="loading-units">
+            <mat-icon>schedule</mat-icon>
+            Loading units...
+          </div>
+
+          <div *ngIf="!loadingUnits" class="selection-group">
+            <label>Choose a Unit</label>
+            <select 
+              class="unit-select"
+              [(ngModel)]="selectedUnitId"
+              (change)="onUnitSelected($event)">
+              <option value="">-- Select a Unit --</option>
+              <option 
+                *ngFor="let unit of availableUnits" 
+                [value]="unit.id">
+                Unit {{ unit.unitNumber }} - {{ unit.unitType }}
+                <span *ngIf="unit.tenantName">({{ unit.tenantName }})</span>
+                <span *ngIf="!unit.tenantName">(Vacant)</span>
+              </option>
+            </select>
+          </div>
+
+          <div *ngIf="!loadingUnits && availableUnits.length === 0" class="no-units">
+            <mat-icon>warning</mat-icon>
+            <p>No units available for this property.</p>
           </div>
         </div>
 
-        <!-- CHAT OPTIONS -->
-        <div class="chat-options" *ngIf="!loadingProperties && isResourceSelected()">
-          <h4>Who would you like to message?</h4>
-          
-          <!-- LANDLORD OPTIONS -->
-          <div *ngIf="userRole === 'LANDLORD'" class="option-buttons">
-            <button 
-              class="option-btn caretaker-btn" 
-              (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)"
-              [disabled]="!selectedPropertyId">
-              <div class="option-icon">
-                <mat-icon>engineering</mat-icon>
-              </div>
-              <div class="option-text">
-                <span class="option-title">Message Caretaker</span>
-                <span class="option-subtitle">Property management</span>
-                <small *ngIf="selectedPropertyId">For {{ getPropertyName(selectedPropertyId) }}</small>
-              </div>
-              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-            </button>
-            
-            <button 
-              class="option-btn tenant-btn" 
-              (click)="createChat(CHAT_TYPES.LANDLORD_TENANT)"
-              [disabled]="!selectedUnitId">
-              <div class="option-icon">
-                <mat-icon>people</mat-icon>
-              </div>
-              <div class="option-text">
-                <span class="option-title">Message Tenant</span>
-                <span class="option-subtitle">Tenant communication</span>
-                <small *ngIf="selectedUnitId">For {{ getUnitInfo(selectedUnitId) }}</small>
-              </div>
-              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-            </button>
+        <!-- TENANT & CARETAKER FLOW (Single Step) -->
+        <div *ngIf="!loadingProperties && (userRole === 'TENANT' || userRole === 'CARETAKER')" class="flow-section">
+          <div class="flow-header">
+            <h4>Start New Chat</h4>
           </div>
 
-          <!-- TENANT OPTIONS -->
-          <div *ngIf="userRole === 'TENANT'" class="option-buttons">
-            <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)">
-              <div class="option-icon">
-                <mat-icon>business</mat-icon>
-              </div>
-              <div class="option-text">
-                <span class="option-title">Message Landlord</span>
-                <span class="option-subtitle">Property inquiries & requests</span>
-              </div>
-              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-            </button>
+          <div class="chat-options">
+            <h4>Who would you like to message?</h4>
             
-            <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
-              <div class="option-icon">
-                <mat-icon>engineering</mat-icon>
-              </div>
-              <div class="option-text">
-                <span class="option-title">Message Caretaker</span>
-                <span class="option-subtitle">Maintenance & support</span>
-              </div>
-              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-            </button>
-          </div>
+            <!-- TENANT OPTIONS -->
+            <div *ngIf="userRole === 'TENANT'" class="option-buttons">
+              <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)">
+                <div class="option-icon">
+                  <mat-icon>business</mat-icon>
+                </div>
+                <div class="option-text">
+                  <span class="option-title">Message Landlord</span>
+                  <span class="option-subtitle">Property inquiries & requests</span>
+                </div>
+                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+              </button>
+              
+              <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
+                <div class="option-icon">
+                  <mat-icon>engineering</mat-icon>
+                </div>
+                <div class="option-text">
+                  <span class="option-title">Message Caretaker</span>
+                  <span class="option-subtitle">Maintenance & support</span>
+                </div>
+                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+              </button>
+            </div>
 
-          <!-- CARETAKER OPTIONS -->
-          <div *ngIf="userRole === 'CARETAKER'" class="option-buttons">
-            <button class="option-btn tenant-btn" (click)="createChat(CHAT_TYPES.CARETAKER_TENANT)">
-              <div class="option-icon">
-                <mat-icon>people</mat-icon>
-              </div>
-              <div class="option-text">
-                <span class="option-title">Message Tenants</span>
-                <span class="option-subtitle">Maintenance updates & support</span>
-              </div>
-              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-            </button>
-            
-            <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)">
-              <div class="option-icon">
-                <mat-icon>business</mat-icon>
-              </div>
-              <div class="option-text">
-                <span class="option-title">Message Landlord</span>
-                <span class="option-subtitle">Reports & updates</span>
-              </div>
-              <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-            </button>
+            <!-- CARETAKER OPTIONS -->
+            <div *ngIf="userRole === 'CARETAKER'" class="option-buttons">
+              <button class="option-btn tenant-btn" (click)="createChat(CHAT_TYPES.CARETAKER_TENANT)">
+                <div class="option-icon">
+                  <mat-icon>people</mat-icon>
+                </div>
+                <div class="option-text">
+                  <span class="option-title">Message Tenants</span>
+                  <span class="option-subtitle">Maintenance updates & support</span>
+                </div>
+                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+              </button>
+              
+              <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)">
+                <div class="option-icon">
+                  <mat-icon>business</mat-icon>
+                </div>
+                <div class="option-text">
+                  <span class="option-title">Message Landlord</span>
+                  <span class="option-subtitle">Reports & updates</span>
+                </div>
+                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+              </button>
+            </div>
           </div>
-        </div>
-
-        <!-- NO RESOURCES MESSAGE -->
-        <div *ngIf="!loadingProperties && !isResourceSelected() && userRole === 'LANDLORD'" class="no-resources">
-          <mat-icon>warning</mat-icon>
-          <p>Please select a property first to see available chat options.</p>
         </div>
       </div>
       
