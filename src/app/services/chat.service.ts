@@ -557,11 +557,11 @@ export class ChatService {
     );
   }
 
-  // FIXED: Correct API endpoints matching backend
+  // ✅ CORRECTED API ENDPOINTS - MATCHING YOUR BACKEND
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     console.log('🔧 Creating tenant-landlord chat for property:', propertyId);
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/tenant/landlord/${propertyId}`, // ✅ FIXED URL
+      `${this.apiUrl}/tenant/landlord/${propertyId}`, // ✅ CORRECT
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -589,7 +589,7 @@ export class ChatService {
   createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     console.log('🔧 Creating tenant-caretaker chat for property:', propertyId);
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/tenant/caretaker/${propertyId}`, 
+      `${this.apiUrl}/tenant/caretaker/${propertyId}`, // ✅ CORRECT
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -616,7 +616,7 @@ export class ChatService {
   createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     console.log('🔧 Creating landlord-caretaker chat for property:', propertyId);
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/landlord/caretaker/${propertyId}`, // ✅ FIXED URL
+      `${this.apiUrl}/landlord/caretaker/${propertyId}`, // ✅ CORRECT
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -643,7 +643,7 @@ export class ChatService {
   createLandlordTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
     console.log('🔧 Creating landlord-tenant chat for unit:', unitId);
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/landlord/tenant/${unitId}`, // ✅ FIXED URL
+      `${this.apiUrl}/landlord/tenant/${unitId}`, // ✅ CORRECT
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -670,7 +670,7 @@ export class ChatService {
   createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
     console.log('🔧 Creating caretaker-tenant chat for unit:', unitId);
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/caretaker/tenant/${unitId}`, // ✅ FIXED URL
+      `${this.apiUrl}/caretaker/tenant/${unitId}`, // ✅ CORRECT
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -860,6 +860,5 @@ export class ChatService {
     this.roomsSubject.next([]);
     this.currentRoomSubject.next(null);
     this.roomSubscriptions.clear();
-    
   }
 }

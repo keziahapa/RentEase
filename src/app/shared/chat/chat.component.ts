@@ -96,7 +96,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private setupAuthMonitoring(): void {
-    // Monitor auth state changes
     this.authSubscription = this.authService.isAuthenticated$.subscribe({
       next: (isAuthenticated: boolean) => {
         console.log('🔐 Auth state changed in chat:', isAuthenticated);
@@ -193,12 +192,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           console.log('🆕 New messages detected, will scroll to bottom');
           this.shouldScrollToBottom = true;
         }
-        
-        // Log message details for debugging
-        if (messages.length > 0) {
-          console.log('📝 First message:', messages[0]);
-          console.log('📝 Last message:', messages[messages.length - 1]);
-        }
       },
       error: (error: any) => {
         console.error('❌ Error in messages subscription:', error);
@@ -220,26 +213,21 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private shouldHandleAuthError(error: any): boolean {
-    // Only handle auth error if it's NOT a role-based access issue
     return error?.status === 401 && !this.isRoleBasedUnauthorized(error);
   }
 
   private isRoleBasedUnauthorized(error: any): boolean {
-    // Check if it's a 401 but the token is still valid (role-based access issue)
     if (error?.status === 401 && this.authService.isAuthenticated()) {
       const url = error.url || '';
       
-      // If it's a tenant endpoint but user is not a tenant
       if (url.includes('/api/tenant/') && !this.authService.isTenant()) {
         return true;
       }
       
-      // If it's a landlord endpoint but user is not a landlord
       if (url.includes('/api/landlord/') && !this.authService.isLandlord()) {
         return true;
       }
       
-      // If it's a caretaker endpoint but user is not a caretaker
       if (url.includes('/api/caretaker/') && !this.authService.isCaretaker()) {
         return true;
       }
@@ -263,7 +251,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         dataObservable = this.tenantService.getTenantUnits().pipe(
           catchError((error: any) => {
             console.error('Error loading tenant units:', error);
-            // If user is not a tenant, this is expected to fail
             if (error.status === 401 && !this.authService.isTenant()) {
               console.log('User is not a tenant, skipping tenant units');
               return of([]);
@@ -297,7 +284,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.processUserData(response, this.userRole);
       this.loadingProperties = false;
       
-      // After loading data, ensure chat service is connected
       this.ensureChatConnection();
     });
   }
@@ -366,7 +352,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private fetchTenantData(tenantId: number): Observable<any> {
-    // Only fetch tenant data if current user is authorized
     if (!this.authService.isTenant() && !this.authService.isLandlord()) {
       return of({});
     }
@@ -548,11 +533,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private handleAuthError(error: any): void {
     console.warn('Authentication error detected:', error);
     
-    // Only redirect if user is actually not authenticated
     if (!this.authService.isAuthenticated()) {
       this.redirectToLogin();
     } else {
-      // If still authenticated but got 401, show user-friendly message
       console.log('User is still authenticated, 401 might be temporary');
     }
   }
@@ -582,7 +565,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   createChat(chatType: ChatRoomType): void {
-    // Check if user has permission to create this chat type
     if (!this.canCreateChatType(chatType)) {
       alert(`You don't have permission to create ${chatType} chats`);
       return;
@@ -591,16 +573,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     let resourceId: number | null = null;
     let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
-    if (chatType === this.CHAT_TYPES.CARETAKER_TENANT) {
-      if (this.userUnits.length > 0) {
-        resourceId = this.userUnits[0].id;
-      } else {
-        alert('No units available for chat creation.');
-        return;
-      }
-      
-      createObservable = this.chatService.createCaretakerTenantChat(resourceId);
-    } else if (this.userRole === 'TENANT') {
+    // Determine resource ID based on user role and chat type
+    if (this.userRole === 'TENANT') {
       resourceId = this.userUnits.length > 0 ? this.userUnits[0].id : null;
     } else {
       resourceId = this.userProperties.length > 0 ? this.userProperties[0].id : null;
@@ -611,24 +585,28 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
-    if (!createObservable) {
-      switch (chatType) {
-        case this.CHAT_TYPES.TENANT_LANDLORD:
-          createObservable = this.chatService.createTenantLandlordChat(resourceId);
-          break;
-        case this.CHAT_TYPES.TENANT_CARETAKER:
-          createObservable = this.chatService.createTenantCaretakerChat(resourceId);
-          break;
-        case this.CHAT_TYPES.LANDLORD_CARETAKER:
-          createObservable = this.chatService.createLandlordCaretakerChat(resourceId);
-          break;
-        case this.CHAT_TYPES.LANDLORD_TENANT:
-          createObservable = this.chatService.createLandlordTenantChat(resourceId);
-          break;
-        default:
-          alert('Invalid chat type selected.');
-          return;
-      }
+    console.log(`🔧 Creating ${chatType} chat with resource ID:`, resourceId);
+
+    // Create the appropriate observable based on chat type
+    switch (chatType) {
+      case this.CHAT_TYPES.TENANT_LANDLORD:
+        createObservable = this.chatService.createTenantLandlordChat(resourceId);
+        break;
+      case this.CHAT_TYPES.TENANT_CARETAKER:
+        createObservable = this.chatService.createTenantCaretakerChat(resourceId);
+        break;
+      case this.CHAT_TYPES.LANDLORD_CARETAKER:
+        createObservable = this.chatService.createLandlordCaretakerChat(resourceId);
+        break;
+      case this.CHAT_TYPES.LANDLORD_TENANT:
+        createObservable = this.chatService.createLandlordTenantChat(resourceId);
+        break;
+      case this.CHAT_TYPES.CARETAKER_TENANT:
+        createObservable = this.chatService.createCaretakerTenantChat(resourceId);
+        break;
+      default:
+        alert('Invalid chat type selected.');
+        return;
     }
 
     this.loadingRooms = true;
@@ -636,23 +614,38 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     createObservable.subscribe({
       next: (response: any) => {
         this.loadingRooms = false;
+        console.log('✅ Chat creation response:', response);
+        
         if (response?.success && response.data) {
           this.closeNewChatModal();
           this.selectRoom(response.data);
+          alert('Chat created successfully!');
         } else {
-          alert('Failed to create chat: ' + (response?.message || 'Unknown error'));
+          const errorMsg = response?.message || 'Unknown error occurred';
+          alert('Failed to create chat: ' + errorMsg);
         }
       },
       error: (error: any) => {
         this.loadingRooms = false;
-        console.error('Chat creation error:', error);
+        console.error('❌ Chat creation error:', error);
         
-        // Only handle auth error if it's specifically 401 and not role-based
         if (this.shouldHandleAuthError(error)) {
           this.handleAuthError(error);
         }
         
-        alert('Failed to create chat: ' + (error.error?.message || error.message || 'Unknown error'));
+        let errorMessage = 'Failed to create chat. ';
+        
+        if (error.status === 400) {
+          errorMessage += 'The resource might not exist or you may not have permission.';
+        } else if (error.status === 404) {
+          errorMessage += 'The requested resource was not found.';
+        } else if (error.status === 403) {
+          errorMessage += 'You do not have permission to create this chat.';
+        } else {
+          errorMessage += error.error?.message || error.message || 'Please try again.';
+        }
+        
+        alert(errorMessage);
       }
     });
   }
@@ -694,21 +687,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
 
     console.log('📥 Selecting room with ID:', room.id);
-    console.log('📝 Room details:', {
-      name: room.name,
-      participants: room.participants?.length,
-      lastMessage: room.lastMessage?.content
-    });
-
-    // Update current room immediately for UI feedback
     this.currentRoom = room;
-    this.messages = []; // Clear previous messages
+    this.messages = [];
     
-    // Call the service to load messages
     this.chatService.selectRoom(room);
     this.shouldScrollToBottom = true;
 
-    // Force refresh messages after a short delay
     setTimeout(() => {
       console.log('🔄 Force refreshing messages for room:', room.id);
       this.chatService.getMessages(room.id);
@@ -1030,50 +1014,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       'CARETAKER': 'Caretaker'
     };
     return roleMap[role] || role;
-  }
-
-  // Debug methods
-  checkRoomState(): void {
-    console.log('=== ROOM STATE CHECK ===');
-    console.log('Current Room:', this.currentRoom);
-    console.log('Rooms List:', this.rooms);
-    console.log('Messages:', this.messages);
-    console.log('Is Connected:', this.isConnected);
-    
-    // Check if service has the same current room
-    this.chatService.currentRoom$.subscribe(room => {
-      console.log('Service Current Room:', room);
-    }).unsubscribe();
-    
-    this.chatService.messages$.subscribe(messages => {
-      console.log('Service Messages Count:', messages.length);
-    }).unsubscribe();
-  }
-
- testConnection(): void {
-  console.log('=== CONNECTION TEST ===');
- 
-  if (this.currentRoom) {
-    const testMessage = `Test message ${new Date().toLocaleTimeString()}`;
-    console.log('Sending test message:', testMessage);
-    this.chatService.sendMessage(testMessage, this.currentRoom.id).subscribe({
-      next: (response) => console.log('Test send success:', response),
-      error: (error) => console.error('Test send error:', error)
-    });
-  } else {
-    console.log('No room selected for test');
-  }
-}
-  refreshChatData(): void {
-    console.log('🔄 Manually refreshing chat data...');
-    if (this.authService.isAuthenticated()) {
-      this.chatService.loadRooms();
-      if (this.currentRoom) {
-        this.chatService.getMessages(this.currentRoom.id);
-      }
-    } else {
-      console.log('Cannot refresh: User not authenticated');
-    }
   }
 
   private scrollToBottom(): void {
