@@ -69,50 +69,94 @@ export class ProfilePictureService {
     }
   }
 
+  // DEBUG: Add this method to debug authentication state
+  private debugAuthState(context: string): void {
+    console.log(`🔍 ${context} - Auth State Debug:`);
+    console.log('  Token exists:', !!this.authService.getToken());
+    console.log('  Token:', this.authService.getToken()?.substring(0, 20) + '...');
+    console.log('  Is authenticated:', this.authService.isAuthenticated());
+    console.log('  Current user:', this.authService.getCurrentUser());
+    console.log('-----------------------------------');
+  }
+
+  // DEBUG: Add this method to debug request details
+  private debugRequest(method: string, url: string, payload?: any): void {
+    console.log(`🚀 ${method} Request to: ${url}`);
+    if (payload) {
+      console.log('   Payload:', payload);
+    }
+    console.log('   Headers:', this.createHeaders().keys());
+    console.log('   Auth Header:', this.createHeaders().get('Authorization')?.substring(0, 30) + '...');
+    console.log('-----------------------------------');
+  }
+
   // FIXED: Update profile method to use correct endpoint
   updateProfile(profileData: UpdateProfileRequest): Observable<UpdateProfileResponse> {
+    this.debugAuthState('Before Profile Update');
+    
     const token = this.authService.getToken();
     if (!token) {
+      console.error('❌ No token found for profile update');
       return throwError(() => ({ status: 401, message: 'No authentication token found' }));
     }
 
     // Use the correct endpoint - /api/profile/update
+    const url = `${this.apiUrl}/profile/update`;
+    this.debugRequest('PUT', url, profileData);
+
     return this.http
-      .put<UpdateProfileResponse>(`${this.apiUrl}/profile/update`, profileData, { 
+      .put<UpdateProfileResponse>(url, profileData, { 
         headers: this.createHeaders() 
       })
       .pipe(
+        tap(response => console.log('✅ Profile update response:', response)),
         map(response => this.normalizeProfileResponse(response)),
         tap(profileResponse => {
           if (profileResponse.success && profileResponse.user) {
             this.updateLocalState(profileResponse.user);
           }
         }),
-        catchError(this.handleProfileError)
+        catchError(error => {
+          console.error('❌ Profile update error:', error);
+          return this.handleProfileError(error);
+        })
       );
   }
 
   // FIXED: Profile picture methods with correct endpoints
   getProfilePicture(): Observable<ProfilePictureResponse> {
+    this.debugAuthState('Before Get Profile Picture');
+    
     const token = this.authService.getToken();
     if (!token) {
+      console.warn('⚠️ No token found for profile picture, using cached');
       return of(this.buildCachedPictureResponse('No authentication token found'));
     }
 
+    const url = `${this.apiUrl}/profile/picture`;
+    this.debugRequest('GET', url);
+
     return this.http
-      .get<ProfilePictureResponse>(`${this.apiUrl}/profile/picture`, { 
+      .get<ProfilePictureResponse>(url, { 
         headers: this.createHeaders() 
       })
       .pipe(
+        tap(response => console.log('✅ Profile picture response:', response)),
         map(response => this.normalizePictureResponse(response)),
         tap(response => this.applyPictureResponse(response)),
-        catchError(error => this.handlePictureError(error))
+        catchError(error => {
+          console.error('❌ Profile picture error:', error);
+          return this.handlePictureError(error);
+        })
       );
   }
 
   uploadProfilePicture(file: File): Observable<ProfilePictureResponse> {
+    this.debugAuthState('Before Upload Profile Picture');
+    
     const token = this.authService.getToken();
     if (!token) {
+      console.error('❌ No token found for upload');
       return throwError(() => ({ status: 401, message: 'No authentication token found' }));
     }
 
@@ -125,18 +169,31 @@ export class ProfilePictureService {
       // Don't set Content-Type for FormData - let browser set it
     });
 
+    const url = `${this.apiUrl}/profile/upload-picture`;
+    console.log(`🚀 POST Request to: ${url}`);
+    console.log('   File:', file.name, file.size, file.type);
+    console.log('   Headers:', headers.keys());
+    console.log('-----------------------------------');
+
     return this.http
-      .post<ProfilePictureResponse>(`${this.apiUrl}/profile/upload-picture`, formData, { headers })
+      .post<ProfilePictureResponse>(url, formData, { headers })
       .pipe(
+        tap(response => console.log('✅ Upload response:', response)),
         map(response => this.normalizePictureResponse(response)),
         tap(response => this.applyPictureResponse(response)),
-        catchError(this.handleProfileError)
+        catchError(error => {
+          console.error('❌ Upload error:', error);
+          return this.handleProfileError(error);
+        })
       );
   }
 
   updateProfilePicture(file: File): Observable<ProfilePictureResponse> {
+    this.debugAuthState('Before Update Profile Picture');
+    
     const token = this.authService.getToken();
     if (!token) {
+      console.error('❌ No token found for update picture');
       return throwError(() => ({ status: 401, message: 'No authentication token found' }));
     }
 
@@ -147,40 +204,62 @@ export class ProfilePictureService {
       'Authorization': `Bearer ${token}`
     });
 
+    const url = `${this.apiUrl}/profile/update-picture`;
+    console.log(`🚀 PUT Request to: ${url}`);
+    console.log('   File:', file.name, file.size, file.type);
+    console.log('-----------------------------------');
+
     return this.http
-      .put<ProfilePictureResponse>(`${this.apiUrl}/profile/update-picture`, formData, { headers })
+      .put<ProfilePictureResponse>(url, formData, { headers })
       .pipe(
+        tap(response => console.log('✅ Update picture response:', response)),
         map(response => this.normalizePictureResponse(response)),
         tap(response => this.applyPictureResponse(response)),
-        catchError(this.handleProfileError)
+        catchError(error => {
+          console.error('❌ Update picture error:', error);
+          return this.handleProfileError(error);
+        })
       );
   }
 
   deleteProfilePicture(): Observable<ProfilePictureResponse> {
+    this.debugAuthState('Before Delete Profile Picture');
+    
     const token = this.authService.getToken();
     if (!token) {
+      console.error('❌ No token found for delete picture');
       return throwError(() => ({ status: 401, message: 'No authentication token found' }));
     }
 
+    const url = `${this.apiUrl}/profile/delete-picture`;
+    this.debugRequest('DELETE', url);
+
     return this.http
-      .delete<ProfilePictureResponse>(`${this.apiUrl}/profile/delete-picture`, { 
+      .delete<ProfilePictureResponse>(url, { 
         headers: this.createHeaders() 
       })
       .pipe(
+        tap(response => console.log('✅ Delete picture response:', response)),
         map(response => this.normalizePictureResponse(response)),
         tap(response => {
           if (response.success) {
             this.cacheProfileImage(undefined);
           }
         }),
-        catchError(this.handleProfileError)
+        catchError(error => {
+          console.error('❌ Delete picture error:', error);
+          return this.handleProfileError(error);
+        })
       );
   }
 
   // FIXED: Add password update method
   updatePassword(currentPassword: string, newPassword: string, confirmNewPassword: string): Observable<any> {
+    this.debugAuthState('Before Password Update');
+    
     const token = this.authService.getToken();
     if (!token) {
+      console.error('❌ No token found for password update');
       return throwError(() => ({ status: 401, message: 'No authentication token found' }));
     }
 
@@ -191,10 +270,53 @@ export class ProfilePictureService {
     };
 
     // Use the correct password update endpoint
-    return this.http.put(`${this.apiUrl}/auth/update-password`, payload, {
+    const url = `${this.apiUrl}/auth/update-password`;
+    this.debugRequest('PUT', url, { 
+      ...payload, 
+      currentPassword: '***', 
+      newPassword: '***', 
+      confirmNewPassword: '***' 
+    });
+
+    return this.http.put(url, payload, {
       headers: this.createHeaders()
     }).pipe(
-      catchError(this.handleProfileError)
+      tap(response => console.log('✅ Password update response:', response)),
+      catchError(error => {
+        console.error('❌ Password update error:', error);
+        console.error('❌ Error details:', {
+          status: error.status,
+          statusText: error.statusText,
+          url: error.url,
+          error: error.error
+        });
+        return this.handleProfileError(error);
+      })
+    );
+  }
+
+  // Add phone update method
+  updatePhone(newPhoneNumber: string): Observable<any> {
+    this.debugAuthState('Before Phone Update');
+    
+    const token = this.authService.getToken();
+    if (!token) {
+      console.error('❌ No token found for phone update');
+      return throwError(() => ({ status: 401, message: 'No authentication token found' }));
+    }
+
+    const payload = { newPhoneNumber };
+    const url = `${this.apiUrl}/auth/update-phone`;
+    this.debugRequest('PUT', url, payload);
+
+    return this.http.put(url, payload, {
+      headers: this.createHeaders()
+    }).pipe(
+      tap(response => console.log('✅ Phone update response:', response)),
+      catchError(error => {
+        console.error('❌ Phone update error:', error);
+        return this.handleProfileError(error);
+      })
     );
   }
 
@@ -208,8 +330,11 @@ export class ProfilePictureService {
   }
 
   getCurrentUserProfile(): Observable<UpdateProfileResponse> {
+    this.debugAuthState('Before Get User Profile');
+    
     const token = this.authService.getToken();
     if (!token) {
+      console.warn('⚠️ No token found for user profile, using cached');
       const cached = this.profileSubject.value ?? this.getCachedUserProfile();
       if (cached) {
         return of({
@@ -221,35 +346,52 @@ export class ProfilePictureService {
       return throwError(() => ({ status: 401, message: 'No authentication token found' }));
     }
 
+    const url = `${this.apiUrl}/profile`;
+    this.debugRequest('GET', url);
+
     return this.http
-      .get<ApiProfileResponse>(`${this.apiUrl}/profile`, { headers: this.createHeaders() })
+      .get<ApiProfileResponse>(url, { headers: this.createHeaders() })
       .pipe(
+        tap(response => console.log('✅ User profile response:', response)),
         map(response => this.normalizeProfileResponse(response)),
         tap(profileResponse => {
           if (profileResponse.success && profileResponse.user) {
             this.updateLocalState(profileResponse.user);
           }
         }),
-        catchError(error => this.handleProfileFetchError(error))
+        catchError(error => {
+          console.error('❌ User profile error:', error);
+          return this.handleProfileFetchError(error);
+        })
       );
   }
 
   updateProfilePartial(profileData: Partial<UpdateProfileRequest>): Observable<UpdateProfileResponse> {
+    this.debugAuthState('Before Partial Profile Update');
+    
     const token = this.authService.getToken();
     if (!token) {
+      console.error('❌ No token found for partial profile update');
       return throwError(() => ({ status: 401, message: 'No authentication token found' }));
     }
 
+    const url = `${this.apiUrl}/profile`;
+    this.debugRequest('PATCH', url, profileData);
+
     return this.http
-      .patch<UpdateProfileResponse>(`${this.apiUrl}/profile`, profileData, { headers: this.createHeaders() })
+      .patch<UpdateProfileResponse>(url, profileData, { headers: this.createHeaders() })
       .pipe(
+        tap(response => console.log('✅ Partial profile update response:', response)),
         map(response => this.normalizeProfileResponse(response)),
         tap(profileResponse => {
           if (profileResponse.success && profileResponse.user) {
             this.updateLocalState(profileResponse.user);
           }
         }),
-        catchError(this.handleProfileError)
+        catchError(error => {
+          console.error('❌ Partial profile update error:', error);
+          return this.handleProfileError(error);
+        })
       );
   }
 
@@ -517,11 +659,23 @@ export class ProfilePictureService {
   }
 
   private handleProfileError = (error: any): Observable<never> => {
+    console.error('🔴 HANDLE PROFILE ERROR CALLED:', error);
+    
     let errorMessage = 'Profile operation failed';
 
     if (error instanceof HttpErrorResponse) {
+      console.error('🔴 HTTP Error Details:', {
+        status: error.status,
+        statusText: error.statusText,
+        url: error.url,
+        headers: error.headers,
+        error: error.error
+      });
+
       if (error.status === 401) {
         errorMessage = 'Authentication failed. Please log in again.';
+        // Optional: Clear invalid token
+        // this.authService.logoutSync();
       } else if (error.status === 403) {
         errorMessage = 'You do not have permission to perform this action.';
       } else if (error.status === 413) {
@@ -537,6 +691,7 @@ export class ProfilePictureService {
       errorMessage = error.message;
     }
 
+    console.error('🔴 Final error message to user:', errorMessage);
     return throwError(() => ({ status: error.status ?? 400, message: errorMessage }));
   };
 
