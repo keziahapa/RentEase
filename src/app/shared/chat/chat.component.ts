@@ -48,7 +48,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   loadingUnits = false;
   shouldScrollToBottom = false;
 
-  // Flow state
+
   currentStep: 'SELECT_PROPERTY' | 'SELECT_RECIPIENT' | 'SELECT_UNIT' = 'SELECT_PROPERTY';
   selectedPropertyId: number | null = null;
   selectedUnitId: number | null = null;
@@ -213,7 +213,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
-  // ===== NEW CHAT FLOW =====
+
 
   openNewChatModal(): void {
     this.resetModalState();
@@ -233,7 +233,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
-    // Set initial step based on role
+
     if (this.userRole === 'LANDLORD') {
       this.currentStep = 'SELECT_PROPERTY';
     } else {
@@ -251,13 +251,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.currentStep = 'SELECT_PROPERTY';
   }
 
-  // LANDLORD: Select Property
+
   onPropertySelected(event: any): void {
-    this.selectedPropertyId = +event.target.value; // Convert to number
+    this.selectedPropertyId = +event.target.value; 
     this.selectedUnitId = null;
     this.currentStep = 'SELECT_RECIPIENT';
     
-    // Load units for this property
+  
     this.loadUnitsForProperty(this.selectedPropertyId);
   }
 
@@ -291,23 +291,23 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
-  // Select Recipient Type
+
   onRecipientTypeSelected(chatType: ChatRoomType): void {
     this.selectedChatType = chatType;
     
-    // If landlord selecting tenant, need to choose unit
+
     if (this.userRole === 'LANDLORD' && chatType === this.CHAT_TYPES.LANDLORD_TENANT) {
       this.currentStep = 'SELECT_UNIT';
     } else {
-      // Otherwise create chat immediately
+    
       this.createChatNow();
     }
   }
 
-  // Select Unit (Landlord → Tenant only)
+ 
   onUnitSelected(event: any): void {
     const unitId = event.target.value;
-    this.selectedUnitId = unitId ? +unitId : null; // Convert to number or null
+    this.selectedUnitId = unitId ? +unitId : null; 
     if (this.selectedUnitId) {
       this.createChatNow();
     }
@@ -319,7 +319,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     let resourceId: number | null = null;
     let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
-    // Determine resource ID based on role and chat type
+   
     switch (this.selectedChatType) {
       case this.CHAT_TYPES.TENANT_LANDLORD:
         resourceId = this.userUnits.length > 0 ? this.userUnits[0].propertyId : null;
@@ -391,7 +391,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
-  // For tenants and caretakers - direct chat creation
+ 
   createChat(chatType: ChatRoomType): void {
     this.selectedChatType = chatType;
     this.createChatNow();
@@ -408,7 +408,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return `Unit ${unit.unitNumber}`;
   }
 
-  // ===== FILE HANDLING =====
+
 
   handleFiles(files: File[]): void {
     if (!this.currentRoom) {
@@ -446,7 +446,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return (bytes / 1048576).toFixed(1) + ' MB';
   }
 
-  // ===== UI HELPER METHODS =====
+ 
 
   closeNewChatModal(): void {
     this.showNewChatModal = false;
@@ -550,7 +550,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     event.target.value = '';
   }
 
-  // ===== TRACK BY FUNCTIONS =====
+ 
 
   trackByRoomId(index: number, room: ChatRoom): number {
     return room?.id ?? index;
@@ -697,7 +697,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return `${name} (${this.formatRole(role)})`;
   }
 
-  // ===== PRIVATE HELPER METHODS =====
+
 
   private shouldHandleAuthError(error: any): boolean {
     return error?.status === 401 && !this.isRoleBasedUnauthorized(error);

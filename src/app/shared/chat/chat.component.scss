@@ -37,6 +37,9 @@
     font-weight: 600;
     font-size: 14px;
     transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 
     &:hover:not(:disabled) {
       background: #1e40af;
@@ -75,6 +78,7 @@
   .empty-icon {
     font-size: 48px;
     margin-bottom: 16px;
+    color: #d0d3d9;
   }
 
   p {
@@ -225,6 +229,9 @@
     cursor: pointer;
     font-size: 12px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 
     &:hover {
       background: #1e40af;
@@ -251,6 +258,7 @@
   .empty-icon {
     font-size: 64px;
     margin-bottom: 24px;
+    color: #d0d3d9;
   }
 
   h3 {
@@ -342,6 +350,12 @@
     .chat-subtitle {
       font-size: 13px;
       color: #65676b;
+      margin-bottom: 2px;
+    }
+
+    .chat-description {
+      font-size: 12px;
+      color: #8a8d91;
     }
   }
 
@@ -407,6 +421,7 @@
   .no-messages-icon {
     font-size: 48px;
     margin-bottom: 16px;
+    color: #d0d3d9;
   }
 
   p {
@@ -487,6 +502,7 @@
     padding: 2px 4px;
     margin-left: auto;
     transition: opacity 0.2s;
+    color: inherit;
 
     &:hover {
       opacity: 1;
@@ -518,6 +534,9 @@
     font-size: 13px;
     color: #65676b;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 }
 
@@ -542,6 +561,7 @@
     justify-content: center;
     transition: background 0.2s;
     flex-shrink: 0;
+    color: #65676b;
 
     &:hover {
       background: #e4e6eb;
@@ -739,36 +759,113 @@
     padding: 24px;
     color: #65676b;
     font-size: 14px;
-  }
-
-  .property-info {
-    padding: 16px;
-    background: linear-gradient(135deg, #e7f3ff 0%, #f0f2f5 100%);
-    border-radius: 12px;
-    margin-bottom: 24px;
-    font-size: 14px;
-    color: #1c1e21;
-    line-height: 1.6;
     display: flex;
     align-items: center;
-    gap: 12px;
-    border: 1px solid #e4e6eb;
+    justify-content: center;
+    gap: 8px;
+  }
 
-    mat-icon {
-      color: #1e3a8a;
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
+  .flow-section {
+    .flow-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+
+      .back-btn {
+        background: #f0f2f5;
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        color: #1c1e21;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: background 0.2s;
+
+        &:hover {
+          background: #e4e6eb;
+        }
+      }
+
+      h4 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1c1e21;
+      }
     }
 
-    strong {
-      color: #1e3a8a;
-      display: block;
-      margin-bottom: 4px;
+    .selected-context {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #f0f2f5;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #1c1e21;
+      font-weight: 500;
     }
 
-    small {
+    .selection-group {
+      margin-bottom: 24px;
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #1c1e21;
+        font-size: 14px;
+      }
+
+      .property-select, .unit-select {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e4e6eb;
+        border-radius: 12px;
+        font-size: 15px;
+        background: white;
+        transition: border-color 0.2s;
+
+        &:focus {
+          outline: none;
+          border-color: #1e3a8a;
+        }
+      }
+    }
+
+    .flow-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .loading-units {
+      text-align: center;
+      padding: 20px;
       color: #65676b;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .no-units {
+      text-align: center;
+      padding: 20px;
+      color: #fa383e;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #ffebe9;
+      border-radius: 12px;
     }
   }
 
@@ -822,6 +919,17 @@
       transform: translateY(0);
     }
 
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+
+      &:hover::before {
+        width: 0;
+      }
+    }
+
     .option-icon {
       width: 48px;
       height: 48px;
@@ -862,6 +970,12 @@
         color: #65676b;
         transition: color 0.3s ease;
       }
+
+      small {
+        font-size: 12px;
+        color: #8a8d91;
+        margin-top: 2px;
+      }
     }
 
     .arrow-icon {
@@ -885,7 +999,7 @@
         background: linear-gradient(135deg, rgba(30, 58, 138, 0.1) 0%, rgba(55, 48, 163, 0.1) 100%);
       }
 
-      &:hover {
+      &:hover:not(:disabled) {
         border-color: #1e3a8a;
 
         &::before {
@@ -913,7 +1027,7 @@
         background: linear-gradient(135deg, rgba(30, 58, 138, 0.1) 0%, rgba(55, 48, 163, 0.1) 100%);
       }
 
-      &:hover {
+      &:hover:not(:disabled) {
         border-color: #1e3a8a;
 
         &::before {
@@ -941,7 +1055,7 @@
         background: linear-gradient(135deg, rgba(30, 58, 138, 0.1) 0%, rgba(55, 48, 163, 0.1) 100%);
       }
 
-      &:hover {
+      &:hover:not(:disabled) {
         border-color: #1e3a8a;
 
         &::before {
@@ -1021,6 +1135,7 @@
 
   .modal-content {
     max-width: 95%;
+    margin: 20px;
   }
 
   .option-btn {
@@ -1043,6 +1158,75 @@
       .option-subtitle {
         font-size: 12px;
       }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-header {
+    padding: 16px;
+
+    h2 {
+      font-size: 20px;
+    }
+
+    .new-chat-btn {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+  }
+
+  .room-item {
+    padding: 10px 12px;
+
+    .room-avatar {
+      width: 40px;
+      height: 40px;
+      font-size: 18px;
+    }
+
+    .room-info {
+      .room-name {
+        font-size: 14px;
+      }
+
+      .last-message {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .chat-header {
+    padding: 12px 16px;
+
+    .back-button {
+      width: 32px;
+      height: 32px;
+      font-size: 18px;
+    }
+
+    .header-info {
+      .chat-title {
+        font-size: 15px;
+      }
+
+      .chat-subtitle {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .messages-container {
+    padding: 16px;
+  }
+
+  .message-input-container {
+    padding: 12px 16px;
+
+    .action-btn, .send-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
     }
   }
 }
