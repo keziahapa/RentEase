@@ -19,6 +19,15 @@ interface EnrichedChatInfo {
   badge?: string;
 }
 
+interface AvailableUnit {
+  id: number;
+  unitNumber: string;
+  unitType: string;
+  propertyId: number;
+  tenantName?: string | null;
+  isOccupied: boolean;
+}
+
 @Component({
   selector: 'app-chat',
   standalone: true,
@@ -46,6 +55,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   loadingProperties = false;
   loadingRooms = false;
   shouldScrollToBottom = false;
+
+  // NEW PROPERTIES FOR SELECTION
+  selectedPropertyId: number | null = null;
+  selectedUnitId: number | null = null;
+  selectedChatType: ChatRoomType | null = null;
+  availableUnits: AvailableUnit[] = [];
+  loadingUnits = false;
 
   currentChatInfo: EnrichedChatInfo | null = null;
   participantDataCache = new Map<number, any>();
@@ -135,6 +151,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.messages = [];
     this.userProperties = [];
     this.userUnits = [];
+    this.availableUnits = [];
+    this.selectedPropertyId = null;
+    this.selectedUnitId = null;
+    this.selectedChatType = null;
     this.isInitialized = false;
     this.chatService.disconnect();
   }
@@ -210,6 +230,80 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         console.error('❌ Error in connected subscription:', error);
       }
     });
+  }
+
+  // NEW METHODS FOR PROPERTY/SELECTION
+  onPropertyChange(): void {
+    console.log('🏠 Property changed to:', this.selectedPropertyId);
+    this.selectedUnitId = null;
+    this.selectedChatType = null;
+    
+    if (this.selectedPropertyId) {
+      this.loadUnitsForProperty(this.selectedPropertyId);
+    } else {
+      this.availableUnits = [];
+    }
+  }
+
+  loadUnitsForProperty(propertyId: number): void {
+    this.loadingUnits = true;
+    console.log('📋 Loading units for property:', propertyId);
+    
+    // Mock data - replace with actual API call
+    setTimeout(() => {
+      this.availableUnits = [
+        { id: 1, unitNumber: '101', unitType: 'APARTMENT', propertyId: propertyId, tenantName: 'John Doe', isOccupied: true },
+        { id: 2, unitNumber: '102', unitType: 'APARTMENT', propertyId: propertyId, tenantName: null, isOccupied: false },
+        { id: 3, unitNumber: '201', unitType: 'STUDIO', propertyId: propertyId, tenantName: 'Jane Smith', isOccupied: true },
+        { id: 4, unitNumber: '202', unitType: 'STUDIO', propertyId: propertyId, tenantName: null, isOccupied: false }
+      ];
+      
+      this.loadingUnits = false;
+      console.log('✅ Loaded units:', this.availableUnits);
+    }, 500);
+  }
+
+  hasAvailableUnits(propertyId: number): boolean {
+    return true;
+  }
+
+  getAvailableUnits(propertyId: number): AvailableUnit[] {
+    return this.availableUnits.filter(unit => unit.propertyId === propertyId);
+  }
+
+  getPropertyName(propertyId: number): string {
+    const property = this.userProperties.find(p => p.id === propertyId);
+    return property?.name || `Property ${propertyId}`;
+  }
+
+  getUnitInfo(unitId: number): string {
+    const unit = this.availableUnits.find(u => u.id === unitId);
+    if (!unit) return 'Unknown Unit';
+    return `Unit ${unit.unitNumber} (${unit.unitType})`;
+  }
+
+  getSelectedResourceInfo(): string {
+    if (this.selectedChatType === this.CHAT_TYPES.LANDLORD_TENANT && this.selectedUnitId) {
+      const unit = this.availableUnits.find(u => u.id === this.selectedUnitId);
+      if (unit) {
+        return `Selected: Unit ${unit.unitNumber} - ${unit.tenantName || 'Vacant Unit'}`;
+      }
+    } else if (this.selectedPropertyId) {
+      return `Selected: ${this.getPropertyName(this.selectedPropertyId)}`;
+    }
+    return '';
+  }
+
+  isResourceSelected(): boolean {
+    if (this.userRole === 'LANDLORD') {
+      if (this.selectedChatType === this.CHAT_TYPES.LANDLORD_TENANT) {
+        return !!this.selectedUnitId;
+      } else if (this.selectedChatType === this.CHAT_TYPES.LANDLORD_CARETAKER) {
+        return !!this.selectedPropertyId;
+      }
+      return false;
+    }
+    return true;
   }
 
   private shouldHandleAuthError(error: any): boolean {
@@ -512,8 +606,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         description: 'Property management'
       },
       'landlord-tenant': { 
-        title: 'Tenants', 
-        subtitle: 'Property Residents',
+        title: 'Tenant', 
+        subtitle: 'Property Resident',
         description: 'Tenant communication'
       },
       'caretaker-tenant': { 
@@ -546,6 +640,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   openNewChatModal(): void {
+    this.selectedPropertyId = null;
+    this.selectedUnitId = null;
+    this.selectedChatType = null;
+    this.availableUnits = [];
+    
     if (this.userRole === 'TENANT' && this.userUnits.length === 0) {
       alert('No units assigned to you. Please contact your landlord.');
       return;
@@ -573,21 +672,25 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     let resourceId: number | null = null;
     let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
-    // Determine resource ID based on user role and chat type
-    if (this.userRole === 'TENANT') {
+    if (this.userRole === 'LANDLORD') {
+      if (chatType === this.CHAT_TYPES.LANDLORD_TENANT) {
+        resourceId = this.selectedUnitId;
+      } else if (chatType === this.CHAT_TYPES.LANDLORD_CARETAKER) {
+        resourceId = this.selectedPropertyId;
+      }
+    } else if (this.userRole === 'TENANT') {
       resourceId = this.userUnits.length > 0 ? this.userUnits[0].id : null;
     } else {
       resourceId = this.userProperties.length > 0 ? this.userProperties[0].id : null;
     }
 
     if (!resourceId) {
-      alert('No available resource found for chat creation.');
+      alert('Please select a property/unit first.');
       return;
     }
 
     console.log(`🔧 Creating ${chatType} chat with resource ID:`, resourceId);
 
-    // Create the appropriate observable based on chat type
     switch (chatType) {
       case this.CHAT_TYPES.TENANT_LANDLORD:
         createObservable = this.chatService.createTenantLandlordChat(resourceId);
@@ -609,6 +712,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         return;
     }
 
+    this.selectedChatType = chatType;
     this.loadingRooms = true;
     
     createObservable.subscribe({
@@ -870,10 +974,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return 'No Property/Unit';
   }
 
-  canCreateCaretakerTenantChat(): boolean {
-    return this.userRole === 'CARETAKER' && this.userUnits.length > 0;
-  }
-
   getChatHeaderInfo(): { title: string, subtitle: string, description: string } {
     if (!this.currentChatInfo) {
       return { title: 'Chat', subtitle: '', description: '' };
@@ -916,7 +1016,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       'tenant-landlord': 'Landlord',
       'tenant-caretaker': 'Caretaker',
       'landlord-caretaker': 'Caretaker',
-      'landlord-tenant': 'Tenants',
+      'landlord-tenant': 'Tenant',
       'caretaker-tenant': 'Tenant'
     };
     
