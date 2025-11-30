@@ -74,7 +74,7 @@
     }
 
     &.approved {
-      background: linear-gradient(135deg, #d1fae5, #10b981);
+      background: linear-gradient(135deg, #d1fae5, #2563eb);
     }
 
     &.rejected {
@@ -424,7 +424,7 @@
 
       &.approve-btn {
         background: #dcfce7;
-        color: #166534;
+        color: #2563eb;
         border: 1px solid #bbf7d0;
 
         &:hover {
@@ -722,7 +722,7 @@
 }
 
 .status-approved {
-  background: #10b981 !important;
+  background: #2563eb !important;
 }
 
 .status-rejected {

@@ -6,7 +6,7 @@
 
   <mat-dialog-content>
 
-    <!-- Loading State -->
+   
     <div *ngIf="isLoadingData" class="loading-state">
       <mat-spinner diameter="40"></mat-spinner>
       <p>Loading your property information...</p>
@@ -14,7 +14,7 @@
 
     <form [formGroup]="noticeForm" class="notice-form" *ngIf="!isLoadingData">
 
-      <!-- Property Information -->
+    
       <div class="property-info-section">
         <div class="property-header">
           <mat-icon>home</mat-icon>
@@ -36,11 +36,11 @@
         </div>
       </div>
 
-      <!-- FIXED DATE PICKER - Key changes here -->
+    
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Intended Move-Out Date</mat-label>
 
-        <!-- Prefix icon -->
+        
         <mat-icon matPrefix>event</mat-icon>
 
         <input 
@@ -56,7 +56,7 @@
           required
         >
 
-        <!-- Suffix toggle button -->
+      
         <mat-datepicker-toggle matSuffix [for]="picker">
           <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
         </mat-datepicker-toggle>

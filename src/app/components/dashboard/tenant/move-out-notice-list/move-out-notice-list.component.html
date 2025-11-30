@@ -7,15 +7,14 @@
   </div>
 
   <div class="content-section">
-    <!-- Loading State -->
+ 
     <div *ngIf="isLoading" class="loading-state">
       <mat-spinner diameter="50"></mat-spinner>
       <p>Loading move-out notices...</p>
     </div>
 
-    <!-- Content when not loading -->
+   
     <div *ngIf="!isLoading">
-      <!-- Empty State -->
       <div *ngIf="moveOutNotices.length === 0" class="empty-state">
         <mat-icon>exit_to_app</mat-icon>
         <h3>No Move Out Notices</h3>
@@ -79,7 +78,6 @@
             <button class="action-btn view-btn" 
                     (click)="viewNotice(notice)">
               <mat-icon>visibility</mat-icon>
-              <span>View Details</span>
             </button>
           </div>
         </div>

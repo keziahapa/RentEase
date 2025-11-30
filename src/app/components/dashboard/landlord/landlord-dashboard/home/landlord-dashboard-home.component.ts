@@ -166,7 +166,6 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
   loadRecentActivities() {
     this.isLoadingActivities = true;
     
-   
     const propertiesSub = this.propertyService.getProperties().subscribe({
       next: (response: any) => {
         const properties = this.normalizePropertiesResponse(response);
@@ -177,7 +176,6 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
       }
     });
 
-    
     const tenantUnitsSub = this.tenantService.getTenantUnits().subscribe({
       next: (response: any) => {
         const tenantUnits = this.normalizeTenantUnitsResponse(response);
@@ -188,7 +186,6 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
       }
     });
 
-   
     const moveOutSub = this.propertyService.getLandlordMoveOutNotices(1, 10).subscribe({
       next: (response: LandlordMoveOutNoticeResponse) => {
         if (response.success) {
@@ -209,7 +206,6 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
   }
 
   private processPropertyActivities(properties: any[]): void {
-    
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
@@ -218,7 +214,7 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
         const createdDate = new Date(property.createdAt || property.createdDate || Date.now());
         return createdDate >= oneWeekAgo;
       })
-      .slice(0, 3); 
+      .slice(0, 3);
 
     recentProperties.forEach(property => {
       this.recentActivities.push({
@@ -233,7 +229,6 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
   }
 
   private processTenantActivities(tenantUnits: any[]): void {
-    
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
@@ -242,7 +237,7 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
         const moveInDate = new Date(unit.leaseStartDate || unit.createdAt || Date.now());
         return moveInDate >= oneWeekAgo;
       })
-      .slice(0, 2); 
+      .slice(0, 2);
 
     recentOccupancies.forEach(unit => {
       const tenantName = unit.tenantName || 'New Tenant';
@@ -261,13 +256,11 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
   }
 
   private processMoveOutActivities(notices: LandlordMoveOutNotice[]): void {
-    
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     const recentNotices = notices
       .filter(notice => {
-       
         const noticeDate = new Date(notice.submittedAt || Date.now());
         return noticeDate >= oneWeekAgo;
       })
@@ -292,7 +285,6 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
       this.recentActivities.push({
         type: activityType,
         message: `${activityType} for ${tenantName} - ${propertyName}`,
-        
         time: this.getTimeAgo(notice.submittedAt || new Date()),
         icon: icon
       });
@@ -302,7 +294,6 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
   }
 
   private sortRecentActivities(): void {
-    
     if (this.recentActivities.length > 6) {
       this.recentActivities = this.recentActivities.slice(0, 6);
     }
@@ -491,7 +482,21 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result === 'success') {
+      // Check if result is an object with success and navigateToList flags
+      if (result && typeof result === 'object' && result.success) {
+        this.snackBar.open('Property added successfully!', 'Close', { duration: 3000 });
+        
+        // Navigate to property list if requested
+        if (result.navigateToList) {
+          this.router.navigate(['/landlord-dashboard/property']);
+        } else {
+          // Just refresh dashboard data if not navigating away
+          this.loadDashboardData();
+          this.loadRecentActivities();
+        }
+      } 
+      // Handle legacy string response for backwards compatibility
+      else if (result === 'success') {
         this.snackBar.open('Property added successfully!', 'Close', { duration: 3000 });
         this.loadDashboardData();
         this.loadRecentActivities();
