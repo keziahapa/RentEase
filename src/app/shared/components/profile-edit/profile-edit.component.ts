@@ -17,7 +17,6 @@ import { AuthService } from '../../../services/auth.service';
 import { ProfilePictureService } from '../../../services/profile-picture.service';
 import { ChangePasswordDialogComponent } from '../../change-password-dialog/change-password-dialog.component';
 
-
 @Component({
   selector: 'app-profile-edit',
   standalone: true,
@@ -133,7 +132,6 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
         }
       },
       error: (error: any) => {
-        console.error('Error loading user data from API:', error);
         if (!this.user) {
           this.user = this.authService.getCurrentUser();
           if (this.user) {
@@ -147,10 +145,10 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
   private populateForm(): void {
     if (this.user && this.profileForm) {
       this.profileForm.patchValue({
-        fullName: this.user.fullName || this.user.name || '',
+        fullName: this.user.fullName || '',
         email: this.user.email || '',
         phoneNumber: this.user.phoneNumber || this.user.phone || '',
-        bio: this.user.bio || this.user.about || ''
+        bio: this.user.bio || ''
       });
     }
   }
@@ -197,7 +195,6 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
       },
       error: (error: any) => {
         this.isLoadingProfilePicture = false;
-        console.error('Error loading profile picture from API:', error);
         this.loadCachedProfileImage();
       }
     });
@@ -207,10 +204,10 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
       this.profileImage = savedImage;
-    } else if (this.user?.avatar || this.user?.profilePicture) {
-      this.profileImage = this.user.avatar || this.user.profilePicture;
+    } else if (this.user?.avatar) {
+      this.profileImage = this.user.avatar;
     } else {
-      this.profileImage = this.generateInitialAvatar(this.user?.fullName || this.user?.name || 'User');
+      this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
     }
   }
 
@@ -239,7 +236,7 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
   }
 
   handleImageError(): void {
-    this.profileImage = this.generateInitialAvatar(this.user?.fullName || this.user?.name || 'User');
+    this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
   }
 
   isDefaultAvatar(): boolean {
@@ -255,6 +252,7 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
   }
 
   openPasswordDialog(): void {
+    // Use the dialog component instead of showing inline dialog
     const dialogRef = this.dialog.open(ChangePasswordDialogComponent, {
       width: '400px',
       maxWidth: '90vw',
@@ -279,7 +277,7 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
   changePhoto(): void {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/jpeg,image/jpg,image/png,image/webp';
+    input.accept = 'image/*';
     
     input.onchange = (event: any) => {
       const file = event.target.files[0];
@@ -292,25 +290,9 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
   }
 
   uploadPhoto(file: File): void {
-    // Validate file type and size
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      this.snackBar.open('Please select a valid image file (JPEG, PNG, WebP)', 'Close', { duration: 3000 });
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) { // 10MB
-      this.snackBar.open('Image size must be less than 10MB', 'Close', { duration: 3000 });
-      return;
-    }
-
     this.isUploadingPhoto = true;
     
-    const uploadMethod = this.isDefaultAvatar() 
-      ? this.profilePictureService.uploadProfilePicture(file)
-      : this.profilePictureService.updateProfilePicture(file);
-
-    uploadMethod.subscribe({
+    this.profilePictureService.uploadProfilePicture(file).subscribe({
       next: (response: any) => {
         this.isUploadingPhoto = false;
         if (response.success && response.pictureUrl) {
@@ -324,21 +306,12 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
           
           this.snackBar.open('Profile picture updated!', 'Close', { duration: 3000 });
         } else {
-          this.snackBar.open(response.message || 'Failed to upload profile picture', 'Close', { duration: 3000 });
+          this.snackBar.open('Failed to upload profile picture', 'Close', { duration: 3000 });
         }
       },
       error: (error: any) => {
         this.isUploadingPhoto = false;
-        console.error('Upload error:', error);
-        
-        let errorMessage = 'Error uploading profile picture';
-        if (error.status === 401) {
-          errorMessage = 'Authentication failed. Please log in again.';
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        this.snackBar.open(errorMessage, 'Close', { duration: 3000 });
+        this.snackBar.open('Error uploading profile picture', 'Close', { duration: 3000 });
       }
     });
   }
@@ -349,17 +322,13 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!confirm('Are you sure you want to delete your profile picture?')) {
-      return;
-    }
-
     this.isDeletingPhoto = true;
     
     this.profilePictureService.deleteProfilePicture().subscribe({
       next: (response: any) => {
         this.isDeletingPhoto = false;
         if (response.success) {
-          this.profileImage = this.generateInitialAvatar(this.user?.fullName || this.user?.name || 'User');
+          this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
           localStorage.removeItem('profileImage');
           
           window.dispatchEvent(new Event('profileImageUpdated'));
@@ -367,87 +336,74 @@ export class ProfileEditComponent implements OnInit, OnDestroy {
           
           this.snackBar.open('Profile picture deleted!', 'Close', { duration: 3000 });
         } else {
-          this.snackBar.open(response.message || 'Failed to delete profile picture', 'Close', { duration: 3000 });
+          this.snackBar.open('Failed to delete profile picture', 'Close', { duration: 3000 });
         }
       },
       error: (error: any) => {
         this.isDeletingPhoto = false;
-        console.error('Delete error:', error);
-        
-        let errorMessage = 'Error deleting profile picture';
-        if (error.status === 401) {
-          errorMessage = 'Authentication failed. Please log in again.';
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        this.snackBar.open(errorMessage, 'Close', { duration: 3000 });
+        this.snackBar.open('Error deleting profile picture', 'Close', { duration: 3000 });
       }
     });
   }
 
   onSubmit(): void {
-    if (this.profileForm.invalid) {
-      this.profileForm.markAllAsTouched();
-      this.snackBar.open('Please fill in all required fields correctly', 'Close', { duration: 3000 });
-      return;
-    }
+    if (this.profileForm.valid && !this.isSubmitting) {
+      this.isSubmitting = true;
 
-    if (this.isSubmitting) return;
-
-    this.isSubmitting = true;
-
-    const formData = this.profileForm.value;
-    
-    this.profilePictureService.updateProfile(formData).subscribe({
-      next: (response: any) => {
-        this.isSubmitting = false;
-        if (response.success) {
-          this.snackBar.open('Profile updated successfully!', 'Close', { duration: 3000 });
-          
-          // Update local user data
-          if (response.user) {
-            this.updateLocalUserData(response.user);
-          }
-          
-          // Navigate based on user role
-          const userRole = this.authService.getCurrentUser()?.role;
-          if (userRole === 'landlord') {
-            this.router.navigate(['/landlord-dashboard/profile/view']);
-          } else {
+      const formData = this.profileForm.value;
+      
+      this.profilePictureService.updateProfile(formData).subscribe({
+        next: (response: any) => {
+          this.isSubmitting = false;
+          if (response.success) {
+            this.snackBar.open('Profile updated successfully!', 'Close', { duration: 3000 });
             this.router.navigate(['/tenant-dashboard/profile/view']);
+          } else {
+            this.snackBar.open('Failed to update profile', 'Close', { duration: 3000 });
           }
-        } else {
-          this.snackBar.open(response.message || 'Failed to update profile', 'Close', { duration: 3000 });
+        },
+        error: (error: any) => {
+          this.isSubmitting = false;
+          this.snackBar.open('Error updating profile', 'Close', { duration: 3000 });
         }
-      },
-      error: (error: any) => {
-        this.isSubmitting = false;
-        console.error('Profile update error:', error);
-        
-        let errorMessage = 'Error updating profile';
-        if (error.status === 401) {
-          errorMessage = 'Authentication failed. Please log in again.';
-        } else if (error.message) {
-          errorMessage = error.message;
+      });
+    }
+  }
+
+  // ADD THIS MISSING METHOD
+  onChangePassword(): void {
+    if (this.passwordForm.valid && !this.isChangingPassword) {
+      this.isChangingPassword = true;
+
+      const passwordData = this.passwordForm.value;
+      
+      this.profilePictureService.updatePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword,
+        passwordData.confirmNewPassword
+      ).subscribe({
+        next: (response: any) => {
+          this.isChangingPassword = false;
+          if (response.success) {
+            this.snackBar.open('Password changed successfully!', 'Close', { duration: 3000 });
+            this.closePasswordDialog();
+            this.passwordForm.reset();
+          } else {
+            this.snackBar.open(response.message || 'Failed to change password', 'Close', { duration: 3000 });
+          }
+        },
+        error: (error: any) => {
+          this.isChangingPassword = false;
+          this.snackBar.open(error.message || 'Error changing password', 'Close', { duration: 3000 });
         }
-        
-        this.snackBar.open(errorMessage, 'Close', { duration: 3000 });
-      }
-    });
+      });
+    }
   }
 
   cancel(): void {
-    // Navigate based on user role
-    const userRole = this.authService.getCurrentUser()?.role;
-    if (userRole === 'landlord') {
-      this.router.navigate(['/landlord-dashboard/profile/view']);
-    } else {
-      this.router.navigate(['/tenant-dashboard/profile/view']);
-    }
+    this.router.navigate(['/tenant-dashboard/profile/view']);
   }
 
-  // Form control getters
   get fullName() { return this.profileForm.get('fullName'); }
   get email() { return this.profileForm.get('email'); }
   get phoneNumber() { return this.profileForm.get('phoneNumber'); }
