@@ -74,15 +74,11 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {}
 
- 
   private debugAuthState(): void {
     console.log('=== AUTH SERVICE DEBUG INFO ===');
-    
-
     console.log('Is authenticated:', this.authService.isAuthenticated());
     console.log('Is logged in:', this.authService.isLoggedIn());
     
- 
     const token = this.authService.getToken();
     console.log('Token exists:', !!token);
     console.log('Token length:', token?.length);
@@ -90,7 +86,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     const currentUser = this.authService.getCurrentUser();
     console.log('Current user from service:', currentUser);
     
-   
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         const localStorageUser = localStorage.getItem('userData');
@@ -150,7 +145,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       return;
     }
 
-   
     this.originalPhoneNumber = this.extractPhoneNumber(currentUser);
     this.currentPhoneNumber = this.originalPhoneNumber;
     
@@ -165,7 +159,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   private extractPhoneNumber(user: any): string {
     if (!user) return '';
     
- 
     const possiblePhoneProperties = [
       'phoneNumber',
       'phone',
@@ -182,7 +175,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       }
     }
     
- 
     if (user.profile?.phoneNumber) return user.profile.phoneNumber;
     if (user.profile?.phone) return user.profile.phone;
     if (user.user?.phoneNumber) return user.user.phoneNumber;
@@ -193,7 +185,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   }
 
   private loadProfilePicture(): void {
- 
     const savedImage = localStorage.getItem('profileImage');
     if (savedImage) {
       console.log('Loaded profile image from localStorage');
@@ -201,7 +192,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       return;
     }
 
-  
     const avatarSources = ['avatar', 'profilePicture', 'picture', 'image', 'photo'];
     for (const source of avatarSources) {
       if (this.user[source]) {
@@ -212,11 +202,9 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Otherwise generate initial avatar
     console.log('Generating initial avatar');
     this.profileImage = this.generateInitialAvatar(this.user?.fullName || this.user?.name || 'User');
     
-    // Try to load from API as fallback
     this.loadProfilePictureFromApi();
   }
 
@@ -313,13 +301,8 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
     if (this.user) {
       console.log('Populating form with user data:', this.user);
       
-   
       const fullName = this.user.fullName || this.user.name || this.user.username || '';
-      
-   
       const bio = this.user.bio || this.user.description || this.user.about || '';
-      
-    
       const email = this.user.email || this.user.emailAddress || '';
       
       console.log('Extracted form data:', { fullName, email, phoneNumber: this.currentPhoneNumber, bio });
@@ -333,21 +316,12 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
 
       console.log('Form values after population:', this.profileForm.value);
       console.log('Form valid:', this.profileForm.valid);
-      console.log('Form errors:', this.profileForm.errors);
-      
-    
-      console.log('FullName field valid:', this.fullName?.valid);
-      console.log('Email field valid:', this.email?.valid);
-      console.log('PhoneNumber field valid:', this.phoneNumber?.valid);
-      console.log('Bio field valid:', this.bio?.valid);
       
     } else {
       console.error('No user data available to populate form');
       this.snackBar.open('Failed to load user data', 'Close', { duration: 3000 });
     }
   }
-
- 
 
   changePhoto(): void {
     this.closeAvatarDialog();
@@ -445,26 +419,54 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.isChangingPassword = true;
-
+    // Additional validation to ensure new password is different from current
     const { currentPassword, newPassword, confirmNewPassword } = this.passwordForm.value;
+    
+    if (currentPassword === newPassword) {
+      this.snackBar.open('New password must be different from current password', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.isChangingPassword = true;
 
     this.authService.updatePassword(currentPassword, newPassword, confirmNewPassword).subscribe({
       next: (response: any) => {
         this.isChangingPassword = false;
         
         if (response.success) {
-          this.snackBar.open('Password changed successfully!', 'Close', { duration: 3000 });
+          this.snackBar.open('Password changed successfully!', 'Close', { 
+            duration: 3000,
+            panelClass: ['snackbar-success']
+          });
           this.closePasswordDialog();
           this.passwordForm.reset();
         } else {
-          this.snackBar.open(response.message || 'Failed to change password', 'Close', { duration: 3000 });
+          // Backend returned success: false with a message
+          const errorMessage = response.message || 'Failed to change password';
+          this.snackBar.open(errorMessage, 'Close', { duration: 3000 });
+          
+          // If the error is about incorrect current password, mark the field with error
+          if (errorMessage.toLowerCase().includes('current password') || 
+              errorMessage.toLowerCase().includes('incorrect password')) {
+            this.passwordForm.get('currentPassword')?.setErrors({ incorrect: true });
+          }
         }
       },
       error: (error: any) => {
         this.isChangingPassword = false;
         console.error('Password change error:', error);
-        this.snackBar.open(error.message || 'Failed to change password', 'Close', { duration: 3000 });
+        
+        // Extract error message from different possible locations
+        const errorMessage = error.error?.message || error.message || 'Failed to change password';
+        this.snackBar.open(errorMessage, 'Close', { duration: 3000 });
+        
+        // If it's a 401 or the message indicates wrong current password, mark the field
+        if (error.status === 401 || 
+            errorMessage.toLowerCase().includes('current password') || 
+            errorMessage.toLowerCase().includes('incorrect password') ||
+            errorMessage.toLowerCase().includes('invalid password')) {
+          this.passwordForm.get('currentPassword')?.setErrors({ incorrect: true });
+        }
       }
     });
   }
@@ -548,7 +550,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
       if (currentUser) {
         const updatedUser = { ...currentUser, ...userData };
         
-      
         const localStorageUser = localStorage.getItem('userData');
         const isPermanent = !!localStorageUser;
         
@@ -558,7 +559,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
           sessionStorage.setItem('userData', JSON.stringify(updatedUser));
         }
         
-       
         this.user = updatedUser;
       }
     } catch (error) {
@@ -587,7 +587,6 @@ export class LandlordProfileEditComponent implements OnInit, OnDestroy {
   handleImageError(): void {
     this.profileImage = this.generateInitialAvatar(this.user?.fullName || 'User');
   }
-
 
   get fullName() { return this.profileForm.get('fullName'); }
   get email() { return this.profileForm.get('email'); }

@@ -482,20 +482,16 @@ export class LandlordDashboardHomeComponent implements OnInit, OnDestroy {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      // Check if result is an object with success and navigateToList flags
       if (result && typeof result === 'object' && result.success) {
         this.snackBar.open('Property added successfully!', 'Close', { duration: 3000 });
         
-        // Navigate to property list if requested
         if (result.navigateToList) {
           this.router.navigate(['/landlord-dashboard/property']);
         } else {
-          // Just refresh dashboard data if not navigating away
           this.loadDashboardData();
           this.loadRecentActivities();
         }
       } 
-      // Handle legacy string response for backwards compatibility
       else if (result === 'success') {
         this.snackBar.open('Property added successfully!', 'Close', { duration: 3000 });
         this.loadDashboardData();
