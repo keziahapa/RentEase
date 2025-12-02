@@ -392,6 +392,19 @@
       }
     }
   }
+
+  .chat-options-menu {
+    display: flex;
+    align-items: center;
+
+    button {
+      color: #65676b;
+      
+      &:hover {
+        background: #f0f2f5;
+      }
+    }
+  }
 }
 
 .messages-container {
@@ -477,6 +490,7 @@
   .message-footer {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
     margin-top: 6px;
     font-size: 11px;
@@ -487,25 +501,30 @@
   }
 
   .message-status {
-    opacity: 1;
-    font-weight: 600;
-    margin-left: 4px;
-    transition: color 0.3s ease;
-  }
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    
+    mat-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+    }
 
-  .delete-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    opacity: 0.6;
-    padding: 2px 4px;
-    margin-left: auto;
-    transition: opacity 0.2s;
-    color: inherit;
+    &.status-read {
+      color: #1e3a8a;
+    }
 
-    &:hover {
-      opacity: 1;
+    &.status-delivered {
+      color: #8a8d91;
+    }
+
+    &.status-sent {
+      color: #8a8d91;
+    }
+
+    &.status-failed {
+      color: #ff4444;
     }
   }
 }

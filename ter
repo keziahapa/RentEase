@@ -1,0 +1,332 @@
+[1mdiff --git a/src/app/services/chat.service.ts b/src/app/services/chat.service.ts[m
+[1mindex eede390..ef3a7b2 100644[m
+[1m--- a/src/app/services/chat.service.ts[m
+[1m+++ b/src/app/services/chat.service.ts[m
+[36m@@ -10,10 +10,10 @@[m [mimport {[m
+   SendMessageRequest, [m
+   ApiResponse,[m
+   Participant,[m
+[31m-  MessageStatus  [m
+[32m+[m[32m  MessageStatus,[m
+[32m+[m[32m  BatchDeleteRequest[m[41m  [m
+ } from './chat.interface';[m
+ import { AuthService } from './auth.service';[m
+[31m-import { TenantService } from './tenant.service';[m
+ [m
+ @Injectable({[m
+   providedIn: 'root'[m
+[36m@@ -41,12 +41,12 @@[m [mexport class ChatService {[m
+   private readonly MAX_CONNECTION_ATTEMPTS = 3;[m
+   private readonly RECONNECT_DELAY = 2000;[m
+ [m
+[32m+[m[32m  // East Africa Time (EAT) - Nairobi, Kenya[m
+   private eatTimeZone = 'Africa/Nairobi';[m
+   private eatLocale = 'en-KE';[m
+ [m
+   constructor([m
+[31m-    private http: HttpClient,[m
+[31m-    private tenantService: TenantService[m
+[32m+[m[32m    private http: HttpClient[m
+   ) {[m
+     this.initializeService();[m
+   }[m
+[36m@@ -73,8 +73,10 @@[m [mexport class ChatService {[m
+   }[m
+ [m
+   private getHeaders(): HttpHeaders {[m
+[32m+[m[32m    const token = this.authService.getToken();[m
+     return new HttpHeaders({[m
+[31m-      'Content-Type': 'application/json'[m
+[32m+[m[32m      'Content-Type': 'application/json',[m
+[32m+[m[32m      'Authorization': token ? `Bearer ${token.startsWith('Bearer ') ? token.substring(7) : token}` : ''[m
+     });[m
+   }[m
+ [m
+[36m@@ -213,8 +215,8 @@[m [mexport class ChatService {[m
+         senderName: messageData.senderName || messageData.sender?.name || messageData.sender?.fullName || 'Unknown User',[m
+         senderEmail: messageData.senderEmail || messageData.sender?.email || '',[m
+         chatRoomId: Number(messageData.chatRoomId || messageData.roomId),[m
+[31m-        sentAt: new Date(messageData.sentAt || messageData.timestamp || messageData.createdAt || Date.now()),[m
+[31m-        timestamp: new Date(messageData.sentAt || messageData.timestamp || messageData.createdAt || Date.now()),[m
+[32m+[m[32m        sentAt: this.parseDateWithEAT(messageData.sentAt || messageData.timestamp || messageData.createdAt),[m
+[32m+[m[32m        timestamp: this.parseDateWithEAT(messageData.sentAt || messageData.timestamp || messageData.createdAt),[m
+         messageType: messageData.messageType || 'TEXT',[m
+         status: (messageData.status || 'SENT') as MessageStatus,[m
+         fileUrl: messageData.fileUrl,[m
+[36m@@ -226,6 +228,11 @@[m [mexport class ChatService {[m
+       console.log('✅ Message processed successfully:', message);[m
+       this.addMessage(message);[m
+       [m
+[32m+[m[32m      // Mark as delivered if it's not my message[m
+[32m+[m[32m      if (!this.isMyMessage(message)) {[m
+[32m+[m[32m        this.markMessageAsDelivered(message.chatRoomId, message.id);[m
+[32m+[m[32m      }[m
+[32m+[m[41m      [m
+       // Mark as read if it's the current room[m
+       if (this.currentRoomSubject.value?.id === message.chatRoomId) {[m
+         this.markMessageAsRead(message.chatRoomId, message.id);[m
+[36m@@ -235,6 +242,19 @@[m [mexport class ChatService {[m
+     }[m
+   }[m
+ [m
+[32m+[m[32m  private parseDateWithEAT(dateString: any): Date {[m
+[32m+[m[32m    if (!dateString) return new Date();[m
+[32m+[m[41m    [m
+[32m+[m[32m    try {[m
+[32m+[m[32m      const date = new Date(dateString);[m
+[32m+[m[32m      // Convert to EAT timezone[m
+[32m+[m[32m      return new Date(date.toLocaleString('en-US', { timeZone: this.eatTimeZone }));[m
+[32m+[m[32m    } catch (error) {[m
+[32m+[m[32m      console.error('Error parsing date:', error);[m
+[32m+[m[32m      return new Date();[m
+[32m+[m[32m    }[m
+[32m+[m[32m  }[m
+[32m+[m
+   private handleMessageDeleted(deletionData: any): void {[m
+     try {[m
+       console.log('🗑️ Processing message deletion:', deletionData);[m
+[36m@@ -267,7 +287,8 @@[m [mexport class ChatService {[m
+         this.updateRoomLastMessage(message.chatRoomId, message);[m
+       }[m
+     } else {[m
+[31m-      console.log('ℹ️ Message already exists, skipping');[m
+[32m+[m[32m      console.log('ℹ️ Message already exists, updating status');[m
+[32m+[m[32m      this.updateMessageStatus(message.id, message.status);[m
+     }[m
+   }[m
+ [m
+[36m@@ -278,6 +299,18 @@[m [mexport class ChatService {[m
+     this.messagesSubject.next(updatedMessages);[m
+   }[m
+ [m
+[32m+[m[32m  private updateMessageStatus(messageId: number, status: MessageStatus): void {[m
+[32m+[m[32m    console.log('🔄 Updating message status:', messageId, status);[m
+[32m+[m[32m    const currentMessages = this.messagesSubject.value;[m
+[32m+[m[32m    const updatedMessages = currentMessages.map(m => {[m
+[32m+[m[32m      if (m.id === messageId) {[m
+[32m+[m[32m        return { ...m, status };[m
+[32m+[m[32m      }[m
+[32m+[m[32m      return m;[m
+[32m+[m[32m    });[m
+[32m+[m[32m    this.messagesSubject.next(updatedMessages);[m
+[32m+[m[32m  }[m
+[32m+[m
+   private updateRoomLastMessage(roomId: number, message: Message): void {[m
+     console.log('🔄 Updating room last message for room:', roomId);[m
+     const currentRooms = this.roomsSubject.value;[m
+[36m@@ -309,8 +342,8 @@[m [mexport class ChatService {[m
+       lastMessage: room.lastMessage ? this.processMessageData(room.lastMessage) : null,[m
+       unreadCount: Number(room.unreadCount) || 0,[m
+       isGroup: room.isGroup || false,[m
+[31m-      createdAt: room.createdAt ? new Date(room.createdAt) : new Date(),[m
+[31m-      updatedAt: room.updatedAt ? new Date(room.updatedAt) : new Date()[m
+[32m+[m[32m      createdAt: this.parseDateWithEAT(room.createdAt),[m
+[32m+[m[32m      updatedAt: this.parseDateWithEAT(room.updatedAt)[m
+     };[m
+ [m
+     return processedRoom;[m
+[36m@@ -324,8 +357,8 @@[m [mexport class ChatService {[m
+       senderName: messageData.senderName || 'Unknown User',[m
+       senderEmail: messageData.senderEmail || '',[m
+       chatRoomId: Number(messageData.chatRoomId),[m
+[31m-      sentAt: new Date(messageData.sentAt),[m
+[31m-      timestamp: new Date(messageData.sentAt),[m
+[32m+[m[32m      sentAt: this.parseDateWithEAT(messageData.sentAt),[m
+[32m+[m[32m      timestamp: this.parseDateWithEAT(messageData.sentAt),[m
+       messageType: messageData.messageType || 'TEXT',[m
+       status: (messageData.status || 'SENT') as MessageStatus,[m
+       fileUrl: messageData.fileUrl,[m
+[36m@@ -353,9 +386,9 @@[m [mexport class ChatService {[m
+         avatar: participant.avatar,[m
+         profilePicture: participant.profilePicture,[m
+         isOnline: participant.isOnline || false,[m
+[31m-        lastSeen: participant.lastSeen ? new Date(participant.lastSeen) : undefined,[m
+[32m+[m[32m        lastSeen: participant.lastSeen ? this.parseDateWithEAT(participant.lastSeen) : undefined,[m
+         phoneNumber: participant.phoneNumber,[m
+[31m-        joinedAt: participant.joinedAt ? new Date(participant.joinedAt) : undefined,[m
+[32m+[m[32m        joinedAt: participant.joinedAt ? this.parseDateWithEAT(participant.joinedAt) : undefined,[m
+         isAdmin: participant.isAdmin || false,[m
+         unitNumber: participant.unitNumber || participant.unit?.unitNumber,[m
+         propertyId: participant.propertyId || participant.unit?.propertyId,[m
+[36m@@ -397,6 +430,23 @@[m [mexport class ChatService {[m
+     }[m
+   }[m
+ [m
+[32m+[m[32m  private markMessageAsDelivered(roomId: number, messageId: number): void {[m
+[32m+[m[32m    if (!this.authService.isAuthenticated()) {[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    this.http.post<ApiResponse>([m
+[32m+[m[32m      `${this.apiUrl}/rooms/${roomId}/mark-delivered`,[m
+[32m+[m[32m      { messageId },[m
+[32m+[m[32m      { headers: this.getHeaders() }[m
+[32m+[m[32m    ).pipe([m
+[32m+[m[32m      catchError(error => {[m
+[32m+[m[32m        console.error('❌ Error marking message as delivered:', error);[m
+[32m+[m[32m        return of(null);[m
+[32m+[m[32m      })[m
+[32m+[m[32m    ).subscribe();[m
+[32m+[m[32m  }[m
+[32m+[m
+   private markMessageAsRead(roomId: number, messageId: number): void {[m
+     if (!this.authService.isAuthenticated()) {[m
+       return;[m
+[36m@@ -557,11 +607,45 @@[m [mexport class ChatService {[m
+     );[m
+   }[m
+ [m
+[31m-  // ✅ CORRECTED API ENDPOINTS - MATCHING YOUR BACKEND[m
+[32m+[m[32m  batchDeleteMessages(messageIds: number[], chatRoomId: number): Observable<ApiResponse> {[m
+[32m+[m[32m    if (!this.authService.isAuthenticated()) {[m
+[32m+[m[32m      return throwError(() => new Error('User not authenticated'));[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    console.log('🗑️ Batch deleting messages:', messageIds);[m
+[32m+[m[32m    const request: BatchDeleteRequest = {[m
+[32m+[m[32m      messageIds,[m
+[32m+[m[32m      chatRoomId,[m
+[32m+[m[32m      deleteForEveryone: false[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, request, {[m[41m [m
+[32m+[m[32m      headers: this.getHeaders()[m[41m [m
+[32m+[m[32m    }).pipe([m
+[32m+[m[32m      timeout(15000),[m
+[32m+[m[32m      tap(response => {[m
+[32m+[m[32m        if (response.success) {[m
+[32m+[m[32m          console.log('✅ Messages deleted successfully');[m
+[32m+[m[32m          messageIds.forEach(messageId => this.removeMessage(messageId));[m
+[32m+[m[32m        }[m
+[32m+[m[32m      }),[m
+[32m+[m[32m      catchError(error => {[m
+[32m+[m[32m        console.error('❌ Error batch deleting messages:', error);[m
+[32m+[m[32m        let errorMessage = 'Failed to delete messages.';[m
+[32m+[m[32m        if (error.status === 404) {[m
+[32m+[m[32m          errorMessage = 'Messages not found or already deleted.';[m
+[32m+[m[32m        } else if (error.status === 403) {[m
+[32m+[m[32m          errorMessage = 'You do not have permission to delete these messages.';[m
+[32m+[m[32m        }[m
+[32m+[m[32m        return throwError(() => new Error(errorMessage));[m
+[32m+[m[32m      })[m
+[32m+[m[32m    );[m
+[32m+[m[32m  }[m
+[32m+[m
+   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {[m
+     console.log('🔧 Creating tenant-landlord chat for property:', propertyId);[m
+     return this.http.post<ApiResponse<ChatRoom>>([m
+[31m-      `${this.apiUrl}/tenant/landlord/${propertyId}`, // ✅ CORRECT[m
+[32m+[m[32m      `${this.apiUrl}/tenant/landlord/${propertyId}`,[m
+       {}, [m
+       { headers: this.getHeaders() }[m
+     ).pipe([m
+[36m@@ -572,7 +656,6 @@[m [mexport class ChatService {[m
+           const currentRooms = this.roomsSubject.value;[m
+           const newRoom = this.processRoomData(response.data);[m
+           [m
+[31m-          // Check if room already exists to avoid duplicates[m
+           const roomExists = currentRooms.some(r => r.id === newRoom.id);[m
+           if (!roomExists) {[m
+             this.roomsSubject.next([...currentRooms, newRoom]);[m
+[36m@@ -589,7 +672,7 @@[m [mexport class ChatService {[m
+   createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {[m
+     console.log('🔧 Creating tenant-caretaker chat for property:', propertyId);[m
+     return this.http.post<ApiResponse<ChatRoom>>([m
+[31m-      `${this.apiUrl}/tenant/caretaker/${propertyId}`, // ✅ CORRECT[m
+[32m+[m[32m      `${this.apiUrl}/tenant/caretaker/${propertyId}`,[m
+       {}, [m
+       { headers: this.getHeaders() }[m
+     ).pipe([m
+[36m@@ -616,7 +699,7 @@[m [mexport class ChatService {[m
+   createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {[m
+     console.log('🔧 Creating landlord-caretaker chat for property:', propertyId);[m
+     return this.http.post<ApiResponse<ChatRoom>>([m
+[31m-      `${this.apiUrl}/landlord/caretaker/${propertyId}`, // ✅ CORRECT[m
+[32m+[m[32m      `${this.apiUrl}/landlord/caretaker/${propertyId}`,[m
+       {}, [m
+       { headers: this.getHeaders() }[m
+     ).pipe([m
+[36m@@ -643,7 +726,7 @@[m [mexport class ChatService {[m
+   createLandlordTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {[m
+     console.log('🔧 Creating landlord-tenant chat for unit:', unitId);[m
+     return this.http.post<ApiResponse<ChatRoom>>([m
+[31m-      `${this.apiUrl}/landlord/tenant/${unitId}`, // ✅ CORRECT[m
+[32m+[m[32m      `${this.apiUrl}/landlord/tenant/${unitId}`,[m
+       {}, [m
+       { headers: this.getHeaders() }[m
+     ).pipe([m
+[36m@@ -670,7 +753,7 @@[m [mexport class ChatService {[m
+   createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {[m
+     console.log('🔧 Creating caretaker-tenant chat for unit:', unitId);[m
+     return this.http.post<ApiResponse<ChatRoom>>([m
+[31m-      `${this.apiUrl}/caretaker/tenant/${unitId}`, // ✅ CORRECT[m
+[32m+[m[32m      `${this.apiUrl}/caretaker/tenant/${unitId}`,[m
+       {}, [m
+       { headers: this.getHeaders() }[m
+     ).pipe([m
+[36m@@ -752,6 +835,7 @@[m [mexport class ChatService {[m
+     [m
+     try {[m
+       const date = new Date(timestamp);[m
+[32m+[m[32m      // Format time in EAT timezone[m
+       return date.toLocaleTimeString(this.eatLocale, { [m
+         timeZone: this.eatTimeZone,[m
+         hour: '2-digit', [m
+[36m@@ -759,6 +843,7 @@[m [mexport class ChatService {[m
+         hour12: true [m
+       });[m
+     } catch (error) {[m
+[32m+[m[32m      // Fallback to local time[m
+       const date = new Date(timestamp);[m
+       return date.toLocaleTimeString('en-US', { [m
+         hour: '2-digit', [m
+[36m@@ -773,21 +858,26 @@[m [mexport class ChatService {[m
+       return '';[m
+     }[m
+     [m
+[31m-     try {[m
+[32m+[m[32m    try {[m
+       const now = new Date();[m
+       const messageTime = new Date(timestamp);[m
+       [m
+[31m-      const diffInHours = (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);[m
+[32m+[m[32m      // Convert both to EAT for comparison[m
+[32m+[m[32m      const nowEAT = new Date(now.toLocaleString('en-US', { timeZone: this.eatTimeZone }));[m
+[32m+[m[32m      const messageTimeEAT = new Date(messageTime.toLocaleString('en-US', { timeZone: this.eatTimeZone }));[m
+[32m+[m[41m      [m
+[32m+[m[32m      const diffInHours = (nowEAT.getTime() - messageTimeEAT.getTime()) / (1000 * 60 * 60);[m
+       [m
+       if (diffInHours < 24) {[m
+[31m-        return messageTime.toLocaleTimeString(this.eatLocale, { [m
+[31m-          timeZone: this.eatTimeZone,[m
+[32m+[m[32m        // Today - show time only[m
+[32m+[m[32m        return messageTimeEAT.toLocaleTimeString(this.eatLocale, {[m[41m [m
+           hour: '2-digit', [m
+           minute: '2-digit',[m
+           hour12: true [m
+         });[m
+       } else if (diffInHours < 168) {[m
+[31m-        return messageTime.toLocaleDateString(this.eatLocale, { [m
+[32m+[m[32m        // Within a week - show day and time[m
+[32m+[m[32m        return messageTimeEAT.toLocaleDateString(this.eatLocale, {[m[41m [m
+           timeZone: this.eatTimeZone,[m
+           weekday: 'short',[m
+           hour: '2-digit',[m
+[36m@@ -795,7 +885,8 @@[m [mexport class ChatService {[m
+           hour12: true[m
+         });[m
+       } else {[m
+[31m-        return messageTime.toLocaleDateString(this.eatLocale, { [m
+[32m+[m[32m        // Older - show date and time[m
+[32m+[m[32m        return messageTimeEAT.toLocaleDateString(this.eatLocale, {[m[41m [m
+           timeZone: this.eatTimeZone,[m
+           month: 'short', [m
+           day: 'numeric',[m
+[36m@@ -805,6 +896,7 @@[m [mexport class ChatService {[m
+         });[m
+       }[m
+     } catch (error) {[m
+[32m+[m[32m      // Fallback to local timezone[m
+       const now = new Date();[m
+       const messageTime = new Date(timestamp);[m
+       [m

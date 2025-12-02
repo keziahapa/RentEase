@@ -10,10 +10,10 @@ import {
   SendMessageRequest, 
   ApiResponse,
   Participant,
-  MessageStatus  
+  MessageStatus,
+  BatchDeleteRequest  
 } from './chat.interface';
 import { AuthService } from './auth.service';
-import { TenantService } from './tenant.service';
 
 @Injectable({
   providedIn: 'root'
@@ -41,12 +41,12 @@ export class ChatService {
   private readonly MAX_CONNECTION_ATTEMPTS = 3;
   private readonly RECONNECT_DELAY = 2000;
 
+  // East Africa Time (EAT) - Nairobi, Kenya
   private eatTimeZone = 'Africa/Nairobi';
   private eatLocale = 'en-KE';
 
   constructor(
-    private http: HttpClient,
-    private tenantService: TenantService
+    private http: HttpClient
   ) {
     this.initializeService();
   }
@@ -73,8 +73,10 @@ export class ChatService {
   }
 
   private getHeaders(): HttpHeaders {
+    const token = this.authService.getToken();
     return new HttpHeaders({
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token.startsWith('Bearer ') ? token.substring(7) : token}` : ''
     });
   }
 
@@ -213,8 +215,8 @@ export class ChatService {
         senderName: messageData.senderName || messageData.sender?.name || messageData.sender?.fullName || 'Unknown User',
         senderEmail: messageData.senderEmail || messageData.sender?.email || '',
         chatRoomId: Number(messageData.chatRoomId || messageData.roomId),
-        sentAt: new Date(messageData.sentAt || messageData.timestamp || messageData.createdAt || Date.now()),
-        timestamp: new Date(messageData.sentAt || messageData.timestamp || messageData.createdAt || Date.now()),
+        sentAt: this.parseDateWithEAT(messageData.sentAt || messageData.timestamp || messageData.createdAt),
+        timestamp: this.parseDateWithEAT(messageData.sentAt || messageData.timestamp || messageData.createdAt),
         messageType: messageData.messageType || 'TEXT',
         status: (messageData.status || 'SENT') as MessageStatus,
         fileUrl: messageData.fileUrl,
@@ -226,12 +228,30 @@ export class ChatService {
       console.log('✅ Message processed successfully:', message);
       this.addMessage(message);
       
+      // Mark as delivered if it's not my message
+      if (!this.isMyMessage(message)) {
+        this.markMessageAsDelivered(message.chatRoomId, message.id);
+      }
+      
       // Mark as read if it's the current room
       if (this.currentRoomSubject.value?.id === message.chatRoomId) {
         this.markMessageAsRead(message.chatRoomId, message.id);
       }
     } catch (error) {
       console.error('❌ Error handling incoming message:', error, messageData);
+    }
+  }
+
+  private parseDateWithEAT(dateString: any): Date {
+    if (!dateString) return new Date();
+    
+    try {
+      const date = new Date(dateString);
+      // Convert to EAT timezone
+      return new Date(date.toLocaleString('en-US', { timeZone: this.eatTimeZone }));
+    } catch (error) {
+      console.error('Error parsing date:', error);
+      return new Date();
     }
   }
 
@@ -267,7 +287,8 @@ export class ChatService {
         this.updateRoomLastMessage(message.chatRoomId, message);
       }
     } else {
-      console.log('ℹ️ Message already exists, skipping');
+      console.log('ℹ️ Message already exists, updating status');
+      this.updateMessageStatus(message.id, message.status);
     }
   }
 
@@ -275,6 +296,18 @@ export class ChatService {
     console.log('🗑️ Removing message:', messageId);
     const currentMessages = this.messagesSubject.value;
     const updatedMessages = currentMessages.filter(m => m.id !== messageId);
+    this.messagesSubject.next(updatedMessages);
+  }
+
+  private updateMessageStatus(messageId: number, status: MessageStatus): void {
+    console.log('🔄 Updating message status:', messageId, status);
+    const currentMessages = this.messagesSubject.value;
+    const updatedMessages = currentMessages.map(m => {
+      if (m.id === messageId) {
+        return { ...m, status };
+      }
+      return m;
+    });
     this.messagesSubject.next(updatedMessages);
   }
 
@@ -309,8 +342,8 @@ export class ChatService {
       lastMessage: room.lastMessage ? this.processMessageData(room.lastMessage) : null,
       unreadCount: Number(room.unreadCount) || 0,
       isGroup: room.isGroup || false,
-      createdAt: room.createdAt ? new Date(room.createdAt) : new Date(),
-      updatedAt: room.updatedAt ? new Date(room.updatedAt) : new Date()
+      createdAt: this.parseDateWithEAT(room.createdAt),
+      updatedAt: this.parseDateWithEAT(room.updatedAt)
     };
 
     return processedRoom;
@@ -324,8 +357,8 @@ export class ChatService {
       senderName: messageData.senderName || 'Unknown User',
       senderEmail: messageData.senderEmail || '',
       chatRoomId: Number(messageData.chatRoomId),
-      sentAt: new Date(messageData.sentAt),
-      timestamp: new Date(messageData.sentAt),
+      sentAt: this.parseDateWithEAT(messageData.sentAt),
+      timestamp: this.parseDateWithEAT(messageData.sentAt),
       messageType: messageData.messageType || 'TEXT',
       status: (messageData.status || 'SENT') as MessageStatus,
       fileUrl: messageData.fileUrl,
@@ -353,9 +386,9 @@ export class ChatService {
         avatar: participant.avatar,
         profilePicture: participant.profilePicture,
         isOnline: participant.isOnline || false,
-        lastSeen: participant.lastSeen ? new Date(participant.lastSeen) : undefined,
+        lastSeen: participant.lastSeen ? this.parseDateWithEAT(participant.lastSeen) : undefined,
         phoneNumber: participant.phoneNumber,
-        joinedAt: participant.joinedAt ? new Date(participant.joinedAt) : undefined,
+        joinedAt: participant.joinedAt ? this.parseDateWithEAT(participant.joinedAt) : undefined,
         isAdmin: participant.isAdmin || false,
         unitNumber: participant.unitNumber || participant.unit?.unitNumber,
         propertyId: participant.propertyId || participant.unit?.propertyId,
@@ -395,6 +428,23 @@ export class ChatService {
       subscription.unsubscribe();
       this.roomSubscriptions.delete(topic);
     }
+  }
+
+  private markMessageAsDelivered(roomId: number, messageId: number): void {
+    if (!this.authService.isAuthenticated()) {
+      return;
+    }
+
+    this.http.post<ApiResponse>(
+      `${this.apiUrl}/rooms/${roomId}/mark-delivered`,
+      { messageId },
+      { headers: this.getHeaders() }
+    ).pipe(
+      catchError(error => {
+        console.error('❌ Error marking message as delivered:', error);
+        return of(null);
+      })
+    ).subscribe();
   }
 
   private markMessageAsRead(roomId: number, messageId: number): void {
@@ -557,11 +607,45 @@ export class ChatService {
     );
   }
 
-  // ✅ CORRECTED API ENDPOINTS - MATCHING YOUR BACKEND
+  batchDeleteMessages(messageIds: number[], chatRoomId: number): Observable<ApiResponse> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    console.log('🗑️ Batch deleting messages:', messageIds);
+    const request: BatchDeleteRequest = {
+      messageIds,
+      chatRoomId,
+      deleteForEveryone: false
+    };
+
+    return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, request, { 
+      headers: this.getHeaders() 
+    }).pipe(
+      timeout(15000),
+      tap(response => {
+        if (response.success) {
+          console.log('✅ Messages deleted successfully');
+          messageIds.forEach(messageId => this.removeMessage(messageId));
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error batch deleting messages:', error);
+        let errorMessage = 'Failed to delete messages.';
+        if (error.status === 404) {
+          errorMessage = 'Messages not found or already deleted.';
+        } else if (error.status === 403) {
+          errorMessage = 'You do not have permission to delete these messages.';
+        }
+        return throwError(() => new Error(errorMessage));
+      })
+    );
+  }
+
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     console.log('🔧 Creating tenant-landlord chat for property:', propertyId);
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/tenant/landlord/${propertyId}`, // ✅ CORRECT
+      `${this.apiUrl}/tenant/landlord/${propertyId}`,
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -572,7 +656,6 @@ export class ChatService {
           const currentRooms = this.roomsSubject.value;
           const newRoom = this.processRoomData(response.data);
           
-          // Check if room already exists to avoid duplicates
           const roomExists = currentRooms.some(r => r.id === newRoom.id);
           if (!roomExists) {
             this.roomsSubject.next([...currentRooms, newRoom]);
@@ -589,7 +672,7 @@ export class ChatService {
   createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     console.log('🔧 Creating tenant-caretaker chat for property:', propertyId);
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/tenant/caretaker/${propertyId}`, // ✅ CORRECT
+      `${this.apiUrl}/tenant/caretaker/${propertyId}`,
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -616,7 +699,7 @@ export class ChatService {
   createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     console.log('🔧 Creating landlord-caretaker chat for property:', propertyId);
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/landlord/caretaker/${propertyId}`, // ✅ CORRECT
+      `${this.apiUrl}/landlord/caretaker/${propertyId}`,
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -643,7 +726,7 @@ export class ChatService {
   createLandlordTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
     console.log('🔧 Creating landlord-tenant chat for unit:', unitId);
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/landlord/tenant/${unitId}`, // ✅ CORRECT
+      `${this.apiUrl}/landlord/tenant/${unitId}`,
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -670,7 +753,7 @@ export class ChatService {
   createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
     console.log('🔧 Creating caretaker-tenant chat for unit:', unitId);
     return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/caretaker/tenant/${unitId}`, // ✅ CORRECT
+      `${this.apiUrl}/caretaker/tenant/${unitId}`,
       {}, 
       { headers: this.getHeaders() }
     ).pipe(
@@ -752,6 +835,7 @@ export class ChatService {
     
     try {
       const date = new Date(timestamp);
+      // Format time in EAT timezone
       return date.toLocaleTimeString(this.eatLocale, { 
         timeZone: this.eatTimeZone,
         hour: '2-digit', 
@@ -759,6 +843,7 @@ export class ChatService {
         hour12: true 
       });
     } catch (error) {
+      // Fallback to local time
       const date = new Date(timestamp);
       return date.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
@@ -773,21 +858,26 @@ export class ChatService {
       return '';
     }
     
-     try {
+    try {
       const now = new Date();
       const messageTime = new Date(timestamp);
       
-      const diffInHours = (now.getTime() - messageTime.getTime()) / (1000 * 60 * 60);
+      // Convert both to EAT for comparison
+      const nowEAT = new Date(now.toLocaleString('en-US', { timeZone: this.eatTimeZone }));
+      const messageTimeEAT = new Date(messageTime.toLocaleString('en-US', { timeZone: this.eatTimeZone }));
+      
+      const diffInHours = (nowEAT.getTime() - messageTimeEAT.getTime()) / (1000 * 60 * 60);
       
       if (diffInHours < 24) {
-        return messageTime.toLocaleTimeString(this.eatLocale, { 
-          timeZone: this.eatTimeZone,
+        // Today - show time only
+        return messageTimeEAT.toLocaleTimeString(this.eatLocale, { 
           hour: '2-digit', 
           minute: '2-digit',
           hour12: true 
         });
       } else if (diffInHours < 168) {
-        return messageTime.toLocaleDateString(this.eatLocale, { 
+        // Within a week - show day and time
+        return messageTimeEAT.toLocaleDateString(this.eatLocale, { 
           timeZone: this.eatTimeZone,
           weekday: 'short',
           hour: '2-digit',
@@ -795,7 +885,8 @@ export class ChatService {
           hour12: true
         });
       } else {
-        return messageTime.toLocaleDateString(this.eatLocale, { 
+        // Older - show date and time
+        return messageTimeEAT.toLocaleDateString(this.eatLocale, { 
           timeZone: this.eatTimeZone,
           month: 'short', 
           day: 'numeric',
@@ -805,6 +896,7 @@ export class ChatService {
         });
       }
     } catch (error) {
+      // Fallback to local timezone
       const now = new Date();
       const messageTime = new Date(timestamp);
       

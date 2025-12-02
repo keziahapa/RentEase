@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { PropertyService } from '../../services/property.service';
@@ -22,7 +23,7 @@ interface EnrichedChatInfo {
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, MatMenuModule],
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss']
 })
@@ -47,7 +48,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   loadingRooms = false;
   loadingUnits = false;
   shouldScrollToBottom = false;
-
 
   currentStep: 'SELECT_PROPERTY' | 'SELECT_RECIPIENT' | 'SELECT_UNIT' = 'SELECT_PROPERTY';
   selectedPropertyId: number | null = null;
@@ -213,30 +213,26 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
-
-
   openNewChatModal(): void {
     this.resetModalState();
     
-    if (this.userRole === 'TENANT' && this.userUnits.length === 0) {
-      alert('No units assigned to you. Please contact your landlord.');
-      return;
-    }
-    
-    if (this.userRole === 'LANDLORD' && this.userProperties.length === 0) {
-      alert('No properties available. Please create a property first.');
-      return;
-    }
-    
-    if (this.userRole === 'CARETAKER' && this.userProperties.length === 0) {
-      alert('No properties assigned. Please contact the landlord.');
-      return;
-    }
-
-
-    if (this.userRole === 'LANDLORD') {
+    if (this.userRole === 'TENANT') {
+      if (this.userUnits.length === 0) {
+        alert('No units assigned to you. Please contact your landlord.');
+        return;
+      }
+      this.currentStep = 'SELECT_RECIPIENT';
+    } else if (this.userRole === 'LANDLORD') {
+      if (this.userProperties.length === 0) {
+        alert('No properties available. Please create a property first.');
+        return;
+      }
       this.currentStep = 'SELECT_PROPERTY';
-    } else {
+    } else if (this.userRole === 'CARETAKER') {
+      if (this.userProperties.length === 0) {
+        alert('No properties assigned. Please contact the landlord.');
+        return;
+      }
       this.currentStep = 'SELECT_RECIPIENT';
     }
     
@@ -251,20 +247,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.currentStep = 'SELECT_PROPERTY';
   }
 
-
   onPropertySelected(event: any): void {
     this.selectedPropertyId = +event.target.value; 
     this.selectedUnitId = null;
     this.currentStep = 'SELECT_RECIPIENT';
-    
-  
     this.loadUnitsForProperty(this.selectedPropertyId);
   }
 
   private loadUnitsForProperty(propertyId: number): void {
     this.loadingUnits = true;
-    
-    // Convert to string to avoid type errors
     const propertyIdString = propertyId.toString();
     
     this.propertyService.getPropertyUnits(propertyIdString).subscribe({
@@ -285,26 +276,21 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         } else {
           errorMessage += 'Please try again.';
         }
-        
         alert(errorMessage);
       }
     });
   }
 
-
   onRecipientTypeSelected(chatType: ChatRoomType): void {
     this.selectedChatType = chatType;
-    
 
     if (this.userRole === 'LANDLORD' && chatType === this.CHAT_TYPES.LANDLORD_TENANT) {
       this.currentStep = 'SELECT_UNIT';
     } else {
-    
       this.createChatNow();
     }
   }
 
- 
   onUnitSelected(event: any): void {
     const unitId = event.target.value;
     this.selectedUnitId = unitId ? +unitId : null; 
@@ -319,14 +305,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     let resourceId: number | null = null;
     let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
-   
     switch (this.selectedChatType) {
       case this.CHAT_TYPES.TENANT_LANDLORD:
+        // For tenant, use the property ID from their first unit
         resourceId = this.userUnits.length > 0 ? this.userUnits[0].propertyId : null;
         createObservable = resourceId ? this.chatService.createTenantLandlordChat(resourceId) : null;
         break;
 
       case this.CHAT_TYPES.TENANT_CARETAKER:
+        // For tenant, use the property ID from their first unit
         resourceId = this.userUnits.length > 0 ? this.userUnits[0].propertyId : null;
         createObservable = resourceId ? this.chatService.createTenantCaretakerChat(resourceId) : null;
         break;
@@ -342,8 +329,32 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         break;
 
       case this.CHAT_TYPES.CARETAKER_TENANT:
-        resourceId = this.userProperties.length > 0 ? this.userProperties[0].id : null;
-        createObservable = resourceId ? this.chatService.createCaretakerTenantChat(resourceId) : null;
+        // For caretaker, they need to select a unit first
+        // If they haven't selected a unit, they need to go through property selection first
+        if (this.userRole === 'CARETAKER' && this.userProperties.length > 0) {
+          // If caretaker has multiple properties, they need to select one first
+          if (!this.selectedPropertyId && this.userProperties.length > 1) {
+            alert('Please select a property first to see available units.');
+            return;
+          }
+          
+          // If caretaker has only one property, use it
+          if (!this.selectedPropertyId && this.userProperties.length === 1) {
+            this.selectedPropertyId = this.userProperties[0].id;
+            this.loadUnitsForProperty(this.selectedPropertyId);
+            alert('Please select a unit from the property to chat with tenant.');
+            return;
+          }
+          
+          // If unit is selected, use it
+          if (this.selectedUnitId) {
+            resourceId = this.selectedUnitId;
+            createObservable = this.chatService.createCaretakerTenantChat(resourceId);
+          } else {
+            alert('Please select a unit to chat with the tenant.');
+            return;
+          }
+        }
         break;
     }
 
@@ -377,7 +388,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         let errorMessage = 'Failed to create chat. ';
         
         if (error.status === 400) {
-          errorMessage += 'The resource might not exist or you may not have permission.';
+          errorMessage += error.error?.message || 'Invalid request. Please check your data.';
         } else if (error.status === 404) {
           errorMessage += 'The requested resource was not found.';
         } else if (error.status === 403) {
@@ -391,7 +402,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
- 
   createChat(chatType: ChatRoomType): void {
     this.selectedChatType = chatType;
     this.createChatNow();
@@ -407,8 +417,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!unit) return 'Unknown Unit';
     return `Unit ${unit.unitNumber}`;
   }
-
-
 
   handleFiles(files: File[]): void {
     if (!this.currentRoom) {
@@ -445,8 +453,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / 1048576).toFixed(1) + ' MB';
   }
-
- 
 
   closeNewChatModal(): void {
     this.showNewChatModal = false;
@@ -510,15 +516,29 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  deleteMessage(messageId: number): void {
-    if (confirm('Are you sure you want to delete this message?')) {
-      this.chatService.deleteMessage(messageId).subscribe({
+  clearChat(): void {
+    if (!this.currentRoom) return;
+    
+    if (confirm('Are you sure you want to clear all messages in this chat?')) {
+      // Get all message IDs from current room
+      const messageIds = this.messages.map(m => m.id);
+      
+      if (messageIds.length === 0) {
+        alert('No messages to clear.');
+        return;
+      }
+      
+      this.chatService.batchDeleteMessages(messageIds, this.currentRoom.id).subscribe({
+        next: () => {
+          this.messages = [];
+          alert('Chat cleared successfully.');
+        },
         error: (error: any) => {
-          console.error('Error deleting message:', error);
+          console.error('Error clearing chat:', error);
           if (this.shouldHandleAuthError(error)) {
             this.handleAuthError(error);
           } else {
-            alert('Failed to delete message.');
+            alert('Failed to clear chat. Please try again.');
           }
         }
       });
@@ -550,8 +570,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     event.target.value = '';
   }
 
- 
-
   trackByRoomId(index: number, room: ChatRoom): number {
     return room?.id ?? index;
   }
@@ -567,8 +585,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   trackByUnitId(index: number, unit: Unit): number {
     return unit?.id ?? index;
   }
-
-  // ===== CHAT UI METHODS =====
 
   isMyMessage(message: Message): boolean {
     return this.chatService.isMyMessage(message);
@@ -593,10 +609,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   getParticipantCount(room: ChatRoom): number {
     return room?.participants?.length || 0;
-  }
-
-  canDelete(message: Message): boolean {
-    return this.chatService.isMyMessage(message) || (message?.canDelete ?? false);
   }
 
   goBack(): void {
@@ -697,7 +709,39 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return `${name} (${this.formatRole(role)})`;
   }
 
+  getMessageStatusIcon(message: Message): string {
+    if (!this.isMyMessage(message)) return '';
+    
+    switch(message.status) {
+      case 'SENDING':
+        return 'schedule';
+      case 'SENT':
+        return 'done';
+      case 'DELIVERED':
+        return 'done_all';
+      case 'READ':
+        return 'done_all';
+      case 'FAILED':
+        return 'error';
+      default:
+        return 'done';
+    }
+  }
 
+  getMessageStatusClass(message: Message): string {
+    if (!this.isMyMessage(message)) return '';
+    
+    switch(message.status) {
+      case 'DELIVERED':
+        return 'status-delivered';
+      case 'READ':
+        return 'status-read';
+      case 'FAILED':
+        return 'status-failed';
+      default:
+        return 'status-sent';
+    }
+  }
 
   private shouldHandleAuthError(error: any): boolean {
     return error?.status === 401 && !this.isRoleBasedUnauthorized(error);
@@ -769,7 +813,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     dataObservable.subscribe((response: any) => {
       this.processUserData(response, this.userRole);
       this.loadingProperties = false;
-      
       this.ensureChatConnection();
     });
   }
@@ -1029,59 +1072,64 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return response.map((item: any) => ({
         id: item.property?.id || item.id,
         name: item.property?.name || item.name || 'Unnamed Property',
-        address: item.property?.address || item.location || item.address || 'No address'
+        address: item.property?.address || item.location || item.address || 'No address',
+        totalUnits: item.totalUnits || item.unitsCount || 0
       })).filter((property: Property) => property.id);
     }
     if (response?.data && Array.isArray(response.data)) {
       return response.data.map((item: any) => ({
         id: item.property?.id || item.id,
         name: item.property?.name || item.name || 'Unnamed Property',
-        address: item.property?.address || item.location || item.address || 'No address'
+        address: item.property?.address || item.location || item.address || 'No address',
+        totalUnits: item.totalUnits || item.unitsCount || 0
       })).filter((property: Property) => property.id);
     }
     return [];
   }
-private extractPropertiesFromUnits(response: any): Property[] {
-  if (!response) return [];
-  const units = this.extractUnits(response);
-  const uniqueProperties = new Map<number, Property>();
-  
-  units.forEach(unit => {
-    if (unit.propertyId && !uniqueProperties.has(unit.propertyId)) {
 
-      const extendedUnit = unit as Unit & { propertyName?: string; propertyAddress?: string };
-      
-      uniqueProperties.set(unit.propertyId, {
-        id: unit.propertyId,
-        name: extendedUnit.propertyName || `Property ${unit.propertyId}`,
-        address: extendedUnit.propertyAddress || 'No address'
-      });
-    }
-  });
-  
-  return Array.from(uniqueProperties.values());
-}
+  private extractPropertiesFromUnits(response: any): Property[] {
+    if (!response) return [];
+    const units = this.extractUnits(response);
+    const uniqueProperties = new Map<number, Property>();
+    
+    units.forEach(unit => {
+      if (unit.propertyId && !uniqueProperties.has(unit.propertyId)) {
+        const extendedUnit = unit as Unit & { propertyName?: string; propertyAddress?: string };
+        
+        uniqueProperties.set(unit.propertyId, {
+          id: unit.propertyId,
+          name: extendedUnit.propertyName || `Property ${unit.propertyId}`,
+          address: extendedUnit.propertyAddress || 'No address',
+          totalUnits: 0
+        });
+      }
+    });
+    
+    return Array.from(uniqueProperties.values());
+  }
 
   private extractUnits(response: any): Unit[] {
     if (!response) return [];
     if (Array.isArray(response)) {
       return response.map((item: any) => ({
         id: item.unit?.id || item.id,
-        unitNumber: item.unit?.unitNumber || item.unitNumber,
-        unitType: item.unit?.unitType || item.unitType,
+        unitNumber: item.unit?.unitNumber || item.unitNumber || item.unit?.number || 'N/A',
+        unitType: item.unit?.unitType || item.unitType || item.type || 'Apartment',
         propertyId: item.property?.id || item.propertyId,
-        tenantName: item.tenant?.name || item.tenantName,
-        rentAmount: item.rentAmount
+        propertyName: item.property?.name || item.propertyName,
+        tenantName: item.tenant?.name || item.tenantName || item.tenant?.fullName,
+        rentAmount: item.rentAmount || item.unit?.rentAmount || 0
       })).filter((unit: Unit) => unit.id);
     }
     if (response?.data && Array.isArray(response.data)) {
       return response.data.map((item: any) => ({
         id: item.unit?.id || item.id,
-        unitNumber: item.unit?.unitNumber || item.unitNumber,
-        unitType: item.unit?.unitType || item.unitType,
+        unitNumber: item.unit?.unitNumber || item.unitNumber || item.unit?.number || 'N/A',
+        unitType: item.unit?.unitType || item.unitType || item.type || 'Apartment',
         propertyId: item.property?.id || item.propertyId,
-        tenantName: item.tenant?.name || item.tenantName,
-        rentAmount: item.rentAmount
+        propertyName: item.property?.name || item.propertyName,
+        tenantName: item.tenant?.name || item.tenantName || item.tenant?.fullName,
+        rentAmount: item.rentAmount || item.unit?.rentAmount || 0
       })).filter((unit: Unit) => unit.id);
     }
     return [];
