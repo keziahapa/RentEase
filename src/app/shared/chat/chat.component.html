@@ -37,7 +37,7 @@
           <div class="room-info">
             <div class="room-name">{{ formatChatName(room) }}</div>
             <div class="last-message">
-              {{ room.lastMessage?.content || 'No messages yet' }}
+              {{ (room.lastMessage?.content || 'No messages yet').slice(0, 50) }}{{(room.lastMessage?.content || '').length > 50 ? '...' : ''}}
             </div>
           </div>
           
@@ -91,7 +91,6 @@
           {{ getConnectionStatus() }}
         </div>
         
-        <!-- Three-dot menu for chat options -->
         <div class="chat-options-menu">
           <button mat-icon-button [matMenuTriggerFor]="chatMenu">
             <mat-icon>more_vert</mat-icon>
@@ -100,6 +99,10 @@
             <button mat-menu-item (click)="clearChat()">
               <mat-icon>delete_sweep</mat-icon>
               <span>Clear Chat</span>
+            </button>
+            <button mat-menu-item (click)="refreshRooms()">
+              <mat-icon>refresh</mat-icon>
+              <span>Refresh Chats</span>
             </button>
           </mat-menu>
         </div>
@@ -126,9 +129,16 @@
             
             <div class="message-footer">
               <span class="message-time">{{ formatMessageTime(message.sentAt) }}</span>
+              <span *ngIf="message.isEdited" class="message-edited">(edited)</span>
               <span *ngIf="isMyMessage(message)" class="message-status" [ngClass]="getMessageStatusClass(message)">
                 <mat-icon>{{ getMessageStatusIcon(message) }}</mat-icon>
               </span>
+            </div>
+            
+            <div *ngIf="isMyMessage(message) && message.canDelete" class="message-actions">
+              <button class="message-action-btn" (click)="deleteMessage(message.id)" title="Delete">
+                <mat-icon>delete</mat-icon>
+              </button>
             </div>
           </div>
         </div>
@@ -150,7 +160,8 @@
             [(ngModel)]="newMessage"
             (keydown)="onKeyPress($event)"
             placeholder="Type a message..."
-            rows="1"></textarea>
+            rows="1"
+            [disabled]="!currentRoom || !isConnected"></textarea>
 
           <div *ngIf="showEmojiPicker" class="emoji-picker">
             <div class="emoji-grid">
@@ -165,7 +176,7 @@
           </div>
         </div>
 
-        <button class="action-btn attach-btn" (click)="triggerFileInput()" title="Attach file">
+        <button class="action-btn attach-btn" (click)="triggerFileInput()" title="Attach file" [disabled]="!currentRoom">
           <mat-icon>attach_file</mat-icon>
         </button>
         <input #fileInput type="file" hidden (change)="onFileSelected($event)" multiple>
@@ -173,7 +184,7 @@
         <button 
           class="send-btn" 
           (click)="sendMessage()"
-          [disabled]="!newMessage.trim() || !currentRoom">
+          [disabled]="!newMessage.trim() || !currentRoom || !isConnected">
           <mat-icon>send</mat-icon>
         </button>
       </div>
@@ -192,155 +203,220 @@
       
       <div class="modal-body">
         <div *ngIf="loadingProperties" class="loading-properties">
-          <mat-icon>schedule</mat-icon>
+          <mat-icon class="spinner">schedule</mat-icon>
           Loading your data...
         </div>
 
-        <!-- LANDLORD: SELECT PROPERTY -->
-        <div *ngIf="!loadingProperties && userRole === 'LANDLORD' && currentStep === 'SELECT_PROPERTY'" class="flow-section">
-          <div class="flow-header">
-            <h4>Select Property</h4>
-          </div>
-          
-          <div class="selection-group">
-            <label>Choose a Property</label>
-            <select 
-              class="property-select"
-              [(ngModel)]="selectedPropertyId"
-              (change)="onPropertySelected($event)">
-              <option value="">-- Select a Property --</option>
-              <option 
-                *ngFor="let property of userProperties" 
-                [value]="property.id">
-                {{ property.name }} 
-                <span *ngIf="property.totalUnits">({{ property.totalUnits }} units)</span>
-              </option>
-            </select>
-          </div>
-
-          <div class="flow-actions">
-            <button 
-              class="btn-primary" 
-              [disabled]="!selectedPropertyId"
-              (click)="currentStep = 'SELECT_RECIPIENT'">
-              Continue
-              <mat-icon>arrow_forward</mat-icon>
-            </button>
-          </div>
+        <!-- USER ROLE DISPLAY -->
+        <div *ngIf="!loadingProperties" class="user-role-badge">
+          <mat-icon>
+            <span *ngIf="userRole === 'TENANT'">person</span>
+            <span *ngIf="userRole === 'LANDLORD'">business</span>
+            <span *ngIf="userRole === 'CARETAKER'">engineering</span>
+          </mat-icon>
+          <span>{{ userRole }}</span>
         </div>
 
-        <!-- LANDLORD: SELECT RECIPIENT -->
-        <div *ngIf="!loadingProperties && userRole === 'LANDLORD' && currentStep === 'SELECT_RECIPIENT'" class="flow-section">
-          <div class="flow-header">
-            <button class="back-btn" (click)="currentStep = 'SELECT_PROPERTY'">
-              <mat-icon>arrow_back</mat-icon>
-              Back
-            </button>
-            <h4>Choose Who to Message</h4>
-          </div>
-
-          <div class="selected-context">
-            <mat-icon>location_on</mat-icon>
-            <span>{{ getPropertyName(selectedPropertyId!) }}</span>
-          </div>
-
-          <div class="chat-options">
-            <div class="option-buttons">
-              <button 
-                class="option-btn caretaker-btn" 
-                (click)="onRecipientTypeSelected(CHAT_TYPES.LANDLORD_CARETAKER)">
-                <div class="option-icon">
-                  <mat-icon>engineering</mat-icon>
-                </div>
-                <div class="option-text">
-                  <span class="option-title">Message Caretaker</span>
-                  <span class="option-subtitle">Property management & coordination</span>
-                </div>
-                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-              </button>
+        <!-- LANDLORD FLOW -->
+        <ng-container *ngIf="!loadingProperties && userRole === 'LANDLORD'">
+          <!-- STEP 1: SELECT PROPERTY -->
+          <div *ngIf="currentStep === 'SELECT_PROPERTY'" class="flow-section">
+            <div class="flow-header">
+              <h4>Select Property</h4>
+            </div>
+            
+            <div *ngIf="userProperties.length === 0" class="no-data">
+              <mat-icon>warning</mat-icon>
+              <p>You don't have any properties yet.</p>
+              <p>Please create a property first to start chatting.</p>
+            </div>
+            
+            <div *ngIf="userProperties.length > 0" class="selection-group">
+              <label>Choose a Property</label>
+              <select 
+                class="property-select"
+                [(ngModel)]="selectedPropertyId"
+                (change)="onPropertySelected($event)">
+                <option value="">-- Select a Property --</option>
+                <option 
+                  *ngFor="let property of userProperties" 
+                  [value]="property.id">
+                  {{ property.name }} 
+                  <span *ngIf="property.totalUnits">({{ property.totalUnits }} units)</span>
+                </option>
+              </select>
               
+              <div *ngIf="selectedPropertyId" class="selected-info">
+                <mat-icon>check_circle</mat-icon>
+                <span>Selected: {{ getPropertyName(selectedPropertyId) }}</span>
+              </div>
+            </div>
+
+            <div class="flow-actions">
               <button 
-                class="option-btn tenant-btn" 
-                (click)="onRecipientTypeSelected(CHAT_TYPES.LANDLORD_TENANT)">
-                <div class="option-icon">
-                  <mat-icon>people</mat-icon>
-                </div>
-                <div class="option-text">
-                  <span class="option-title">Message Tenant</span>
-                  <span class="option-subtitle">Communicate with specific tenant</span>
-                </div>
-                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                class="btn-secondary" 
+                (click)="closeNewChatModal()">
+                Cancel
+              </button>
+              <button 
+                class="btn-primary" 
+                [disabled]="!selectedPropertyId"
+                (click)="currentStep = 'SELECT_RECIPIENT'">
+                Continue
+                <mat-icon>arrow_forward</mat-icon>
               </button>
             </div>
           </div>
-        </div>
 
-        <!-- LANDLORD: SELECT UNIT -->
-        <div *ngIf="!loadingProperties && userRole === 'LANDLORD' && currentStep === 'SELECT_UNIT'" class="flow-section">
-          <div class="flow-header">
-            <button class="back-btn" (click)="currentStep = 'SELECT_RECIPIENT'">
-              <mat-icon>arrow_back</mat-icon>
-              Back
-            </button>
-            <h4>Select Unit</h4>
+          <!-- STEP 2: SELECT RECIPIENT -->
+          <div *ngIf="currentStep === 'SELECT_RECIPIENT'" class="flow-section">
+            <div class="flow-header">
+              <button class="back-btn" (click)="currentStep = 'SELECT_PROPERTY'">
+                <mat-icon>arrow_back</mat-icon>
+                Back
+              </button>
+              <h4>Choose Who to Message</h4>
+            </div>
+
+            <div class="selected-context">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ getPropertyName(selectedPropertyId!) }}</span>
+            </div>
+
+            <div class="chat-options">
+              <div class="option-buttons">
+                <button 
+                  class="option-btn caretaker-btn" 
+                  (click)="onRecipientTypeSelected(CHAT_TYPES.LANDLORD_CARETAKER)">
+                  <div class="option-icon">
+                    <mat-icon>engineering</mat-icon>
+                  </div>
+                  <div class="option-text">
+                    <span class="option-title">Message Caretaker</span>
+                    <span class="option-subtitle">Property management & coordination</span>
+                  </div>
+                  <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                </button>
+                
+                <button 
+                  class="option-btn tenant-btn" 
+                  (click)="onRecipientTypeSelected(CHAT_TYPES.LANDLORD_TENANT)">
+                  <div class="option-icon">
+                    <mat-icon>people</mat-icon>
+                  </div>
+                  <div class="option-text">
+                    <span class="option-title">Message Tenant</span>
+                    <span class="option-subtitle">Communicate with specific tenant</span>
+                  </div>
+                  <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div class="selected-context">
-            <mat-icon>location_on</mat-icon>
-            <span>{{ getPropertyName(selectedPropertyId!) }}</span>
-          </div>
+          <!-- STEP 3: SELECT UNIT -->
+          <div *ngIf="currentStep === 'SELECT_UNIT'" class="flow-section">
+            <div class="flow-header">
+              <button class="back-btn" (click)="currentStep = 'SELECT_RECIPIENT'">
+                <mat-icon>arrow_back</mat-icon>
+                Back
+              </button>
+              <h4>Select Unit</h4>
+            </div>
 
-          <div *ngIf="loadingUnits" class="loading-units">
-            <mat-icon>schedule</mat-icon>
-            Loading units...
-          </div>
+            <div class="selected-context">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ getPropertyName(selectedPropertyId!) }}</span>
+            </div>
 
-          <div *ngIf="!loadingUnits" class="selection-group">
-            <label>Choose a Unit</label>
-            <select 
-              class="unit-select"
-              [(ngModel)]="selectedUnitId"
-              (change)="onUnitSelected($event)">
-              <option value="">-- Select a Unit --</option>
-              <option 
-                *ngFor="let unit of availableUnits" 
-                [value]="unit.id">
-                Unit {{ unit.unitNumber }} - {{ unit.unitType }}
-                <span *ngIf="unit.tenantName">({{ unit.tenantName }})</span>
-                <span *ngIf="!unit.tenantName">(Vacant)</span>
-              </option>
-            </select>
-          </div>
+            <div *ngIf="loadingUnits" class="loading-units">
+              <mat-icon class="spinner">schedule</mat-icon>
+              Loading units...
+            </div>
 
-          <div *ngIf="!loadingUnits && availableUnits.length === 0" class="no-units">
-            <mat-icon>warning</mat-icon>
-            <p>No units available for this property.</p>
+            <div *ngIf="!loadingUnits && availableUnits.length === 0" class="no-units">
+              <mat-icon>warning</mat-icon>
+              <p>No units available for this property.</p>
+              <button class="btn-secondary" (click)="currentStep = 'SELECT_RECIPIENT'">
+                <mat-icon>arrow_back</mat-icon>
+                Back to Recipient Selection
+              </button>
+            </div>
+
+            <div *ngIf="!loadingUnits && availableUnits.length > 0" class="selection-group">
+              <label>Choose a Unit</label>
+              <select 
+                class="unit-select"
+                [(ngModel)]="selectedUnitId"
+                (change)="onUnitSelected($event)">
+                <option value="">-- Select a Unit --</option>
+                <option 
+                  *ngFor="let unit of availableUnits" 
+                  [value]="unit.id">
+                  Unit {{ unit.unitNumber }} - {{ unit.unitType }}
+                  <span *ngIf="unit.tenantName">({{ unit.tenantName }})</span>
+                  <span *ngIf="!unit.tenantName" class="vacant">(Vacant)</span>
+                </option>
+              </select>
+              
+              <div *ngIf="selectedUnitId" class="selected-info">
+                <mat-icon>check_circle</mat-icon>
+                <span>Selected: {{ getUnitDisplay(selectedUnitId) }}</span>
+              </div>
+              
+              <div class="flow-actions">
+                <button 
+                  class="btn-secondary" 
+                  (click)="currentStep = 'SELECT_RECIPIENT'">
+                  Back
+                </button>
+                <button 
+                  class="btn-primary" 
+                  [disabled]="!selectedUnitId"
+                  (click)="createChatNow()">
+                  Start Chat
+                  <mat-icon>chat</mat-icon>
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </ng-container>
 
         <!-- TENANT FLOW -->
-        <div *ngIf="!loadingProperties && userRole === 'TENANT'" class="flow-section">
-          <div class="flow-header">
-            <h4>Start New Chat</h4>
-          </div>
-
-          <!-- STEP 1: Select Property (if tenant has multiple properties) -->
-          <div *ngIf="currentStep === 'SELECT_PROPERTY' && tenantProperties.length > 1" class="selection-group">
-            <label>Select Property</label>
-            <select 
-              class="property-select"
-              [(ngModel)]="selectedTenantPropertyId"
-              (change)="onPropertySelected($event)">
-              <option value="">-- Select a Property --</option>
-              <option 
-                *ngFor="let property of tenantProperties" 
-                [value]="property.id">
-                {{ property.name }} 
-                <span *ngIf="property.address">({{ property.address }})</span>
-              </option>
-            </select>
+        <ng-container *ngIf="!loadingProperties && userRole === 'TENANT'">
+          <!-- STEP 1: SELECT PROPERTY (if multiple) -->
+          <div *ngIf="currentStep === 'SELECT_PROPERTY' && tenantProperties.length > 1" class="flow-section">
+            <div class="flow-header">
+              <h4>Select Property</h4>
+            </div>
             
+            <div class="selection-group">
+              <label>Choose Your Property</label>
+              <select 
+                class="property-select"
+                [(ngModel)]="selectedTenantPropertyId"
+                (change)="onPropertySelected($event)">
+                <option value="">-- Select a Property --</option>
+                <option 
+                  *ngFor="let property of tenantProperties" 
+                  [value]="property.id">
+                  {{ property.name }} 
+                  <span *ngIf="property.address">({{ property.address }})</span>
+                </option>
+              </select>
+              
+              <div *ngIf="selectedTenantPropertyId" class="selected-info">
+                <mat-icon>check_circle</mat-icon>
+                <span>Selected: {{ getPropertyName(selectedTenantPropertyId) }}</span>
+              </div>
+            </div>
+
             <div class="flow-actions">
+              <button 
+                class="btn-secondary" 
+                (click)="closeNewChatModal()">
+                Cancel
+              </button>
               <button 
                 class="btn-primary" 
                 [disabled]="!selectedTenantPropertyId"
@@ -351,64 +427,100 @@
             </div>
           </div>
 
-          <!-- STEP 2: Select Recipient -->
-          <div *ngIf="currentStep === 'SELECT_RECIPIENT' || tenantProperties.length === 1" class="chat-options">
-            <h4>Who would you like to message?</h4>
+          <!-- STEP 2: SELECT RECIPIENT -->
+          <div *ngIf="currentStep === 'SELECT_RECIPIENT' || tenantProperties.length === 1" class="flow-section">
+            <div class="flow-header">
+              <h4>Who would you like to message?</h4>
+            </div>
             
             <div *ngIf="tenantProperties.length === 1" class="selected-context">
               <mat-icon>location_on</mat-icon>
               <span>{{ getPropertyName(tenantProperties[0].id) }}</span>
             </div>
             
-            <div class="option-buttons">
-              <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)">
-                <div class="option-icon">
-                  <mat-icon>business</mat-icon>
-                </div>
-                <div class="option-text">
-                  <span class="option-title">Message Landlord</span>
-                  <span class="option-subtitle">Property inquiries & requests</span>
-                </div>
-                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-              </button>
-              
-              <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
-                <div class="option-icon">
-                  <mat-icon>engineering</mat-icon>
-                </div>
-                <div class="option-text">
-                  <span class="option-title">Message Caretaker</span>
-                  <span class="option-subtitle">Maintenance & support</span>
-                </div>
-                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+            <div *ngIf="selectedTenantPropertyId" class="selected-context">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ getPropertyName(selectedTenantPropertyId) }}</span>
+            </div>
+            
+            <div class="chat-options">
+              <div class="option-buttons">
+                <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)">
+                  <div class="option-icon">
+                    <mat-icon>business</mat-icon>
+                  </div>
+                  <div class="option-text">
+                    <span class="option-title">Message Landlord</span>
+                    <span class="option-subtitle">Property inquiries & requests</span>
+                  </div>
+                  <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                </button>
+                
+                <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
+                  <div class="option-icon">
+                    <mat-icon>engineering</mat-icon>
+                  </div>
+                  <div class="option-text">
+                    <span class="option-title">Message Caretaker</span>
+                    <span class="option-subtitle">Maintenance & support</span>
+                  </div>
+                  <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                </button>
+              </div>
+            </div>
+            
+            <div class="flow-actions">
+              <button 
+                class="btn-secondary" 
+                (click)="tenantProperties.length > 1 ? currentStep = 'SELECT_PROPERTY' : closeNewChatModal()">
+                <mat-icon>arrow_back</mat-icon>
+                Back
               </button>
             </div>
           </div>
-        </div>
+        </ng-container>
 
         <!-- CARETAKER FLOW -->
-        <div *ngIf="!loadingProperties && userRole === 'CARETAKER'" class="flow-section">
-          <div class="flow-header">
-            <h4>Start New Chat</h4>
-          </div>
-
-          <!-- STEP 1: Select Property -->
-          <div *ngIf="currentStep === 'SELECT_PROPERTY'" class="selection-group">
-            <label>Select a Property</label>
-            <select 
-              class="property-select"
-              [(ngModel)]="selectedCaretakerPropertyId"
-              (change)="onPropertySelected($event)">
-              <option value="">-- Select a Property --</option>
-              <option 
-                *ngFor="let property of userProperties" 
-                [value]="property.id">
-                {{ property.name }} 
-                <span *ngIf="property.totalUnits">({{ property.totalUnits }} units)</span>
-              </option>
-            </select>
+        <ng-container *ngIf="!loadingProperties && userRole === 'CARETAKER'">
+          <!-- STEP 1: SELECT PROPERTY -->
+          <div *ngIf="currentStep === 'SELECT_PROPERTY'" class="flow-section">
+            <div class="flow-header">
+              <h4>Select Property</h4>
+            </div>
             
+            <div *ngIf="userProperties.length === 0" class="no-data">
+              <mat-icon>warning</mat-icon>
+              <p>No properties assigned to you.</p>
+              <p>Please contact the landlord to get assigned properties.</p>
+            </div>
+            
+            <div *ngIf="userProperties.length > 0" class="selection-group">
+              <label>Choose a Property</label>
+              <select 
+                class="property-select"
+                [(ngModel)]="selectedCaretakerPropertyId"
+                (change)="onPropertySelected($event)">
+                <option value="">-- Select a Property --</option>
+                <option 
+                  *ngFor="let property of userProperties" 
+                  [value]="property.id">
+                  {{ property.name }} 
+                  <span *ngIf="property.totalUnits">({{ property.totalUnits }} units)</span>
+                </option>
+              </select>
+              
+              <div *ngIf="selectedCaretakerPropertyId" class="selected-info">
+                <mat-icon>check_circle</mat-icon>
+                <span>Selected: {{ getPropertyName(selectedCaretakerPropertyId) }}</span>
+              </div>
+            </div>
+
             <div class="flow-actions">
+              <button 
+                class="btn-secondary" 
+                (click)="closeNewChatModal()">
+                Cancel
+              </button>
               <button 
                 class="btn-primary" 
                 [disabled]="!selectedCaretakerPropertyId"
@@ -419,8 +531,8 @@
             </div>
           </div>
 
-          <!-- STEP 2: Select Recipient -->
-          <div *ngIf="currentStep === 'SELECT_RECIPIENT'" class="chat-options">
+          <!-- STEP 2: SELECT RECIPIENT -->
+          <div *ngIf="currentStep === 'SELECT_RECIPIENT'" class="flow-section">
             <div class="flow-header">
               <button class="back-btn" (click)="currentStep = 'SELECT_PROPERTY'">
                 <mat-icon>arrow_back</mat-icon>
@@ -434,33 +546,35 @@
               <span>{{ getPropertyName(selectedCaretakerPropertyId!) }}</span>
             </div>
 
-            <div class="option-buttons">
-              <button class="option-btn tenant-btn" (click)="onRecipientTypeSelected(CHAT_TYPES.CARETAKER_TENANT)">
-                <div class="option-icon">
-                  <mat-icon>people</mat-icon>
-                </div>
-                <div class="option-text">
-                  <span class="option-title">Message Tenant</span>
-                  <span class="option-subtitle">Select a specific unit</span>
-                </div>
-                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-              </button>
-              
-              <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)">
-                <div class="option-icon">
-                  <mat-icon>business</mat-icon>
-                </div>
-                <div class="option-text">
-                  <span class="option-title">Message Landlord</span>
-                  <span class="option-subtitle">Reports & updates</span>
-                </div>
-                <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-              </button>
+            <div class="chat-options">
+              <div class="option-buttons">
+                <button class="option-btn tenant-btn" (click)="onRecipientTypeSelected(CHAT_TYPES.CARETAKER_TENANT)">
+                  <div class="option-icon">
+                    <mat-icon>people</mat-icon>
+                  </div>
+                  <div class="option-text">
+                    <span class="option-title">Message Tenant</span>
+                    <span class="option-subtitle">Select a specific unit</span>
+                  </div>
+                  <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                </button>
+                
+                <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)">
+                  <div class="option-icon">
+                    <mat-icon>business</mat-icon>
+                  </div>
+                  <div class="option-text">
+                    <span class="option-title">Message Landlord</span>
+                    <span class="option-subtitle">Reports & updates</span>
+                  </div>
+                  <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- STEP 3: Select Unit (for caretaker-tenant) -->
-          <div *ngIf="!loadingProperties && currentStep === 'SELECT_UNIT'" class="flow-section">
+          <!-- STEP 3: SELECT UNIT -->
+          <div *ngIf="currentStep === 'SELECT_UNIT'" class="flow-section">
             <div class="flow-header">
               <button class="back-btn" (click)="currentStep = 'SELECT_RECIPIENT'">
                 <mat-icon>arrow_back</mat-icon>
@@ -475,11 +589,20 @@
             </div>
 
             <div *ngIf="loadingUnits" class="loading-units">
-              <mat-icon>schedule</mat-icon>
+              <mat-icon class="spinner">schedule</mat-icon>
               Loading units...
             </div>
 
-            <div *ngIf="!loadingUnits" class="selection-group">
+            <div *ngIf="!loadingUnits && availableUnits.length === 0" class="no-units">
+              <mat-icon>warning</mat-icon>
+              <p>No units available for this property.</p>
+              <button class="btn-secondary" (click)="currentStep = 'SELECT_RECIPIENT'">
+                <mat-icon>arrow_back</mat-icon>
+                Back to Recipient Selection
+              </button>
+            </div>
+
+            <div *ngIf="!loadingUnits && availableUnits.length > 0" class="selection-group">
               <label>Choose a Unit</label>
               <select 
                 class="unit-select"
@@ -491,16 +614,37 @@
                   [value]="unit.id">
                   Unit {{ unit.unitNumber }} - {{ unit.unitType }}
                   <span *ngIf="unit.tenantName">({{ unit.tenantName }})</span>
-                  <span *ngIf="!unit.tenantName">(Vacant)</span>
+                  <span *ngIf="!unit.tenantName" class="vacant">(Vacant)</span>
                 </option>
               </select>
-            </div>
-
-            <div *ngIf="!loadingUnits && availableUnits.length === 0" class="no-units">
-              <mat-icon>warning</mat-icon>
-              <p>No units available for this property.</p>
+              
+              <div *ngIf="selectedUnitId" class="selected-info">
+                <mat-icon>check_circle</mat-icon>
+                <span>Selected: {{ getUnitDisplay(selectedUnitId) }}</span>
+              </div>
+              
+              <div class="flow-actions">
+                <button 
+                  class="btn-secondary" 
+                  (click)="currentStep = 'SELECT_RECIPIENT'">
+                  Back
+                </button>
+                <button 
+                  class="btn-primary" 
+                  [disabled]="!selectedUnitId"
+                  (click)="createChatNow()">
+                  Start Chat
+                  <mat-icon>chat</mat-icon>
+                </button>
+              </div>
             </div>
           </div>
+        </ng-container>
+
+        <!-- LOADING STATE -->
+        <div *ngIf="loadingRooms" class="creating-chat">
+          <mat-icon class="spinner">schedule</mat-icon>
+          <p>Creating chat...</p>
         </div>
       </div>
       
@@ -509,6 +653,11 @@
           <mat-icon>cancel</mat-icon>
           Cancel
         </button>
+        <div class="step-indicator">
+          <span *ngIf="currentStep === 'SELECT_PROPERTY'">Step 1 of 3</span>
+          <span *ngIf="currentStep === 'SELECT_RECIPIENT'">Step 2 of 3</span>
+          <span *ngIf="currentStep === 'SELECT_UNIT'">Step 3 of 3</span>
+        </div>
       </div>
     </div>
   </div>
