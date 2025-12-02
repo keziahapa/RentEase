@@ -41,10 +41,6 @@ export class ChatService {
   private readonly MAX_CONNECTION_ATTEMPTS = 3;
   private readonly RECONNECT_DELAY = 2000;
 
-  // East Africa Time (EAT) - Nairobi, Kenya
-  private eatTimeZone = 'Africa/Nairobi';
-  private eatLocale = 'en-KE';
-
   constructor(
     private http: HttpClient
   ) {
@@ -92,9 +88,229 @@ export class ChatService {
     return token;
   }
 
-  private handleApiError(error: any): Observable<never> {
+  private handleApiError(error: any, customMessage?: string): Observable<never> {
     console.error('API Error:', error);
-    return throwError(() => new Error('An error occurred. Please try again.'));
+    
+    let errorMessage = customMessage || 'An error occurred. Please try again.';
+    
+    if (error.status === 401) {
+      errorMessage = 'Authentication failed. Please log in again.';
+    } else if (error.status === 403) {
+      errorMessage = 'You do not have permission to perform this action.';
+    } else if (error.status === 404) {
+      errorMessage = 'The requested resource was not found.';
+    } else if (error.status === 400) {
+      errorMessage = error.error?.message || 'Invalid request. Please check your data.';
+    } else if (error.status === 500) {
+      errorMessage = 'Server error. Please try again later.';
+    }
+    
+    return throwError(() => new Error(errorMessage));
+  }
+
+  createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    console.log('🔧 Creating tenant-landlord chat for property:', propertyId);
+    
+    if (!propertyId || propertyId <= 0) {
+      return throwError(() => new Error('Invalid property ID'));
+    }
+    
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/tenant/landlord/${propertyId}`,
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      timeout(15000),
+      tap(response => {
+        console.log('✅ Tenant-landlord chat response:', response);
+        if (response.success && response.data) {
+          console.log('✅ Tenant-landlord chat created successfully');
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          
+          const roomExists = currentRooms.some(r => r.id === newRoom.id);
+          if (!roomExists) {
+            this.roomsSubject.next([...currentRooms, newRoom]);
+          }
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error creating tenant-landlord chat:', error);
+        return this.handleApiError(error, 'Failed to create chat with landlord. Please try again.');
+      })
+    );
+  }
+
+  createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    console.log('🔧 Creating tenant-caretaker chat for property:', propertyId);
+    
+    if (!propertyId || propertyId <= 0) {
+      return throwError(() => new Error('Invalid property ID'));
+    }
+    
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/tenant/caretaker/${propertyId}`,
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      timeout(15000),
+      tap(response => {
+        console.log('✅ Tenant-caretaker chat response:', response);
+        if (response.success && response.data) {
+          console.log('✅ Tenant-caretaker chat created successfully');
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          
+          const roomExists = currentRooms.some(r => r.id === newRoom.id);
+          if (!roomExists) {
+            this.roomsSubject.next([...currentRooms, newRoom]);
+          }
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error creating tenant-caretaker chat:', error);
+        return this.handleApiError(error, 'Failed to create chat with caretaker. Please try again.');
+      })
+    );
+  }
+
+  createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
+    console.log('🔧 Creating landlord-caretaker chat for property:', propertyId);
+    
+    if (!propertyId || propertyId <= 0) {
+      return throwError(() => new Error('Invalid property ID'));
+    }
+    
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/landlord/caretaker/${propertyId}`,
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      timeout(15000),
+      tap(response => {
+        console.log('✅ Landlord-caretaker chat response:', response);
+        if (response.success && response.data) {
+          console.log('✅ Landlord-caretaker chat created successfully');
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          
+          const roomExists = currentRooms.some(r => r.id === newRoom.id);
+          if (!roomExists) {
+            this.roomsSubject.next([...currentRooms, newRoom]);
+          }
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error creating landlord-caretaker chat:', error);
+        return this.handleApiError(error, 'Failed to create chat with caretaker. Please try again.');
+      })
+    );
+  }
+
+  createLandlordTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
+    console.log('🔧 Creating landlord-tenant chat for unit:', unitId);
+    
+    if (!unitId || unitId <= 0) {
+      return throwError(() => new Error('Invalid unit ID'));
+    }
+    
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/landlord/tenant/${unitId}`,
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      timeout(15000),
+      tap(response => {
+        console.log('✅ Landlord-tenant chat response:', response);
+        if (response.success && response.data) {
+          console.log('✅ Landlord-tenant chat created successfully');
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          
+          const roomExists = currentRooms.some(r => r.id === newRoom.id);
+          if (!roomExists) {
+            this.roomsSubject.next([...currentRooms, newRoom]);
+          }
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error creating landlord-tenant chat:', error);
+        return this.handleApiError(error, 'Failed to create chat with tenant. Please try again.');
+      })
+    );
+  }
+
+  createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
+    console.log('🔧 Creating caretaker-tenant chat for unit:', unitId);
+    
+    if (!unitId || unitId <= 0) {
+      return throwError(() => new Error('Invalid unit ID'));
+    }
+    
+    return this.http.post<ApiResponse<ChatRoom>>(
+      `${this.apiUrl}/caretaker/tenant/${unitId}`,
+      {}, 
+      { headers: this.getHeaders() }
+    ).pipe(
+      timeout(15000),
+      tap(response => {
+        console.log('✅ Caretaker-tenant chat response:', response);
+        if (response.success && response.data) {
+          console.log('✅ Caretaker-tenant chat created successfully');
+          const currentRooms = this.roomsSubject.value;
+          const newRoom = this.processRoomData(response.data);
+          
+          const roomExists = currentRooms.some(r => r.id === newRoom.id);
+          if (!roomExists) {
+            this.roomsSubject.next([...currentRooms, newRoom]);
+          }
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error creating caretaker-tenant chat:', error);
+        return this.handleApiError(error, 'Failed to create chat with tenant. Please try again.');
+      })
+    );
+  }
+
+  batchDeleteMessages(messageIds: number[], chatRoomId: number): Observable<ApiResponse> {
+    if (!this.authService.isAuthenticated()) {
+      return throwError(() => new Error('User not authenticated'));
+    }
+
+    if (!messageIds || messageIds.length === 0) {
+      return throwError(() => new Error('No messages to delete'));
+    }
+
+    console.log('🗑️ Batch deleting messages:', messageIds);
+    const request: BatchDeleteRequest = {
+      messageIds,
+      chatRoomId,
+      deleteForEveryone: false
+    };
+
+    return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, request, { 
+      headers: this.getHeaders() 
+    }).pipe(
+      timeout(15000),
+      tap(response => {
+        console.log('✅ Batch delete response:', response);
+        if (response.success) {
+          console.log('✅ Messages deleted successfully');
+          messageIds.forEach(messageId => this.removeMessage(messageId));
+        }
+      }),
+      catchError(error => {
+        console.error('❌ Error batch deleting messages:', error);
+        let errorMessage = 'Failed to delete messages.';
+        if (error.status === 404) {
+          errorMessage = 'Messages not found or already deleted.';
+        } else if (error.status === 403) {
+          errorMessage = 'You do not have permission to delete these messages.';
+        }
+        return throwError(() => new Error(errorMessage));
+      })
+    );
   }
 
   private initializeWebSocketConnection(): void {
@@ -136,7 +352,6 @@ export class ChatService {
         this.connectedSubject.next(true);
         this.connectionAttempts = 0;
         
-        // Subscribe to user-specific queues
         const userMessagesSubscription = this.stompClient!.subscribe('/user/queue/messages', (message: IMessage) => {
           console.log('📨 Received message via user queue');
           this.handleIncomingMessage(JSON.parse(message.body));
@@ -150,7 +365,6 @@ export class ChatService {
         this.roomSubscriptions.set('/user/queue/messages', userMessagesSubscription);
         this.roomSubscriptions.set('/user/queue/messages/deleted', userDeletedSubscription);
 
-        // Subscribe to current room if available
         const currentRoom = this.currentRoomSubject.value;
         if (currentRoom?.id) {
           console.log('📡 Subscribing to current room:', currentRoom.id);
@@ -215,8 +429,8 @@ export class ChatService {
         senderName: messageData.senderName || messageData.sender?.name || messageData.sender?.fullName || 'Unknown User',
         senderEmail: messageData.senderEmail || messageData.sender?.email || '',
         chatRoomId: Number(messageData.chatRoomId || messageData.roomId),
-        sentAt: this.parseDateWithEAT(messageData.sentAt || messageData.timestamp || messageData.createdAt),
-        timestamp: this.parseDateWithEAT(messageData.sentAt || messageData.timestamp || messageData.createdAt),
+        sentAt: new Date(messageData.sentAt || messageData.timestamp || messageData.createdAt || Date.now()),
+        timestamp: new Date(messageData.sentAt || messageData.timestamp || messageData.createdAt || Date.now()),
         messageType: messageData.messageType || 'TEXT',
         status: (messageData.status || 'SENT') as MessageStatus,
         fileUrl: messageData.fileUrl,
@@ -228,30 +442,15 @@ export class ChatService {
       console.log('✅ Message processed successfully:', message);
       this.addMessage(message);
       
-      // Mark as delivered if it's not my message
       if (!this.isMyMessage(message)) {
         this.markMessageAsDelivered(message.chatRoomId, message.id);
       }
       
-      // Mark as read if it's the current room
       if (this.currentRoomSubject.value?.id === message.chatRoomId) {
         this.markMessageAsRead(message.chatRoomId, message.id);
       }
     } catch (error) {
       console.error('❌ Error handling incoming message:', error, messageData);
-    }
-  }
-
-  private parseDateWithEAT(dateString: any): Date {
-    if (!dateString) return new Date();
-    
-    try {
-      const date = new Date(dateString);
-      // Convert to EAT timezone
-      return new Date(date.toLocaleString('en-US', { timeZone: this.eatTimeZone }));
-    } catch (error) {
-      console.error('Error parsing date:', error);
-      return new Date();
     }
   }
 
@@ -282,7 +481,6 @@ export class ChatService {
       );
       this.messagesSubject.next(updatedMessages);
       
-      // Update room's last message
       if (message.chatRoomId) {
         this.updateRoomLastMessage(message.chatRoomId, message);
       }
@@ -342,8 +540,8 @@ export class ChatService {
       lastMessage: room.lastMessage ? this.processMessageData(room.lastMessage) : null,
       unreadCount: Number(room.unreadCount) || 0,
       isGroup: room.isGroup || false,
-      createdAt: this.parseDateWithEAT(room.createdAt),
-      updatedAt: this.parseDateWithEAT(room.updatedAt)
+      createdAt: new Date(room.createdAt || Date.now()),
+      updatedAt: new Date(room.updatedAt || Date.now())
     };
 
     return processedRoom;
@@ -357,8 +555,8 @@ export class ChatService {
       senderName: messageData.senderName || 'Unknown User',
       senderEmail: messageData.senderEmail || '',
       chatRoomId: Number(messageData.chatRoomId),
-      sentAt: this.parseDateWithEAT(messageData.sentAt),
-      timestamp: this.parseDateWithEAT(messageData.sentAt),
+      sentAt: new Date(messageData.sentAt),
+      timestamp: new Date(messageData.sentAt),
       messageType: messageData.messageType || 'TEXT',
       status: (messageData.status || 'SENT') as MessageStatus,
       fileUrl: messageData.fileUrl,
@@ -386,9 +584,9 @@ export class ChatService {
         avatar: participant.avatar,
         profilePicture: participant.profilePicture,
         isOnline: participant.isOnline || false,
-        lastSeen: participant.lastSeen ? this.parseDateWithEAT(participant.lastSeen) : undefined,
+        lastSeen: participant.lastSeen ? new Date(participant.lastSeen) : undefined,
         phoneNumber: participant.phoneNumber,
-        joinedAt: participant.joinedAt ? this.parseDateWithEAT(participant.joinedAt) : undefined,
+        joinedAt: participant.joinedAt ? new Date(participant.joinedAt) : undefined,
         isAdmin: participant.isAdmin || false,
         unitNumber: participant.unitNumber || participant.unit?.unitNumber,
         propertyId: participant.propertyId || participant.unit?.propertyId,
@@ -488,7 +686,6 @@ export class ChatService {
     ).subscribe(rooms => {
       console.log(`✅ Loaded ${rooms.length} chat rooms`);
       
-      // Remove duplicates based on room ID
       const uniqueRooms = Array.from(
         new Map(rooms.map(room => [room.id, room])).values()
       );
@@ -525,7 +722,6 @@ export class ChatService {
         .sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
       this.messagesSubject.next(processedMessages);
       
-      // Subscribe to room for real-time updates
       this.subscribeToRoom(roomId);
     });
   }
@@ -542,7 +738,6 @@ export class ChatService {
       messageType: 'TEXT'
     };
 
-    // Send via WebSocket if connected
     if (this.stompClient && this.stompClient.connected) {
       try {
         console.log('📡 Publishing message via WebSocket');
@@ -560,7 +755,6 @@ export class ChatService {
       }
     }
 
-    // Always send via HTTP as fallback
     return this.http.post<ApiResponse>(`${this.apiUrl}/messages`, messageRequest, { 
       headers: this.getHeaders() 
     }).pipe(
@@ -603,176 +797,6 @@ export class ChatService {
           errorMessage = 'You do not have permission to delete this message.';
         }
         return throwError(() => new Error(errorMessage));
-      })
-    );
-  }
-
-  batchDeleteMessages(messageIds: number[], chatRoomId: number): Observable<ApiResponse> {
-    if (!this.authService.isAuthenticated()) {
-      return throwError(() => new Error('User not authenticated'));
-    }
-
-    console.log('🗑️ Batch deleting messages:', messageIds);
-    const request: BatchDeleteRequest = {
-      messageIds,
-      chatRoomId,
-      deleteForEveryone: false
-    };
-
-    return this.http.post<ApiResponse>(`${this.apiUrl}/messages/batch-delete`, request, { 
-      headers: this.getHeaders() 
-    }).pipe(
-      timeout(15000),
-      tap(response => {
-        if (response.success) {
-          console.log('✅ Messages deleted successfully');
-          messageIds.forEach(messageId => this.removeMessage(messageId));
-        }
-      }),
-      catchError(error => {
-        console.error('❌ Error batch deleting messages:', error);
-        let errorMessage = 'Failed to delete messages.';
-        if (error.status === 404) {
-          errorMessage = 'Messages not found or already deleted.';
-        } else if (error.status === 403) {
-          errorMessage = 'You do not have permission to delete these messages.';
-        }
-        return throwError(() => new Error(errorMessage));
-      })
-    );
-  }
-
-  createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    console.log('🔧 Creating tenant-landlord chat for property:', propertyId);
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/tenant/landlord/${propertyId}`,
-      {}, 
-      { headers: this.getHeaders() }
-    ).pipe(
-      timeout(15000),
-      tap(response => {
-        if (response.success && response.data) {
-          console.log('✅ Tenant-landlord chat created successfully');
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          
-          const roomExists = currentRooms.some(r => r.id === newRoom.id);
-          if (!roomExists) {
-            this.roomsSubject.next([...currentRooms, newRoom]);
-          }
-        }
-      }),
-      catchError(error => {
-        console.error('❌ Error creating tenant-landlord chat:', error);
-        return this.handleApiError(error);
-      })
-    );
-  }
-
-  createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    console.log('🔧 Creating tenant-caretaker chat for property:', propertyId);
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/tenant/caretaker/${propertyId}`,
-      {}, 
-      { headers: this.getHeaders() }
-    ).pipe(
-      timeout(15000),
-      tap(response => {
-        if (response.success && response.data) {
-          console.log('✅ Tenant-caretaker chat created successfully');
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          
-          const roomExists = currentRooms.some(r => r.id === newRoom.id);
-          if (!roomExists) {
-            this.roomsSubject.next([...currentRooms, newRoom]);
-          }
-        }
-      }),
-      catchError(error => {
-        console.error('❌ Error creating tenant-caretaker chat:', error);
-        return this.handleApiError(error);
-      })
-    );
-  }
-
-  createLandlordCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    console.log('🔧 Creating landlord-caretaker chat for property:', propertyId);
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/landlord/caretaker/${propertyId}`,
-      {}, 
-      { headers: this.getHeaders() }
-    ).pipe(
-      timeout(15000),
-      tap(response => {
-        if (response.success && response.data) {
-          console.log('✅ Landlord-caretaker chat created successfully');
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          
-          const roomExists = currentRooms.some(r => r.id === newRoom.id);
-          if (!roomExists) {
-            this.roomsSubject.next([...currentRooms, newRoom]);
-          }
-        }
-      }),
-      catchError(error => {
-        console.error('❌ Error creating landlord-caretaker chat:', error);
-        return this.handleApiError(error);
-      })
-    );
-  }
-
-  createLandlordTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
-    console.log('🔧 Creating landlord-tenant chat for unit:', unitId);
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/landlord/tenant/${unitId}`,
-      {}, 
-      { headers: this.getHeaders() }
-    ).pipe(
-      timeout(15000),
-      tap(response => {
-        if (response.success && response.data) {
-          console.log('✅ Landlord-tenant chat created successfully');
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          
-          const roomExists = currentRooms.some(r => r.id === newRoom.id);
-          if (!roomExists) {
-            this.roomsSubject.next([...currentRooms, newRoom]);
-          }
-        }
-      }),
-      catchError(error => {
-        console.error('❌ Error creating landlord-tenant chat:', error);
-        return this.handleApiError(error);
-      })
-    );
-  }
-
-  createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
-    console.log('🔧 Creating caretaker-tenant chat for unit:', unitId);
-    return this.http.post<ApiResponse<ChatRoom>>(
-      `${this.apiUrl}/caretaker/tenant/${unitId}`,
-      {}, 
-      { headers: this.getHeaders() }
-    ).pipe(
-      timeout(15000),
-      tap(response => {
-        if (response.success && response.data) {
-          console.log('✅ Caretaker-tenant chat created successfully');
-          const currentRooms = this.roomsSubject.value;
-          const newRoom = this.processRoomData(response.data);
-          
-          const roomExists = currentRooms.some(r => r.id === newRoom.id);
-          if (!roomExists) {
-            this.roomsSubject.next([...currentRooms, newRoom]);
-          }
-        }
-      }),
-      catchError(error => {
-        console.error('❌ Error creating caretaker-tenant chat:', error);
-        return this.handleApiError(error);
       })
     );
   }
@@ -834,16 +858,15 @@ export class ChatService {
     }
     
     try {
-      const date = new Date(timestamp);
-      // Format time in EAT timezone
-      return date.toLocaleTimeString(this.eatLocale, { 
-        timeZone: this.eatTimeZone,
+      // FIXED: Proper EAT time formatting
+      return timestamp.toLocaleTimeString('en-KE', { 
+        timeZone: 'Africa/Nairobi',
         hour: '2-digit', 
         minute: '2-digit',
         hour12: true 
       });
     } catch (error) {
-      // Fallback to local time
+      console.error('Error formatting time with EAT timezone:', error);
       const date = new Date(timestamp);
       return date.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
@@ -862,32 +885,33 @@ export class ChatService {
       const now = new Date();
       const messageTime = new Date(timestamp);
       
-      // Convert both to EAT for comparison
-      const nowEAT = new Date(now.toLocaleString('en-US', { timeZone: this.eatTimeZone }));
-      const messageTimeEAT = new Date(messageTime.toLocaleString('en-US', { timeZone: this.eatTimeZone }));
+      // Get current time in EAT
+      const nowEATString = now.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' });
+      const messageTimeEATString = messageTime.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' });
+      
+      const nowEAT = new Date(nowEATString);
+      const messageTimeEAT = new Date(messageTimeEATString);
       
       const diffInHours = (nowEAT.getTime() - messageTimeEAT.getTime()) / (1000 * 60 * 60);
       
       if (diffInHours < 24) {
-        // Today - show time only
-        return messageTimeEAT.toLocaleTimeString(this.eatLocale, { 
+        return messageTimeEAT.toLocaleTimeString('en-KE', { 
+          timeZone: 'Africa/Nairobi',
           hour: '2-digit', 
           minute: '2-digit',
           hour12: true 
         });
       } else if (diffInHours < 168) {
-        // Within a week - show day and time
-        return messageTimeEAT.toLocaleDateString(this.eatLocale, { 
-          timeZone: this.eatTimeZone,
+        return messageTimeEAT.toLocaleDateString('en-KE', { 
+          timeZone: 'Africa/Nairobi',
           weekday: 'short',
           hour: '2-digit',
           minute: '2-digit',
           hour12: true
         });
       } else {
-        // Older - show date and time
-        return messageTimeEAT.toLocaleDateString(this.eatLocale, { 
-          timeZone: this.eatTimeZone,
+        return messageTimeEAT.toLocaleDateString('en-KE', { 
+          timeZone: 'Africa/Nairobi',
           month: 'short', 
           day: 'numeric',
           hour: '2-digit',
@@ -896,7 +920,7 @@ export class ChatService {
         });
       }
     } catch (error) {
-      // Fallback to local timezone
+      console.error('Error formatting message time with EAT:', error);
       const now = new Date();
       const messageTime = new Date(timestamp);
       
