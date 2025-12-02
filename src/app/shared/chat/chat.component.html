@@ -382,102 +382,115 @@
           </div>
         </ng-container>
 
-        <!-- TENANT FLOW -->
+        <!-- TENANT FLOW - FIXED -->
         <ng-container *ngIf="!loadingProperties && userRole === 'TENANT'">
-          <!-- STEP 1: SELECT PROPERTY (if multiple) -->
-          <div *ngIf="currentStep === 'SELECT_PROPERTY' && tenantProperties.length > 1" class="flow-section">
-            <div class="flow-header">
-              <h4>Select Property</h4>
-            </div>
-            
-            <div class="selection-group">
-              <label>Choose Your Property</label>
-              <select 
-                class="property-select"
-                [(ngModel)]="selectedTenantPropertyId"
-                (change)="onPropertySelected($event)">
-                <option value="">-- Select a Property --</option>
-                <option 
-                  *ngFor="let property of tenantProperties" 
-                  [value]="property.id">
-                  {{ property.name }} 
-                  <span *ngIf="property.address">({{ property.address }})</span>
-                </option>
-              </select>
+          <!-- ERROR STATE: No properties assigned -->
+          <div *ngIf="tenantProperties.length === 0" class="no-data">
+            <mat-icon>warning</mat-icon>
+            <p>No properties assigned.</p>
+            <p>Please contact your landlord to be assigned to a unit.</p>
+            <button class="btn-secondary" (click)="closeNewChatModal()">
+              Close
+            </button>
+          </div>
+
+          <!-- NORMAL FLOW: If tenant has properties -->
+          <ng-container *ngIf="tenantProperties.length > 0">
+            <!-- STEP 1: SELECT PROPERTY (if multiple properties) -->
+            <div *ngIf="currentStep === 'SELECT_PROPERTY' && tenantProperties.length > 1" class="flow-section">
+              <div class="flow-header">
+                <h4>Select Property</h4>
+              </div>
               
-              <div *ngIf="selectedTenantPropertyId" class="selected-info">
-                <mat-icon>check_circle</mat-icon>
-                <span>Selected: {{ getPropertyName(selectedTenantPropertyId) }}</span>
-              </div>
-            </div>
-
-            <div class="flow-actions">
-              <button 
-                class="btn-secondary" 
-                (click)="closeNewChatModal()">
-                Cancel
-              </button>
-              <button 
-                class="btn-primary" 
-                [disabled]="!selectedTenantPropertyId"
-                (click)="currentStep = 'SELECT_RECIPIENT'">
-                Continue
-                <mat-icon>arrow_forward</mat-icon>
-              </button>
-            </div>
-          </div>
-
-          <!-- STEP 2: SELECT RECIPIENT -->
-          <div *ngIf="currentStep === 'SELECT_RECIPIENT' || tenantProperties.length === 1" class="flow-section">
-            <div class="flow-header">
-              <h4>Who would you like to message?</h4>
-            </div>
-            
-            <div *ngIf="tenantProperties.length === 1" class="selected-context">
-              <mat-icon>location_on</mat-icon>
-              <span>{{ getPropertyName(tenantProperties[0].id) }}</span>
-            </div>
-            
-            <div *ngIf="selectedTenantPropertyId" class="selected-context">
-              <mat-icon>location_on</mat-icon>
-              <span>{{ getPropertyName(selectedTenantPropertyId) }}</span>
-            </div>
-            
-            <div class="chat-options">
-              <div class="option-buttons">
-                <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)">
-                  <div class="option-icon">
-                    <mat-icon>business</mat-icon>
-                  </div>
-                  <div class="option-text">
-                    <span class="option-title">Message Landlord</span>
-                    <span class="option-subtitle">Property inquiries & requests</span>
-                  </div>
-                  <mat-icon class="arrow-icon">arrow_forward</mat-icon>
-                </button>
+              <div class="selection-group">
+                <label>Choose Your Property</label>
+                <select 
+                  class="property-select"
+                  [(ngModel)]="selectedTenantPropertyId"
+                  (change)="onPropertySelected($event)">
+                  <option value="">-- Select a Property --</option>
+                  <option 
+                    *ngFor="let property of tenantProperties" 
+                    [value]="property.id">
+                    {{ property.name }} 
+                    <span *ngIf="property.address">({{ property.address }})</span>
+                  </option>
+                </select>
                 
-                <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
-                  <div class="option-icon">
-                    <mat-icon>engineering</mat-icon>
-                  </div>
-                  <div class="option-text">
-                    <span class="option-title">Message Caretaker</span>
-                    <span class="option-subtitle">Maintenance & support</span>
-                  </div>
-                  <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                <div *ngIf="selectedTenantPropertyId" class="selected-info">
+                  <mat-icon>check_circle</mat-icon>
+                  <span>Selected: {{ getPropertyName(selectedTenantPropertyId) }}</span>
+                </div>
+              </div>
+
+              <div class="flow-actions">
+                <button 
+                  class="btn-secondary" 
+                  (click)="closeNewChatModal()">
+                  Cancel
+                </button>
+                <button 
+                  class="btn-primary" 
+                  [disabled]="!selectedTenantPropertyId"
+                  (click)="currentStep = 'SELECT_RECIPIENT'">
+                  Continue
+                  <mat-icon>arrow_forward</mat-icon>
                 </button>
               </div>
             </div>
-            
-            <div class="flow-actions">
-              <button 
-                class="btn-secondary" 
-                (click)="tenantProperties.length > 1 ? currentStep = 'SELECT_PROPERTY' : closeNewChatModal()">
-                <mat-icon>arrow_back</mat-icon>
-                Back
-              </button>
+
+            <!-- STEP 2: SELECT RECIPIENT (always show this if tenant has properties) -->
+            <div *ngIf="currentStep === 'SELECT_RECIPIENT' || tenantProperties.length === 1" class="flow-section">
+              <div class="flow-header">
+                <h4>Who would you like to message?</h4>
+              </div>
+              
+              <div *ngIf="tenantProperties.length === 1" class="selected-context">
+                <mat-icon>location_on</mat-icon>
+                <span>{{ getPropertyName(tenantProperties[0].id) }}</span>
+              </div>
+              
+              <div *ngIf="selectedTenantPropertyId" class="selected-context">
+                <mat-icon>location_on</mat-icon>
+                <span>{{ getPropertyName(selectedTenantPropertyId) }}</span>
+              </div>
+              
+              <div class="chat-options">
+                <div class="option-buttons">
+                  <button class="option-btn landlord-btn" (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)">
+                    <div class="option-icon">
+                      <mat-icon>business</mat-icon>
+                    </div>
+                    <div class="option-text">
+                      <span class="option-title">Message Landlord</span>
+                      <span class="option-subtitle">Property inquiries & requests</span>
+                    </div>
+                    <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                  </button>
+                  
+                  <button class="option-btn caretaker-btn" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
+                    <div class="option-icon">
+                      <mat-icon>engineering</mat-icon>
+                    </div>
+                    <div class="option-text">
+                      <span class="option-title">Message Caretaker</span>
+                      <span class="option-subtitle">Maintenance & support</span>
+                    </div>
+                    <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="flow-actions">
+                <button 
+                  class="btn-secondary" 
+                  (click)="tenantProperties.length > 1 ? currentStep = 'SELECT_PROPERTY' : closeNewChatModal()">
+                  <mat-icon>arrow_back</mat-icon>
+                  Back
+                </button>
+              </div>
             </div>
-          </div>
+          </ng-container>
         </ng-container>
 
         <!-- CARETAKER FLOW -->
