@@ -4,15 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { Router } from '@angular/router';
+import { Observable, of, Subscription, forkJoin } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { PropertyService } from '../../services/property.service';
 import { CaretakerService } from '../../services/caretaker.service';
 import { TenantService } from '../../services/tenant.service';
 import { Message, ChatRoom, Property, Unit, ChatRoomType, ApiResponse, Participant } from '../../services/chat.interface';
-import { Observable, of, Subscription, forkJoin } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
-import { Router } from '@angular/router';
 
 interface EnrichedChatInfo {
   title: string;
@@ -409,7 +409,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.selectedChatType = chatType as ChatRoomType;
     this.loadingRooms = true;
     
-    let createObservable: Observable<ApiResponse<ChatRoom>>;
+    // ✅ FIX: Declare as nullable to fix TypeScript error
+    let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
     let resourceId: number | null = null;
     let errorMessage = '';
     
@@ -525,6 +526,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
     
+    // ✅ FIXED: Now TypeScript knows createObservable could be null
     if (!createObservable) {
       console.error('❌ No observable created for chat type:', chatType);
       alert('Failed to initiate chat creation. Please try again.');
@@ -593,8 +595,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     
     this.loadingRooms = true;
     
-    // Determine chat type based on user role
-    let createObservable: Observable<ApiResponse<ChatRoom>>;
+    let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
     
     if (this.userRole === 'LANDLORD') {
       console.log(`📤 Creating landlord-tenant chat for unit: ${this.selectedUnitId}`);
@@ -604,6 +605,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       createObservable = this.chatService.createCaretakerTenantChat(this.selectedUnitId);
     } else {
       alert('Invalid user role for tenant chat.');
+      this.loadingRooms = false;
+      return;
+    }
+    
+    if (!createObservable) {
+      console.error('❌ No observable created for tenant chat');
+      alert('Failed to create tenant chat. Please try again.');
       this.loadingRooms = false;
       return;
     }
