@@ -140,6 +140,7 @@ export class ChatService {
     return throwError(() => new Error(errorMessage));
   }
 
+  // ✅ FIXED: Much better property extraction with comprehensive logging
   public extractProperties(response: any): Property[] {
     console.log('🔍 ChatService.extractProperties called with:', response);
     
@@ -150,97 +151,297 @@ export class ChatService {
 
     let propertiesArray: any[] = [];
 
+    // Handle various response structures
     if (Array.isArray(response)) {
+      console.log('📦 Response is direct array');
       propertiesArray = response;
     } else if (response.data && Array.isArray(response.data)) {
+      console.log('📦 Response has data array');
       propertiesArray = response.data;
     } else if (response.properties && Array.isArray(response.properties)) {
+      console.log('📦 Response has properties array');
       propertiesArray = response.properties;
+    } else if (response.content && Array.isArray(response.content)) {
+      console.log('📦 Response has content array (paginated)');
+      propertiesArray = response.content;
     } else if (response.success && response.data && Array.isArray(response.data)) {
+      console.log('📦 Response has success + data array');
       propertiesArray = response.data;
-    } else if (response.success && response.properties && Array.isArray(response.properties)) {
-      propertiesArray = response.properties;
-    } else if (typeof response === 'object') {
+    } else if (typeof response === 'object' && (response.id || response.propertyId)) {
+      console.log('📦 Response is single property object');
       propertiesArray = [response];
+    } else {
+      console.warn('⚠️ Could not extract properties from response structure');
+      console.log('Response keys:', Object.keys(response || {}));
     }
 
-    console.log('📋 Extracted properties array:', propertiesArray);
+    console.log(`📋 Extracted properties array with ${propertiesArray.length} items`);
 
-    return propertiesArray
-      .map((item: any) => {
-        const propertyData = item.property || item;
-        
-        const processedProperty: Property = {
-          id: Number(propertyData.id) || 0,
-          name: propertyData.name || propertyData.propertyName || `Property ${propertyData.id}`,
-          address: propertyData.address || propertyData.location || '',
-          location: propertyData.location || propertyData.address || '',
-          propertyType: propertyData.propertyType || 'RESIDENTIAL',
-          totalUnits: Number(propertyData.totalUnits) || 0,
-          description: propertyData.description || '',
-          ownerName: propertyData.landlordName || propertyData.ownerName || '', // Map landlordName to ownerName
-          ownerId: Number(propertyData.landlordId) || propertyData.ownerId,
-          imageUrl: propertyData.imageUrl || propertyData.image || '',
-          amenities: propertyData.amenities || []
-        };
-        
-        return processedProperty;
+    const processedProperties = propertiesArray
+      .map((item: any, index: number) => {
+        try {
+          // Property data might be nested or direct
+          const propertyData = item.property || item;
+          
+          // ✅ COMPREHENSIVE field mapping with multiple fallbacks
+          const processedProperty: Property = {
+            id: Number(propertyData.id || propertyData.propertyId) || 0,
+            
+            // Name with multiple fallbacks
+            name: propertyData.name || 
+                  propertyData.propertyName || 
+                  propertyData.title ||
+                  `Property ${propertyData.id || index + 1}`,
+            
+            // Address with multiple fallbacks
+            address: propertyData.address || 
+                    propertyData.location || 
+                    propertyData.street ||
+                    '',
+            
+            // Location with multiple fallbacks
+            location: propertyData.location || 
+                     propertyData.address || 
+                     propertyData.city ||
+                     '',
+            
+            // Property type with fallback
+            propertyType: propertyData.propertyType || 
+                         propertyData.type || 
+                         'RESIDENTIAL',
+            
+            // Total units with multiple sources
+            totalUnits: Number(propertyData.totalUnits || 
+                             propertyData.numberOfUnits || 
+                             propertyData.unitsCount ||
+                             propertyData.units?.length || 
+                             0),
+            
+            // Description
+            description: propertyData.description || 
+                        propertyData.details || 
+                        '',
+            
+            // ✅ FIXED: Owner name with comprehensive checks
+            ownerName: propertyData.ownerName || 
+                      propertyData.landlordName || 
+                      propertyData.landlord?.fullName ||
+                      propertyData.landlord?.name ||
+                      propertyData.owner?.fullName ||
+                      propertyData.owner?.name ||
+                      '',
+            
+            // ✅ FIXED: Owner ID with comprehensive checks
+            ownerId: Number(propertyData.ownerId || 
+                          propertyData.landlordId || 
+                          propertyData.landlord?.id ||
+                          propertyData.owner?.id || 
+                          0),
+            
+            // Image URL with multiple sources
+            imageUrl: propertyData.imageUrl || 
+                     propertyData.image || 
+                     propertyData.photo ||
+                     propertyData.images?.[0] ||
+                     '',
+            
+            // Amenities
+            amenities: propertyData.amenities || 
+                      propertyData.features || 
+                      []
+          };
+          
+          console.log(`✅ Processed property ${index + 1}:`, {
+            id: processedProperty.id,
+            name: processedProperty.name,
+            ownerName: processedProperty.ownerName,
+            totalUnits: processedProperty.totalUnits
+          });
+          
+          return processedProperty;
+        } catch (error) {
+          console.error(`❌ Error processing property at index ${index}:`, error);
+          console.error('Problematic item:', item);
+          return null;
+        }
       })
-      .filter((property: Property) => property.id > 0);
+      .filter((property: Property | null): property is Property => {
+        if (!property) return false;
+        if (property.id <= 0) {
+          console.warn('⚠️ Filtered out property with invalid ID:', property);
+          return false;
+        }
+        return true;
+      });
+
+    console.log(`✅ Successfully processed ${processedProperties.length} valid properties`);
+    return processedProperties;
   }
 
+  // ✅ FIXED: Much better unit extraction with comprehensive logging
   public extractUnits(response: any): Unit[] {
     console.log('🔍 ChatService.extractUnits called with:', response);
     
     if (!response) {
-      console.warn(' Response is null or undefined');
+      console.warn('⚠️ Response is null or undefined');
       return [];
     }
 
     let unitsArray: any[] = [];
 
+    // Handle various response structures
     if (Array.isArray(response)) {
+      console.log('📦 Response is direct array');
       unitsArray = response;
     } else if (response.data && Array.isArray(response.data)) {
+      console.log('📦 Response has data array');
       unitsArray = response.data;
     } else if (response.units && Array.isArray(response.units)) {
+      console.log('📦 Response has units array');
       unitsArray = response.units;
+    } else if (response.content && Array.isArray(response.content)) {
+      console.log('📦 Response has content array (paginated)');
+      unitsArray = response.content;
     } else if (response.success && response.data && Array.isArray(response.data)) {
+      console.log('📦 Response has success + data array');
       unitsArray = response.data;
-    } else if (response.success && response.units && Array.isArray(response.units)) {
-      unitsArray = response.units;
-    } else if (typeof response === 'object') {
+    } else if (typeof response === 'object' && (response.id || response.unitId)) {
+      console.log('📦 Response is single unit object');
       unitsArray = [response];
+    } else {
+      console.warn('⚠️ Could not extract units from response structure');
+      console.log('Response keys:', Object.keys(response || {}));
     }
 
-    console.log(' Extracted units array:', unitsArray);
+    console.log(`📋 Extracted units array with ${unitsArray.length} items`);
 
-    return unitsArray
-      .map((item: any) => {
-        const unitData = item.unit || item;
-        
-        const processedUnit: Unit = {
-          id: Number(unitData.id) || 0,
-          unitNumber: unitData.unitNumber || '',
-          unitType: unitData.unitType || '',
-          propertyId: Number(unitData.propertyId) || 0,
-          propertyName: unitData.propertyName || '',
-          tenantName: unitData.tenantName || '',
-          rentAmount: Number(unitData.rentAmount) || 0,
-          deposit: Number(unitData.deposit) || 0,
-          status: unitData.status || (unitData.isOccupied ? 'OCCUPIED' : 'AVAILABLE'),
-          bedrooms: Number(unitData.bedrooms) || 0,
-          bathrooms: Number(unitData.bathrooms) || 0,
-          squareFeet: Number(unitData.squareFeet) || 0,
-          tenantId: Number(unitData.tenantId),
-          description: unitData.description || '',
-          amenities: unitData.amenities || [],
-          imageUrls: unitData.imageUrls || unitData.images || []
-        };
-        
-        return processedUnit;
+    const processedUnits = unitsArray
+      .map((item: any, index: number) => {
+        try {
+          // Unit data might be nested or direct
+          const unitData = item.unit || item;
+          
+          // ✅ COMPREHENSIVE field mapping
+          const processedUnit: Unit = {
+            id: Number(unitData.id || unitData.unitId) || 0,
+            
+            // Unit number (required)
+            unitNumber: unitData.unitNumber || 
+                       unitData.number || 
+                       unitData.unit_number ||
+                       '',
+            
+            // Unit type
+            unitType: unitData.unitType || 
+                     unitData.type ||
+                     '',
+            
+            // Property ID
+            propertyId: Number(unitData.propertyId || 
+                             unitData.property_id ||
+                             unitData.property?.id || 
+                             0),
+            
+            // Property name
+            propertyName: unitData.propertyName || 
+                         unitData.property_name ||
+                         unitData.property?.name ||
+                         '',
+            
+            // Tenant name
+            tenantName: unitData.tenantName || 
+                       unitData.tenant_name ||
+                       unitData.tenant?.fullName ||
+                       unitData.tenant?.name ||
+                       '',
+            
+            // Rent amount
+            rentAmount: Number(unitData.rentAmount || 
+                             unitData.rent_amount ||
+                             unitData.rent || 
+                             0),
+            
+            // Deposit
+            deposit: Number(unitData.deposit || 
+                           unitData.security_deposit ||
+                           0),
+            
+            // ✅ FIXED: Better status determination
+            status: unitData.status || 
+                   (unitData.isOccupied === true ? 'OCCUPIED' : 
+                    unitData.isOccupied === false ? 'AVAILABLE' : 
+                    unitData.tenant || unitData.tenantId ? 'OCCUPIED' : 
+                    'AVAILABLE'),
+            
+            // Bedrooms
+            bedrooms: Number(unitData.bedrooms || 
+                           unitData.bedroom_count ||
+                           0),
+            
+            // Bathrooms
+            bathrooms: Number(unitData.bathrooms || 
+                            unitData.bathroom_count ||
+                            0),
+            
+            // Square feet
+            squareFeet: Number(unitData.squareFeet || 
+                             unitData.square_feet ||
+                             unitData.area ||
+                             0),
+            
+            // Tenant ID
+            tenantId: unitData.tenantId ? Number(unitData.tenantId) : 
+                     unitData.tenant_id ? Number(unitData.tenant_id) :
+                     unitData.tenant?.id ? Number(unitData.tenant.id) :
+                     undefined,
+            
+            // Description
+            description: unitData.description || 
+                        unitData.details ||
+                        '',
+            
+            // Amenities
+            amenities: unitData.amenities || 
+                      unitData.features ||
+                      [],
+            
+            // Image URLs
+            imageUrls: unitData.imageUrls || 
+                      unitData.images || 
+                      unitData.photos ||
+                      []
+          };
+          
+          console.log(`✅ Processed unit ${index + 1}:`, {
+            id: processedUnit.id,
+            unitNumber: processedUnit.unitNumber,
+            propertyId: processedUnit.propertyId,
+            propertyName: processedUnit.propertyName,
+            status: processedUnit.status
+          });
+          
+          return processedUnit;
+        } catch (error) {
+          console.error(`❌ Error processing unit at index ${index}:`, error);
+          console.error('Problematic item:', item);
+          return null;
+        }
       })
-      .filter((unit: Unit) => unit.id > 0 && unit.unitNumber);
+      .filter((unit: Unit | null): unit is Unit => {
+        if (!unit) return false;
+        if (unit.id <= 0) {
+          console.warn('⚠️ Filtered out unit with invalid ID:', unit);
+          return false;
+        }
+        if (!unit.unitNumber) {
+          console.warn('⚠️ Filtered out unit without unit number:', unit);
+          return false;
+        }
+        return true;
+      });
+
+    console.log(`✅ Successfully processed ${processedUnits.length} valid units`);
+    return processedUnits;
   }
 
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
@@ -257,15 +458,15 @@ export class ChatService {
     ).pipe(
       timeout(15000),
       tap(response => {
-        console.log('Tenant-landlord chat response:', response);
+        console.log('✅ Tenant-landlord chat response:', response);
         if (response.success && response.data) {
-          console.log(' Tenant-landlord chat created successfully');
+          console.log('✅ Tenant-landlord chat created successfully');
           const newRoom = this.processRoomData(response.data);
           this.addRoom(newRoom);
         }
       }),
       catchError(error => {
-        console.error(' Error creating tenant-landlord chat:', error);
+        console.error('❌ Error creating tenant-landlord chat:', error);
         let errorMsg = 'Failed to create chat with landlord. ';
         if (error.status === 404) {
           errorMsg += 'Landlord not found for this property.';
@@ -278,7 +479,7 @@ export class ChatService {
   }
 
   createTenantCaretakerChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
-    console.log(' Creating tenant-caretaker chat for property:', propertyId);
+    console.log('🔧 Creating tenant-caretaker chat for property:', propertyId);
     
     if (!propertyId || propertyId <= 0) {
       return throwError(() => new Error('Invalid property ID'));
@@ -291,15 +492,15 @@ export class ChatService {
     ).pipe(
       timeout(15000),
       tap(response => {
-        console.log(' Tenant-caretaker chat response:', response);
+        console.log('✅ Tenant-caretaker chat response:', response);
         if (response.success && response.data) {
-          console.log('Tenant-caretaker chat created successfully');
+          console.log('✅ Tenant-caretaker chat created successfully');
           const newRoom = this.processRoomData(response.data);
           this.addRoom(newRoom);
         }
       }),
       catchError(error => {
-        console.error(' Error creating tenant-caretaker chat:', error);
+        console.error('❌ Error creating tenant-caretaker chat:', error);
         let errorMsg = 'Failed to create chat with caretaker. ';
         if (error.status === 404) {
           errorMsg += 'Caretaker not found for this property.';
@@ -325,15 +526,15 @@ export class ChatService {
     ).pipe(
       timeout(15000),
       tap(response => {
-        console.log('Landlord-caretaker chat response:', response);
+        console.log('✅ Landlord-caretaker chat response:', response);
         if (response.success && response.data) {
-          console.log(' Landlord-caretaker chat created successfully');
+          console.log('✅ Landlord-caretaker chat created successfully');
           const newRoom = this.processRoomData(response.data);
           this.addRoom(newRoom);
         }
       }),
       catchError(error => {
-        console.error(' Error creating landlord-caretaker chat:', error);
+        console.error('❌ Error creating landlord-caretaker chat:', error);
         let errorMsg = 'Failed to create chat with caretaker. ';
         if (error.status === 404) {
           errorMsg += 'Caretaker not found for this property.';
@@ -346,7 +547,7 @@ export class ChatService {
   }
 
   createLandlordTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
-    console.log(' Creating landlord-tenant chat for unit:', unitId);
+    console.log('🔧 Creating landlord-tenant chat for unit:', unitId);
     
     if (!unitId || unitId <= 0) {
       return throwError(() => new Error('Invalid unit ID'));
@@ -359,15 +560,15 @@ export class ChatService {
     ).pipe(
       timeout(15000),
       tap(response => {
-        console.log(' Landlord-tenant chat response:', response);
+        console.log('✅ Landlord-tenant chat response:', response);
         if (response.success && response.data) {
-          console.log(' Landlord-tenant chat created successfully');
+          console.log('✅ Landlord-tenant chat created successfully');
           const newRoom = this.processRoomData(response.data);
           this.addRoom(newRoom);
         }
       }),
       catchError(error => {
-        console.error(' Error creating landlord-tenant chat:', error);
+        console.error('❌ Error creating landlord-tenant chat:', error);
         let errorMsg = 'Failed to create chat with tenant. ';
         if (error.status === 404) {
           errorMsg += 'Tenant not found for this unit.';
@@ -380,7 +581,7 @@ export class ChatService {
   }
 
   createCaretakerTenantChat(unitId: number): Observable<ApiResponse<ChatRoom>> {
-    console.log(' Creating caretaker-tenant chat for unit:', unitId);
+    console.log('🔧 Creating caretaker-tenant chat for unit:', unitId);
     
     if (!unitId || unitId <= 0) {
       return throwError(() => new Error('Invalid unit ID'));
@@ -393,15 +594,15 @@ export class ChatService {
     ).pipe(
       timeout(15000),
       tap(response => {
-        console.log('Caretaker-tenant chat response:', response);
+        console.log('✅ Caretaker-tenant chat response:', response);
         if (response.success && response.data) {
-          console.log(' Caretaker-tenant chat created successfully');
+          console.log('✅ Caretaker-tenant chat created successfully');
           const newRoom = this.processRoomData(response.data);
           this.addRoom(newRoom);
         }
       }),
       catchError(error => {
-        console.error(' Error creating caretaker-tenant chat:', error);
+        console.error('❌ Error creating caretaker-tenant chat:', error);
         let errorMsg = 'Failed to create chat with tenant. ';
         if (error.status === 404) {
           errorMsg += 'Tenant not found for this unit.';
@@ -418,7 +619,7 @@ export class ChatService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    console.log(' Sending message to room:', roomId);
+    console.log('📤 Sending message to room:', roomId);
     const messageRequest: SendMessageRequest = {
       content: content.trim(),
       chatRoomId: roomId,
@@ -448,7 +649,7 @@ export class ChatService {
       timeout(15000),
       tap(response => {
         if (response.success && response.data) {
-          console.log('Message sent successfully');
+          console.log('✅ Message sent successfully');
           this.removeMessage(tempMessage.id);
           this.handleIncomingMessage(response.data);
         } else {
@@ -456,7 +657,7 @@ export class ChatService {
         }
       }),
       catchError(error => {
-        console.error(' Error sending message:', error);
+        console.error('❌ Error sending message:', error);
         this.updateMessageStatus(tempMessage.id, 'FAILED');
         return this.handleApiError(error, 'Failed to send message. Please try again.');
       })
@@ -472,7 +673,7 @@ export class ChatService {
       return throwError(() => new Error('No messages to delete'));
     }
 
-    console.log(' Batch deleting messages:', messageIds);
+    console.log('🗑️ Batch deleting messages:', messageIds);
     
     const request: BatchDeleteRequest = {
       messageIds,
@@ -486,12 +687,12 @@ export class ChatService {
       timeout(15000),
       tap(response => {
         if (response.success) {
-          console.log(' Messages deleted successfully via batch delete');
+          console.log('✅ Messages deleted successfully via batch delete');
           messageIds.forEach(messageId => this.removeMessage(messageId));
         }
       }),
       catchError(error => {
-        console.error(' Batch delete endpoint failed:', error);
+        console.error('❌ Batch delete endpoint failed:', error);
         
         if (error.status === 404 || error.status === 405) {
           console.log('Batch delete endpoint not available, using individual deletes');
@@ -504,7 +705,7 @@ export class ChatService {
   }
 
   private deleteMessagesIndividually(messageIds: number[]): Observable<ApiResponse> {
-    console.log(' Deleting messages individually:', messageIds);
+    console.log('🗑️ Deleting messages individually:', messageIds);
     
     const deleteObservables = messageIds.map(messageId => 
       this.http.delete<ApiResponse>(`${this.apiUrl}/messages/${messageId}`, { 
@@ -512,7 +713,7 @@ export class ChatService {
       }).pipe(
         tap(response => {
           if (response.success) {
-            console.log(` Message ${messageId} deleted successfully`);
+            console.log(`✅ Message ${messageId} deleted successfully`);
             this.removeMessage(messageId);
           }
         }),
@@ -544,19 +745,19 @@ export class ChatService {
       return throwError(() => new Error('User not authenticated'));
     }
 
-    console.log(' Deleting message:', messageId);
+    console.log('🗑️ Deleting message:', messageId);
     return this.http.delete<ApiResponse>(`${this.apiUrl}/messages/${messageId}`, { 
       headers: this.getHeaders() 
     }).pipe(
       timeout(15000),
       tap(response => {
         if (response.success) {
-          console.log(' Message deleted successfully');
+          console.log('✅ Message deleted successfully');
           this.removeMessage(messageId);
         }
       }),
       catchError(error => {
-        console.error(' Error deleting message:', error);
+        console.error('❌ Error deleting message:', error);
         return this.handleApiError(error, 'Failed to delete message.');
       })
     );
@@ -596,11 +797,11 @@ export class ChatService {
 
   loadRooms(): Observable<ChatRoom[]> {
     if (!this.authService.isAuthenticated()) {
-      console.log(' User not authenticated, skipping room load');
+      console.log('⚠️ User not authenticated, skipping room load');
       return of([]);
     }
 
-    console.log(' Loading chat rooms...');
+    console.log('📥 Loading chat rooms...');
     return this.http.get<ApiResponse<ChatRoom[]>>(`${this.apiUrl}/rooms`, { 
       headers: this.getHeaders() 
     }).pipe(
@@ -609,26 +810,26 @@ export class ChatService {
         if (response && response.success && response.data && Array.isArray(response.data)) {
           const processedRooms = response.data.map(room => this.processRoomData(room));
           this.roomsSubject.next(processedRooms);
-          console.log(`Loaded ${processedRooms.length} chat rooms`);
+          console.log(`✅ Loaded ${processedRooms.length} chat rooms`);
           return processedRooms;
         }
-        console.warn(' No rooms data in response');
+        console.warn('⚠️ No rooms data in response');
         return [];
       }),
       catchError(error => {
-        console.error(' Error loading rooms:', error);
+        console.error('❌ Error loading rooms:', error);
         return of([]);
       })
     );
   }
 
-  getMessages(roomId: number): Observable<Message[]> {
+    getMessages(roomId: number): Observable<Message[]> {
     if (!this.authService.isAuthenticated()) {
-      console.log('User not authenticated, skipping message load');
+      console.log('⚠️ User not authenticated, skipping message load');
       return of([]);
     }
 
-    console.log(' Loading messages for room:', roomId);
+    console.log('📥 Loading messages for room:', roomId);
     return this.http.get<ApiResponse<Message[]>>(`${this.apiUrl}/rooms/${roomId}/messages`, { 
       headers: this.getHeaders() 
     }).pipe(
@@ -638,15 +839,15 @@ export class ChatService {
           const messages = response.data.map(msg => this.processMessageData(msg))
             .sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
           this.messagesSubject.next(messages);
-          console.log(`Loaded ${messages.length} messages for room ${roomId}`);
+          console.log(`✅ Loaded ${messages.length} messages for room ${roomId}`);
           this.subscribeToRoom(roomId);
           return messages;
         }
-        console.warn(' No messages data in response');
+        console.warn('⚠️ No messages data in response');
         return [];
       }),
       catchError(error => {
-        console.error(' Error loading messages:', error);
+        console.error('❌ Error loading messages:', error);
         return of([]);
       })
     );
@@ -663,7 +864,7 @@ export class ChatService {
       { headers: this.getHeaders() }
     ).pipe(
       catchError(error => {
-        console.error(' Error marking message as read:', error);
+        console.error('❌ Error marking message as read:', error);
         return of({ success: false, message: 'Failed to mark as read' });
       })
     );
@@ -680,7 +881,7 @@ export class ChatService {
       { headers: this.getHeaders() }
     ).pipe(
       catchError(error => {
-        console.error(' Error marking message as delivered:', error);
+        console.error('❌ Error marking message as delivered:', error);
         return of({ success: false, message: 'Failed to mark as delivered' });
       })
     );
@@ -818,16 +1019,16 @@ export class ChatService {
       }
 
       if (!this.authService.isAuthenticated()) {
-        console.log(' User not authenticated, skipping WebSocket connection');
+        console.log('⚠️ User not authenticated, skipping WebSocket connection');
         return;
       }
 
       if (this.stompClient && this.stompClient.connected) {
-        console.log(' WebSocket already connected');
+        console.log('✅ WebSocket already connected');
         return;
       }
 
-      console.log(' Initializing WebSocket connection...');
+      console.log('🚀 Initializing WebSocket connection...');
       const socket = new SockJS(this.wsUrl);
       
       this.stompClient = new Client({
@@ -846,17 +1047,17 @@ export class ChatService {
       });
 
       this.stompClient.onConnect = (frame) => {
-        console.log(' WebSocket connected successfully');
+        console.log('✅ WebSocket connected successfully');
         this.connectedSubject.next(true);
         this.connectionAttempts = 0;
         
         const userMessagesSubscription = this.stompClient!.subscribe('/user/queue/messages', (message: IMessage) => {
-          console.log('Received message via user queue');
+          console.log('📨 Received message via user queue');
           this.handleIncomingMessage(JSON.parse(message.body));
         });
 
         const userDeletedSubscription = this.stompClient!.subscribe('/user/queue/messages/deleted', (message: IMessage) => {
-          console.log(' Received deletion notification');
+          console.log('🗑️ Received deletion notification');
           this.handleMessageDeleted(JSON.parse(message.body));
         });
 
@@ -865,32 +1066,32 @@ export class ChatService {
 
         const currentRoom = this.currentRoomSubject.value;
         if (currentRoom?.id) {
-          console.log(' Subscribing to current room:', currentRoom.id);
+          console.log('📡 Subscribing to current room:', currentRoom.id);
           this.subscribeToRoom(currentRoom.id);
         }
       };
 
       this.stompClient.onStompError = (frame) => {
-        console.error(' STOMP error:', frame);
+        console.error('❌ STOMP error:', frame);
         this.connectedSubject.next(false);
         this.attemptReconnection();
       };
 
       this.stompClient.onWebSocketError = (event) => {
-        console.error('WebSocket error:', event);
+        console.error('❌ WebSocket error:', event);
         this.connectedSubject.next(false);
         this.attemptReconnection();
       };
 
       this.stompClient.onDisconnect = (frame) => {
-        console.log(' WebSocket disconnected');
+        console.log('🔌 WebSocket disconnected');
         this.connectedSubject.next(false);
         this.roomSubscriptions.clear();
       };
 
       this.stompClient.activate();
     } catch (error) {
-      console.error(' Error initializing WebSocket:', error);
+      console.error('❌ Error initializing WebSocket:', error);
       this.connectedSubject.next(false);
       this.attemptReconnection();
     }
@@ -899,7 +1100,7 @@ export class ChatService {
   private attemptReconnection(): void {
     if (this.connectionAttempts < this.MAX_CONNECTION_ATTEMPTS) {
       this.connectionAttempts++;
-      console.log(` Attempting reconnection (${this.connectionAttempts}/${this.MAX_CONNECTION_ATTEMPTS})...`);
+      console.log(`🔄 Attempting reconnection (${this.connectionAttempts}/${this.MAX_CONNECTION_ATTEMPTS})...`);
       
       setTimeout(() => {
         if (this.authService.isAuthenticated()) {
@@ -907,17 +1108,17 @@ export class ChatService {
         }
       }, this.RECONNECT_DELAY * this.connectionAttempts);
     } else {
-      console.error(' Max reconnection attempts reached');
+      console.error('❌ Max reconnection attempts reached');
       this.connectedSubject.next(false);
     }
   }
 
   private handleIncomingMessage(messageData: any): void {
     try {
-      console.log(' Processing incoming message:', messageData);
+      console.log('📥 Processing incoming message:', messageData);
       
       if (!messageData.chatRoomId && !messageData.roomId) {
-        console.warn('Message without chatRoomId, ignoring:', messageData);
+        console.warn('⚠️ Message without chatRoomId, ignoring:', messageData);
         return;
       }
       
@@ -943,7 +1144,7 @@ export class ChatService {
         sender: messageData.sender
       };
       
-      console.log(' Message processed successfully:', message);
+      console.log('✅ Message processed successfully:', message);
       this.addMessage(message);
       
       if (!this.isMyMessage(message)) {
@@ -954,13 +1155,13 @@ export class ChatService {
         this.markMessageAsRead(message.chatRoomId, message.id).subscribe();
       }
     } catch (error) {
-      console.error(' Error handling incoming message:', error, messageData);
+      console.error('❌ Error handling incoming message:', error, messageData);
     }
   }
 
   private handleMessageDeleted(deletionData: any): void {
     try {
-      console.log('Processing message deletion:', deletionData);
+      console.log('🗑️ Processing message deletion:', deletionData);
       
       if (deletionData.messageId) {
         this.removeMessage(Number(deletionData.messageId));
@@ -970,7 +1171,7 @@ export class ChatService {
         });
       }
     } catch (error) {
-      console.error(' Error handling message deletion:', error, deletionData);
+      console.error('❌ Error handling message deletion:', error, deletionData);
     }
   }
 
@@ -979,7 +1180,7 @@ export class ChatService {
     const messageExists = currentMessages.some(m => m.id === message.id);
     
     if (!messageExists) {
-      console.log(' Adding new message to list');
+      console.log('➕ Adding new message to list');
       const updatedMessages = [...currentMessages, message].sort((a, b) => 
         new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
       );
@@ -989,20 +1190,20 @@ export class ChatService {
         this.updateRoomLastMessage(message.chatRoomId, message);
       }
     } else {
-      console.log('Message already exists, updating status');
+      console.log('ℹ️ Message already exists, updating status');
       this.updateMessageStatus(message.id, message.status);
     }
   }
 
   private removeMessage(messageId: number): void {
-    console.log(' Removing message:', messageId);
+    console.log('🗑️ Removing message:', messageId);
     const currentMessages = this.messagesSubject.value;
     const updatedMessages = currentMessages.filter(m => m.id !== messageId);
     this.messagesSubject.next(updatedMessages);
   }
 
   private updateMessageStatus(messageId: number, status: MessageStatus): void {
-    console.log(' Updating message status:', messageId, status);
+    console.log('🔄 Updating message status:', messageId, status);
     const currentMessages = this.messagesSubject.value;
     const updatedMessages = currentMessages.map(m => {
       if (m.id === messageId) {
@@ -1018,7 +1219,7 @@ export class ChatService {
     const roomExists = currentRooms.some(r => r.id === room.id);
     
     if (!roomExists) {
-      console.log(' Adding new room to list');
+      console.log('➕ Adding new room to list');
       const updatedRooms = [...currentRooms, room].sort((a, b) => 
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       );
@@ -1027,7 +1228,7 @@ export class ChatService {
   }
 
   private updateRoomLastMessage(roomId: number, message: Message): void {
-    console.log(' Updating room last message for room:', roomId);
+    console.log('🔄 Updating room last message for room:', roomId);
     const currentRooms = this.roomsSubject.value;
     const updatedRooms = currentRooms.map(room => {
       if (room.id === roomId) {
@@ -1126,18 +1327,18 @@ export class ChatService {
 
       const topic = `/topic/chat/${roomId}`;
       try {
-        console.log(' Subscribing to room topic:', topic);
+        console.log('📡 Subscribing to room topic:', topic);
         const subscription = this.stompClient!.subscribe(topic, (message: IMessage) => {
-          console.log('Received message from room topic');
+          console.log('📨 Received message from room topic');
           this.handleIncomingMessage(JSON.parse(message.body));
         });
         this.roomSubscriptions.set(topic, subscription);
-        console.log(' Successfully subscribed to room:', roomId);
+        console.log('✅ Successfully subscribed to room:', roomId);
       } catch (error) {
-        console.error(' Error subscribing to room:', error);
+        console.error('❌ Error subscribing to room:', error);
       }
     } else {
-      console.warn(' Cannot subscribe to room - WebSocket not connected');
+      console.warn('⚠️ Cannot subscribe to room - WebSocket not connected');
     }
   }
 
@@ -1152,21 +1353,21 @@ export class ChatService {
   }
 
   selectRoom(room: ChatRoom | null): void {
-    console.log(' Selecting room:', room?.id || 'null');
+    console.log('🎯 Selecting room:', room?.id || 'null');
     this.currentRoomSubject.next(room);
     
     if (room?.id) {
-      console.log(' Loading messages for selected room');
+      console.log('📥 Loading messages for selected room');
       this.getMessages(room.id).subscribe();
       this.markRoomAsRead(room.id);
     } else {
-      console.log(' Clearing messages');
+      console.log('📭 Clearing messages');
       this.messagesSubject.next([]);
     }
   }
 
   private markRoomAsRead(roomId: number): void {
-    console.log('Marking room as read:', roomId);
+    console.log('✅ Marking room as read:', roomId);
     const currentRooms = this.roomsSubject.value;
     const updatedRooms = currentRooms.map(room => {
       if (room.id === roomId) {
@@ -1183,7 +1384,7 @@ export class ChatService {
 
   disconnect(): void {
     if (this.stompClient) {
-      console.log(' Disconnecting WebSocket');
+      console.log('🔌 Disconnecting WebSocket');
       this.roomSubscriptions.clear();
       this.stompClient.deactivate();
       this.stompClient = null;
@@ -1192,7 +1393,7 @@ export class ChatService {
   }
 
   clearLocalData(): void {
-    console.log(' Clearing local chat data');
+    console.log('🧹 Clearing local chat data');
     this.messagesSubject.next([]);
     this.roomsSubject.next([]);
     this.currentRoomSubject.next(null);

@@ -64,6 +64,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   participantDataCache = new Map<number, any>();
 
   private authSubscription?: Subscription;
+  private chatSubscriptions: Subscription[] = [];
   private isInitialized = false;
 
   readonly CHAT_TYPES = {
@@ -133,7 +134,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.userRole = currentUser?.role?.toUpperCase() || '';
     
     this.loadUserDataAutomatically();
-    this.initializeSubscriptions();
+    this.initializeChatSubscriptions();
     this.isInitialized = true;
   }
 
@@ -150,17 +151,28 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.selectedTenantPropertyId = null;
     this.selectedCaretakerPropertyId = null;
     this.isInitialized = false;
+    
+    // Unsubscribe from all chat subscriptions
+    this.chatSubscriptions.forEach(sub => sub.unsubscribe());
+    this.chatSubscriptions = [];
+    
     this.chatService.disconnect();
   }
 
   ngOnDestroy(): void {
     this.authSubscription?.unsubscribe();
+    
+    // Unsubscribe from all chat subscriptions
+    this.chatSubscriptions.forEach(sub => sub.unsubscribe());
+    this.chatSubscriptions = [];
+    
     this.chatService.disconnect();
     this.isInitialized = false;
   }
 
-  private initializeSubscriptions(): void {
-    this.chatService.rooms$.subscribe({
+  private initializeChatSubscriptions(): void {
+    // Subscribe to rooms
+    const roomsSub = this.chatService.rooms$.subscribe({
       next: (rooms: ChatRoom[]) => {
         this.rooms = rooms ?? [];
         this.loadingRooms = false;
@@ -169,13 +181,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (error: any) => {
         console.error('Error in rooms subscription:', error);
         this.loadingRooms = false;
-        if (this.shouldHandleAuthError(error)) {
-          this.handleAuthError(error);
-        }
       }
     });
+    this.chatSubscriptions.push(roomsSub);
 
-    this.chatService.currentRoom$.subscribe({
+    // Subscribe to current room
+    const currentRoomSub = this.chatService.currentRoom$.subscribe({
       next: (room: ChatRoom | null) => {
         this.currentRoom = room;
         if (room) {
@@ -187,13 +198,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       },
       error: (error: any) => {
         console.error('Error in currentRoom subscription:', error);
-        if (this.shouldHandleAuthError(error)) {
-          this.handleAuthError(error);
-        }
       }
     });
+    this.chatSubscriptions.push(currentRoomSub);
 
-    this.chatService.messages$.subscribe({
+    // Subscribe to messages
+    const messagesSub = this.chatService.messages$.subscribe({
       next: (messages: Message[]) => {
         const oldLength = this.messages.length;
         this.messages = messages ?? [];
@@ -204,13 +214,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       },
       error: (error: any) => {
         console.error('Error in messages subscription:', error);
-        if (this.shouldHandleAuthError(error)) {
-          this.handleAuthError(error);
-        }
       }
     });
+    this.chatSubscriptions.push(messagesSub);
 
-    this.chatService.connected$.subscribe({
+    // Subscribe to connection status
+    const connectedSub = this.chatService.connected$.subscribe({
       next: (connected: boolean) => {
         this.isConnected = connected;
       },
@@ -218,6 +227,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         console.error('Error in connected subscription:', error);
       }
     });
+    this.chatSubscriptions.push(connectedSub);
   }
 
   openNewChatModal(): void {
@@ -370,7 +380,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           totalUnits: 0,
           description: '',
           ownerName: '',
-          ownerId: unit.propertyId
+          ownerId: unit.propertyId,
+          imageUrl: '',
+          amenities: []
         });
       }
     });
@@ -542,35 +554,45 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       case this.CHAT_TYPES.TENANT_LANDLORD:
         if (this.userRole === 'TENANT') {
           resourceId = this.selectedPropertyId || this.selectedTenantPropertyId;
-          createObservable = resourceId ? this.chatService.createTenantLandlordChat(resourceId) : null;
+          if (resourceId) {
+            createObservable = this.chatService.createTenantLandlordChat(resourceId);
+          }
         }
         break;
 
       case this.CHAT_TYPES.TENANT_CARETAKER:
         if (this.userRole === 'TENANT') {
           resourceId = this.selectedPropertyId || this.selectedTenantPropertyId;
-          createObservable = resourceId ? this.chatService.createTenantCaretakerChat(resourceId) : null;
+          if (resourceId) {
+            createObservable = this.chatService.createTenantCaretakerChat(resourceId);
+          }
         }
         break;
 
       case this.CHAT_TYPES.LANDLORD_CARETAKER:
         if (this.userRole === 'LANDLORD') {
           resourceId = this.selectedPropertyId;
-          createObservable = resourceId ? this.chatService.createLandlordCaretakerChat(resourceId) : null;
+          if (resourceId) {
+            createObservable = this.chatService.createLandlordCaretakerChat(resourceId);
+          }
         }
         break;
 
       case this.CHAT_TYPES.LANDLORD_TENANT:
         if (this.userRole === 'LANDLORD') {
           resourceId = this.selectedUnitId;
-          createObservable = resourceId ? this.chatService.createLandlordTenantChat(resourceId) : null;
+          if (resourceId) {
+            createObservable = this.chatService.createLandlordTenantChat(resourceId);
+          }
         }
         break;
 
       case this.CHAT_TYPES.CARETAKER_TENANT:
         if (this.userRole === 'CARETAKER') {
           resourceId = this.selectedUnitId;
-          createObservable = resourceId ? this.chatService.createCaretakerTenantChat(resourceId) : null;
+          if (resourceId) {
+            createObservable = this.chatService.createCaretakerTenantChat(resourceId);
+          }
         }
         break;
     }
@@ -599,10 +621,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (error: any) => {
         this.loadingRooms = false;
         console.error('Chat creation error:', error);
-        
-        if (this.shouldHandleAuthError(error)) {
-          this.handleAuthError(error);
-        }
         
         let errorMessage = 'Failed to create chat. ';
         
@@ -634,9 +652,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       error: (error: any) => {
         console.error('Error refreshing rooms:', error);
         this.loadingRooms = false;
-        if (this.shouldHandleAuthError(error)) {
-          this.handleAuthError(error);
-        }
       }
     });
   }
@@ -676,11 +691,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         },
         error: (error: any) => {
           console.error('Error sending file:', error);
-          if (this.shouldHandleAuthError(error)) {
-            this.handleAuthError(error);
-          } else {
-            alert('Failed to send file. Please try again.');
-          }
+          alert('Failed to send file. Please try again.');
         },
         complete: () => {
           this.uploadingFiles = false;
@@ -702,7 +713,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   selectRoom(room: ChatRoom): void {
     if (!this.authService.isAuthenticated()) {
-      this.handleAuthError({ status: 401 });
+      this.redirectToLogin();
       return;
     }
 
@@ -716,9 +727,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.selectRoom(room);
     this.shouldScrollToBottom = true;
 
-    setTimeout(() => {
-      this.chatService.getMessages(room.id);
-    }, 100);
+    // Load messages for the selected room
+    this.chatService.getMessages(room.id).subscribe({
+      next: (messages: Message[]) => {
+        console.log(`Loaded ${messages.length} messages for room ${room.id}`);
+      },
+      error: (error: any) => {
+        console.error('Error loading messages:', error);
+      }
+    });
   }
 
   sendMessage(): void {
@@ -728,7 +745,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.hideEmojiPicker();
       
       if (!this.authService.isAuthenticated()) {
-        this.handleAuthError({ status: 401 });
+        this.redirectToLogin();
         this.newMessage = messageToSend;
         return;
       }
@@ -739,11 +756,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         },
         error: (error: any) => {
           console.error('Error sending message:', error);
-          if (this.shouldHandleAuthError(error)) {
-            this.handleAuthError(error);
-          } else {
-            alert('Failed to send message. Please try again.');
-          }
+          alert('Failed to send message. Please try again.');
           this.newMessage = messageToSend;
         }
       });
@@ -776,11 +789,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.chatService.deleteMessage(messageId).subscribe({
         error: (error: any) => {
           console.error('Error deleting message:', error);
-          if (this.shouldHandleAuthError(error)) {
-            this.handleAuthError(error);
-          } else {
-            alert('Failed to delete message.');
-          }
+          alert('Failed to delete message.');
         }
       });
     }
@@ -960,30 +969,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return `${name} (${this.formatRole(role)})`;
   }
 
-  private shouldHandleAuthError(error: any): boolean {
-    return error?.status === 401 && !this.isRoleBasedUnauthorized(error);
-  }
-
-  private isRoleBasedUnauthorized(error: any): boolean {
-    if (error?.status === 401 && this.authService.isAuthenticated()) {
-      const url = error.url || '';
-      
-      if (url.includes('/api/tenant/') && !this.authService.isTenant()) {
-        return true;
-      }
-      
-      if (url.includes('/api/landlord/') && !this.authService.isLandlord()) {
-        return true;
-      }
-      
-      if (url.includes('/api/caretaker/') && !this.authService.isCaretaker()) {
-        return true;
-      }
-    }
-    
-    return false;
-  }
-
   private loadUserDataAutomatically(): void {
     this.loadingProperties = true;
     
@@ -1014,15 +999,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       
       this.processUserData(response, this.userRole);
       this.loadingProperties = false;
-      
-      this.ensureChatConnection();
     });
-  }
-
-  private ensureChatConnection(): void {
-    if (!this.isConnected) {
-      this.chatService.reconnect();
-    }
   }
 
   private processUserData(response: any, userRole: string): void {
@@ -1262,14 +1239,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       subtitle: '',
       description: ''
     };
-  }
-
-  private handleAuthError(error: any): void {
-    console.warn('Authentication error detected:', error);
-    
-    if (!this.authService.isAuthenticated()) {
-      this.redirectToLogin();
-    }
   }
 
   private redirectToLogin(): void {

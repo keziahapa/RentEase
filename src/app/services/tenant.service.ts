@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 import { 
@@ -23,19 +23,77 @@ export class TenantService {
     private authService: AuthService
   ) {}
 
+  // ✅ FIXED: Properly return tenant units with detailed error handling
   getTenantUnits(): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
-      return of({ success: true, data: [] });
+      console.warn('⚠️ No authentication token - returning empty units');
+      return of({ success: false, data: [], message: 'Not authenticated' });
     }
+
+    console.log('🔍 Fetching tenant units from:', `${this.apiUrl}/tenant/units`);
 
     return this.http.get<any>(
       `${this.apiUrl}/tenant/units`,
       { headers: this.createHeaders() }
     ).pipe(
-      map(response => response),
+      tap(response => {
+        console.log('✅ Tenant units API response:', response);
+      }),
+      map(response => {
+        // Handle different response structures
+        if (Array.isArray(response)) {
+          console.log(`📦 Received ${response.length} units as array`);
+          return { success: true, data: response };
+        }
+        
+        if (response?.data && Array.isArray(response.data)) {
+          console.log(`📦 Received ${response.data.length} units in response.data`);
+          return { success: true, data: response.data };
+        }
+        
+        if (response?.units && Array.isArray(response.units)) {
+          console.log(`📦 Received ${response.units.length} units in response.units`);
+          return { success: true, data: response.units };
+        }
+
+        if (response?.content && Array.isArray(response.content)) {
+          console.log(`📦 Received ${response.content.length} units in response.content`);
+          return { success: true, data: response.content };
+        }
+
+        // If response is an object with success flag
+        if (response?.success !== undefined) {
+          return response;
+        }
+
+        // Single unit object
+        if (response?.id || response?.unitId) {
+          console.log('📦 Received single unit object');
+          return { success: true, data: [response] };
+        }
+
+        console.warn('⚠️ Unexpected response structure:', response);
+        return { success: true, data: [] };
+      }),
       catchError((error) => {
-        return of({ success: false, data: [] });
+        console.error('❌ Error fetching tenant units:', error);
+        console.error('Error details:', {
+          status: error.status,
+          message: error.message,
+          url: error.url,
+          error: error.error
+        });
+        
+        return of({ 
+          success: false, 
+          data: [],
+          message: error.error?.message || 'Failed to load your units',
+          error: {
+            status: error.status,
+            statusText: error.statusText
+          }
+        });
       })
     );
   }
@@ -58,6 +116,7 @@ export class TenantService {
       }
     ).pipe(
       catchError((error) => {
+        console.error('Error fetching move-out notices:', error);
         return of(this.getMockMoveOutNotices());
       })
     );

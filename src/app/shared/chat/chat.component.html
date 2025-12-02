@@ -239,7 +239,7 @@
                 (change)="onPropertySelected($event)">
                 <option value="">-- Select a Property --</option>
                 <option 
-                  *ngFor="let property of userProperties" 
+                  *ngFor="let property of userProperties; trackBy: trackByPropertyId" 
                   [value]="property.id">
                   {{ property.name }} 
                   <span *ngIf="property.totalUnits">({{ property.totalUnits }} units)</span>
@@ -351,7 +351,7 @@
                 (change)="onUnitSelected($event)">
                 <option value="">-- Select a Unit --</option>
                 <option 
-                  *ngFor="let unit of availableUnits" 
+                  *ngFor="let unit of availableUnits; trackBy: trackByUnitId" 
                   [value]="unit.id">
                   Unit {{ unit.unitNumber }} - {{ unit.unitType }}
                   <span *ngIf="unit.tenantName">({{ unit.tenantName }})</span>
@@ -382,7 +382,7 @@
           </div>
         </ng-container>
 
-        <!-- TENANT FLOW - FIXED -->
+        <!-- TENANT FLOW -->
         <ng-container *ngIf="!loadingProperties && userRole === 'TENANT'">
           <!-- ERROR STATE: No properties assigned -->
           <div *ngIf="tenantProperties.length === 0" class="no-data">
@@ -410,7 +410,7 @@
                   (change)="onPropertySelected($event)">
                   <option value="">-- Select a Property --</option>
                   <option 
-                    *ngFor="let property of tenantProperties" 
+                    *ngFor="let property of tenantProperties; trackBy: trackByPropertyId" 
                     [value]="property.id">
                     {{ property.name }} 
                     <span *ngIf="property.address">({{ property.address }})</span>
@@ -515,7 +515,7 @@
                 (change)="onPropertySelected($event)">
                 <option value="">-- Select a Property --</option>
                 <option 
-                  *ngFor="let property of userProperties" 
+                  *ngFor="let property of userProperties; trackBy: trackByPropertyId" 
                   [value]="property.id">
                   {{ property.name }} 
                   <span *ngIf="property.totalUnits">({{ property.totalUnits }} units)</span>
@@ -623,7 +623,7 @@
                 (change)="onUnitSelected($event)">
                 <option value="">-- Select a Unit --</option>
                 <option 
-                  *ngFor="let unit of availableUnits" 
+                  *ngFor="let unit of availableUnits; trackBy: trackByUnitId" 
                   [value]="unit.id">
                   Unit {{ unit.unitNumber }} - {{ unit.unitType }}
                   <span *ngIf="unit.tenantName">({{ unit.tenantName }})</span>

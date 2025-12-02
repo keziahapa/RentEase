@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { ProfilePictureService } from './profile-picture.service';
 import { 
@@ -47,19 +47,27 @@ export class PropertyService {
     return this.profileService.deleteProfilePicture();
   }
 
-  // TENANT METHODS
+  // ✅ FIXED TENANT METHODS - Better error handling and logging
   getTenantUnits(): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
+    console.log('🔍 PropertyService: Fetching tenant units from:', `${this.apiUrl}/api/tenant/units`);
+
     return this.http.get<any>(
       `${this.apiUrl}/api/tenant/units`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
+      tap(response => {
+        console.log('✅ PropertyService: Tenant units response:', response);
+      }),
       map(response => this.normalizeTenantUnitsResponse(response)),
-      catchError(error => this.handleTenantError(error))
+      catchError(error => {
+        console.error('❌ PropertyService: Error fetching tenant units:', error);
+        return this.handleTenantError(error);
+      })
     );
   }
 
@@ -95,12 +103,20 @@ export class PropertyService {
   }
 
   getProperties(): Observable<any[]> {
+    console.log('🔍 PropertyService: Fetching landlord properties');
+    
     return this.http.get<any>(
       `${this.apiUrl}/api/landlord/properties`, 
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
+      tap(response => {
+        console.log('✅ PropertyService: Landlord properties response:', response);
+      }),
       map(response => this.normalizePropertiesResponse(response)),
-      catchError(error => this.handlePropertiesError(error))
+      catchError(error => {
+        console.error('❌ PropertyService: Error fetching properties:', error);
+        return this.handlePropertiesError(error);
+      })
     );
   }
 
@@ -144,14 +160,22 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
-  // UNIT METHODS
+  // ✅ FIXED UNIT METHODS - Better response handling
   getUnitsByPropertyId(propertyId: string): Observable<any[]> {
+    console.log('🔍 PropertyService: Fetching units for property:', propertyId);
+    
     return this.http.get<any>(
       `${this.apiUrl}/api/landlord/properties/${propertyId}/units`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
+      tap(response => {
+        console.log('✅ PropertyService: Units response for property', propertyId, ':', response);
+      }),
       map(response => this.normalizeUnitsResponse(response)),
-      catchError(error => this.handleUnitsError(error))
+      catchError(error => {
+        console.error('❌ PropertyService: Error fetching units for property', propertyId, ':', error);
+        return this.handleUnitsError(error);
+      })
     );
   }
 
@@ -213,7 +237,7 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
-  // ✅ FIXED MOVE OUT NOTICES - LANDLORD
+  // MOVE OUT NOTICES - LANDLORD
   getLandlordMoveOutNotices(page: number = 1, pageSize: number = 10, status?: string): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
@@ -239,7 +263,6 @@ export class PropertyService {
     );
   }
 
-  // ✅ FIXED: Approve without request body
   approveMoveOutNotice(noticeId: number): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
@@ -255,7 +278,6 @@ export class PropertyService {
     );
   }
 
-  // ✅ FIXED: Reject with reason as query parameter
   rejectMoveOutNotice(noticeId: number, reason: string): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
@@ -370,61 +392,88 @@ export class PropertyService {
     );
   }
 
-  // PRIVATE HELPER METHODS
+  // ✅ IMPROVED NORMALIZATION METHODS
   private normalizePropertiesResponse(response: any): any[] {
+    console.log('📋 Normalizing properties response:', response);
+    
     if (Array.isArray(response)) {
+      console.log(`✅ Direct array: ${response.length} properties`);
       return response;
     }
     if (response?.data && Array.isArray(response.data)) {
+      console.log(`✅ response.data: ${response.data.length} properties`);
       return response.data;
     }
     if (response?.properties && Array.isArray(response.properties)) {
+      console.log(`✅ response.properties: ${response.properties.length} properties`);
       return response.properties;
     }
     if (response?.content && Array.isArray(response.content)) {
+      console.log(`✅ response.content: ${response.content.length} properties`);
       return response.content;
     }
     if (response?.success && Array.isArray(response.data)) {
+      console.log(`✅ response.success + data: ${response.data.length} properties`);
       return response.data;
     }
+    
+    console.warn('⚠️ Could not find properties array in response, returning empty array');
     return [];
   }
 
   private normalizeUnitsResponse(response: any): any[] {
+    console.log('📋 Normalizing units response:', response);
+    
     if (Array.isArray(response)) {
+      console.log(`✅ Direct array: ${response.length} units`);
       return response;
     }
     if (response?.data && Array.isArray(response.data)) {
+      console.log(`✅ response.data: ${response.data.length} units`);
       return response.data;
     }
     if (response?.units && Array.isArray(response.units)) {
+      console.log(`✅ response.units: ${response.units.length} units`);
       return response.units;
     }
     if (response?.content && Array.isArray(response.content)) {
+      console.log(`✅ response.content: ${response.content.length} units`);
       return response.content;
     }
     if (response?.success && Array.isArray(response.data)) {
+      console.log(`✅ response.success + data: ${response.data.length} units`);
       return response.data;
     }
+    
+    console.warn('⚠️ Could not find units array in response, returning empty array');
     return [];
   }
 
   private normalizeTenantUnitsResponse(response: any): any[] {
+    console.log('📋 Normalizing tenant units response:', response);
+    
     if (Array.isArray(response)) {
+      console.log(`✅ Direct array: ${response.length} tenant units`);
       return response;
     }
     if (response?.data && Array.isArray(response.data)) {
+      console.log(`✅ response.data: ${response.data.length} tenant units`);
       return response.data;
     }
     if (response?.units && Array.isArray(response.units)) {
+      console.log(`✅ response.units: ${response.units.length} tenant units`);
       return response.units;
     }
     if (response?.content && Array.isArray(response.content)) {
+      console.log(`✅ response.content: ${response.content.length} tenant units`);
       return response.content;
     }
     if (response?.success && Array.isArray(response.data)) {
+      console.log(`✅ response.success + data: ${response.data.length} tenant units`);
       return response.data;
     }
+    
+    console.warn('⚠️ Could not find tenant units array in response, returning empty array');
     return [];
   }
 
