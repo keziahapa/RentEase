@@ -20,12 +20,12 @@ export type MessageType =
   | 'DOCUMENT';  
 
 export type MessageStatus = 
-  | 'SENDING'     // Message is being sent
-  | 'SENT'        // Message sent to server
-  | 'DELIVERED'   // Message delivered to recipient (gray double tick)
-  | 'READ'        // Message read by recipient (blue double tick)
-  | 'DELETED'     // Message deleted
-  | 'FAILED';     // Message failed to send
+  | 'SENDING'     // ADDED
+  | 'SENT'       
+  | 'DELIVERED'  
+  | 'READ'       
+  | 'DELETED'
+  | 'FAILED';     // ADDED
 
 export type UserRole = 
   | 'TENANT'     
@@ -484,12 +484,12 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export const MESSAGE_STATUS_COLORS: Record<MessageStatus, string> = {
-  'SENDING': '#8a8d91',   // Gray for sending
-  'SENT': '#8a8d91',      // Gray for sent
-  'DELIVERED': '#8a8d91', // Gray for delivered (gray double tick)
-  'READ': '#1e3a8a',      // Blue for read (blue double tick)
-  'DELETED': '#fa383e',   // Red for deleted
-  'FAILED': '#ff4444'     // Red for failed
+  'SENDING': '#8a8d91',  // ADDED
+  'SENT': '#8a8d91',
+  'DELIVERED': '#31a24c',
+  'READ': '#1e3a8a',
+  'DELETED': '#fa383e',
+  'FAILED': '#ff4444'    // ADDED
 };
 
 export function isTextMessage(message: Message): boolean {

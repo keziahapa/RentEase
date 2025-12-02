@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenuModule } from '@angular/material/menu';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { PropertyService } from '../../services/property.service';
@@ -23,7 +22,7 @@ interface EnrichedChatInfo {
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MatMenuModule],
+  imports: [CommonModule, FormsModule, MatIconModule],
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss']
 })
@@ -216,23 +215,24 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   openNewChatModal(): void {
     this.resetModalState();
     
-    if (this.userRole === 'TENANT') {
-      if (this.userUnits.length === 0) {
-        alert('No units assigned to you. Please contact your landlord.');
-        return;
-      }
-      this.currentStep = 'SELECT_RECIPIENT';
-    } else if (this.userRole === 'LANDLORD') {
-      if (this.userProperties.length === 0) {
-        alert('No properties available. Please create a property first.');
-        return;
-      }
+    if (this.userRole === 'TENANT' && this.userUnits.length === 0) {
+      alert('No units assigned to you. Please contact your landlord.');
+      return;
+    }
+    
+    if (this.userRole === 'LANDLORD' && this.userProperties.length === 0) {
+      alert('No properties available. Please create a property first.');
+      return;
+    }
+    
+    if (this.userRole === 'CARETAKER' && this.userProperties.length === 0) {
+      alert('No properties assigned. Please contact the landlord.');
+      return;
+    }
+
+    if (this.userRole === 'LANDLORD') {
       this.currentStep = 'SELECT_PROPERTY';
-    } else if (this.userRole === 'CARETAKER') {
-      if (this.userProperties.length === 0) {
-        alert('No properties assigned. Please contact the landlord.');
-        return;
-      }
+    } else {
       this.currentStep = 'SELECT_RECIPIENT';
     }
     
@@ -248,17 +248,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   onPropertySelected(event: any): void {
-    const propertyId = +event.target.value;
-    if (!propertyId) return;
-    
-    this.selectedPropertyId = propertyId; 
+    this.selectedPropertyId = +event.target.value; 
     this.selectedUnitId = null;
     this.currentStep = 'SELECT_RECIPIENT';
+    
     this.loadUnitsForProperty(this.selectedPropertyId);
   }
 
   private loadUnitsForProperty(propertyId: number): void {
     this.loadingUnits = true;
+    
     const propertyIdString = propertyId.toString();
     
     this.propertyService.getPropertyUnits(propertyIdString).subscribe({
@@ -279,6 +278,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         } else {
           errorMessage += 'Please try again.';
         }
+        
         alert(errorMessage);
       }
     });
@@ -303,72 +303,40 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private createChatNow(): void {
-    if (!this.selectedChatType) {
-      alert('Please select who to chat with.');
-      return;
-    }
+    if (!this.selectedChatType) return;
 
     let resourceId: number | null = null;
     let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
-    console.log('Creating chat with type:', this.selectedChatType, 'User role:', this.userRole);
-
     switch (this.selectedChatType) {
       case this.CHAT_TYPES.TENANT_LANDLORD:
-        // For tenant, use the property ID from their first unit
-        if (this.userUnits.length > 0) {
-          resourceId = this.userUnits[0].propertyId;
-          console.log('Tenant landlord chat - Using property ID:', resourceId);
-          if (resourceId) {
-            createObservable = this.chatService.createTenantLandlordChat(resourceId);
-          }
-        }
+        resourceId = this.userUnits.length > 0 ? this.userUnits[0].propertyId : null;
+        createObservable = resourceId ? this.chatService.createTenantLandlordChat(resourceId) : null;
         break;
 
       case this.CHAT_TYPES.TENANT_CARETAKER:
-        // For tenant, use the property ID from their first unit
-        if (this.userUnits.length > 0) {
-          resourceId = this.userUnits[0].propertyId;
-          console.log('Tenant caretaker chat - Using property ID:', resourceId);
-          if (resourceId) {
-            createObservable = this.chatService.createTenantCaretakerChat(resourceId);
-          }
-        }
+        resourceId = this.userUnits.length > 0 ? this.userUnits[0].propertyId : null;
+        createObservable = resourceId ? this.chatService.createTenantCaretakerChat(resourceId) : null;
         break;
 
       case this.CHAT_TYPES.LANDLORD_CARETAKER:
         resourceId = this.selectedPropertyId;
-        console.log('Landlord caretaker chat - Using property ID:', resourceId);
-        if (resourceId) {
-          createObservable = this.chatService.createLandlordCaretakerChat(resourceId);
-        }
+        createObservable = resourceId ? this.chatService.createLandlordCaretakerChat(resourceId) : null;
         break;
 
       case this.CHAT_TYPES.LANDLORD_TENANT:
         resourceId = this.selectedUnitId;
-        console.log('Landlord tenant chat - Using unit ID:', resourceId);
-        if (resourceId) {
-          createObservable = this.chatService.createLandlordTenantChat(resourceId);
-        }
+        createObservable = resourceId ? this.chatService.createLandlordTenantChat(resourceId) : null;
         break;
 
       case this.CHAT_TYPES.CARETAKER_TENANT:
-        if (this.userRole === 'CARETAKER') {
-          // For caretaker, use the selected unit ID
-          resourceId = this.selectedUnitId;
-          console.log('Caretaker tenant chat - Using unit ID:', resourceId);
-          if (resourceId) {
-            createObservable = this.chatService.createCaretakerTenantChat(resourceId);
-          } else {
-            alert('Please select a unit to chat with the tenant.');
-            return;
-          }
-        }
+        resourceId = this.userProperties.length > 0 ? this.userProperties[0].id : null;
+        createObservable = resourceId ? this.chatService.createCaretakerTenantChat(resourceId) : null;
         break;
     }
 
     if (!createObservable) {
-      alert('Unable to create chat. Missing required information.');
+      alert('Unable to create chat. Please check your selection.');
       return;
     }
 
@@ -377,7 +345,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     createObservable.subscribe({
       next: (response: any) => {
         this.loadingRooms = false;
-        console.log('Chat creation response:', response);
         
         if (response?.success && response.data) {
           this.closeNewChatModal();
@@ -389,20 +356,22 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       },
       error: (error: any) => {
         this.loadingRooms = false;
-        console.error('Chat creation error details:', error);
+        console.error('Chat creation error:', error);
         
         if (this.shouldHandleAuthError(error)) {
           this.handleAuthError(error);
         }
         
-        let errorMessage = error.message || 'Failed to create chat. ';
+        let errorMessage = 'Failed to create chat. ';
         
         if (error.status === 400) {
-          errorMessage = error.error?.message || 'Invalid request. Please check your data.';
+          errorMessage += 'The resource might not exist or you may not have permission.';
         } else if (error.status === 404) {
-          errorMessage = 'The requested resource was not found.';
+          errorMessage += 'The requested resource was not found.';
         } else if (error.status === 403) {
-          errorMessage = 'You do not have permission to create this chat.';
+          errorMessage += 'You do not have permission to create this chat.';
+        } else {
+          errorMessage += error.error?.message || error.message || 'Please try again.';
         }
         
         alert(errorMessage);
@@ -524,35 +493,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  clearChat(): void {
-    if (!this.currentRoom) return;
-    
-    if (confirm('Are you sure you want to clear all messages in this chat? This action cannot be undone.')) {
-      const messageIds = this.messages.map(m => m.id);
-      
-      if (messageIds.length === 0) {
-        alert('No messages to clear.');
-        return;
-      }
-      
-      console.log('Clearing chat with message IDs:', messageIds);
-      
-      this.chatService.batchDeleteMessages(messageIds, this.currentRoom.id).subscribe({
-        next: (response) => {
-          console.log('Clear chat response:', response);
-          if (response.success) {
-            this.messages = [];
-            alert('Chat cleared successfully.');
-          } else {
-            alert('Failed to clear chat: ' + (response.message || 'Unknown error'));
-          }
-        },
+  deleteMessage(messageId: number): void {
+    if (confirm('Are you sure you want to delete this message?')) {
+      this.chatService.deleteMessage(messageId).subscribe({
         error: (error: any) => {
-          console.error('Error clearing chat:', error);
+          console.error('Error deleting message:', error);
           if (this.shouldHandleAuthError(error)) {
             this.handleAuthError(error);
           } else {
-            alert('Failed to clear chat: ' + (error.message || 'Please try again.'));
+            alert('Failed to delete message.');
           }
         }
       });
@@ -623,6 +572,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   getParticipantCount(room: ChatRoom): number {
     return room?.participants?.length || 0;
+  }
+
+  canDelete(message: Message): boolean {
+    return this.chatService.isMyMessage(message) || (message?.canDelete ?? false);
   }
 
   goBack(): void {
@@ -723,40 +676,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return `${name} (${this.formatRole(role)})`;
   }
 
-  getMessageStatusIcon(message: Message): string {
-    if (!this.isMyMessage(message)) return '';
-    
-    switch(message.status) {
-      case 'SENDING':
-        return 'schedule';
-      case 'SENT':
-        return 'done';
-      case 'DELIVERED':
-        return 'done_all';
-      case 'READ':
-        return 'done_all';
-      case 'FAILED':
-        return 'error';
-      default:
-        return 'done';
-    }
-  }
-
-  getMessageStatusClass(message: Message): string {
-    if (!this.isMyMessage(message)) return '';
-    
-    switch(message.status) {
-      case 'DELIVERED':
-        return 'status-delivered';
-      case 'READ':
-        return 'status-read';
-      case 'FAILED':
-        return 'status-failed';
-      default:
-        return 'status-sent';
-    }
-  }
-
   private shouldHandleAuthError(error: any): boolean {
     return error?.status === 401 && !this.isRoleBasedUnauthorized(error);
   }
@@ -827,6 +746,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     dataObservable.subscribe((response: any) => {
       this.processUserData(response, this.userRole);
       this.loadingProperties = false;
+      
       this.ensureChatConnection();
     });
   }
@@ -842,12 +762,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       case 'TENANT':
         this.userUnits = this.extractUnits(response);
         this.userProperties = this.extractPropertiesFromUnits(response);
-        console.log('Tenant data loaded - Units:', this.userUnits.length, 'Properties:', this.userProperties.length);
         break;
       case 'LANDLORD':
       case 'CARETAKER':
         this.userProperties = this.extractProperties(response);
-        console.log(userRole + ' data loaded - Properties:', this.userProperties.length);
         break;
     }
   }
@@ -1085,22 +1003,56 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private extractProperties(response: any): Property[] {
     if (!response) return [];
     
-    let properties: any[] = [];
-    
     if (Array.isArray(response)) {
-      properties = response;
-    } else if (response?.data && Array.isArray(response.data)) {
-      properties = response.data;
-    } else if (response?.success && Array.isArray(response.data)) {
-      properties = response.data;
+      return response.map((item: any) => ({
+        id: item.property?.id || item.id,
+        name: item.property?.name || item.name || 'Unnamed Property',
+        address: item.property?.address || item.address || item.location || 'No address',
+        location: item.property?.location || item.location,
+        description: item.property?.description || item.description,
+        propertyType: item.property?.propertyType || item.propertyType,
+        totalUnits: item.property?.totalUnits || item.totalUnits,
+        ownerId: item.property?.ownerId || item.ownerId,
+        ownerName: item.property?.ownerName || item.ownerName,
+        imageUrl: item.property?.imageUrl || item.imageUrl,
+        amenities: item.property?.amenities || item.amenities
+      })).filter((property: Property) => property.id);
     }
     
-    return properties.map((item: any) => ({
-      id: item.property?.id || item.id,
-      name: item.property?.name || item.name || 'Unnamed Property',
-      address: item.property?.address || item.location || item.address || 'No address',
-      totalUnits: item.totalUnits || item.unitsCount || 0
-    })).filter((property: Property) => property.id);
+    if (response?.data && Array.isArray(response.data)) {
+      return response.data.map((item: any) => ({
+        id: item.property?.id || item.id,
+        name: item.property?.name || item.name || 'Unnamed Property',
+        address: item.property?.address || item.address || item.location || 'No address',
+        location: item.property?.location || item.location,
+        description: item.property?.description || item.description,
+        propertyType: item.property?.propertyType || item.propertyType,
+        totalUnits: item.property?.totalUnits || item.totalUnits,
+        ownerId: item.property?.ownerId || item.ownerId,
+        ownerName: item.property?.ownerName || item.ownerName,
+        imageUrl: item.property?.imageUrl || item.imageUrl,
+        amenities: item.property?.amenities || item.amenities
+      })).filter((property: Property) => property.id);
+    }
+    
+    if (response?.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+      const item = response.data;
+      return [{
+        id: item.property?.id || item.id,
+        name: item.property?.name || item.name || 'Unnamed Property',
+        address: item.property?.address || item.address || item.location || 'No address',
+        location: item.property?.location || item.location,
+        description: item.property?.description || item.description,
+        propertyType: item.property?.propertyType || item.propertyType,
+        totalUnits: item.property?.totalUnits || item.totalUnits,
+        ownerId: item.property?.ownerId || item.ownerId,
+        ownerName: item.property?.ownerName || item.ownerName,
+        imageUrl: item.property?.imageUrl || item.imageUrl,
+        amenities: item.property?.amenities || item.amenities
+      }].filter((property: Property) => property.id);
+    }
+    
+    return [];
   }
 
   private extractPropertiesFromUnits(response: any): Property[] {
@@ -1116,7 +1068,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           id: unit.propertyId,
           name: extendedUnit.propertyName || `Property ${unit.propertyId}`,
           address: extendedUnit.propertyAddress || 'No address',
-          totalUnits: 0
+          location: extendedUnit.propertyAddress || 'No address'
         });
       }
     });
@@ -1127,27 +1079,77 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private extractUnits(response: any): Unit[] {
     if (!response) return [];
     
-    let items: any[] = [];
-    
     if (Array.isArray(response)) {
-      items = response;
-    } else if (response?.data && Array.isArray(response.data)) {
-      items = response.data;
-    } else if (response?.success && Array.isArray(response.data)) {
-      items = response.data;
-    } else {
-      return [];
+      return response.map((item: any) => ({
+        id: item.unit?.id || item.id,
+        unitNumber: item.unit?.unitNumber || item.unitNumber,
+        unitType: item.unit?.unitType || item.unitType,
+        propertyId: item.property?.id || item.propertyId,
+        tenantName: item.tenant?.name || item.tenantName,
+        rentAmount: item.rentAmount,
+        status: item.unit?.status || item.status,
+        bedrooms: item.unit?.bedrooms || item.bedrooms,
+        bathrooms: item.unit?.bathrooms || item.bathrooms,
+        squareFeet: item.unit?.squareFeet || item.squareFeet,
+        tenantId: item.tenant?.id || item.tenantId,
+        deposit: item.deposit,
+        leaseStartDate: item.leaseStartDate,
+        leaseEndDate: item.leaseEndDate,
+        description: item.unit?.description || item.description,
+        amenities: item.unit?.amenities || item.amenities,
+        imageUrls: item.unit?.imageUrls || item.imageUrls,
+        propertyName: item.property?.name || item.propertyName
+      })).filter((unit: Unit) => unit.id);
     }
     
-    return items.map((item: any) => ({
-      id: item.unit?.id || item.id,
-      unitNumber: item.unit?.unitNumber || item.unitNumber || item.unit?.number || 'N/A',
-      unitType: item.unit?.unitType || item.unitType || item.type || 'Apartment',
-      propertyId: item.property?.id || item.propertyId,
-      propertyName: item.property?.name || item.propertyName,
-      tenantName: item.tenant?.name || item.tenantName || item.tenant?.fullName,
-      rentAmount: item.rentAmount || item.unit?.rentAmount || 0
-    })).filter((unit: Unit) => unit.id);
+    if (response?.data && Array.isArray(response.data)) {
+      return response.data.map((item: any) => ({
+        id: item.unit?.id || item.id,
+        unitNumber: item.unit?.unitNumber || item.unitNumber,
+        unitType: item.unit?.unitType || item.unitType,
+        propertyId: item.property?.id || item.propertyId,
+        tenantName: item.tenant?.name || item.tenantName,
+        rentAmount: item.rentAmount,
+        status: item.unit?.status || item.status,
+        bedrooms: item.unit?.bedrooms || item.bedrooms,
+        bathrooms: item.unit?.bathrooms || item.bathrooms,
+        squareFeet: item.unit?.squareFeet || item.squareFeet,
+        tenantId: item.tenant?.id || item.tenantId,
+        deposit: item.deposit,
+        leaseStartDate: item.leaseStartDate,
+        leaseEndDate: item.leaseEndDate,
+        description: item.unit?.description || item.description,
+        amenities: item.unit?.amenities || item.amenities,
+        imageUrls: item.unit?.imageUrls || item.imageUrls,
+        propertyName: item.property?.name || item.propertyName
+      })).filter((unit: Unit) => unit.id);
+    }
+    
+    if (response?.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+      const item = response.data;
+      return [{
+        id: item.unit?.id || item.id,
+        unitNumber: item.unit?.unitNumber || item.unitNumber,
+        unitType: item.unit?.unitType || item.unitType,
+        propertyId: item.property?.id || item.propertyId,
+        tenantName: item.tenant?.name || item.tenantName,
+        rentAmount: item.rentAmount,
+        status: item.unit?.status || item.status,
+        bedrooms: item.unit?.bedrooms || item.bedrooms,
+        bathrooms: item.unit?.bathrooms || item.bathrooms,
+        squareFeet: item.unit?.squareFeet || item.squareFeet,
+        tenantId: item.tenant?.id || item.tenantId,
+        deposit: item.deposit,
+        leaseStartDate: item.leaseStartDate,
+        leaseEndDate: item.leaseEndDate,
+        description: item.unit?.description || item.description,
+        amenities: item.unit?.amenities || item.amenities,
+        imageUrls: item.unit?.imageUrls || item.imageUrls,
+        propertyName: item.property?.name || item.propertyName
+      }].filter((unit: Unit) => unit.id);
+    }
+    
+    return [];
   }
 
   private formatRole(role: string | undefined): string {
@@ -1155,7 +1157,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     const roleMap: { [key: string]: string } = {
       'TENANT': 'Tenant',
       'LANDLORD': 'Landlord',
-      'CARETAKER': 'Caretaker'
+      'CARETAKER': 'Caretaker',
+      'ADMIN': 'Administrator',
+      'USER': 'User'
     };
     return roleMap[role.toUpperCase()] || role;
   }
@@ -1177,3 +1181,5 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 }
+
+export type ChatRoomWithParticipants = ChatRoom & { participants: Participant[] };
