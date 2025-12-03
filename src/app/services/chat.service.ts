@@ -1,15 +1,7 @@
-// ============================================================================
-// FIXED chat.service.ts - See full code above
-// ============================================================================
-
-// ============================================================================
-// PART 2: FIXED chat.component.ts - KEY CHANGES
-// ============================================================================
-
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject, of, forkJoin } from 'rxjs';
-import { catchError, tap, map, timeout, switchMap } from 'rxjs/operators';
+import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
+import { catchError, tap, map, timeout } from 'rxjs/operators';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { 
@@ -168,7 +160,6 @@ export class ChatService {
     }
   }
 
-  // ✅ FIXED: Better name extraction from incoming messages
   private handleIncomingMessage(messageData: any): void {
     try {
       if (!messageData.chatRoomId && !messageData.roomId) {
@@ -180,8 +171,6 @@ export class ChatService {
         id: Number(messageData.id || messageData.messageId || Date.now()),
         content: messageData.content || messageData.message || '',
         senderId: Number(messageData.senderId || messageData.sender?.id || 0),
-        
-        // ✅ FIXED: Check ALL possible name fields
         senderName: messageData.senderName || 
                     messageData.sender?.name || 
                     messageData.sender?.fullName || 
@@ -189,7 +178,6 @@ export class ChatService {
                     messageData.senderFullName ||
                     messageData.name ||
                     'Unknown User',
-                    
         senderEmail: messageData.senderEmail || messageData.sender?.email || '',
         chatRoomId: Number(messageData.chatRoomId || messageData.roomId),
         sentAt: new Date(messageData.sentAt || messageData.timestamp || Date.now()),
@@ -257,19 +245,15 @@ export class ChatService {
     this.roomsSubject.next(updated);
   }
 
-  // ✅ FIXED: Better participant name extraction
   private processParticipants(participants: any[]): Participant[] {
     if (!participants || !Array.isArray(participants)) return [];
 
     return participants.map((p: any) => ({
       id: Number(p.id || p.userId),
       userId: Number(p.userId || p.id),
-      
-      // ✅ FIXED: Check ALL possible name fields
       name: p.name || p.fullName || p.username || p.displayName || 
             p.firstName || p.user?.name || p.user?.fullName || 'Unknown User',
       fullName: p.fullName || p.name || p.username || '',
-      
       email: p.email || p.user?.email || '',
       role: p.role || 'USER',
       avatar: p.avatar || p.profilePicture,
@@ -303,20 +287,16 @@ export class ChatService {
     };
   }
 
-  // ✅ FIXED: Better message name extraction
   private processMessageData(msgData: any): Message {
     return {
       id: Number(msgData.id),
       content: msgData.content || '',
       senderId: Number(msgData.senderId),
-      
-      // ✅ FIXED: Check ALL possible name fields
       senderName: msgData.senderName || 
                   msgData.sender?.name || 
                   msgData.sender?.fullName ||
                   msgData.name ||
                   'Unknown User',
-                  
       senderEmail: msgData.senderEmail || msgData.sender?.email || '',
       chatRoomId: Number(msgData.chatRoomId),
       sentAt: new Date(msgData.sentAt),
@@ -429,28 +409,26 @@ export class ChatService {
     );
   }
 
-  deleteMessage(messageId: number): Observable<ApiResponse> {
-    if (!this.authService.isAuthenticated()) {
-      return throwError(() => new Error('Not authenticated'));
-    }
-
-    return this.http.delete<ApiResponse>(`${this.apiUrl}/messages/${messageId}`, { 
-      headers: this.getHeaders() 
-    }).pipe(
-      timeout(15000),
-      tap(res => {
-        if (res.success) this.removeMessage(messageId);
-      }),
-      catchError(error => {
-        let msg = 'Failed to delete message.';
-        if (error.status === 404) msg = 'Message not found.';
-        else if (error.status === 403) msg = 'No permission.';
-        return throwError(() => new Error(msg));
-      })
-    );
+ deleteMessage(messageId: number): Observable<ApiResponse> {
+  if (!this.authService.isAuthenticated()) {
+    return throwError(() => new Error('Not authenticated'));
   }
 
-  // ✅ FIXED: All chat creation methods remain the same - they work correctly
+  return this.http.delete<ApiResponse>(`${this.apiUrl}/messages/${messageId}`, { 
+    headers: this.getHeaders() 
+  }).pipe(  // ✅ Added closing bracket here
+    timeout(15000),
+    tap(res => {
+      if (res.success) this.removeMessage(messageId);
+    }),
+    catchError(error => {
+      let msg = 'Failed to delete message.';
+      if (error.status === 404) msg = 'Message not found.';
+      else if (error.status === 403) msg = 'No permission.';
+      return throwError(() => new Error(msg));
+    })
+  );
+}
   createTenantLandlordChat(propertyId: number): Observable<ApiResponse<ChatRoom>> {
     return this.http.post<ApiResponse<ChatRoom>>(
       `${this.apiUrl}/tenant/landlord/${propertyId}`,
@@ -655,8 +633,4 @@ export class ChatService {
     this.currentRoomSubject.next(null);
     this.roomSubscriptions.clear();
   }
-}
-
-function Injectable(arg0: { providedIn: string; }): (target: typeof ChatService, context: ClassDecoratorContext<typeof ChatService>) => void | typeof ChatService {
-  throw new Error('Function not implemented.');
 }
