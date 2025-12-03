@@ -79,6 +79,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     '🥇', '🥈', '🥉', '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉'
   ];
 
+  selectedPropertyId: number | null = null;
+  selectedCaretakerPropertyId: number | null = null;
+
   private router = inject(Router);
 
   constructor(
@@ -241,7 +244,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.showNewChatModal = true;
   }
 
-  // ✅ WORKING PATTERN: Component PASSES parameters to Service
   createChat(chatType: ChatRoomType): void {
     if (!this.canCreateChatType(chatType)) {
       alert(`You don't have permission to create ${chatType} chats`);
@@ -253,7 +255,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     console.log(`Creating ${chatType} chat for user role: ${this.userRole}`);
 
-    // ✅ Component decides what ID to pass based on user role
     switch (chatType) {
       case this.CHAT_TYPES.TENANT_LANDLORD:
         if (this.userRole !== 'TENANT') {
@@ -261,7 +262,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         
-        // ✅ Tenant passes propertyId from their unit
         if (this.userUnits.length === 0) {
           alert('No units found. Please contact your landlord.');
           return;
@@ -283,7 +283,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         
-        // ✅ Tenant passes propertyId from their unit
         if (this.userUnits.length === 0) {
           alert('No units found. Please contact your landlord.');
           return;
@@ -305,7 +304,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         
-        // ✅ Landlord passes propertyId
         if (this.userProperties.length === 0) {
           alert('No properties available. Please create a property first.');
           return;
@@ -322,7 +320,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         
-        // ✅ Landlord needs to select a unit first (we'll use the first property's first unit)
         if (this.userProperties.length === 0) {
           alert('No properties available. Please create a property first.');
           return;
@@ -344,7 +341,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         
-        // ✅ Caretaker needs to select a unit first
         if (this.userProperties.length === 0) {
           alert('No properties assigned. Please contact the landlord.');
           return;
@@ -383,7 +379,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         
-        // Use the first unit's ID
         const unitId = units[0].id;
         callback(unitId);
       },
@@ -624,6 +619,23 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return 'No Property/Unit';
   }
 
+  getRoomName(room: ChatRoom): string {
+    if (!room) return 'Chat';
+    
+    const currentUser = this.authService.getCurrentUser();
+    const otherParticipants = room.participants?.filter(p => p.id !== currentUser?.id) || [];
+    
+    if (otherParticipants.length === 1) {
+      return otherParticipants[0].name || otherParticipants[0].email || 'User';
+    }
+    
+    if (otherParticipants.length > 1) {
+      return `${otherParticipants.length} participants`;
+    }
+    
+    return 'Chat';
+  }
+
   private extractProperties(response: any): Property[] {
     if (!response) return [];
     if (Array.isArray(response)) {
@@ -707,7 +719,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private getSingleParticipantInfo(participant: Participant, room: ChatRoom): EnrichedChatInfo {
     const role = participant.role?.toUpperCase();
     
-    let title = participant.name || participant.fullName || 'User';
+    let title = participant.name || 'User';
     let subtitle = '';
     let description = '';
 
@@ -824,5 +836,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngAfterViewChecked(): void {
     this.scrollToBottom();
+  }
+
+  onPropertySelectedForChat(event: any): void {
+    const value = event.target.value;
+    if (value) {
+      this.selectedPropertyId = parseInt(value, 10);
+    } else {
+      this.selectedPropertyId = null;
+    }
   }
 }

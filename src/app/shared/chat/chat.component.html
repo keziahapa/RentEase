@@ -35,7 +35,7 @@
           </div>
           
           <div class="room-info">
-            <div class="room-name">{{ getChatRoomName(room) }}</div>
+            <div class="room-name">{{ getRoomName(room) }}</div>
             <div class="last-message">
               {{ (room.lastMessage?.content || 'No messages yet').slice(0, 50) }}{{(room.lastMessage?.content || '').length > 50 ? '...' : ''}}
             </div>
@@ -82,7 +82,7 @@
           <div class="chat-title">{{ currentChatInfo?.title || 'Chat' }}</div>
           <div class="chat-subtitle">{{ currentChatInfo?.subtitle || '' }}</div>
           <div *ngIf="currentChatInfo?.description" class="chat-description">
-            {{ currentChatInfo.description }}
+            {{ currentChatInfo?.description }}
           </div>
         </div>
         
@@ -106,7 +106,7 @@
             [class.other-message]="!isMyMessage(message)">
             
             <div *ngIf="!isMyMessage(message)" class="message-sender">
-              {{ message.sender?.name || message.sender?.fullName || 'User' }}
+              {{ message.sender?.name || 'User' }}
             </div>
             
             <div class="message-content">{{ message.content }}</div>
@@ -114,8 +114,8 @@
             <div class="message-footer">
               <span class="message-time">{{ formatMessageTime(message.sentAt) }}</span>
               <span *ngIf="message.isEdited" class="message-edited">(edited)</span>
-              <span *ngIf="isMyMessage(message)" class="message-status" [ngClass]="getMessageStatusClass(message)">
-                <mat-icon>{{ getMessageStatusIcon(message) }}</mat-icon>
+              <span *ngIf="isMyMessage(message)" class="message-status">
+                <mat-icon>done</mat-icon>
               </span>
             </div>
             
@@ -175,7 +175,7 @@
     </div>
   </div>
 
-
+  <!-- New Chat Modal -->
   <div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -186,13 +186,13 @@
       </div>
       
       <div class="modal-body">
-    
+        <!-- Loading State -->
         <div *ngIf="loadingProperties" class="loading-state">
           <mat-icon class="spinner">schedule</mat-icon>
           <p>Loading your information...</p>
         </div>
 
-      
+        <!-- Chat Options (when data is available) -->
         <ng-container *ngIf="!loadingProperties">
           <!-- TENANT VIEW -->
           <div *ngIf="userRole === 'TENANT'" class="tenant-view">
