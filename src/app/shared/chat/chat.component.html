@@ -191,9 +191,9 @@
     </div>
   </div>
 
-  <!-- SIMPLIFIED New Chat Modal -->
+  <!-- New Chat Modal -->
   <div class="modal-overlay" *ngIf="showNewChatModal" (click)="closeNewChatModal()">
-    <div class="modal-content-simple" (click)="$event.stopPropagation()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Start New Chat</h3>
         <button class="close-btn" (click)="closeNewChatModal()">
@@ -201,91 +201,80 @@
         </button>
       </div>
       
-      <div class="modal-body-simple">
+      <div class="modal-body">
         <!-- Loading State -->
         <div *ngIf="loadingProperties" class="loading-state">
           <mat-icon class="spinner">schedule</mat-icon>
           <p>Loading your information...</p>
         </div>
 
-        <!-- Error State for Tenant -->
-        <div *ngIf="!loadingProperties && userRole === 'TENANT' && userUnits.length === 0" class="error-state">
-          <mat-icon class="error-icon">warning</mat-icon>
-          <h4>No Units Assigned</h4>
-          <p>You don't have any units assigned to you yet.</p>
-          <p>Please contact your landlord to be assigned to a unit.</p>
-          <button class="btn-secondary" (click)="closeNewChatModal()">
-            Close
-          </button>
-        </div>
-
-        <!-- Error State for Landlord/Caretaker -->
-        <div *ngIf="!loadingProperties && (userRole === 'LANDLORD' || userRole === 'CARETAKER') && userProperties.length === 0" class="error-state">
-          <mat-icon class="error-icon">warning</mat-icon>
-          <h4>No Properties Available</h4>
-          <p *ngIf="userRole === 'LANDLORD'">You don't have any properties yet.</p>
-          <p *ngIf="userRole === 'CARETAKER'">No properties are assigned to you.</p>
-          <button class="btn-secondary" (click)="closeNewChatModal()">
-            Close
-          </button>
-        </div>
-
         <!-- Chat Options (when data is available) -->
-        <ng-container *ngIf="!loadingProperties && 
-          ((userRole === 'TENANT' && userUnits.length > 0) || 
-           (userRole === 'LANDLORD' && userProperties.length > 0) || 
-           (userRole === 'CARETAKER' && userProperties.length > 0))">
-          
-          <div class="user-context">
-            <mat-icon class="role-icon">
-              <span *ngIf="userRole === 'TENANT'">person</span>
-              <span *ngIf="userRole === 'LANDLORD'">business</span>
-              <span *ngIf="userRole === 'CARETAKER'">engineering</span>
-            </mat-icon>
-            <span class="role-label">{{ userRole }}</span>
+        <ng-container *ngIf="!loadingProperties">
+          <!-- TENANT VIEW -->
+          <div *ngIf="userRole === 'TENANT'" class="tenant-view">
+            <div class="user-context">
+              <mat-icon class="role-icon">person</mat-icon>
+              <span class="role-label">TENANT</span>
+            </div>
             
-            <div *ngIf="userRole === 'TENANT' && tenantProperties.length > 0" class="property-context">
-              <mat-icon>apartment</mat-icon>
-              <span>{{ getCurrentPropertyName() }}</span>
+            <div *ngIf="userUnits.length > 0" class="tenant-info">
+              <div class="property-display">
+                <mat-icon>apartment</mat-icon>
+                <span>{{ getCurrentPropertyName() }}</span>
+              </div>
+              
+              <div class="chat-options">
+                <h4>Who would you like to message?</h4>
+                
+                <button 
+                  class="chat-option-card" 
+                  (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)"
+                  [disabled]="loadingRooms">
+                  <div class="option-icon-container">
+                    <mat-icon class="option-icon-main">business</mat-icon>
+                  </div>
+                  <div class="option-content">
+                    <h5>Message Landlord</h5>
+                    <p>Property inquiries, rent questions, and general requests</p>
+                  </div>
+                  <mat-icon class="option-arrow">arrow_forward</mat-icon>
+                </button>
+                
+                <button 
+                  class="chat-option-card" 
+                  (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)"
+                  [disabled]="loadingRooms">
+                  <div class="option-icon-container">
+                    <mat-icon class="option-icon-main">engineering</mat-icon>
+                  </div>
+                  <div class="option-content">
+                    <h5>Message Caretaker</h5>
+                    <p>Maintenance requests, repairs, and property issues</p>
+                  </div>
+                  <mat-icon class="option-arrow">arrow_forward</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <div *ngIf="userUnits.length === 0" class="no-units">
+              <mat-icon class="warning-icon">warning</mat-icon>
+              <h4>No Units Assigned</h4>
+              <p>You don't have any units assigned to you yet.</p>
+              <p>Please contact your landlord to be assigned to a unit.</p>
             </div>
           </div>
 
-          <!-- TENANT OPTIONS -->
-          <div *ngIf="userRole === 'TENANT'" class="chat-options-simple">
-            <h4>Who would you like to message?</h4>
+          <!-- LANDLORD VIEW -->
+          <div *ngIf="userRole === 'LANDLORD'" class="landlord-view">
+            <div class="user-context">
+              <mat-icon class="role-icon">business</mat-icon>
+              <span class="role-label">LANDLORD</span>
+            </div>
             
-            <button class="chat-option-card" (click)="createChat(CHAT_TYPES.TENANT_LANDLORD)">
-              <div class="option-icon-container">
-                <mat-icon class="option-icon-main">business</mat-icon>
-              </div>
-              <div class="option-content">
-                <h5>Message Landlord</h5>
-                <p>Property inquiries, rent questions, and general requests</p>
-              </div>
-              <mat-icon class="option-arrow">arrow_forward</mat-icon>
-            </button>
-            
-            <button class="chat-option-card" (click)="createChat(CHAT_TYPES.TENANT_CARETAKER)">
-              <div class="option-icon-container">
-                <mat-icon class="option-icon-main">engineering</mat-icon>
-              </div>
-              <div class="option-content">
-                <h5>Message Caretaker</h5>
-                <p>Maintenance requests, repairs, and property issues</p>
-              </div>
-              <mat-icon class="option-arrow">arrow_forward</mat-icon>
-            </button>
-          </div>
-
-          <!-- LANDLORD OPTIONS -->
-          <div *ngIf="userRole === 'LANDLORD'" class="chat-options-simple">
-            <h4>Start a conversation</h4>
-            
-            <!-- Property Selection -->
-            <div *ngIf="userProperties.length > 1" class="property-selection">
+            <div *ngIf="userProperties.length > 0" class="property-selection">
               <label>Select Property</label>
               <select 
-                class="property-select-simple"
+                class="property-select"
                 [(ngModel)]="selectedPropertyId"
                 (change)="onPropertySelectedForChat($event)">
                 <option value="">Choose a property...</option>
@@ -297,18 +286,20 @@
               </select>
             </div>
             
-            <!-- Single Property Display -->
-            <div *ngIf="userProperties.length === 1" class="selected-property">
-              <mat-icon>location_on</mat-icon>
-              <span>{{ userProperties[0].name }}</span>
+            <div *ngIf="userProperties.length === 0" class="no-properties">
+              <mat-icon class="warning-icon">warning</mat-icon>
+              <h4>No Properties</h4>
+              <p>You don't have any properties yet.</p>
+              <p>Create a property to start chatting.</p>
             </div>
 
-            <!-- Chat Options -->
-            <div class="chat-options-grid">
+            <div class="chat-options" *ngIf="userProperties.length > 0">
+              <h4>Start a conversation</h4>
+              
               <button 
                 class="chat-option-card" 
                 (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)"
-                [disabled]="!selectedPropertyId && userProperties.length > 1">
+                [disabled]="(!selectedPropertyId && userProperties.length > 1) || loadingRooms">
                 <div class="option-icon-container">
                   <mat-icon class="option-icon-main">engineering</mat-icon>
                 </div>
@@ -322,7 +313,7 @@
               <button 
                 class="chat-option-card" 
                 (click)="openTenantSelectionModal()"
-                [disabled]="!selectedPropertyId && userProperties.length > 1">
+                [disabled]="(!selectedPropertyId && userProperties.length > 1) || loadingRooms">
                 <div class="option-icon-container">
                   <mat-icon class="option-icon-main">people</mat-icon>
                 </div>
@@ -335,15 +326,17 @@
             </div>
           </div>
 
-          <!-- CARETAKER OPTIONS -->
-          <div *ngIf="userRole === 'CARETAKER'" class="chat-options-simple">
-            <h4>Start a conversation</h4>
+          <!-- CARETAKER VIEW -->
+          <div *ngIf="userRole === 'CARETAKER'" class="caretaker-view">
+            <div class="user-context">
+              <mat-icon class="role-icon">engineering</mat-icon>
+              <span class="role-label">CARETAKER</span>
+            </div>
             
-            <!-- Property Selection -->
-            <div *ngIf="userProperties.length > 1" class="property-selection">
+            <div *ngIf="userProperties.length > 0" class="property-selection">
               <label>Select Property</label>
               <select 
-                class="property-select-simple"
+                class="property-select"
                 [(ngModel)]="selectedCaretakerPropertyId"
                 (change)="onPropertySelectedForChat($event)">
                 <option value="">Choose a property...</option>
@@ -355,18 +348,20 @@
               </select>
             </div>
             
-            <!-- Single Property Display -->
-            <div *ngIf="userProperties.length === 1" class="selected-property">
-              <mat-icon>location_on</mat-icon>
-              <span>{{ userProperties[0].name }}</span>
+            <div *ngIf="userProperties.length === 0" class="no-properties">
+              <mat-icon class="warning-icon">warning</mat-icon>
+              <h4>No Properties Assigned</h4>
+              <p>No properties are assigned to you.</p>
+              <p>Contact a landlord to be assigned to properties.</p>
             </div>
 
-            <!-- Chat Options -->
-            <div class="chat-options-grid">
+            <div class="chat-options" *ngIf="userProperties.length > 0">
+              <h4>Start a conversation</h4>
+              
               <button 
                 class="chat-option-card" 
                 (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)"
-                [disabled]="!selectedCaretakerPropertyId && userProperties.length > 1">
+                [disabled]="(!selectedCaretakerPropertyId && userProperties.length > 1) || loadingRooms">
                 <div class="option-icon-container">
                   <mat-icon class="option-icon-main">business</mat-icon>
                 </div>
@@ -380,7 +375,7 @@
               <button 
                 class="chat-option-card" 
                 (click)="openTenantSelectionModal()"
-                [disabled]="!selectedCaretakerPropertyId && userProperties.length > 1">
+                [disabled]="(!selectedCaretakerPropertyId && userProperties.length > 1) || loadingRooms">
                 <div class="option-icon-container">
                   <mat-icon class="option-icon-main">people</mat-icon>
                 </div>
@@ -401,9 +396,8 @@
         </div>
       </div>
       
-      <div class="modal-footer-simple">
+      <div class="modal-footer">
         <button class="btn-secondary" (click)="closeNewChatModal()">
-          <mat-icon>cancel</mat-icon>
           Cancel
         </button>
       </div>
@@ -412,7 +406,7 @@
 
   <!-- Tenant Selection Modal (for Landlord/Caretaker) -->
   <div class="modal-overlay" *ngIf="showTenantSelectionModal" (click)="closeTenantSelectionModal()">
-    <div class="modal-content-simple" (click)="$event.stopPropagation()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Select Tenant</h3>
         <button class="close-btn" (click)="closeTenantSelectionModal()">
@@ -420,19 +414,16 @@
         </button>
       </div>
       
-      <div class="modal-body-simple">
+      <div class="modal-body">
         <div *ngIf="loadingUnits" class="loading-state">
           <mat-icon class="spinner">schedule</mat-icon>
           <p>Loading units...</p>
         </div>
 
-        <div *ngIf="!loadingUnits && availableUnits.length === 0" class="error-state">
-          <mat-icon class="error-icon">warning</mat-icon>
+        <div *ngIf="!loadingUnits && availableUnits.length === 0" class="no-units">
+          <mat-icon class="warning-icon">warning</mat-icon>
           <h4>No Units Available</h4>
           <p>No units found for this property.</p>
-          <button class="btn-secondary" (click)="closeTenantSelectionModal()">
-            Back
-          </button>
         </div>
 
         <div *ngIf="!loadingUnits && availableUnits.length > 0" class="tenant-selection">
@@ -469,14 +460,12 @@
           
           <div class="modal-actions">
             <button class="btn-secondary" (click)="closeTenantSelectionModal()">
-              <mat-icon>arrow_back</mat-icon>
               Back
             </button>
             <button 
               class="btn-primary" 
               [disabled]="!selectedUnitId"
               (click)="createTenantChat()">
-              <mat-icon>chat</mat-icon>
               Start Chat
             </button>
           </div>

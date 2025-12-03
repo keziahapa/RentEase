@@ -1,9 +1,16 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Observable, throwError, of } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { ProfilePictureService } from './profile-picture.service';
+import { 
+  LandlordMoveOutNoticeResponse, 
+  MoveOutActionRequest,
+  DashboardResponse,
+  StatsResponse,
+  MoveOutStats 
+} from './dashboard-interface';
 
 @Injectable({
   providedIn: 'root'
@@ -15,110 +22,7 @@ export class PropertyService {
   
   private readonly apiUrl = 'https://rentease-4.onrender.com';
 
-  getPropertyByName(propertyName: string): Observable<any> {
-    const token = this.authService.getToken();
-    if (!token) {
-      return of({
-        success: false,
-        message: 'No authentication token available',
-        data: null
-      });
-    }
-
-    console.log('🔍 PropertyService: Searching for property by name:', propertyName);
-
-    return this.http.get<any>(
-      `${this.apiUrl}/api/landlord/properties`,
-      { headers: this.createHeaders(), responseType: 'json' }
-    ).pipe(
-      map(response => {
-        console.log('✅ PropertyService: Search response received:', response);
-        
-        let propertiesArray: any[] = [];
-        
-        // Try to extract properties from various response structures
-        if (Array.isArray(response)) {
-          propertiesArray = response;
-        } else if (response?.data && Array.isArray(response.data)) {
-          propertiesArray = response.data;
-        } else if (response?.properties && Array.isArray(response.properties)) {
-          propertiesArray = response.properties;
-        } else if (response?.content && Array.isArray(response.content)) {
-          propertiesArray = response.content;
-        } else if (response?.success && Array.isArray(response.data)) {
-          propertiesArray = response.data;
-        } else if (response?.success === false) {
-          // API returned an error
-          console.warn('⚠️ API returned error:', response);
-          return {
-            success: false,
-            message: response?.message || 'Failed to fetch properties',
-            data: null
-          };
-        } else if (typeof response === 'object' && response.id) {
-          // Single property object
-          propertiesArray = [response];
-        } else {
-          console.warn('⚠️ Unexpected response structure:', response);
-          return {
-            success: false,
-            message: 'Unexpected response format from server',
-            data: null
-          };
-        }
-
-        console.log(`📋 Found ${propertiesArray.length} properties to search through`);
-
-        // Search for property by name (case-insensitive)
-        const foundProperty = propertiesArray.find(property => {
-          const propName = property.name || property.propertyName || property.title || '';
-          console.log(`🔍 Checking property: "${propName}" against "${propertyName}"`);
-          return propName.toLowerCase() === propertyName.toLowerCase();
-        });
-
-        if (foundProperty) {
-          console.log(`✅ Found property: ${foundProperty.name} with ID: ${foundProperty.id}`);
-          return {
-            success: true,
-            message: 'Property found',
-            data: foundProperty
-          };
-        }
-
-        console.warn(`⚠️ Property "${propertyName}" not found in ${propertiesArray.length} properties`);
-        console.log('Available properties:', propertiesArray.map(p => p.name || p.propertyName || p.title));
-        
-        return {
-          success: false,
-          message: `Property "${propertyName}" not found`,
-          data: null
-        };
-      }),
-      catchError(error => {
-        console.error('❌ PropertyService: Error in getPropertyByName:', error);
-        
-        let errorMessage = 'Error searching for property';
-        
-        if (error.status === 401) {
-          errorMessage = 'Authentication failed. Please login again.';
-        } else if (error.status === 404) {
-          errorMessage = 'Properties endpoint not found.';
-        } else if (error.status === 0) {
-          errorMessage = 'Cannot connect to server. Check your internet connection.';
-        } else if (error.error?.message) {
-          errorMessage = error.error.message;
-        }
-        
-        return of({
-          success: false,
-          message: errorMessage,
-          data: null,
-          error: error
-        });
-      })
-    );
-  }
-
+  // PROFILE METHODS
   getCurrentUserProfile(): Observable<any> {
     return this.profileService.getCurrentUserProfile();
   }
@@ -143,6 +47,7 @@ export class PropertyService {
     return this.profileService.deleteProfilePicture();
   }
 
+  // TENANT METHODS
   getTenantUnits(): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
@@ -154,9 +59,7 @@ export class PropertyService {
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
       map(response => this.normalizeTenantUnitsResponse(response)),
-      catchError(error => {
-        return this.handleTenantError(error);
-      })
+      catchError(error => this.handleTenantError(error))
     );
   }
 
@@ -174,6 +77,7 @@ export class PropertyService {
     );
   }
 
+  // PROPERTY METHODS
   createProperty(request: any): Observable<any> {
     const backendRequest = {
       name: request.name.trim(),
@@ -196,9 +100,7 @@ export class PropertyService {
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
       map(response => this.normalizePropertiesResponse(response)),
-      catchError(error => {
-        return this.handlePropertiesError(error);
-      })
+      catchError(error => this.handlePropertiesError(error))
     );
   }
 
@@ -242,15 +144,14 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
+  // UNIT METHODS
   getUnitsByPropertyId(propertyId: string): Observable<any[]> {
     return this.http.get<any>(
       `${this.apiUrl}/api/landlord/properties/${propertyId}/units`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
       map(response => this.normalizeUnitsResponse(response)),
-      catchError(error => {
-        return this.handleUnitsError(error);
-      })
+      catchError(error => this.handleUnitsError(error))
     );
   }
 
@@ -297,6 +198,7 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
+  // DASHBOARD METHODS
   getDashboardStats(): Observable<any> {
     return this.http.get<any>(
       `${this.apiUrl}/api/landlord/dashboard/stats`,
@@ -311,7 +213,8 @@ export class PropertyService {
     ).pipe(catchError(this.handleError));
   }
 
-  getLandlordMoveOutNotices(page: number = 1, pageSize: number = 10, status?: string): Observable<any> {
+  // ✅ FIXED MOVE OUT NOTICES - LANDLORD
+  getLandlordMoveOutNotices(page: number = 1, pageSize: number = 10, status?: string): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
@@ -325,7 +228,7 @@ export class PropertyService {
       params = params.set('status', status);
     }
 
-    return this.http.get<any>(
+    return this.http.get<LandlordMoveOutNoticeResponse>(
       `${this.apiUrl}/api/landlord/move-out-notices`,
       { 
         headers: this.createHeaders(),
@@ -336,13 +239,14 @@ export class PropertyService {
     );
   }
 
-  approveMoveOutNotice(noticeId: number): Observable<any> {
+  // ✅ FIXED: Approve without request body
+  approveMoveOutNotice(noticeId: number): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
     }
 
-    return this.http.post<any>(
+    return this.http.post<LandlordMoveOutNoticeResponse>(
       `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}/approve`,
       null,
       { headers: this.createHeaders() }
@@ -351,7 +255,8 @@ export class PropertyService {
     );
   }
 
-  rejectMoveOutNotice(noticeId: number, reason: string): Observable<any> {
+  // ✅ FIXED: Reject with reason as query parameter
+  rejectMoveOutNotice(noticeId: number, reason: string): Observable<LandlordMoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
       return throwError(() => new Error('No authentication token available'));
@@ -359,7 +264,7 @@ export class PropertyService {
 
     const params = new HttpParams().set('reason', reason);
 
-    return this.http.post<any>(
+    return this.http.post<LandlordMoveOutNoticeResponse>(
       `${this.apiUrl}/api/landlord/move-out-notices/${noticeId}/reject`,
       null,
       { 
@@ -399,6 +304,7 @@ export class PropertyService {
     );
   }
 
+  // MOVE OUT NOTICES - TENANT
   getTenantMoveOutNotices(page: number = 1, limit: number = 10): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
@@ -464,6 +370,7 @@ export class PropertyService {
     );
   }
 
+  // PRIVATE HELPER METHODS
   private normalizePropertiesResponse(response: any): any[] {
     if (Array.isArray(response)) {
       return response;

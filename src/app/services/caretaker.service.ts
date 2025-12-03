@@ -3,6 +3,14 @@ import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+import { 
+  Property, 
+  Unit, 
+  MoveOutNotice, 
+  DashboardStats, 
+  CreateUnitRequest,
+  ApiResponse 
+} from '../services/caretaker-interfaces'
 
 @Injectable({
   providedIn: 'root'
@@ -38,6 +46,8 @@ export class CaretakerService {
     } else if (error.error?.message) {
       errorMessage = error.error.message;
     }
+
+    console.warn('Caretaker service error handled:', errorMessage);
     
     return throwError(() => ({
       status: error.status,
@@ -46,26 +56,17 @@ export class CaretakerService {
     }));
   }
 
+  // ADD THIS MISSING METHOD
   getCaretakerProperties(): Observable<any[]> {
-    return this.http.get<any>(`${this.apiUrl}/caretaker/properties`, {
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/caretaker/properties`, {
       headers: this.createHeaders()
     }).pipe(
       map(response => {
-        if (Array.isArray(response)) {
-          return response;
-        }
-        if (response?.data && Array.isArray(response.data)) {
-          return response.data;
-        }
-        if (response?.properties && Array.isArray(response.properties)) {
-          return response.properties;
-        }
-        if (response?.content && Array.isArray(response.content)) {
-          return response.content;
-        }
-        return [];
+        console.log('🔍 Caretaker properties API response:', response);
+        return response.data || [];
       }),
       catchError(error => {
+        console.error('Error fetching caretaker properties:', error);
         return of([]);
       })
     );
@@ -90,6 +91,7 @@ export class CaretakerService {
         };
       }),
       catchError(error => {
+        console.log('Error calculating caretaker dashboard data:', error);
         return of({
           hasProperties: false,
           totalProperties: 0,
@@ -103,110 +105,56 @@ export class CaretakerService {
     );
   }
 
-  getProperties(): Observable<any[]> {
-    return this.http.get<any>(`${this.apiUrl}/caretaker/properties`, {
+  getProperties(): Observable<Property[]> {
+    return this.http.get<ApiResponse<Property[]>>(`${this.apiUrl}/caretaker/properties`, {
       headers: this.createHeaders()
     }).pipe(
-      map(response => {
-        let propertiesArray: any[] = [];
-        
-        if (Array.isArray(response)) {
-          propertiesArray = response;
-        } else if (response?.data && Array.isArray(response.data)) {
-          propertiesArray = response.data;
-        } else if (response?.properties && Array.isArray(response.properties)) {
-          propertiesArray = response.properties;
-        } else if (response?.content && Array.isArray(response.content)) {
-          propertiesArray = response.content;
-        }
-        
-        return propertiesArray;
-      }),
+      map(response => response.data || []),
       catchError(this.handleError)
     );
   }
 
-  getPropertyDetails(propertyId: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/caretaker/properties/${propertyId}`, {
+  getPropertyDetails(propertyId: number): Observable<Property> {
+    return this.http.get<ApiResponse<Property>>(`${this.apiUrl}/caretaker/properties/${propertyId}`, {
       headers: this.createHeaders()
     }).pipe(
-      map(response => {
-        if (response?.data) return response.data;
-        if (response?.property) return response.property;
-        return response;
-      }),
+      map(response => response.data),
       catchError(this.handleError)
     );
   }
 
-  getPropertyUnits(propertyId: number): Observable<any[]> {
-    return this.http.get<any>(`${this.apiUrl}/caretaker/properties/${propertyId}/units`, {
+  getPropertyUnits(propertyId: number): Observable<Unit[]> {
+    return this.http.get<ApiResponse<Unit[]>>(`${this.apiUrl}/caretaker/properties/${propertyId}/units`, {
       headers: this.createHeaders()
     }).pipe(
-      map(response => {
-        let unitsArray: any[] = [];
-        
-        if (Array.isArray(response)) {
-          unitsArray = response;
-        } else if (response?.data && Array.isArray(response.data)) {
-          unitsArray = response.data;
-        } else if (response?.units && Array.isArray(response.units)) {
-          unitsArray = response.units;
-        } else if (response?.content && Array.isArray(response.content)) {
-          unitsArray = response.content;
-        }
-        
-        return unitsArray;
-      }),
-      catchError(error => {
-        return this.handleError(error);
-      })
-    );
-  }
-
-  getAllUnits(): Observable<any[]> {
-    return this.http.get<any>(`${this.apiUrl}/caretaker/units`, {
-      headers: this.createHeaders()
-    }).pipe(
-      map(response => {
-        let unitsArray: any[] = [];
-        
-        if (Array.isArray(response)) {
-          unitsArray = response;
-        } else if (response?.data && Array.isArray(response.data)) {
-          unitsArray = response.data;
-        } else if (response?.units && Array.isArray(response.units)) {
-          unitsArray = response.units;
-        }
-        
-        return unitsArray;
-      }),
+      map(response => response.data || []),
       catchError(this.handleError)
     );
   }
 
-  createUnit(propertyId: number, unit: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/caretaker/properties/${propertyId}/units`, unit, {
+  getAllUnits(): Observable<Unit[]> {
+    return this.http.get<ApiResponse<Unit[]>>(`${this.apiUrl}/caretaker/units`, {
       headers: this.createHeaders()
     }).pipe(
-      map(response => {
-        if (response?.data) return response.data;
-        if (response?.unit) return response.unit;
-        return response;
-      }),
+      map(response => response.data || []),
       catchError(this.handleError)
     );
   }
 
-  updateUnit(unitId: number, unit: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/caretaker/units/${unitId}`, unit, {
+  createUnit(propertyId: number, unit: CreateUnitRequest): Observable<Unit> {
+    return this.http.post<ApiResponse<Unit>>(`${this.apiUrl}/caretaker/properties/${propertyId}/units`, unit, {
       headers: this.createHeaders()
     }).pipe(
-      map(response => {
-        if (response?.data) return response.data;
-        if (response?.unit) return response.unit;
-        return response;
-      }),
+      map(response => response.data),
+      catchError(this.handleError)
+    );
+  }
+
+  updateUnit(unitId: number, unit: Partial<Unit>): Observable<Unit> {
+    return this.http.put<ApiResponse<Unit>>(`${this.apiUrl}/caretaker/units/${unitId}`, unit, {
+      headers: this.createHeaders()
+    }).pipe(
+      map(response => response.data),
       catchError(this.handleError)
     );
   }
@@ -231,7 +179,7 @@ export class CaretakerService {
     );
   }
 
-  getMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<any[]> {
+  getMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<MoveOutNotice[]> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
@@ -240,63 +188,48 @@ export class CaretakerService {
       params = params.set('status', status);
     }
 
-    return this.http.get<any>(`${this.apiUrl}/caretaker/move-out-notices`, {
+    return this.http.get<ApiResponse<MoveOutNotice[]>>(`${this.apiUrl}/caretaker/move-out-notices`, {
       headers: this.createHeaders(),
       params
     }).pipe(
-      map(response => {
-        if (Array.isArray(response)) return response;
-        if (response?.data && Array.isArray(response.data)) return response.data;
-        return [];
-      }),
+      map(response => response.data || []),
       catchError(this.handleError)
     );
   }
 
-  getPendingMoveOutNotices(page: number = 1, limit: number = 10): Observable<any[]> {
+  getPendingMoveOutNotices(page: number = 1, limit: number = 10): Observable<MoveOutNotice[]> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
 
-    return this.http.get<any>(`${this.apiUrl}/caretaker/move-out-notices/pending`, {
+    return this.http.get<ApiResponse<MoveOutNotice[]>>(`${this.apiUrl}/caretaker/move-out-notices/pending`, {
       headers: this.createHeaders(),
       params
     }).pipe(
-      map(response => {
-        if (Array.isArray(response)) return response;
-        if (response?.data && Array.isArray(response.data)) return response.data;
-        return [];
-      }),
+      map(response => response.data || []),
       catchError(this.handleError)
     );
   }
 
-  getMovedOutNotices(page: number = 1, limit: number = 10): Observable<any[]> {
+  getMovedOutNotices(page: number = 1, limit: number = 10): Observable<MoveOutNotice[]> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
 
-    return this.http.get<any>(`${this.apiUrl}/caretaker/move-out-notices/moved`, {
+    return this.http.get<ApiResponse<MoveOutNotice[]>>(`${this.apiUrl}/caretaker/move-out-notices/moved`, {
       headers: this.createHeaders(),
       params
     }).pipe(
-      map(response => {
-        if (Array.isArray(response)) return response;
-        if (response?.data && Array.isArray(response.data)) return response.data;
-        return [];
-      }),
+      map(response => response.data || []),
       catchError(this.handleError)
     );
   }
 
-  getMoveOutNoticeById(noticeId: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/caretaker/move-out-notices/${noticeId}`, {
+  getMoveOutNoticeById(noticeId: number): Observable<MoveOutNotice> {
+    return this.http.get<ApiResponse<MoveOutNotice>>(`${this.apiUrl}/caretaker/move-out-notices/${noticeId}`, {
       headers: this.createHeaders()
     }).pipe(
-      map(response => {
-        if (response?.data) return response.data;
-        return response;
-      }),
+      map(response => response.data),
       catchError(this.handleError)
     );
   }
@@ -356,14 +289,11 @@ export class CaretakerService {
     );
   }
 
-  getDashboardStats(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/caretaker/dashboard/stats`, {
+  getDashboardStats(): Observable<DashboardStats> {
+    return this.http.get<ApiResponse<DashboardStats>>(`${this.apiUrl}/caretaker/dashboard/stats`, {
       headers: this.createHeaders()
     }).pipe(
-      map(response => {
-        if (response?.data) return response.data;
-        return response;
-      }),
+      map(response => response.data),
       catchError(this.handleError)
     );
   }
@@ -372,10 +302,7 @@ export class CaretakerService {
     return this.http.get<any>(`${this.apiUrl}/caretaker/move-out-notices/stats`, {
       headers: this.createHeaders()
     }).pipe(
-      map(response => {
-        if (response?.data) return response.data;
-        return response;
-      }),
+      map(response => response.data),
       catchError(this.handleError)
     );
   }
@@ -391,27 +318,20 @@ export class CaretakerService {
       params = params.set('status', status);
     }
 
-    return this.http.get<any>(`${this.apiUrl}/caretaker/maintenance-requests`, {
+    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/caretaker/maintenance-requests`, {
       headers: this.createHeaders(),
       params
     }).pipe(
-      map(response => {
-        if (Array.isArray(response)) return response;
-        if (response?.data && Array.isArray(response.data)) return response.data;
-        return [];
-      }),
+      map(response => response.data || []),
       catchError(this.handleError)
     );
   }
 
   updateMaintenanceRequest(requestId: number, updates: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/caretaker/maintenance-requests/${requestId}`, updates, {
+    return this.http.put<ApiResponse<any>>(`${this.apiUrl}/caretaker/maintenance-requests/${requestId}`, updates, {
       headers: this.createHeaders()
     }).pipe(
-      map(response => {
-        if (response?.data) return response.data;
-        return response;
-      }),
+      map(response => response.data),
       catchError(this.handleError)
     );
   }

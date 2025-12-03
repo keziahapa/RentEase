@@ -4,6 +4,13 @@ import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
+import { 
+  TenantData, 
+  MoveOutNoticeRequest, 
+  MoveOutNotice, 
+  MoveOutNoticeResponse,
+  TenantUnit 
+} from './tenant-interface';
 
 @Injectable({
   providedIn: 'root'
@@ -19,55 +26,21 @@ export class TenantService {
   getTenantUnits(): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
-      return of({ success: false, data: [], message: 'Not authenticated' });
+      return of({ success: true, data: [] });
     }
 
     return this.http.get<any>(
       `${this.apiUrl}/tenant/units`,
       { headers: this.createHeaders() }
     ).pipe(
-      map(response => {
-        if (Array.isArray(response)) {
-          return { success: true, data: response };
-        }
-        
-        if (response?.data && Array.isArray(response.data)) {
-          return { success: true, data: response.data };
-        }
-        
-        if (response?.units && Array.isArray(response.units)) {
-          return { success: true, data: response.units };
-        }
-
-        if (response?.content && Array.isArray(response.content)) {
-          return { success: true, data: response.content };
-        }
-
-        if (response?.success !== undefined) {
-          return response;
-        }
-
-        if (response?.id || response?.unitId) {
-          return { success: true, data: [response] };
-        }
-
-        return { success: true, data: [] };
-      }),
+      map(response => response),
       catchError((error) => {
-        return of({ 
-          success: false, 
-          data: [],
-          message: error.error?.message || 'Failed to load your units',
-          error: {
-            status: error.status,
-            statusText: error.statusText
-          }
-        });
+        return of({ success: false, data: [] });
       })
     );
   }
 
-  getMoveOutNotices(page: number = 1, limit: number = 10): Observable<any> {
+  getMoveOutNotices(page: number = 1, limit: number = 10): Observable<MoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
       return of(this.getMockMoveOutNotices());
@@ -77,7 +50,7 @@ export class TenantService {
       .set('page', page.toString())
       .set('limit', limit.toString());
 
-    return this.http.get<any>(
+    return this.http.get<MoveOutNoticeResponse>(
       `${this.apiUrl}/tenant/move-out-notices`,
       { 
         headers: this.createHeaders(),
@@ -90,7 +63,7 @@ export class TenantService {
     );
   }
 
-  submitMoveOutNotice(request: any): Observable<any> {
+  submitMoveOutNotice(request: MoveOutNoticeRequest): Observable<any> {
     return this.http.post<any>(
       `${this.apiUrl}/tenant/move-out-notices`,
       request,
@@ -205,7 +178,7 @@ export class TenantService {
     );
   }
 
-  private getMockMoveOutNotices(): any {
+  private getMockMoveOutNotices(): MoveOutNoticeResponse {
     return {
       data: [],
       total: 0,
