@@ -358,21 +358,6 @@
             <div class="chat-options" *ngIf="userProperties.length > 0">
               <h4>Start a conversation</h4>
               
-              <!-- Removed CARETAKER_LANDLORD option since it doesn't exist -->
-              <!-- <button 
-                class="chat-option-card" 
-                (click)="createChat(CHAT_TYPES.CARETAKER_LANDLORD)"
-                [disabled]="(!selectedCaretakerPropertyId && userProperties.length > 1) || loadingRooms">
-                <div class="option-icon-container">
-                  <mat-icon class="option-icon-main">business</mat-icon>
-                </div>
-                <div class="option-content">
-                  <h5>Message Landlord</h5>
-                  <p>Reports, updates, and property management</p>
-                </div>
-                <mat-icon class="option-arrow">arrow_forward</mat-icon>
-              </button> -->
-              
               <button 
                 class="chat-option-card" 
                 (click)="openTenantSelectionModal()"
@@ -407,7 +392,7 @@
 
   <!-- Tenant Selection Modal (for Landlord/Caretaker) -->
   <div class="modal-overlay" *ngIf="showTenantSelectionModal" (click)="closeTenantSelectionModal()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-content tenant-selection-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Select Tenant</h3>
         <button class="close-btn" (click)="closeTenantSelectionModal()">
@@ -425,14 +410,20 @@
           <mat-icon class="warning-icon">warning</mat-icon>
           <h4>No Units Available</h4>
           <p>No units found for this property.</p>
+          <button class="btn-secondary" (click)="closeTenantSelectionModal()">Back</button>
         </div>
 
         <div *ngIf="!loadingUnits && availableUnits.length > 0" class="tenant-selection">
           <h4>Select a unit to message the tenant</h4>
           <p class="property-info">
             <mat-icon>location_on</mat-icon>
-            {{ getPropertyName(selectedPropertyId || selectedCaretakerPropertyId!) }}
+            {{ getPropertyName(selectedPropertyId || selectedCaretakerPropertyId || 0) }}
           </p>
+          
+          <!-- Debug info -->
+          <div class="debug-info" *ngIf="selectedUnitId">
+            Selected Unit ID: {{ selectedUnitId }}
+          </div>
           
           <div class="tenant-list">
             <div 
@@ -451,23 +442,27 @@
                   <span class="unit-number">Unit {{ unit.unitNumber }}</span>
                   <span class="unit-type">{{ unit.unitType }}</span>
                 </div>
+                <div class="unit-id">ID: {{ unit.id }}</div>
               </div>
               
               <div class="tenant-status" [class.occupied]="unit.tenantName" [class.vacant]="!unit.tenantName">
                 {{ unit.tenantName ? 'Occupied' : 'Vacant' }}
               </div>
+              
+              <mat-icon *ngIf="selectedUnitId === unit.id" class="check-icon">check_circle</mat-icon>
             </div>
           </div>
           
           <div class="modal-actions">
             <button class="btn-secondary" (click)="closeTenantSelectionModal()">
-              Back
+              Cancel
             </button>
             <button 
               class="btn-primary" 
-              [disabled]="!selectedUnitId"
+              [disabled]="!selectedUnitId || loadingRooms"
               (click)="createTenantChat()">
-              Start Chat
+              <span *ngIf="!loadingRooms">Start Chat</span>
+              <span *ngIf="loadingRooms">Creating...</span>
             </button>
           </div>
         </div>

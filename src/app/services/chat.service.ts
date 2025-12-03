@@ -76,7 +76,8 @@ export class ChatService {
   private getWsToken(): string {
     const token = this.authService.getToken();
     if (!token) throw new Error('No authentication token available');
-    return token.startsWith('Bearer ') ? token.substring(7) : token;
+    const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+    return encodeURIComponent(cleanToken);
   }
 
   private handleApiError(error: any): Observable<never> {
@@ -86,63 +87,70 @@ export class ChatService {
 
   private initializeWebSocketConnection(): void {
     try {
-      if (typeof window === 'undefined' || !this.authService.isAuthenticated()) return;
+      if (typeof window === 'undefined' || !this.authService.isAuthenticated()) {
+        return;
+      }
 
-      if (this.stompClient) this.stompClient.deactivate();
-      
+      if (this.stompClient && this.stompClient.connected) {
+        return;
+      }
+
+      if (this.stompClient) {
+        this.stompClient.deactivate();
+        this.stompClient = null;
+      }
+
+      const token = this.getWsToken();
+      if (!token) {
+        console.error('WebSocket: No token available');
+        return;
+      }
+
       const socket = new SockJS(this.wsUrl);
       
       this.stompClient = new Client({
         webSocketFactory: () => socket,
+        connectHeaders: {
+          'Authorization': `Bearer ${decodeURIComponent(token)}`
+        },
         reconnectDelay: 5000,
         heartbeatIncoming: 4000,
         heartbeatOutgoing: 4000,
-        connectHeaders: { 'Authorization': `Bearer ${this.getWsToken()}` },
         debug: (str) => {
-          if (str.includes('ERROR') || str.includes('CONNECT') || str.includes('DISCONNECT')) {
-            console.log('STOMP:', str);
+          if (str.toLowerCase().includes('error') || str.includes('CONNECT') || str.includes('DISCONNECT')) {
+            console.log('STOMP Debug:', str);
           }
+        },
+        onConnect: (frame) => {
+          console.log('WebSocket Connected:', frame);
+          this.connectedSubject.next(true);
+          this.connectionAttempts = 0;
+          this.subscribeToUserQueues();
+          const currentRoom = this.currentRoomSubject.value;
+          if (currentRoom?.id) {
+            this.subscribeToRoom(currentRoom.id);
+          }
+          this.loadRooms();
+        },
+        onStompError: (frame) => {
+          console.error('STOMP Error:', frame.headers['message'], frame.body);
+          this.connectedSubject.next(false);
+          this.attemptReconnection();
+        },
+        onWebSocketError: (event) => {
+          console.error('WebSocket Error:', event);
+          this.connectedSubject.next(false);
+          this.attemptReconnection();
+        },
+        onDisconnect: () => {
+          console.log('WebSocket Disconnected');
+          this.connectedSubject.next(false);
+          this.roomSubscriptions.clear();
         }
       });
 
-      this.stompClient.onConnect = (frame) => {
-        console.log('WebSocket connected');
-        this.connectedSubject.next(true);
-        this.connectionAttempts = 0;
-        
-        const userMsgs = this.stompClient!.subscribe('/user/queue/messages', (msg: IMessage) => {
-          this.handleIncomingMessage(JSON.parse(msg.body));
-        });
-        const userDeleted = this.stompClient!.subscribe('/user/queue/messages/deleted', (msg: IMessage) => {
-          this.handleMessageDeleted(JSON.parse(msg.body));
-        });
-        
-        this.roomSubscriptions.set('/user/queue/messages', userMsgs);
-        this.roomSubscriptions.set('/user/queue/messages/deleted', userDeleted);
-
-        const currentRoom = this.currentRoomSubject.value;
-        if (currentRoom?.id) this.subscribeToRoom(currentRoom.id);
-      };
-
-      this.stompClient.onStompError = (frame) => {
-        console.error('STOMP error:', frame);
-        this.connectedSubject.next(false);
-        this.attemptReconnection();
-      };
-
-      this.stompClient.onWebSocketError = (event) => {
-        console.error('WebSocket error:', event);
-        this.connectedSubject.next(false);
-        this.attemptReconnection();
-      };
-
-      this.stompClient.onDisconnect = () => {
-        console.log('WebSocket disconnected');
-        this.connectedSubject.next(false);
-        this.roomSubscriptions.clear();
-      };
-
       this.stompClient.activate();
+      
     } catch (error) {
       console.error('Error initializing WebSocket:', error);
       this.connectedSubject.next(false);
@@ -150,20 +158,54 @@ export class ChatService {
     }
   }
 
+  private subscribeToUserQueues(): void {
+    if (!this.stompClient?.connected) return;
+    
+    this.roomSubscriptions.forEach(sub => sub.unsubscribe());
+    this.roomSubscriptions.clear();
+    
+    try {
+      const userQueue = this.stompClient.subscribe(
+        '/user/queue/messages',
+        (message: IMessage) => {
+          try {
+            const parsed = JSON.parse(message.body);
+            this.handleIncomingMessage(parsed);
+          } catch (e) {
+            console.error('Error parsing message:', e);
+          }
+        }
+      );
+      this.roomSubscriptions.set('user-queue', userQueue);
+      
+    } catch (error) {
+      console.error('Error subscribing to user queue:', error);
+    }
+  }
+
   private attemptReconnection(): void {
     if (this.connectionAttempts < this.MAX_CONNECTION_ATTEMPTS) {
       this.connectionAttempts++;
-      console.log(`Reconnecting (${this.connectionAttempts}/${this.MAX_CONNECTION_ATTEMPTS})...`);
+      
+      if (this.stompClient) {
+        this.stompClient.deactivate();
+        this.stompClient = null;
+      }
+      
       setTimeout(() => {
-        if (this.authService.isAuthenticated()) this.initializeWebSocketConnection();
+        if (this.authService.isAuthenticated()) {
+          this.initializeWebSocketConnection();
+        }
       }, this.RECONNECT_DELAY * this.connectionAttempts);
+    } else {
+      console.error('Max reconnection attempts reached');
+      this.connectedSubject.next(false);
     }
   }
 
   private handleIncomingMessage(messageData: any): void {
     try {
       if (!messageData.chatRoomId && !messageData.roomId) {
-        console.warn('Message without chatRoomId:', messageData);
         return;
       }
       
@@ -416,7 +458,7 @@ export class ChatService {
 
   return this.http.delete<ApiResponse>(`${this.apiUrl}/messages/${messageId}`, { 
     headers: this.getHeaders() 
-  }).pipe(  // ✅ Added closing bracket here
+  }).pipe(  
     timeout(15000),
     tap(res => {
       if (res.success) this.removeMessage(messageId);
