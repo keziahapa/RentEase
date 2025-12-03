@@ -35,7 +35,7 @@
           </div>
           
           <div class="room-info">
-            <div class="room-name">{{ getRoomName(room) }}</div>
+            <div class="room-name">{{ formatChatName(room) }}</div>
             <div class="last-message">
               {{ (room.lastMessage?.content || 'No messages yet').slice(0, 50) }}{{(room.lastMessage?.content || '').length > 50 ? '...' : ''}}
             </div>
@@ -79,16 +79,32 @@
         </button>
         
         <div class="header-info">
-          <div class="chat-title">{{ currentChatInfo?.title || 'Chat' }}</div>
-          <div class="chat-subtitle">{{ currentChatInfo?.subtitle || '' }}</div>
-          <div *ngIf="currentChatInfo?.description" class="chat-description">
-            {{ currentChatInfo?.description }}
+          <div class="chat-title">{{ getChatHeaderInfo().title }}</div>
+          <div class="chat-subtitle">{{ getChatHeaderInfo().subtitle }}</div>
+          <div *ngIf="getChatHeaderInfo().description" class="chat-description">
+            {{ getChatHeaderInfo().description }}
           </div>
         </div>
         
         <div class="connection-indicator" [class.connected]="isConnected" [class.disconnected]="!isConnected">
           <mat-icon class="status-dot">fiber_manual_record</mat-icon>
           {{ getConnectionStatus() }}
+        </div>
+        
+        <div class="chat-options-menu">
+          <button mat-icon-button [matMenuTriggerFor]="chatMenu">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #chatMenu="matMenu">
+            <button mat-menu-item (click)="clearChat()">
+              <mat-icon>delete_sweep</mat-icon>
+              <span>Clear Chat</span>
+            </button>
+            <button mat-menu-item (click)="refreshRooms()">
+              <mat-icon>refresh</mat-icon>
+              <span>Refresh Chats</span>
+            </button>
+          </mat-menu>
         </div>
       </div>
 
@@ -106,7 +122,7 @@
             [class.other-message]="!isMyMessage(message)">
             
             <div *ngIf="!isMyMessage(message)" class="message-sender">
-              {{ message.sender?.name || 'User' }}
+              {{ getMessageSenderInfo(message) }}
             </div>
             
             <div class="message-content">{{ message.content }}</div>
@@ -114,12 +130,12 @@
             <div class="message-footer">
               <span class="message-time">{{ formatMessageTime(message.sentAt) }}</span>
               <span *ngIf="message.isEdited" class="message-edited">(edited)</span>
-              <span *ngIf="isMyMessage(message)" class="message-status">
-                <mat-icon>done</mat-icon>
+              <span *ngIf="isMyMessage(message)" class="message-status" [ngClass]="getMessageStatusClass(message)">
+                <mat-icon>{{ getMessageStatusIcon(message) }}</mat-icon>
               </span>
             </div>
             
-            <div *ngIf="canDelete(message)" class="message-actions">
+            <div *ngIf="isMyMessage(message) && message.canDelete" class="message-actions">
               <button class="message-action-btn" (click)="deleteMessage(message.id)" title="Delete">
                 <mat-icon>delete</mat-icon>
               </button>
@@ -255,21 +271,35 @@
               <span class="role-label">LANDLORD</span>
             </div>
             
-            <div class="property-info">
-              <mat-icon>apartment</mat-icon>
-              <span *ngIf="userProperties.length > 0">
-                {{ userProperties.length }} propert{{ userProperties.length === 1 ? 'y' : 'ies' }} available
-              </span>
-              <span *ngIf="userProperties.length === 0">No properties</span>
+            <div *ngIf="userProperties.length > 0" class="property-selection">
+              <label>Select Property</label>
+              <select 
+                class="property-select"
+                [(ngModel)]="selectedPropertyId"
+                (change)="onPropertySelectedForChat($event)">
+                <option value="">Choose a property...</option>
+                <option 
+                  *ngFor="let property of userProperties; trackBy: trackByPropertyId" 
+                  [value]="property.id">
+                  {{ property.name }}
+                </option>
+              </select>
             </div>
             
-            <div *ngIf="userProperties.length > 0" class="chat-options">
+            <div *ngIf="userProperties.length === 0" class="no-properties">
+              <mat-icon class="warning-icon">warning</mat-icon>
+              <h4>No Properties</h4>
+              <p>You don't have any properties yet.</p>
+              <p>Create a property to start chatting.</p>
+            </div>
+
+            <div class="chat-options" *ngIf="userProperties.length > 0">
               <h4>Start a conversation</h4>
               
               <button 
                 class="chat-option-card" 
                 (click)="createChat(CHAT_TYPES.LANDLORD_CARETAKER)"
-                [disabled]="loadingRooms">
+                [disabled]="(!selectedPropertyId && userProperties.length > 1) || loadingRooms">
                 <div class="option-icon-container">
                   <mat-icon class="option-icon-main">engineering</mat-icon>
                 </div>
@@ -282,8 +312,8 @@
               
               <button 
                 class="chat-option-card" 
-                (click)="createChat(CHAT_TYPES.LANDLORD_TENANT)"
-                [disabled]="loadingRooms">
+                (click)="openTenantSelectionModal()"
+                [disabled]="(!selectedPropertyId && userProperties.length > 1) || loadingRooms">
                 <div class="option-icon-container">
                   <mat-icon class="option-icon-main">people</mat-icon>
                 </div>
@@ -294,13 +324,6 @@
                 <mat-icon class="option-arrow">arrow_forward</mat-icon>
               </button>
             </div>
-            
-            <div *ngIf="userProperties.length === 0" class="no-properties">
-              <mat-icon class="warning-icon">warning</mat-icon>
-              <h4>No Properties</h4>
-              <p>You don't have any properties yet.</p>
-              <p>Create a property to start chatting.</p>
-            </div>
           </div>
 
           <!-- CARETAKER VIEW -->
@@ -310,30 +333,19 @@
               <span class="role-label">CARETAKER</span>
             </div>
             
-            <div class="property-info">
-              <mat-icon>apartment</mat-icon>
-              <span *ngIf="userProperties.length > 0">
-                {{ userProperties.length }} propert{{ userProperties.length === 1 ? 'y' : 'ies' }} assigned
-              </span>
-              <span *ngIf="userProperties.length === 0">No properties assigned</span>
-            </div>
-            
-            <div *ngIf="userProperties.length > 0" class="chat-options">
-              <h4>Start a conversation</h4>
-              
-              <button 
-                class="chat-option-card" 
-                (click)="createChat(CHAT_TYPES.CARETAKER_TENANT)"
-                [disabled]="loadingRooms">
-                <div class="option-icon-container">
-                  <mat-icon class="option-icon-main">people</mat-icon>
-                </div>
-                <div class="option-content">
-                  <h5>Message Tenant</h5>
-                    <p>Maintenance communication and updates</p>
-                </div>
-                <mat-icon class="option-arrow">arrow_forward</mat-icon>
-              </button>
+            <div *ngIf="userProperties.length > 0" class="property-selection">
+              <label>Select Property</label>
+              <select 
+                class="property-select"
+                [(ngModel)]="selectedCaretakerPropertyId"
+                (change)="onPropertySelectedForChat($event)">
+                <option value="">Choose a property...</option>
+                <option 
+                  *ngFor="let property of userProperties; trackBy: trackByPropertyId" 
+                  [value]="property.id">
+                  {{ property.name }}
+                </option>
+              </select>
             </div>
             
             <div *ngIf="userProperties.length === 0" class="no-properties">
@@ -341,6 +353,39 @@
               <h4>No Properties Assigned</h4>
               <p>No properties are assigned to you.</p>
               <p>Contact a landlord to be assigned to properties.</p>
+            </div>
+
+            <div class="chat-options" *ngIf="userProperties.length > 0">
+              <h4>Start a conversation</h4>
+              
+              <!-- Removed CARETAKER_LANDLORD option since it doesn't exist -->
+              <!-- <button 
+                class="chat-option-card" 
+                (click)="createChat(CHAT_TYPES.CARETAKER_LANDLORD)"
+                [disabled]="(!selectedCaretakerPropertyId && userProperties.length > 1) || loadingRooms">
+                <div class="option-icon-container">
+                  <mat-icon class="option-icon-main">business</mat-icon>
+                </div>
+                <div class="option-content">
+                  <h5>Message Landlord</h5>
+                  <p>Reports, updates, and property management</p>
+                </div>
+                <mat-icon class="option-arrow">arrow_forward</mat-icon>
+              </button> -->
+              
+              <button 
+                class="chat-option-card" 
+                (click)="openTenantSelectionModal()"
+                [disabled]="(!selectedCaretakerPropertyId && userProperties.length > 1) || loadingRooms">
+                <div class="option-icon-container">
+                  <mat-icon class="option-icon-main">people</mat-icon>
+                </div>
+                <div class="option-content">
+                  <h5>Message Tenant</h5>
+                  <p>Select a specific tenant to message</p>
+                </div>
+                <mat-icon class="option-arrow">arrow_forward</mat-icon>
+              </button>
             </div>
           </div>
         </ng-container>
@@ -356,6 +401,76 @@
         <button class="btn-secondary" (click)="closeNewChatModal()">
           Cancel
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tenant Selection Modal (for Landlord/Caretaker) -->
+  <div class="modal-overlay" *ngIf="showTenantSelectionModal" (click)="closeTenantSelectionModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Select Tenant</h3>
+        <button class="close-btn" (click)="closeTenantSelectionModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div *ngIf="loadingUnits" class="loading-state">
+          <mat-icon class="spinner">schedule</mat-icon>
+          <p>Loading units...</p>
+        </div>
+
+        <div *ngIf="!loadingUnits && availableUnits.length === 0" class="no-units">
+          <mat-icon class="warning-icon">warning</mat-icon>
+          <h4>No Units Available</h4>
+          <p>No units found for this property.</p>
+        </div>
+
+        <div *ngIf="!loadingUnits && availableUnits.length > 0" class="tenant-selection">
+          <h4>Select a unit to message the tenant</h4>
+          <p class="property-info">
+            <mat-icon>location_on</mat-icon>
+            {{ getPropertyName(selectedPropertyId || selectedCaretakerPropertyId!) }}
+          </p>
+          
+          <div class="tenant-list">
+            <div 
+              *ngFor="let unit of availableUnits; trackBy: trackByUnitId"
+              class="tenant-item"
+              [class.selected]="selectedUnitId === unit.id"
+              (click)="selectUnitForChat(unit)">
+              
+              <div class="tenant-avatar">
+                <mat-icon>person</mat-icon>
+              </div>
+              
+              <div class="tenant-info">
+                <div class="tenant-name">{{ unit.tenantName || 'Vacant Unit' }}</div>
+                <div class="unit-details">
+                  <span class="unit-number">Unit {{ unit.unitNumber }}</span>
+                  <span class="unit-type">{{ unit.unitType }}</span>
+                </div>
+              </div>
+              
+              <div class="tenant-status" [class.occupied]="unit.tenantName" [class.vacant]="!unit.tenantName">
+                {{ unit.tenantName ? 'Occupied' : 'Vacant' }}
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-actions">
+            <button class="btn-secondary" (click)="closeTenantSelectionModal()">
+              Back
+            </button>
+            <button 
+              class="btn-primary" 
+              [disabled]="!selectedUnitId"
+              (click)="createTenantChat()">
+              Start Chat
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

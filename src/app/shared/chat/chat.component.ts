@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { PropertyService } from '../../services/property.service';
@@ -22,7 +23,7 @@ interface EnrichedChatInfo {
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, MatMenuModule],
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss']
 })
@@ -43,11 +44,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   userRole: string = '';
   
   showNewChatModal = false;
+  showTenantSelectionModal = false;
   loadingProperties = false;
   loadingRooms = false;
+  loadingUnits = false;
   shouldScrollToBottom = false;
 
-  currentChatInfo: EnrichedChatInfo | null = null;
+  selectedPropertyId: number | null = null;
+  selectedCaretakerPropertyId: number | null = null;
+  selectedUnitId: number | null = null;
+  availableUnits: Unit[] = [];
 
   private authSubscription?: Subscription;
   private isInitialized = false;
@@ -58,6 +64,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     LANDLORD_CARETAKER: 'landlord-caretaker' as ChatRoomType,
     LANDLORD_TENANT: 'landlord-tenant' as ChatRoomType,
     CARETAKER_TENANT: 'caretaker-tenant' as ChatRoomType
+    // Note: CARETAKER_LANDLORD is not included since it doesn't exist in your ChatService
   };
 
   emojis = [
@@ -78,9 +85,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     '✨', '💫', '⭐', '🌟', '✴️', '🎊', '🎉', '🎈', '🎁', '🏆',
     '🥇', '🥈', '🥉', '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉'
   ];
-
-  selectedPropertyId: number | null = null;
-  selectedCaretakerPropertyId: number | null = null;
 
   private router = inject(Router);
 
@@ -131,11 +135,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.currentRoom$.subscribe({
       next: (room: ChatRoom | null) => {
         this.currentRoom = room;
-        if (room) {
-          this.updateCurrentChatInfo();
-        } else {
-          this.currentChatInfo = null;
-        }
       },
       error: (error: any) => {
         console.error('Error in currentRoom subscription:', error);
@@ -309,7 +308,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         
-        resourceId = this.userProperties[0].id;
+        resourceId = this.selectedPropertyId || this.userProperties[0].id;
         console.log(`Landlord creating caretaker chat with propertyId: ${resourceId}`);
         createObservable = this.chatService.createLandlordCaretakerChat(resourceId);
         break;
@@ -320,19 +319,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         
-        if (this.userProperties.length === 0) {
-          alert('No properties available. Please create a property first.');
-          return;
-        }
-        
-        const landlordPropertyId = this.userProperties[0].id;
-        this.loadUnitsForProperty(landlordPropertyId, (unitId: number) => {
-          console.log(`Landlord creating tenant chat with unitId: ${unitId}`);
-          this.chatService.createLandlordTenantChat(unitId).subscribe({
-            next: (response: any) => this.handleChatCreationResponse(response, chatType),
-            error: (error: any) => this.handleChatCreationError(error, chatType)
-          });
-        });
+        this.openTenantSelectionModal();
         return;
         
       case this.CHAT_TYPES.CARETAKER_TENANT:
@@ -341,19 +328,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         
-        if (this.userProperties.length === 0) {
-          alert('No properties assigned. Please contact the landlord.');
-          return;
-        }
-        
-        const caretakerPropertyId = this.userProperties[0].id;
-        this.loadUnitsForProperty(caretakerPropertyId, (unitId: number) => {
-          console.log(`Caretaker creating tenant chat with unitId: ${unitId}`);
-          this.chatService.createCaretakerTenantChat(unitId).subscribe({
-            next: (response: any) => this.handleChatCreationResponse(response, chatType),
-            error: (error: any) => this.handleChatCreationError(error, chatType)
-          });
-        });
+        this.openTenantSelectionModal();
         return;
         
       default:
@@ -370,21 +345,66 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
-  private loadUnitsForProperty(propertyId: number, callback: (unitId: number) => void): void {
+  openTenantSelectionModal(): void {
+    const propertyId = this.userRole === 'LANDLORD' 
+      ? (this.selectedPropertyId || (this.userProperties.length > 0 ? this.userProperties[0].id : null))
+      : (this.selectedCaretakerPropertyId || (this.userProperties.length > 0 ? this.userProperties[0].id : null));
+    
+    if (!propertyId) {
+      alert('Please select a property first.');
+      return;
+    }
+    
+    this.loadingUnits = true;
+    this.showTenantSelectionModal = true;
+    
     this.propertyService.getPropertyUnits(propertyId.toString()).subscribe({
-      next: (unitsResponse: any) => {
-        const units = this.extractUnits(unitsResponse);
-        if (units.length === 0) {
-          alert('No units found for this property.');
-          return;
-        }
-        
-        const unitId = units[0].id;
-        callback(unitId);
+      next: (response: any) => {
+        this.availableUnits = this.extractUnits(response);
+        this.loadingUnits = false;
       },
       error: (error: any) => {
-        alert('Failed to load units for this property.');
         console.error('Error loading units:', error);
+        alert('Failed to load units for this property.');
+        this.loadingUnits = false;
+      }
+    });
+  }
+
+  closeTenantSelectionModal(): void {
+    this.showTenantSelectionModal = false;
+    this.selectedUnitId = null;
+    this.availableUnits = [];
+  }
+
+  selectUnitForChat(unit: Unit): void {
+    this.selectedUnitId = unit.id;
+  }
+
+  createTenantChat(): void {
+    if (!this.selectedUnitId) {
+      alert('Please select a unit first.');
+      return;
+    }
+    
+    const chatType = this.userRole === 'LANDLORD' 
+      ? this.CHAT_TYPES.LANDLORD_TENANT 
+      : this.CHAT_TYPES.CARETAKER_TENANT;
+    
+    this.loadingRooms = true;
+    
+    const createObservable = this.userRole === 'LANDLORD'
+      ? this.chatService.createLandlordTenantChat(this.selectedUnitId)
+      : this.chatService.createCaretakerTenantChat(this.selectedUnitId);
+    
+    createObservable.subscribe({
+      next: (response: any) => {
+        this.handleChatCreationResponse(response, chatType);
+        this.closeTenantSelectionModal();
+      },
+      error: (error: any) => {
+        this.handleChatCreationError(error, chatType);
+        this.closeTenantSelectionModal();
       }
     });
   }
@@ -444,6 +464,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   closeNewChatModal(): void {
     this.showNewChatModal = false;
+    this.selectedPropertyId = null;
+    this.selectedCaretakerPropertyId = null;
   }
 
   selectRoom(room: ChatRoom): void {
@@ -558,6 +580,82 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return (bytes / 1048576).toFixed(1) + ' MB';
   }
 
+  // FIXED TIME FORMATTING METHODS
+  formatTime(timestamp: Date): string {
+    if (!timestamp) return '';
+    
+    try {
+      const date = new Date(timestamp);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) return '';
+      
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      // Get local date
+      const messageDate = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      );
+      
+      if (messageDate.getTime() === today.getTime()) {
+        // Today - show time
+        return this.formatLocalTime(date);
+      } else if (messageDate.getTime() === yesterday.getTime()) {
+        // Yesterday
+        return 'Yesterday';
+      } else if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) {
+        // Within the last week - show day name
+        return date.toLocaleDateString([], { weekday: 'short' });
+      } else {
+        // Older than a week - show date
+        return date.toLocaleDateString([], { 
+          month: 'short', 
+          day: 'numeric',
+          year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+        });
+      }
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return '';
+    }
+  }
+
+  formatMessageTime(timestamp: Date): string {
+    if (!timestamp) return '';
+    
+    try {
+      const date = new Date(timestamp);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) return '';
+      
+      return this.formatLocalTime(date);
+    } catch (error) {
+      console.error('Error formatting message time:', error);
+      return '';
+    }
+  }
+
+  // Helper method to format time in local timezone correctly
+  private formatLocalTime(date: Date): string {
+    // Get local timezone offset in minutes
+    const timezoneOffset = date.getTimezoneOffset();
+    
+    // Create a new date adjusted for timezone
+    const localDate = new Date(date.getTime() - (timezoneOffset * 60000));
+    
+    return localDate.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  }
+
   trackByRoomId(index: number, room: ChatRoom): number {
     return room?.id ?? index;
   }
@@ -566,16 +664,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return message?.id ?? index;
   }
 
+  trackByPropertyId(index: number, property: Property): number {
+    return property?.id ?? index;
+  }
+
+  trackByUnitId(index: number, unit: Unit): number {
+    return unit?.id ?? index;
+  }
+
   isMyMessage(message: Message): boolean {
     return this.chatService.isMyMessage(message);
-  }
-
-  formatTime(timestamp: Date): string {
-    return this.chatService.formatTime(timestamp);
-  }
-
-  formatMessageTime(timestamp: Date): string {
-    return this.chatService.formatMessageTime(timestamp);
   }
 
   getLastMessageTime(room: ChatRoom): string {
@@ -619,7 +717,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return 'No Property/Unit';
   }
 
-  getRoomName(room: ChatRoom): string {
+  formatChatName(room: ChatRoom): string {
     if (!room) return 'Chat';
     
     const currentUser = this.authService.getCurrentUser();
@@ -636,83 +734,22 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return 'Chat';
   }
 
-  private extractProperties(response: any): Property[] {
-    if (!response) return [];
-    if (Array.isArray(response)) {
-      return response.map((item: any) => ({
-        id: item.property?.id || item.id,
-        name: item.property?.name || item.name || 'Unnamed Property',
-        address: item.property?.address || item.location || item.address || 'No address'
-      })).filter((property: Property) => property.id);
-    }
-    if (response?.data && Array.isArray(response.data)) {
-      return response.data.map((item: any) => ({
-        id: item.property?.id || item.id,
-        name: item.property?.name || item.name || 'Unnamed Property',
-        address: item.property?.address || item.location || item.address || 'No address'
-      })).filter((property: Property) => property.id);
-    }
-    return [];
-  }
-
-  private extractPropertiesFromUnits(response: any): Property[] {
-    const units = this.extractUnits(response);
-    const propertyMap = new Map<number, Property>();
-    units.forEach(unit => {
-      if (unit.propertyId && !propertyMap.has(unit.propertyId)) {
-        propertyMap.set(unit.propertyId, {
-          id: unit.propertyId,
-          name: unit['propertyName'] || `Property ${unit.propertyId}`,
-          address: 'Address not available'
-        });
-      }
-    });
-    return Array.from(propertyMap.values());
-  }
-
-  private extractUnits(response: any): Unit[] {
-    if (!response) return [];
-    if (Array.isArray(response)) {
-      return response.map((item: any) => ({
-        id: item.unit?.id || item.id,
-        unitNumber: item.unit?.unitNumber || item.unitNumber || 'N/A',
-        unitType: item.unit?.unitType || item.unitType || 'UNKNOWN',
-        rentAmount: item.unit?.rentAmount || item.rentAmount || 0,
-        propertyId: item.property?.id || item.propertyId,
-        propertyName: item.property?.name || item.propertyName
-      } as any)).filter((unit: Unit) => unit.id);
-    }
-    if (response?.data && Array.isArray(response.data)) {
-      return response.data.map((item: any) => ({
-        id: item.unit?.id || item.id,
-        unitNumber: item.unit?.unitNumber || item.unitNumber || 'N/A',
-        unitType: item.unit?.unitType || item.unitType || 'UNKNOWN',
-        rentAmount: item.unit?.rentAmount || item.rentAmount || 0,
-        propertyId: item.property?.id || item.propertyId,
-        propertyName: item.property?.name || item.propertyName
-      } as any)).filter((unit: Unit) => unit.id);
-    }
-    return [];
-  }
-
-  private updateCurrentChatInfo(): void {
+  getChatHeaderInfo(): EnrichedChatInfo {
     if (!this.currentRoom) {
-      this.currentChatInfo = null;
-      return;
+      return { title: 'Chat', subtitle: '', description: '' };
     }
 
     const currentUser = this.authService.getCurrentUser();
     const otherParticipants = this.currentRoom.participants?.filter(p => p.id !== currentUser?.id) || [];
 
     if (otherParticipants.length === 0) {
-      this.currentChatInfo = this.getDefaultChatInfo(this.currentRoom.type);
-      return;
+      return this.getDefaultChatInfo(this.currentRoom.type);
     }
 
     if (otherParticipants.length === 1) {
-      this.currentChatInfo = this.getSingleParticipantInfo(otherParticipants[0], this.currentRoom);
+      return this.getSingleParticipantInfo(otherParticipants[0], this.currentRoom);
     } else {
-      this.currentChatInfo = this.getMultipleParticipantsInfo(otherParticipants, this.currentRoom);
+      return this.getMultipleParticipantsInfo(otherParticipants, this.currentRoom);
     }
   }
 
@@ -809,6 +846,158 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return roleMap[role] || role;
   }
 
+  getMessageSenderInfo(message: Message): string {
+    if (!message || !message.sender) return 'User';
+    return message.sender.name || message.sender.email || 'User';
+  }
+
+  getMessageStatusClass(message: Message): string {
+    if (!message) return 'status-sent';
+    
+    // For now, return basic status based on message properties
+    // You can implement more sophisticated logic based on your Message interface
+    if (message.isEdited) {
+      return 'status-edited';
+    }
+    
+    return 'status-sent';
+  }
+
+  getMessageStatusIcon(message: Message): string {
+    const statusClass = this.getMessageStatusClass(message);
+    
+    switch (statusClass) {
+      case 'status-read':
+        return 'done_all';
+      case 'status-delivered':
+        return 'done_all';
+      case 'status-edited':
+        return 'edit';
+      case 'status-failed':
+        return 'error';
+      default:
+        return 'done';
+    }
+  }
+
+  clearChat(): void {
+    if (!this.currentRoom) return;
+    
+    if (confirm('Are you sure you want to clear all messages in this chat?')) {
+      // You need to implement this method in your ChatService
+      // For now, just show a message
+      alert('Clear chat functionality would be implemented here.');
+      // this.chatService.clearChat(this.currentRoom.id).subscribe({
+      //   next: () => {
+      //     alert('Chat cleared successfully.');
+      //   },
+      //   error: (error: any) => {
+      //     console.error('Error clearing chat:', error);
+      //     alert('Failed to clear chat.');
+      //   }
+      // });
+    }
+  }
+
+  refreshRooms(): void {
+    this.loadingRooms = true;
+    
+    // Since we don't have a dedicated refresh method, we can:
+    // 1. Try to trigger a rooms refresh through the chat service
+    // 2. Or simply show a loading state and let the existing subscription handle it
+    
+    console.log('Refreshing chat rooms...');
+    
+    // Option: Try to reconnect which might refresh rooms
+    this.chatService.reconnect();
+    
+    // Set a timeout to stop loading after a reasonable time
+    setTimeout(() => {
+      this.loadingRooms = false;
+      console.log('Chat rooms refresh complete');
+    }, 2000);
+  }
+
+  getPropertyName(propertyId: number): string {
+    const property = this.userProperties.find(p => p.id === propertyId);
+    return property?.name || `Property ${propertyId}`;
+  }
+
+  onPropertySelectedForChat(event: any): void {
+    const value = event.target.value;
+    if (value) {
+      if (this.userRole === 'LANDLORD') {
+        this.selectedPropertyId = parseInt(value, 10);
+      } else if (this.userRole === 'CARETAKER') {
+        this.selectedCaretakerPropertyId = parseInt(value, 10);
+      }
+    } else {
+      this.selectedPropertyId = null;
+      this.selectedCaretakerPropertyId = null;
+    }
+  }
+
+  private extractProperties(response: any): Property[] {
+    if (!response) return [];
+    if (Array.isArray(response)) {
+      return response.map((item: any) => ({
+        id: item.property?.id || item.id,
+        name: item.property?.name || item.name || 'Unnamed Property',
+        address: item.property?.address || item.location || item.address || 'No address'
+      })).filter((property: Property) => property.id);
+    }
+    if (response?.data && Array.isArray(response.data)) {
+      return response.data.map((item: any) => ({
+        id: item.property?.id || item.id,
+        name: item.property?.name || item.name || 'Unnamed Property',
+        address: item.property?.address || item.location || item.address || 'No address'
+      })).filter((property: Property) => property.id);
+    }
+    return [];
+  }
+
+  private extractPropertiesFromUnits(response: any): Property[] {
+    const units = this.extractUnits(response);
+    const propertyMap = new Map<number, Property>();
+    units.forEach(unit => {
+      if (unit.propertyId && !propertyMap.has(unit.propertyId)) {
+        propertyMap.set(unit.propertyId, {
+          id: unit.propertyId,
+          name: unit['propertyName'] || `Property ${unit.propertyId}`,
+          address: 'Address not available'
+        });
+      }
+    });
+    return Array.from(propertyMap.values());
+  }
+
+  private extractUnits(response: any): Unit[] {
+    if (!response) return [];
+    if (Array.isArray(response)) {
+      return response.map((item: any) => ({
+        id: item.unit?.id || item.id,
+        unitNumber: item.unit?.unitNumber || item.unitNumber || 'N/A',
+        unitType: item.unit?.unitType || item.unitType || 'UNKNOWN',
+        rentAmount: item.unit?.rentAmount || item.rentAmount || 0,
+        propertyId: item.property?.id || item.propertyId,
+        propertyName: item.property?.name || item.propertyName,
+        tenantName: item.tenant?.name || item.tenantName
+      } as any)).filter((unit: Unit) => unit.id);
+    }
+    if (response?.data && Array.isArray(response.data)) {
+      return response.data.map((item: any) => ({
+        id: item.unit?.id || item.id,
+        unitNumber: item.unit?.unitNumber || item.unitNumber || 'N/A',
+        unitType: item.unit?.unitType || item.unitType || 'UNKNOWN',
+        rentAmount: item.unit?.rentAmount || item.rentAmount || 0,
+        propertyId: item.property?.id || item.propertyId,
+        propertyName: item.property?.name || item.propertyName,
+        tenantName: item.tenant?.name || item.tenantName
+      } as any)).filter((unit: Unit) => unit.id);
+    }
+    return [];
+  }
+
   private redirectToLogin(): void {
     this.rooms = [];
     this.currentRoom = null;
@@ -836,14 +1025,5 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   ngAfterViewChecked(): void {
     this.scrollToBottom();
-  }
-
-  onPropertySelectedForChat(event: any): void {
-    const value = event.target.value;
-    if (value) {
-      this.selectedPropertyId = parseInt(value, 10);
-    } else {
-      this.selectedPropertyId = null;
-    }
   }
 }
