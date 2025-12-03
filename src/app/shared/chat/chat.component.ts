@@ -71,7 +71,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     TENANT_CARETAKER: 'tenant-caretaker',
     LANDLORD_CARETAKER: 'landlord-caretaker',
     LANDLORD_TENANT: 'landlord-tenant',
-    CARETAKER_TENANT: 'caretaker-tenant'
+    CARETAKER_TENANT: 'caretaker-tenant',
+    CARETAKER_LANDLORD: 'caretaker-landlord'
   };
 
   emojis = [
@@ -408,30 +409,32 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     
     switch(chatType) {
       case this.CHAT_TYPES.TENANT_LANDLORD:
-        // FIXED: No parameters needed for tenant methods
         if (this.userRole !== 'TENANT') {
           alert('Only tenants can create landlord chats.');
           this.loadingRooms = false;
           return;
         }
         
-        // Just call the method without parameters
         createObservable = this.chatService.createTenantLandlordChat();
         break;
         
       case this.CHAT_TYPES.TENANT_CARETAKER:
-        // FIXED: No parameters needed for tenant methods
         if (this.userRole !== 'TENANT') {
           alert('Only tenants can create caretaker chats.');
           this.loadingRooms = false;
           return;
         }
         
-        // Just call the method without parameters
         createObservable = this.chatService.createTenantCaretakerChat();
         break;
         
       case this.CHAT_TYPES.LANDLORD_CARETAKER:
+        if (this.userRole !== 'LANDLORD') {
+          alert('Only landlords can create caretaker chats using this option.');
+          this.loadingRooms = false;
+          return;
+        }
+        
         const landlordPropertyId = this.selectedPropertyId || (this.userProperties.length > 0 ? this.userProperties[0].id : null);
         if (!landlordPropertyId) {
           alert('Please select a property.');
@@ -439,6 +442,23 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         createObservable = this.chatService.createLandlordCaretakerChat(landlordPropertyId);
+        break;
+        
+      case this.CHAT_TYPES.CARETAKER_LANDLORD:
+        if (this.userRole !== 'CARETAKER') {
+          alert('Only caretakers can create landlord chats using this option.');
+          this.loadingRooms = false;
+          return;
+        }
+        
+        const caretakerPropertyId = this.selectedCaretakerPropertyId || (this.userProperties.length > 0 ? this.userProperties[0].id : null);
+        if (!caretakerPropertyId) {
+          alert('Please select a property.');
+          this.loadingRooms = false;
+          return;
+        }
+        
+        createObservable = this.chatService.createCaretakerLandlordChat(caretakerPropertyId);
         break;
         
       default:
@@ -755,7 +775,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       'tenant-caretaker': 'Caretaker',
       'landlord-caretaker': 'Caretaker',
       'landlord-tenant': 'Tenant',
-      'caretaker-tenant': 'Tenant'
+      'caretaker-tenant': 'Tenant',
+      'caretaker-landlord': 'Landlord'
     };
     
     return roleBasedNames[room.type] || 'Chat';
@@ -1049,6 +1070,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         title: 'Tenant', 
         subtitle: 'Unit Resident',
         description: 'Maintenance communication'
+      },
+      'caretaker-landlord': { 
+        title: 'Landlord', 
+        subtitle: 'Property Owner',
+        description: 'Property management discussions'
       }
     };
 
