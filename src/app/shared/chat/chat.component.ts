@@ -64,7 +64,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     LANDLORD_CARETAKER: 'landlord-caretaker' as ChatRoomType,
     LANDLORD_TENANT: 'landlord-tenant' as ChatRoomType,
     CARETAKER_TENANT: 'caretaker-tenant' as ChatRoomType
-    // Note: CARETAKER_LANDLORD is not included since it doesn't exist in your ChatService
   };
 
   emojis = [
@@ -243,6 +242,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.showNewChatModal = true;
   }
 
+  // FIXED: Better property determination for tenants
   createChat(chatType: ChatRoomType): void {
     if (!this.canCreateChatType(chatType)) {
       alert(`You don't have permission to create ${chatType} chats`);
@@ -256,29 +256,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     switch (chatType) {
       case this.CHAT_TYPES.TENANT_LANDLORD:
-        if (this.userRole !== 'TENANT') {
-          alert('Only tenants can create landlord chats.');
-          return;
-        }
-        
-        if (this.userUnits.length === 0) {
-          alert('No units found. Please contact your landlord.');
-          return;
-        }
-        
-        resourceId = this.userUnits[0].propertyId;
-        if (!resourceId) {
-          alert('Unable to determine your property. Please contact support.');
-          return;
-        }
-        
-        console.log(`Tenant creating landlord chat with propertyId: ${resourceId}`);
-        createObservable = this.chatService.createTenantLandlordChat(resourceId);
-        break;
-        
       case this.CHAT_TYPES.TENANT_CARETAKER:
         if (this.userRole !== 'TENANT') {
-          alert('Only tenants can create caretaker chats.');
+          alert('Only tenants can create landlord or caretaker chats.');
           return;
         }
         
@@ -287,14 +267,23 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           return;
         }
         
-        resourceId = this.userUnits[0].propertyId;
+        // Get propertyId from tenant's units
+        const tenantUnit = this.userUnits[0];
+        resourceId = this.getPropertyIdFromUnit(tenantUnit);
+        
         if (!resourceId) {
-          alert('Unable to determine your property. Please contact support.');
+          const unitInfo = tenantUnit.unitNumber ? `Unit ${tenantUnit.unitNumber}` : 'your unit';
+          alert(`Unable to determine property for ${unitInfo}. Please contact support.`);
           return;
         }
         
-        console.log(`Tenant creating caretaker chat with propertyId: ${resourceId}`);
-        createObservable = this.chatService.createTenantCaretakerChat(resourceId);
+        console.log(`${chatType} chat with propertyId: ${resourceId}`);
+        
+        if (chatType === this.CHAT_TYPES.TENANT_LANDLORD) {
+          createObservable = this.chatService.createTenantLandlordChat(resourceId);
+        } else {
+          createObservable = this.chatService.createTenantCaretakerChat(resourceId);
+        }
         break;
         
       case this.CHAT_TYPES.LANDLORD_CARETAKER:
@@ -345,6 +334,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     }
   }
 
+  // Helper method to extract propertyId from unit
+  private getPropertyIdFromUnit(unit: Unit): number | null {
+    if (!unit) return null;
+    
+    // Try multiple possible property ID locations
+    if (unit.propertyId) return unit.propertyId;
+    if ((unit as any).property?.id) return (unit as any).property.id;
+    if ((unit as any).property_id) return (unit as any).property_id;
+    
+    return null;
+  }
+
   openTenantSelectionModal(): void {
     const propertyId = this.userRole === 'LANDLORD' 
       ? (this.selectedPropertyId || (this.userProperties.length > 0 ? this.userProperties[0].id : null))
@@ -357,6 +358,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     
     this.loadingUnits = true;
     this.showTenantSelectionModal = true;
+    this.selectedUnitId = null; // Reset selection
     
     this.propertyService.getPropertyUnits(propertyId.toString()).subscribe({
       next: (response: any) => {
@@ -367,6 +369,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         console.error('Error loading units:', error);
         alert('Failed to load units for this property.');
         this.loadingUnits = false;
+        this.showTenantSelectionModal = false;
       }
     });
   }
@@ -884,34 +887,22 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!this.currentRoom) return;
     
     if (confirm('Are you sure you want to clear all messages in this chat?')) {
-      // You need to implement this method in your ChatService
-      // For now, just show a message
+      
       alert('Clear chat functionality would be implemented here.');
-      // this.chatService.clearChat(this.currentRoom.id).subscribe({
-      //   next: () => {
-      //     alert('Chat cleared successfully.');
-      //   },
-      //   error: (error: any) => {
-      //     console.error('Error clearing chat:', error);
-      //     alert('Failed to clear chat.');
-      //   }
-      // });
     }
   }
 
   refreshRooms(): void {
     this.loadingRooms = true;
     
-    // Since we don't have a dedicated refresh method, we can:
-    // 1. Try to trigger a rooms refresh through the chat service
-    // 2. Or simply show a loading state and let the existing subscription handle it
+   
     
     console.log('Refreshing chat rooms...');
     
-    // Option: Try to reconnect which might refresh rooms
+   
     this.chatService.reconnect();
     
-    // Set a timeout to stop loading after a reasonable time
+    
     setTimeout(() => {
       this.loadingRooms = false;
       console.log('Chat rooms refresh complete');
@@ -971,31 +962,67 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     return Array.from(propertyMap.values());
   }
 
+
   private extractUnits(response: any): Unit[] {
     if (!response) return [];
-    if (Array.isArray(response)) {
-      return response.map((item: any) => ({
-        id: item.unit?.id || item.id,
-        unitNumber: item.unit?.unitNumber || item.unitNumber || 'N/A',
-        unitType: item.unit?.unitType || item.unitType || 'UNKNOWN',
-        rentAmount: item.unit?.rentAmount || item.rentAmount || 0,
-        propertyId: item.property?.id || item.propertyId,
-        propertyName: item.property?.name || item.propertyName,
-        tenantName: item.tenant?.name || item.tenantName
-      } as any)).filter((unit: Unit) => unit.id);
+    
+    try {
+      let dataArray: any[] = [];
+      
+      if (Array.isArray(response)) {
+        dataArray = response;
+      } else if (response?.data && Array.isArray(response.data)) {
+        dataArray = response.data;
+      } else if (response?.units && Array.isArray(response.units)) {
+        dataArray = response.units;
+      } else {
+        console.warn('Unexpected response format:', response);
+        return [];
+      }
+      
+      return dataArray.map((item: any) => {
+        const propertyId = 
+          item.propertyId || 
+          item.property?.id || 
+          item.unit?.propertyId ||
+          (item as any).property_id ||
+          (item as any).property?.propertyId;
+        
+       
+        const unitId = 
+          item.id || 
+          item.unit?.id || 
+          item.unitId ||
+          (item as any).unit_id;
+        
+      
+        const propertyName = 
+          item.propertyName || 
+          item.property?.name || 
+          item.unit?.propertyName ||
+          (item as any).property_name;
+        
+      
+        const unitNumber = 
+          item.unitNumber || 
+          item.unit?.unitNumber || 
+          (item as any).unit_number ||
+          'N/A';
+        
+        return {
+          id: Number(unitId) || 0,
+          unitNumber: unitNumber,
+          unitType: item.unitType || item.unit?.unitType || 'UNKNOWN',
+          rentAmount: item.rentAmount || item.unit?.rentAmount || 0,
+          propertyId: Number(propertyId) || 0,
+          propertyName: propertyName,
+          tenantName: item.tenantName || item.tenant?.name || item.fullName
+        } as Unit;
+      }).filter((unit: Unit) => unit.id && unit.propertyId);
+    } catch (error) {
+      console.error('Error extracting units:', error, response);
+      return [];
     }
-    if (response?.data && Array.isArray(response.data)) {
-      return response.data.map((item: any) => ({
-        id: item.unit?.id || item.id,
-        unitNumber: item.unit?.unitNumber || item.unitNumber || 'N/A',
-        unitType: item.unit?.unitType || item.unitType || 'UNKNOWN',
-        rentAmount: item.unit?.rentAmount || item.rentAmount || 0,
-        propertyId: item.property?.id || item.propertyId,
-        propertyName: item.property?.name || item.propertyName,
-        tenantName: item.tenant?.name || item.tenantName
-      } as any)).filter((unit: Unit) => unit.id);
-    }
-    return [];
   }
 
   private redirectToLogin(): void {
