@@ -18,16 +18,25 @@ export class PropertyService {
   getPropertyByName(propertyName: string): Observable<any> {
     const token = this.authService.getToken();
     if (!token) {
-      return throwError(() => new Error('No authentication token available'));
+      return of({
+        success: false,
+        message: 'No authentication token available',
+        data: null
+      });
     }
+
+    console.log('🔍 PropertyService: Searching for property by name:', propertyName);
 
     return this.http.get<any>(
       `${this.apiUrl}/api/landlord/properties`,
       { headers: this.createHeaders(), responseType: 'json' }
     ).pipe(
       map(response => {
+        console.log('✅ PropertyService: Search response received:', response);
+        
         let propertiesArray: any[] = [];
         
+        // Try to extract properties from various response structures
         if (Array.isArray(response)) {
           propertiesArray = response;
         } else if (response?.data && Array.isArray(response.data)) {
@@ -38,15 +47,37 @@ export class PropertyService {
           propertiesArray = response.content;
         } else if (response?.success && Array.isArray(response.data)) {
           propertiesArray = response.data;
+        } else if (response?.success === false) {
+          // API returned an error
+          console.warn('⚠️ API returned error:', response);
+          return {
+            success: false,
+            message: response?.message || 'Failed to fetch properties',
+            data: null
+          };
+        } else if (typeof response === 'object' && response.id) {
+          // Single property object
+          propertiesArray = [response];
+        } else {
+          console.warn('⚠️ Unexpected response structure:', response);
+          return {
+            success: false,
+            message: 'Unexpected response format from server',
+            data: null
+          };
         }
 
-        const foundProperty = propertiesArray.find(property => 
-          property.name?.toLowerCase() === propertyName?.toLowerCase() ||
-          property.propertyName?.toLowerCase() === propertyName?.toLowerCase() ||
-          property.title?.toLowerCase() === propertyName?.toLowerCase()
-        );
+        console.log(`📋 Found ${propertiesArray.length} properties to search through`);
+
+        // Search for property by name (case-insensitive)
+        const foundProperty = propertiesArray.find(property => {
+          const propName = property.name || property.propertyName || property.title || '';
+          console.log(`🔍 Checking property: "${propName}" against "${propertyName}"`);
+          return propName.toLowerCase() === propertyName.toLowerCase();
+        });
 
         if (foundProperty) {
+          console.log(`✅ Found property: ${foundProperty.name} with ID: ${foundProperty.id}`);
           return {
             success: true,
             message: 'Property found',
@@ -54,6 +85,9 @@ export class PropertyService {
           };
         }
 
+        console.warn(`⚠️ Property "${propertyName}" not found in ${propertiesArray.length} properties`);
+        console.log('Available properties:', propertiesArray.map(p => p.name || p.propertyName || p.title));
+        
         return {
           success: false,
           message: `Property "${propertyName}" not found`,
@@ -61,10 +95,25 @@ export class PropertyService {
         };
       }),
       catchError(error => {
+        console.error('❌ PropertyService: Error in getPropertyByName:', error);
+        
+        let errorMessage = 'Error searching for property';
+        
+        if (error.status === 401) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.status === 404) {
+          errorMessage = 'Properties endpoint not found.';
+        } else if (error.status === 0) {
+          errorMessage = 'Cannot connect to server. Check your internet connection.';
+        } else if (error.error?.message) {
+          errorMessage = error.error.message;
+        }
+        
         return of({
           success: false,
-          message: 'Error searching for property',
-          data: null
+          message: errorMessage,
+          data: null,
+          error: error
         });
       })
     );
