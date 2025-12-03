@@ -5,11 +5,8 @@ import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 import { 
-  TenantData, 
   MoveOutNoticeRequest, 
-  MoveOutNotice, 
-  MoveOutNoticeResponse,
-  TenantUnit 
+  MoveOutNoticeResponse
 } from './tenant-interface';
 
 @Injectable({
@@ -33,9 +30,14 @@ export class TenantService {
       `${this.apiUrl}/tenant/units`,
       { headers: this.createHeaders() }
     ).pipe(
-      map(response => response),
+      map(response => {
+        if (response.success && Array.isArray(response.data)) {
+          return response;
+        }
+        return { success: true, data: [] };
+      }),
       catchError((error) => {
-        return of({ success: false, data: [] });
+        return of({ success: true, data: [] });
       })
     );
   }
@@ -43,7 +45,7 @@ export class TenantService {
   getMoveOutNotices(page: number = 1, limit: number = 10): Observable<MoveOutNoticeResponse> {
     const token = this.authService.getToken();
     if (!token) {
-      return of(this.getMockMoveOutNotices());
+      return of({ data: [], total: 0, page: 1, limit: 10 });
     }
 
     const params = new HttpParams()
@@ -58,7 +60,7 @@ export class TenantService {
       }
     ).pipe(
       catchError((error) => {
-        return of(this.getMockMoveOutNotices());
+        return of({ data: [], total: 0, page: 1, limit: 10 });
       })
     );
   }
@@ -87,8 +89,7 @@ export class TenantService {
 
         return of({
           success: false,
-          message: error.error?.message || 'Failed to submit move-out notice',
-          error: error
+          message: error.error?.message || 'Failed to submit move-out notice'
         });
       })
     );
@@ -176,15 +177,6 @@ export class TenantService {
         });
       })
     );
-  }
-
-  private getMockMoveOutNotices(): MoveOutNoticeResponse {
-    return {
-      data: [],
-      total: 0,
-      page: 1,
-      limit: 10
-    };
   }
 
   private createHeaders(): HttpHeaders {

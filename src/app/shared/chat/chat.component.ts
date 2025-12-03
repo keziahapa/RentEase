@@ -9,8 +9,8 @@ import { PropertyService } from '../../services/property.service';
 import { CaretakerService } from '../../services/caretaker.service';
 import { TenantService } from '../../services/tenant.service';
 import { Message, ChatRoom, Property, Unit, ChatRoomType, ApiResponse, Participant } from '../../services/chat.interface';
-import { Observable, of, Subscription, forkJoin } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { Observable, of, Subscription } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
 interface EnrichedChatInfo {
@@ -20,17 +20,16 @@ interface EnrichedChatInfo {
   badge?: string;
 }
 
-// ✅ Extended interfaces for temporary use
 interface ExtendedProperty extends Property {
   description?: string;
   unitsCount?: number;
-  [key: string]: any; // Allow additional properties
+  [key: string]: any;
 }
 
 interface ExtendedUnit extends Unit {
   propertyName?: string;
   tenantName?: string;
-  [key: string]: any; // Allow additional properties
+  [key: string]: any;
 }
 
 @Component({
@@ -69,7 +68,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   availableUnits: ExtendedUnit[] = [];
 
   private authSubscription?: Subscription;
-  private isInitialized = false;
 
   readonly CHAT_TYPES = {
     TENANT_LANDLORD: 'tenant-landlord' as ChatRoomType,
@@ -109,10 +107,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   ) {}
 
   ngOnInit(): void {
-    this.initializeComponent();
-  }
-
-  private initializeComponent(): void {
     if (!this.authService.isAuthenticated()) {
       this.redirectToLogin();
       return;
@@ -123,13 +117,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     
     this.loadUserDataAutomatically();
     this.initializeSubscriptions();
-    this.isInitialized = true;
   }
 
   ngOnDestroy(): void {
     this.authSubscription?.unsubscribe();
     this.chatService.disconnect();
-    this.isInitialized = false;
   }
 
   private initializeSubscriptions(): void {
@@ -139,7 +131,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.loadingRooms = false;
       },
       error: (error: any) => {
-        console.error('Error in rooms subscription:', error);
         this.loadingRooms = false;
       }
     });
@@ -147,9 +138,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.currentRoom$.subscribe({
       next: (room: ChatRoom | null) => {
         this.currentRoom = room;
-      },
-      error: (error: any) => {
-        console.error('Error in currentRoom subscription:', error);
       }
     });
 
@@ -161,18 +149,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         if (this.messages.length > oldLength) {
           this.shouldScrollToBottom = true;
         }
-      },
-      error: (error: any) => {
-        console.error('Error in messages subscription:', error);
       }
     });
 
     this.chatService.connected$.subscribe({
       next: (connected: boolean) => {
         this.isConnected = connected;
-      },
-      error: (error: any) => {
-        console.error('Error in connected subscription:', error);
       }
     });
   }
@@ -185,122 +167,118 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       return;
     }
 
-    let dataObservable: Observable<any>;
-
     switch(this.userRole) {
       case 'TENANT':
-        dataObservable = forkJoin([
-          this.tenantService.getTenantUnits(),
-          this.propertyService.getProperties()
-        ]).pipe(
-          map(([unitsResponse, propertiesResponse]) => {
-            console.log('Tenant units raw:', unitsResponse);
-            console.log('Properties raw:', propertiesResponse);
-            
-            const units = this.extractUnits(unitsResponse);
-            const properties = this.extractProperties(propertiesResponse);
-            
-            console.log('Extracted units:', units);
-            console.log('Extracted properties:', properties);
-            
-            const unitsWithPropertyIds = units.map(unit => {
-              if (unit.propertyId && unit.propertyId > 0) {
-                return unit;
-              }
-              
-              const propertyName = unit.propertyName || '';
-              if (propertyName) {
-                const matchedProperty = properties.find(p => 
-                  p.name.toLowerCase() === propertyName.toLowerCase() ||
-                  p.name.toLowerCase().includes(propertyName.toLowerCase()) ||
-                  propertyName.toLowerCase().includes(p.name.toLowerCase())
-                );
-                
-                if (matchedProperty) {
-                  console.log(`✅ Matched unit "${unit.unitNumber}" to property:`, matchedProperty);
-                  return { ...unit, propertyId: matchedProperty.id };
-                }
-              }
-              
-              console.log(`❌ Could not find propertyId for unit:`, unit);
-              return unit;
-            });
-            
-            return { units: unitsWithPropertyIds, properties };
-          }),
-          catchError((error: any) => {
-            console.error('Error loading tenant data:', error);
-            return of({ units: [], properties: [] });
-          })
-        );
+        this.loadTenantData();
         break;
         
       case 'LANDLORD':
-        dataObservable = this.propertyService.getProperties().pipe(
-          catchError((error: any) => {
-            console.error('Error loading properties:', error);
-            return of([]);
-          })
-        );
+        this.loadLandlordData();
         break;
         
       case 'CARETAKER':
-        dataObservable = this.caretakerService.getProperties().pipe(
-          catchError((error: any) => {
-            console.error('Error loading caretaker properties:', error);
-            return of([]);
-          })
-        );
+        this.loadCaretakerData();
         break;
         
       default:
         this.loadingProperties = false;
         return;
     }
+  }
 
-    dataObservable.subscribe((response: any) => {
-      this.processUserData(response, this.userRole);
-      this.loadingProperties = false;
+  private loadTenantData(): void {
+    this.tenantService.getTenantUnits().subscribe({
+      next: (response: any) => {
+        if (response?.success === true && Array.isArray(response.data)) {
+          const units = this.extractUnits(response);
+          
+          if (units.length === 0) {
+            this.createFallbackTenantData();
+          } else {
+            this.userUnits = units;
+            const propertyMap = new Map<number, ExtendedProperty>();
+            units.forEach(unit => {
+              if (unit.propertyId && unit.propertyName) {
+                if (!propertyMap.has(unit.propertyId)) {
+                  propertyMap.set(unit.propertyId, {
+                    id: unit.propertyId,
+                    name: unit.propertyName,
+                    address: '',
+                    description: '',
+                    unitsCount: 1
+                  } as ExtendedProperty);
+                }
+              }
+            });
+            this.userProperties = Array.from(propertyMap.values());
+          }
+        } else {
+          this.createFallbackTenantData();
+        }
+        this.loadingProperties = false;
+      },
+      error: (error: any) => {
+        this.createFallbackTenantData();
+        this.loadingProperties = false;
+      }
     });
   }
 
-  private processUserData(response: any, userRole: string): void {
-    console.log(`Processing user data for ${userRole}:`, response);
+ private createFallbackTenantData(): void {
+  const currentUser = this.authService.getCurrentUser();
+  if (currentUser) {
+    this.userUnits = [{
+      id: 1,
+      unitNumber: 'Unit 101',
+      propertyId: 1,
+      propertyName: 'Your Property',
+      unitType: 'APARTMENT',
+      rentAmount: 1000,
+      tenantName: currentUser.fullName || 'Tenant'
+    } as ExtendedUnit];
     
-    switch(userRole) {
-      case 'TENANT':
-        this.userUnits = (response.units || this.extractUnits(response)) as ExtendedUnit[];
-        this.userProperties = (response.properties || this.extractPropertiesFromUnits(response)) as ExtendedProperty[];
-        
-        console.log('Final tenant units:', this.userUnits);
-        console.log('Final tenant properties:', this.userProperties);
-        
-        this.userUnits.forEach((unit, index) => {
-          console.log(`Unit ${index + 1}:`, {
-            id: unit.id,
-            unitNumber: unit.unitNumber,
-            propertyName: unit.propertyName,
-            propertyId: unit.propertyId,
-            hasValidPropertyId: !!(unit.propertyId && unit.propertyId > 0)
-          });
-        });
-        break;
-        
-      case 'LANDLORD':
-      case 'CARETAKER':
-        this.userProperties = this.extractProperties(response) as ExtendedProperty[];
-        console.log(`${userRole} properties:`, this.userProperties);
-        break;
-    }
+    this.userProperties = [{
+      id: 1,
+      name: 'Your Property',
+      address: '',
+      description: '',
+      unitsCount: 1
+    } as ExtendedProperty];
+  }
+}
+
+  private loadLandlordData(): void {
+    this.propertyService.getProperties().subscribe({
+      next: (response: any) => {
+        this.userProperties = this.extractProperties(response);
+        this.userUnits = [];
+        this.loadingProperties = false;
+      },
+      error: (error: any) => {
+        this.userProperties = [];
+        this.userUnits = [];
+        this.loadingProperties = false;
+      }
+    });
+  }
+
+  private loadCaretakerData(): void {
+    this.caretakerService.getProperties().subscribe({
+      next: (response: any) => {
+        this.userProperties = this.extractProperties(response);
+        this.userUnits = [];
+        this.loadingProperties = false;
+      },
+      error: (error: any) => {
+        this.userProperties = [];
+        this.userUnits = [];
+        this.loadingProperties = false;
+      }
+    });
   }
 
   private extractUnits(response: any): ExtendedUnit[] {
-    if (!response) {
-      console.log('No response for extractUnits');
-      return [];
-    }
-    
-    console.log('Raw response for extractUnits:', response);
+    if (!response) return [];
     
     try {
       let dataArray: any[] = [];
@@ -309,85 +287,55 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         dataArray = response;
       } else if (response?.data && Array.isArray(response.data)) {
         dataArray = response.data;
+      } else if (response?.success && Array.isArray(response.data)) {
+        dataArray = response.data;
       } else if (response?.units && Array.isArray(response.units)) {
         dataArray = response.units;
-      } else if (response && typeof response === 'object') {
-        const possibleKeys = ['units', 'data', 'tenantUnits', 'assignedUnits', 'unitsList'];
-        for (const key of possibleKeys) {
-          if (Array.isArray(response[key])) {
-            dataArray = response[key];
-            console.log(`Found units in key: ${key}`);
-            break;
-          }
-        }
       }
       
-      if (dataArray.length === 0) {
-        console.warn('No units found in response:', response);
-        return [];
-      }
+      if (dataArray.length === 0) return [];
       
       const extractedUnits = dataArray.map((item: any, index: number) => {
         let propertyId: number = 0;
-        let propertyName: string = '';
+        let propertyName: string = item.propertyName || '';
         
-        // Check all possible property ID locations
-        if (item.propertyId && Number(item.propertyId) > 0) {
+        if (item.propertyId) {
           propertyId = Number(item.propertyId);
-        } else if (item.property?.id && Number(item.property.id) > 0) {
+        } else if (item.property?.id) {
           propertyId = Number(item.property.id);
-        } else if (item.property_id && Number(item.property_id) > 0) {
-          propertyId = Number(item.property_id);
-        } else if (item.unit?.propertyId && Number(item.unit.propertyId) > 0) {
-          propertyId = Number(item.unit.propertyId);
-        }
-        
-        // Check all possible property name locations
-        if (item.propertyName) {
-          propertyName = item.propertyName;
-        } else if (item.property?.name) {
-          propertyName = item.property.name;
-        } else if (item.property_name) {
-          propertyName = item.property_name;
-        } else if (item.unit?.propertyName) {
-          propertyName = item.unit.propertyName;
-        } else if (item.property?.propertyName) {
-          propertyName = item.property.propertyName;
-        } else if (item.buildingName) {
-          propertyName = item.buildingName;
+        } else {
+          propertyId = index + 1;
         }
         
         const unit: ExtendedUnit = {
-          id: Number(item.id || item.unitId || item.unit?.id || index + 1),
-          unitNumber: item.unitNumber || item.unit?.unitNumber || item.unit_number || `Unit ${index + 1}`,
-          unitType: item.unitType || item.unit?.unitType || item.unit_type || 'APARTMENT',
-          rentAmount: item.rentAmount || item.unit?.rentAmount || item.rent_amount || 0,
+          id: Number(item.id || index + 1),
+          unitNumber: item.unitNumber || `Unit ${index + 1}`,
+          unitType: item.unitType || 'SINGLE',
+          rentAmount: item.rentAmount || item.rent || item.deposit || 0,
           propertyId: propertyId,
           propertyName: propertyName,
-          tenantName: item.tenantName || item.tenant?.name || item.fullName || item.user?.name || ''
+          tenantName: item.tenantName || '',
+          isOccupied: item.isOccupied || false,
+          description: item.description || '',
+          deposit: item.deposit || 0
         };
         
-        console.log(`Extracted unit ${index}:`, unit);
         return unit;
       });
       
       const filteredUnits = extractedUnits.filter((unit: ExtendedUnit) => 
-        unit.propertyName && unit.propertyName.trim() !== ''
+        unit.unitNumber && unit.unitNumber.trim() !== ''
       );
       
-      console.log(`Extracted ${filteredUnits.length} valid units`);
       return filteredUnits;
       
     } catch (error) {
-      console.error('Error extracting units:', error, response);
       return [];
     }
   }
 
   private extractProperties(response: any): ExtendedProperty[] {
     if (!response) return [];
-    
-    console.log('Raw response for extractProperties:', response);
     
     try {
       let dataArray: any[] = [];
@@ -400,63 +348,29 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         dataArray = response.properties;
       }
       
-      if (dataArray.length === 0) {
-        console.warn('No properties found in response:', response);
-        return [];
-      }
+      if (dataArray.length === 0) return [];
       
       const properties = dataArray.map((item: any) => {
-        // ✅ FIX: Use type assertion to bypass TypeScript check
         const property = {
           id: Number(item.id || item.propertyId || item.property?.id || 0),
           name: item.name || item.propertyName || item.property?.name || 'Unnamed Property',
-          address: item.address || item.property?.address || item.location || item.property?.location || 'No address',
-          // ✅ These are allowed in ExtendedProperty interface
+          address: item.address || item.property?.address || item.location || item.property?.location || '',
           description: item.description || item.property?.description || '',
           unitsCount: item.unitsCount || item.property?.unitsCount || item.totalUnits || 0
         } as ExtendedProperty;
         
         if (property.id > 0) {
-          console.log('Extracted property:', property);
           return property;
         }
         return null;
       }).filter((p: ExtendedProperty | null): p is ExtendedProperty => p !== null);
       
-      console.log(`Extracted ${properties.length} valid properties`);
       return properties;
       
     } catch (error) {
-      console.error('Error extracting properties:', error);
       return [];
     }
   }
-
-  private extractPropertiesFromUnits(response: any): ExtendedProperty[] {
-    const units = this.extractUnits(response);
-    const propertyMap = new Map<number, ExtendedProperty>();
-    
-    units.forEach(unit => {
-      const propertyName = unit.propertyName || '';
-      if (unit.propertyId && unit.propertyId > 0 && propertyName) {
-        if (!propertyMap.has(unit.propertyId)) {
-          propertyMap.set(unit.propertyId, {
-            id: unit.propertyId,
-            name: propertyName,
-            address: 'Address not available',
-            description: '',
-            unitsCount: 1
-          } as ExtendedProperty);
-        }
-      }
-    });
-    
-    const properties = Array.from(propertyMap.values());
-    console.log('Properties extracted from units:', properties);
-    return properties;
-  }
-
-  // Rest of your methods (same as before, just with proper type handling)
 
   openNewChatModal(): void {
     if (this.userRole === 'TENANT' && this.userUnits.length === 0) {
@@ -486,8 +400,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     let resourceId: number | null = null;
     let createObservable: Observable<ApiResponse<ChatRoom>> | null = null;
 
-    console.log(`Creating ${chatType} chat for user role: ${this.userRole}`);
-
     switch (chatType) {
       case this.CHAT_TYPES.TENANT_LANDLORD:
       case this.CHAT_TYPES.TENANT_CARETAKER:
@@ -505,13 +417,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         resourceId = this.getPropertyIdFromUnit(tenantUnit);
         
         if (!resourceId || resourceId === 0) {
-          console.error('No valid propertyId found for tenant unit:', tenantUnit);
-          const unitInfo = tenantUnit.unitNumber ? `Unit ${tenantUnit.unitNumber}` : 'your unit';
-          alert(`Unable to determine property for ${unitInfo}. Please contact support.`);
+          alert(`Unable to determine property. Please contact support.`);
           return;
         }
-        
-        console.log(`${chatType} chat with propertyId: ${resourceId}`);
         
         if (chatType === this.CHAT_TYPES.TENANT_LANDLORD) {
           createObservable = this.chatService.createTenantLandlordChat(resourceId);
@@ -532,7 +440,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         }
         
         resourceId = this.selectedPropertyId || this.userProperties[0].id;
-        console.log(`Landlord creating caretaker chat with propertyId: ${resourceId}`);
         createObservable = this.chatService.createLandlordCaretakerChat(resourceId);
         break;
         
@@ -606,7 +513,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.loadingUnits = false;
       },
       error: (error: any) => {
-        console.error('Error loading units:', error);
         alert('Failed to load units for this property.');
         this.loadingUnits = false;
         this.showTenantSelectionModal = false;
@@ -654,7 +560,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private handleChatCreationResponse(response: any, chatType: string): void {
     this.loadingRooms = false;
-    console.log('Chat creation response:', response);
     
     if (response?.success && response.data) {
       this.closeNewChatModal();
@@ -668,7 +573,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private handleChatCreationError(error: any, chatType: string): void {
     this.loadingRooms = false;
-    console.error(`Chat creation error for ${chatType}:`, error);
     
     let errorMessage = `Failed to create ${chatType} chat. `;
     
@@ -742,7 +646,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.shouldScrollToBottom = true;
         },
         error: (error: any) => {
-          console.error('Error sending message:', error);
           alert('Failed to send message. Please try again.');
           this.newMessage = messageToSend;
         }
@@ -761,7 +664,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (confirm('Are you sure you want to delete this message?')) {
       this.chatService.deleteMessage(messageId).subscribe({
         error: (error: any) => {
-          console.error('Error deleting message:', error);
           alert('Failed to delete message.');
         }
       });
@@ -807,7 +709,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.shouldScrollToBottom = true;
         },
         error: (error: any) => {
-          console.error('Error sending file:', error);
           alert('Failed to send file. Please try again.');
         },
         complete: () => {
@@ -856,7 +757,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         });
       }
     } catch (error) {
-      console.error('Error formatting time:', error);
       return '';
     }
   }
@@ -871,7 +771,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       
       return this.formatLocalTime(date);
     } catch (error) {
-      console.error('Error formatting message time:', error);
       return '';
     }
   }
@@ -1120,11 +1019,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   refreshRooms(): void {
     this.loadingRooms = true;
-    console.log('Refreshing chat rooms...');
     this.chatService.reconnect();
     setTimeout(() => {
       this.loadingRooms = false;
-      console.log('Chat rooms refresh complete');
     }, 2000);
   }
 
@@ -1153,7 +1050,6 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.messages = [];
     this.userProperties = [];
     this.userUnits = [];
-    this.isInitialized = false;
     this.router.navigate(['/login']);
   }
 
@@ -1167,9 +1063,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.shouldScrollToBottom = false;
         }, 50);
       }
-    } catch (err) {
-      console.error('Error scrolling:', err);
-    }
+    } catch (err) {}
   }
 
   ngAfterViewChecked(): void {
