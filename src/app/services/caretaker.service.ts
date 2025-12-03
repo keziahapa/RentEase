@@ -1,16 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { 
-  Property, 
-  Unit, 
-  MoveOutNotice, 
-  DashboardStats, 
-  CreateUnitRequest,
-  ApiResponse 
-} from '../services/caretaker-interfaces'
 
 @Injectable({
   providedIn: 'root'
@@ -46,8 +38,6 @@ export class CaretakerService {
     } else if (error.error?.message) {
       errorMessage = error.error.message;
     }
-
-    console.warn('Caretaker service error handled:', errorMessage);
     
     return throwError(() => ({
       status: error.status,
@@ -56,45 +46,26 @@ export class CaretakerService {
     }));
   }
 
-  // ✅ FIXED: Proper implementation for caretaker properties
   getCaretakerProperties(): Observable<any[]> {
-    console.log('🔍 CaretakerService: Fetching caretaker properties');
-    
     return this.http.get<any>(`${this.apiUrl}/caretaker/properties`, {
       headers: this.createHeaders()
     }).pipe(
-      tap(response => {
-        console.log('✅ CaretakerService: Properties API response:', response);
-      }),
       map(response => {
-        // Handle various response structures
         if (Array.isArray(response)) {
-          console.log(`📦 Direct array: ${response.length} properties`);
           return response;
         }
         if (response?.data && Array.isArray(response.data)) {
-          console.log(`📦 response.data: ${response.data.length} properties`);
           return response.data;
         }
         if (response?.properties && Array.isArray(response.properties)) {
-          console.log(`📦 response.properties: ${response.properties.length} properties`);
           return response.properties;
         }
         if (response?.content && Array.isArray(response.content)) {
-          console.log(`📦 response.content: ${response.content.length} properties`);
           return response.content;
         }
-        
-        console.warn('⚠️ Unexpected response structure, returning empty array');
         return [];
       }),
       catchError(error => {
-        console.error('❌ CaretakerService: Error fetching properties:', error);
-        console.error('Error details:', {
-          status: error.status,
-          message: error.message,
-          url: error.url
-        });
         return of([]);
       })
     );
@@ -119,7 +90,6 @@ export class CaretakerService {
         };
       }),
       catchError(error => {
-        console.log('Error calculating caretaker dashboard data:', error);
         return of({
           hasProperties: false,
           totalProperties: 0,
@@ -133,18 +103,11 @@ export class CaretakerService {
     );
   }
 
-  // Main properties getter
-  getProperties(): Observable<Property[]> {
-    console.log('🔍 CaretakerService: getProperties() called');
-    
+  getProperties(): Observable<any[]> {
     return this.http.get<any>(`${this.apiUrl}/caretaker/properties`, {
       headers: this.createHeaders()
     }).pipe(
-      tap(response => {
-        console.log('✅ CaretakerService: getProperties response:', response);
-      }),
       map(response => {
-        // Normalize response
         let propertiesArray: any[] = [];
         
         if (Array.isArray(response)) {
@@ -157,22 +120,16 @@ export class CaretakerService {
           propertiesArray = response.content;
         }
         
-        console.log(`📦 Extracted ${propertiesArray.length} properties`);
         return propertiesArray;
       }),
       catchError(this.handleError)
     );
   }
 
-  getPropertyDetails(propertyId: number): Observable<Property> {
-    console.log('🔍 CaretakerService: Fetching property details for ID:', propertyId);
-    
+  getPropertyDetails(propertyId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/caretaker/properties/${propertyId}`, {
       headers: this.createHeaders()
     }).pipe(
-      tap(response => {
-        console.log('✅ CaretakerService: Property details response:', response);
-      }),
       map(response => {
         if (response?.data) return response.data;
         if (response?.property) return response.property;
@@ -182,60 +139,35 @@ export class CaretakerService {
     );
   }
 
-  // ✅ FIXED: Better unit extraction for caretaker
-  getPropertyUnits(propertyId: number): Observable<Unit[]> {
-    console.log('🔍 CaretakerService: Fetching units for property ID:', propertyId);
-    
+  getPropertyUnits(propertyId: number): Observable<any[]> {
     return this.http.get<any>(`${this.apiUrl}/caretaker/properties/${propertyId}/units`, {
       headers: this.createHeaders()
     }).pipe(
-      tap(response => {
-        console.log('✅ CaretakerService: Units API response:', response);
-      }),
       map(response => {
-        // Handle various response structures
         let unitsArray: any[] = [];
         
         if (Array.isArray(response)) {
-          console.log(`📦 Direct array: ${response.length} units`);
           unitsArray = response;
         } else if (response?.data && Array.isArray(response.data)) {
-          console.log(`📦 response.data: ${response.data.length} units`);
           unitsArray = response.data;
         } else if (response?.units && Array.isArray(response.units)) {
-          console.log(`📦 response.units: ${response.units.length} units`);
           unitsArray = response.units;
         } else if (response?.content && Array.isArray(response.content)) {
-          console.log(`📦 response.content: ${response.content.length} units`);
           unitsArray = response.content;
-        } else {
-          console.warn('⚠️ Unexpected response structure for units');
         }
         
-        console.log(`📋 Returning ${unitsArray.length} units for property ${propertyId}`);
         return unitsArray;
       }),
       catchError(error => {
-        console.error('❌ CaretakerService: Error fetching units:', error);
-        console.error('Error details:', {
-          status: error.status,
-          message: error.message,
-          propertyId: propertyId
-        });
         return this.handleError(error);
       })
     );
   }
 
-  getAllUnits(): Observable<Unit[]> {
-    console.log('🔍 CaretakerService: Fetching all units');
-    
+  getAllUnits(): Observable<any[]> {
     return this.http.get<any>(`${this.apiUrl}/caretaker/units`, {
       headers: this.createHeaders()
     }).pipe(
-      tap(response => {
-        console.log('✅ CaretakerService: All units response:', response);
-      }),
       map(response => {
         let unitsArray: any[] = [];
         
@@ -247,22 +179,16 @@ export class CaretakerService {
           unitsArray = response.units;
         }
         
-        console.log(`📦 Extracted ${unitsArray.length} total units`);
         return unitsArray;
       }),
       catchError(this.handleError)
     );
   }
 
-  createUnit(propertyId: number, unit: CreateUnitRequest): Observable<Unit> {
-    console.log('🔧 CaretakerService: Creating unit for property:', propertyId);
-    
+  createUnit(propertyId: number, unit: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/caretaker/properties/${propertyId}/units`, unit, {
       headers: this.createHeaders()
     }).pipe(
-      tap(response => {
-        console.log('✅ CaretakerService: Unit created:', response);
-      }),
       map(response => {
         if (response?.data) return response.data;
         if (response?.unit) return response.unit;
@@ -272,15 +198,10 @@ export class CaretakerService {
     );
   }
 
-  updateUnit(unitId: number, unit: Partial<Unit>): Observable<Unit> {
-    console.log('🔧 CaretakerService: Updating unit:', unitId);
-    
+  updateUnit(unitId: number, unit: any): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/caretaker/units/${unitId}`, unit, {
       headers: this.createHeaders()
     }).pipe(
-      tap(response => {
-        console.log('✅ CaretakerService: Unit updated:', response);
-      }),
       map(response => {
         if (response?.data) return response.data;
         if (response?.unit) return response.unit;
@@ -291,36 +212,26 @@ export class CaretakerService {
   }
 
   deleteUnit(unitId: number): Observable<any> {
-    console.log('🗑️ CaretakerService: Deleting unit:', unitId);
-    
     return this.http.delete<any>(`${this.apiUrl}/caretaker/units/${unitId}`, {
       headers: this.createHeaders()
     }).pipe(
-      tap(response => {
-        console.log('✅ CaretakerService: Unit deleted:', response);
-      }),
       catchError(this.handleError)
     );
   }
 
   inviteTenant(tenantEmail: string, unitId: number): Observable<any> {
-    console.log('📧 CaretakerService: Inviting tenant to unit:', unitId);
-    
     return this.http.post<any>(`${this.apiUrl}/caretaker/invite-tenant`, { 
       tenantEmail, 
       unitId 
     }, {
       headers: this.createHeaders()
     }).pipe(
-      tap(response => {
-        console.log('✅ CaretakerService: Tenant invited:', response);
-      }),
       map(response => response),
       catchError(this.handleError)
     );
   }
 
-  getMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<MoveOutNotice[]> {
+  getMoveOutNotices(page: number = 1, limit: number = 10, status?: string): Observable<any[]> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
@@ -342,7 +253,7 @@ export class CaretakerService {
     );
   }
 
-  getPendingMoveOutNotices(page: number = 1, limit: number = 10): Observable<MoveOutNotice[]> {
+  getPendingMoveOutNotices(page: number = 1, limit: number = 10): Observable<any[]> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
@@ -360,7 +271,7 @@ export class CaretakerService {
     );
   }
 
-  getMovedOutNotices(page: number = 1, limit: number = 10): Observable<MoveOutNotice[]> {
+  getMovedOutNotices(page: number = 1, limit: number = 10): Observable<any[]> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
@@ -378,7 +289,7 @@ export class CaretakerService {
     );
   }
 
-  getMoveOutNoticeById(noticeId: number): Observable<MoveOutNotice> {
+  getMoveOutNoticeById(noticeId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/caretaker/move-out-notices/${noticeId}`, {
       headers: this.createHeaders()
     }).pipe(
@@ -445,7 +356,7 @@ export class CaretakerService {
     );
   }
 
-  getDashboardStats(): Observable<DashboardStats> {
+  getDashboardStats(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/caretaker/dashboard/stats`, {
       headers: this.createHeaders()
     }).pipe(
